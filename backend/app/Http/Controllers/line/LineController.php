@@ -13,12 +13,15 @@ class LineController extends Controller
     public function webhook(Request $request) : JsonResponse{
         $res = $request->all();
         $events = $res["events"];
-        $chatHistory = new chatHistory();
-        $chatHistory->custId = $events[0]['source']['userId'];
-        $chatHistory->textMessage = $events[0]['message']['text'];
-        $chatHistory->save();
-
-        Log::info('Showing request', ['request' => json_encode($events, JSON_PRETTY_PRINT)]);
+        if (count($events) > 0) {
+//            if ($events[0]["type"] === "event") {
+//                $chatHistory = new chatHistory();
+//                $chatHistory->custId = $events[0]['source']['userId'];
+//                $chatHistory->textMessage = $events[0]['message']['text'];
+//                $chatHistory->save();
+//            }
+        }
+        Log::info('Showing request', ['request' => json_encode($res, JSON_PRETTY_PRINT)]);
         return response()->json([
             'response' => $request->all()
         ]);

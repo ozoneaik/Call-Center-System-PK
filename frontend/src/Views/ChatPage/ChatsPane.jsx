@@ -52,9 +52,9 @@ export default function ChatsPane(props) {
                     <CloseRoundedIcon/>
                 </IconButton>
             </Stack>
-            {/*<Box sx={{px: 2, pb: 1.5}}>*/}
-            {/*    <Input size="sm" startDecorator={<SearchRoundedIcon/>} placeholder="Search" aria-label="Search"/>*/}
-            {/*</Box>*/}
+            <Box sx={{px: 2, pb: 1.5}}>
+                <Input size="sm" startDecorator={<SearchRoundedIcon/>} placeholder="Search" aria-label="Search"/>
+            </Box>
             <List
                 sx={{
                     py: 0,
