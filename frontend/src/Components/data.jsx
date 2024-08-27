@@ -119,12 +119,6 @@ export const chats = [
                 sender: users[0],
                 content: "สวัสดีครับ",
             },
-            {
-                id: '11',
-                timestamp: 'Just now',
-                sender: 'You',
-                content: "สวัสดีครับ",
-            },
         ],
     },
     {
