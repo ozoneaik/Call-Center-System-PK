@@ -18,7 +18,10 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'Test User',
+            'code' => 'test',
             'email' => 'test@gmail.com',
+            'role' => 'admin',
+            'groups' => '["1","2","3"]',
             'password' => Hash::make('1111'),
         ]);
     }
