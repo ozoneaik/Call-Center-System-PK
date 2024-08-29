@@ -16,6 +16,7 @@ function ProtectedLayout() {
                     window.location.href="/login";
                 }
             }catch(error){
+                alert(error.response.status);
                 if (error.response.status === 401){
                     localStorage.removeItem('user');
                     window.location.href="/login";
