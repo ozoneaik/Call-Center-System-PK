@@ -1,12 +1,10 @@
 <IfModule mod_rewrite.c>
-
-    RewriteEngine On
-    # Define the base URL
-     RewriteBase /Call-Center-System-PK/frontend/dist/
-
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
+
+    RewriteEngine On
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
