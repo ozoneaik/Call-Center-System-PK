@@ -27,7 +27,6 @@ import {LogoutApi} from "../Api/Auth.js";
 import {AlertWithConfirm} from "../Dialogs/Alert.js";
 
 function Toggler(props) {
-    // eslint-disable-next-line react/prop-types
     const {defaultExpanded, renderToggle, children} = props;
     const [open, setOpen] = React.useState(defaultExpanded);
     return (
@@ -135,6 +134,15 @@ export default function Sidebar() {
                             <ListItemContent >
                                 <Typography level="title-sm">หน้าหลัก</Typography>
                             </ListItemContent>
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton component={Link} to={'/chats'}>
+                            <QuestionAnswerRoundedIcon/>
+                            <ListItemContent>
+                                <Typography level="title-sm">ห้องแชททั้งหมด</Typography>
+                            </ListItemContent>
+                            <Chip size="sm" color="danger" variant="solid">10</Chip>
                         </ListItemButton>
                     </ListItem>
                     <ListItem nested>

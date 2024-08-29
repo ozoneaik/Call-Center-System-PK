@@ -104,7 +104,7 @@ export default function JoySignInSideTemplate() {
                         <Stack gap={4} sx={{mb: 2}}>
                             <Stack gap={1}>
                                 <Typography component="h1" level="h3">
-                                    Call center System <br/> ระบบแชทบริการลูกค้า
+                                    Call Center System <br/> ระบบแชทบริการลูกค้า
                                 </Typography>
                             </Stack>
                         </Stack>

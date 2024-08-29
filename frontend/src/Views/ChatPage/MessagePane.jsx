@@ -9,7 +9,6 @@ import {useEffect, useState} from "react";
 
 
 export default function MessagesPane(props) {
-    // eslint-disable-next-line react/prop-types
     const { chat } = props;
     const [chatMessages, setChatMessages] = useState(chat.messages);
     const [textAreaValue, setTextAreaValue] = useState('');

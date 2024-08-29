@@ -1,13 +1,15 @@
 import Stack from '@mui/joy/Stack';
 import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
-import {Box, Chip, IconButton, Input} from '@mui/joy';
+import {Chip, IconButton} from '@mui/joy';
 import List from '@mui/joy/List';
 import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ChatListItem from './ChatListItem';
 import {toggleMessagesPane} from "../../Components/utils.js";
+import Box from "@mui/joy/Box";
+import Input from "@mui/joy/Input";
 
 export default function ChatsPane(props) {
     // eslint-disable-next-line react/prop-types
@@ -26,10 +28,7 @@ export default function ChatsPane(props) {
                 <Typography
                     component="h1"
                     endDecorator={
-                        <Chip
-                            variant="soft" color="primary" size="md"
-                            slotProps={{root: {component: 'span'}}}
-                        >
+                        <Chip variant="soft" color="primary" size="md" slotProps={{root: {component: 'span'}}}>
                             10
                         </Chip>
                     }

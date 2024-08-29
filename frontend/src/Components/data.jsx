@@ -2,7 +2,7 @@ export const users = [
     {
         name: 'ร้านอุ้งอิ้ง',
         username: '@คุยไม่ค่อยรู้เรื่อง',
-        avatar: '/static/images/avatar/2.jpg',
+        avatar: 'https://img-cdn.pixlr.com/image-generator/history/65bb506dcb310754719cf81f/ede935de-1138-4f66-8ed7-44bd16efc709/medium.webp',
         online: true,
     },
     {
