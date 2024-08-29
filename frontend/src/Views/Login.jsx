@@ -14,6 +14,7 @@ import Typography from '@mui/joy/Typography';
 import Stack from '@mui/joy/Stack';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
+import LoginIcon from '@mui/icons-material/Login';
 import ChatIcon from '@mui/icons-material/Chat';
 import {LoginApi} from "../Api/Auth.js";
 import {useAuth} from "../Contexts/AuthContext.jsx";
@@ -117,12 +118,12 @@ export default function JoySignInSideTemplate() {
                         <Stack gap={4} sx={{mt: 2}}>
                             <form onSubmit={onSubmit} method={'POST'}>
                                 <FormControl required>
-                                    <FormLabel>員工編號 (Emp Code,รหัสพนักงาน)</FormLabel>
+                                    <FormLabel>รหัสพนักงาน</FormLabel>
                                     <Input defaultValue={email} onChange={(e) => setEmail(e.target.value)} type="email"
                                            name="email"/>
                                 </FormControl>
                                 <FormControl required>
-                                    <FormLabel>密码 (Password,รหัสผ่าน)</FormLabel>
+                                    <FormLabel>รหัสผ่าน</FormLabel>
                                     <Input defaultValue={password} onChange={(e) => setPassword(e.target.value)}
                                            type="password" name="password"/>
                                 </FormControl>
@@ -130,7 +131,14 @@ export default function JoySignInSideTemplate() {
                                     <Button
                                         sx={{backgroundColor: '#f15739', '&:hover': {backgroundColor: 'darkorange'}}}
                                         disabled={loading} type="submit" fullWidth>
-                                        {!loading ? <span>登入 (Login,เข้าสู่ระบบ)</span> : <CircularProgress/>}
+                                        {
+                                            !loading ?
+                                                <span>
+                                                    <LoginIcon/>
+                                                </span>
+                                                :
+                                                <CircularProgress/>
+                                        }
                                     </Button>
                                 </Stack>
 
