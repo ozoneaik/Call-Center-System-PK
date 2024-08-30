@@ -34,7 +34,7 @@ export default function ChatsPane(props) {
                     }
                     sx={{fontSize: {xs: 'md', md: 'lg'}, fontWeight: 'lg', mr: 'auto'}}
                 >
-                    Messages
+                    ข้อความ
                 </Typography>
                 <IconButton
                     variant="plain" aria-label="edit" color="neutral" size="sm"
