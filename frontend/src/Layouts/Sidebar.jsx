@@ -18,6 +18,7 @@ import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import GroupIcon from '@mui/icons-material/Group';
 import ChatIcon from '@mui/icons-material/Chat';
 import ColorSchemeToggle from "../Components/ColorSchemeToggle.jsx";
 import {closeSidebar} from "../Components/utils.js";
@@ -188,6 +189,12 @@ export default function Sidebar() {
                         <ListItemButton>
                             <SettingsRoundedIcon/>
                             การตั้งค่า
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton component={Link} to={'/customer'}>
+                            <GroupIcon/>
+                            จัดการสมาชิก
                         </ListItemButton>
                     </ListItem>
                 </List>

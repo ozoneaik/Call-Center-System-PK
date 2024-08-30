@@ -7,13 +7,12 @@ import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ChatListItem from './ChatListItem';
-import {toggleMessagesPane} from "../../Components/utils.js";
 import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
 
 export default function ChatsPane(props) {
     // eslint-disable-next-line react/prop-types
-    const {chats, setSelectedChat, selectedChatId} = props;
+    const {chats, setSelectedChat, selectedChatId, setSelectedManage, selectedManageId} = props;
     return (
         <Sheet
             sx={{
@@ -44,9 +43,9 @@ export default function ChatsPane(props) {
                 </IconButton>
                 <IconButton
                     variant="plain" aria-label="edit" color="neutral" size="sm" sx={{display: {sm: 'none'}}}
-                    onClick={() => {
-                        toggleMessagesPane();
-                    }}
+                    // onClick={() => {
+                    //     toggleMessagesPane();
+                    // }}
                 >
                     <CloseRoundedIcon/>
                 </IconButton>
@@ -63,8 +62,10 @@ export default function ChatsPane(props) {
             >
                 {chats.map((chat) => (
                     <ChatListItem
-                        key={chat.id}{...chat} setSelectedChat={setSelectedChat} selectedChatId={selectedChatId}
-                    />
+                        key={chat.id}{...chat}
+                        setSelectedChat={setSelectedChat}
+                        selectedChatId={selectedChatId}
+                    ></ChatListItem>
                 ))}
             </List>
         </Sheet>

@@ -51,28 +51,24 @@ class LineController extends Controller
                         $chatHistory->custId = $events[0]['source']['userId'];
                         $chatHistory->textMessage = $events[0]['message']['text'];
                         $chatHistory->save();
-
+                        //ส่ง event ไปยัง web socket
                         $options = [
                             'cluster' => env('PUSHER_APP_CLUSTER'),
                             'useTLS' => true
                         ];
-
-                        $pusher = new Pusher(
-                            env('PUSHER_APP_KEY'),
-                            env('PUSHER_APP_SECRET'),
-                            env('PUSHER_APP_ID'),
-                            $options
-                        );
-                        $pusher->trigger('chat.2', 'my-event', [
+                        $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), $options);
+                        $chatId = 'chat.'.$userId;
+                        $pusher->trigger($chatId, 'my-event', [
                             'message' => $events[0]['message']['text']
                         ]);
-
                     } else {
                         // จัดการกับกรณีที่การร้องขอไม่สำเร็จ
                         $error = $response->body(); // รับข้อความ error
                     }
                 } catch (ConnectionException $e) {
                     Log::info('Showing request', ['request' => json_encode($res, JSON_PRETTY_PRINT)]);
+                } catch (\Exception $e){
+                    return response()->json(['error' => $e->getMessage()], 500);
                 }
             }
         }

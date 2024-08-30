@@ -29,18 +29,6 @@ export const users = [
         avatar: '/static/images/avatar/5.jpg',
         online: true,
     },
-    {
-        name: 'ร้านคุรนายเต๋ว (สาขา 3)',
-        username: '@คุยง่าย เข้าใจง่าย',
-        avatar: '/static/images/avatar/6.jpg',
-        online: true,
-    },
-    {
-        name: 'ร้านคุรนายเต๋ว (สาขา 4)',
-        username: '@คุยง่าย เข้าใจง่าย',
-        avatar: '/static/images/avatar/7.jpg',
-        online: false,
-    },
 ];
 
 export const chats = [
@@ -222,34 +210,7 @@ export const chats = [
                 id: '1',
                 content: "สวัสดีครับ",
                 timestamp: '5 mins ago',
-                sender: users[4],
-                unread: true,
-            },
-        ],
-    },
-    {
-        id: '6',
-        sender: users[5],
-        messages: [
-            {
-                id: '1',
-                content: "สวัสดีครับ",
-                timestamp: '5 mins ago',
                 sender: 'You',
-                unread: true,
-            },
-        ],
-    },
-
-    {
-        id: '7',
-        sender: users[6],
-        messages: [
-            {
-                id: '1',
-                content: "สวัสดีครับ",
-                timestamp: '5 mins ago',
-                sender: users[6],
                 unread: true,
             },
         ],

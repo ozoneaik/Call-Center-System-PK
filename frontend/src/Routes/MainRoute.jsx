@@ -9,6 +9,7 @@ import App from "../App.jsx";
 import ChatPage from "../Views/ChatPage/page.jsx";
 import MyMessage from "../Views/ChatPage/MyMessage.jsx";
 import TestPage from "../Views/Test/page.jsx";
+import CustomerListPage from "../Views/CustomerPage/page.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},
@@ -24,6 +25,11 @@ export const route = createBrowserRouter([
             {
                 path: '/chats', element: <ChatPage/>, children: [
                     {path: ':id', element: <MyMessage/>},
+                ]
+            },
+            {
+                path: '/customer', element: <CustomerListPage/>, children: [
+
                 ]
             }
         ],

@@ -17,9 +17,10 @@ import Divider from "@mui/joy/Divider";
 import Button from "@mui/joy/Button";
 import TextsmsIcon from '@mui/icons-material/Textsms';
 import Avatar from "@mui/joy/Avatar";
+import {users} from "../../Components/data.jsx";
 
 export default function ChatListItem(props) {
-    const { id, sender, messages, selectedChatId, setSelectedChat } = props;
+    const { id, sender, messages, selectedChatId, setSelectedChat} = props;
     const selected = selectedChatId === id;
     const [open, setOpen] = useState(false);
     return (
@@ -31,12 +32,21 @@ export default function ChatListItem(props) {
                     </DialogTitle>
                     <Divider />
                     <DialogContent>
-                        <Avatar src={sender.avatar}/>
-                        ชื่อลูกค้า : {sender.name}
-                        <br/>
-                        รายละเอียด : {sender.username}
-                        <br/>
-                        จาก : Line
+                        <Box>
+                            <Avatar src={sender.avatar}/>
+                            ชื่อลูกค้า : {sender.name}
+                            <br/>
+                            รายละเอียด : {sender.username}
+                            <br/>
+                            จาก : Line
+                        </Box>
+                        <Divider/>
+                        <Box>
+                            <Typography level="title-sm">ย้ายไปยังห้อง</Typography>
+                            <Button size='sm' variant='outlined'>ห้องแชท 1</Button>
+                            <Button size='sm' variant='outlined'>ห้องแชท 2</Button>
+                            <Button size='sm' variant='outlined'>ห้องแชท 3</Button>
+                        </Box>
                     </DialogContent>
                     <DialogActions>
                         <Button variant="solid" color="primary" onClick={() => {
@@ -46,16 +56,16 @@ export default function ChatListItem(props) {
                         }}>
                             <TextsmsIcon/>
                         </Button>
-                        <Button variant="solid" color="neutral" onClick={() => setOpen(false)}>จัดการเพิ่มเติม</Button>
+                        <Button variant="solid" color="neutral" onClick={() => {
+                            setOpen(false);
+                        }}>จัดการข้อมูล</Button>
                     </DialogActions>
                 </ModalDialog>
             </Modal>
 
             <ListItem>
                 <ListItemButton
-                    onClick={() => {
-                        setOpen(true)
-                    }}
+                    onClick={() => {setOpen(true)}}
                     selected={selected}
                     color="neutral"
                     sx={{ flexDirection: 'column', alignItems: 'initial', gap: 1 }}
