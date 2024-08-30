@@ -6,7 +6,6 @@ import Stack from '@mui/joy/Stack';
 import Typography from '@mui/joy/Typography';
 import CircleIcon from '@mui/icons-material/Circle';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
-import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import {toggleMessagesPane} from "../../Components/utils.js";
 import {useState} from "react";
 import Modal from "@mui/joy/Modal";
@@ -34,8 +33,8 @@ export default function MessagesPaneHeader(props) {
                             <Grid container spacing={1} sx={{flexGrow: 1}}>
                             {
                                 [1, 2, 3, 4, 5, 23].map((item, index) => (
-                                    <Grid size={4}>
-                                        <Button key={index} startDecorator={<OpenInNew/>}>มีอะไรให้ฉันช่วยใหม่</Button>
+                                    <Grid key={index} size={4}>
+                                        <Button startDecorator={<OpenInNew/>}>มีอะไรให้ฉันช่วยใหม่</Button>
                                     </Grid>
                                 ))
                             }
@@ -53,9 +52,9 @@ export default function MessagesPaneHeader(props) {
                         <Box component="section" sx={{p: 1,}}>
                             <Grid container spacing={1} sx={{flexGrow: 1}}>
                                 {
-                                    [1, 2, 3, 4, 5, 23].map((item, index) => (
-                                        <Grid size={4}>
-                                            <Button key={index} startDecorator={<OpenInNew/>}>8001{index}</Button>
+                                    [1,12121,45, 2, 3, 4, 5,3, 23].map((item, index) => (
+                                        <Grid key={index} size={4}>
+                                            <Button startDecorator={<OpenInNew/>}>8001{item}</Button>
                                         </Grid>
                                     ))
                                 }

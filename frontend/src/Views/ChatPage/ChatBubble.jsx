@@ -7,7 +7,6 @@ import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRound
 
 
 export default function ChatBubble(props) {
-    // eslint-disable-next-line react/prop-types
     const {content, variant, timestamp, attachment = undefined, sender} = props;
     const isSent = variant === 'sent';
     return (

@@ -5,13 +5,13 @@ import {chats} from "../../Components/data.jsx";
 import {useState} from "react";
 
 export default function MyMessage() {
+    // const [selectedChat, setSelectedChat] = useState(chats[0]);
     const [selectedChat, setSelectedChat] = useState(chats[0]);
     return (
         <>
             <Sheet
                 sx={{
-                    flex: 1, width: '100%', mx: 'auto',
-                    pt: { xs: 'var(--Header-height)', md: 0 }, display: 'grid',
+                    flex: 1, width: '100%', mx: 'auto', pt: { xs: 'var(--Header-height)', md: 0 }, display: 'grid',
                     gridTemplateColumns: {xs: '1fr', sm: 'minmax(min-content, min(30%, 400px)) 1fr',},
                 }}
             >

@@ -8,6 +8,7 @@ import NotFoundPage from "../Views/NotFoundPage/page.jsx";
 import App from "../App.jsx";
 import ChatPage from "../Views/ChatPage/page.jsx";
 import MyMessage from "../Views/ChatPage/MyMessage.jsx";
+import TestPage from "../Views/Test/page.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},
@@ -27,5 +28,6 @@ export const route = createBrowserRouter([
             }
         ],
     },
+    {path: '/test/:id', element: <TestPage/>},
     {path: '*', element: <NotFoundPage/>}
 ])
