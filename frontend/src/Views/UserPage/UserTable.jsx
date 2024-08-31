@@ -13,12 +13,6 @@ function UserTable() {
     return (
         <>
             <Sheet
-                className="SearchAndFilters-mobile"
-                sx={{display: {xs: 'flex', sm: 'none'}, my: 1, gap: 1}}
-            >
-            </Sheet>
-
-            <Sheet
                 className="OrderTableContainer"
                 variant="outlined"
                 sx={{
