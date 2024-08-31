@@ -29,6 +29,91 @@ export const users = [
         avatar: '/static/images/avatar/5.jpg',
         online: true,
     },
+    // add
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 2)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 3)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
+    {
+        name: 'ร้านคุรนายเต๋ว (สาขา 3)',
+        username: '@คุยง่าย เข้าใจง่าย',
+        avatar: '/static/images/avatar/5.jpg',
+        online: true,
+    },
 ];
 
 export const chats = [

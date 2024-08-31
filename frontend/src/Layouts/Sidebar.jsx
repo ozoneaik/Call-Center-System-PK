@@ -194,7 +194,7 @@ export default function Sidebar() {
                     <ListItem>
                         <ListItemButton component={Link} to={'/customer'}>
                             <GroupIcon/>
-                            จัดการสมาชิก
+                            จัดการลูกค้า
                         </ListItemButton>
                     </ListItem>
                 </List>
