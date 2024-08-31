@@ -6,12 +6,9 @@ import {Stack } from '@mui/joy';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {useRef} from "react";
 export default function MessageInput(props) {
-    // eslint-disable-next-line react/prop-types
     const { textAreaValue, setTextAreaValue, onSubmit } = props;
     const textAreaRef = useRef(null);
     const handleClick = () => {
-        alert(textAreaValue)
-        // eslint-disable-next-line react/prop-types
         if (textAreaValue.trim() !== '') {
             onSubmit();
             setTextAreaValue('');
@@ -33,20 +30,6 @@ export default function MessageInput(props) {
                                 py: 1, pr: 1, borderTop: '1px solid', borderColor: 'divider',
                             }}
                         >
-                            <div>
-                                {/*<IconButton size="sm" variant="plain" color="neutral">*/}
-                                {/*    <FormatBoldRoundedIcon />*/}
-                                {/*</IconButton>*/}
-                                {/*<IconButton size="sm" variant="plain" color="neutral">*/}
-                                {/*    <FormatItalicRoundedIcon />*/}
-                                {/*</IconButton>*/}
-                                {/*<IconButton size="sm" variant="plain" color="neutral">*/}
-                                {/*    <StrikethroughSRoundedIcon />*/}
-                                {/*</IconButton>*/}
-                                {/*<IconButton size="sm" variant="plain" color="neutral">*/}
-                                {/*    <FormatListBulletedRoundedIcon />*/}
-                                {/*</IconButton>*/}
-                            </div>
                             <Button
                                 size="sm" color="primary" sx={{ alignSelf: 'center', borderRadius: 'sm' }}
                                 endDecorator={<SendRoundedIcon />} onClick={handleClick}

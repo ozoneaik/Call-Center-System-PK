@@ -11,7 +11,6 @@ import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
 
 export default function ChatsPane(props) {
-    // eslint-disable-next-line react/prop-types
     const {chats, setSelectedChat, selectedChatId, setSelectedManage, selectedManageId} = props;
     return (
         <Sheet
