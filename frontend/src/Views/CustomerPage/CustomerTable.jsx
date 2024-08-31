@@ -40,7 +40,7 @@ export default function CustomerListTable() {
                     </thead>
                     <tbody>
                     {users.map((row, index) => (
-                        <tr key={row.id}>
+                        <tr key={index}>
                             <td>
                                 <Typography>{index + 1}</Typography>
                             </td>

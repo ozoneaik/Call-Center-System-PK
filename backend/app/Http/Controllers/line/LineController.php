@@ -20,6 +20,7 @@ class LineController extends Controller
     {
         $res = $request->all();
         $events = $res["events"];
+        Log::info('Showing request', ['request' => $request]);
         // ตรวจสอบก่อนว่า มี message ส่งมามั้ย
         if (count($events) > 0) {
             //ตรวจสอบว่ามี userId หรือไม่
@@ -72,7 +73,7 @@ class LineController extends Controller
                 }
             }
         }
-        Log::info('Showing request', ['request' => json_encode($res, JSON_PRETTY_PRINT)]);
+//        Log::info('Showing request', ['request' => json_encode($request, JSON_PRETTY_PRINT)]);
         return response()->json([
             'response' => $request->all()
         ]);

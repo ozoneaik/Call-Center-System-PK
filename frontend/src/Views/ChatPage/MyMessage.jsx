@@ -5,7 +5,6 @@ import {chats} from "../../Components/data.jsx";
 import {useState} from "react";
 
 export default function MyMessage() {
-    // const [selectedChat, setSelectedChat] = useState(chats[0]);
     const [selectedChat, setSelectedChat] = useState(chats[0]);
     return (
         <>
