@@ -197,6 +197,12 @@ export default function Sidebar() {
                             จัดการลูกค้า
                         </ListItemButton>
                     </ListItem>
+                    <ListItem>
+                        <ListItemButton component={Link} to={'/user'}>
+                            <GroupIcon/>
+                            จัดการผู้ใช้
+                        </ListItemButton>
+                    </ListItem>
                 </List>
             </Box>
             <Divider/>

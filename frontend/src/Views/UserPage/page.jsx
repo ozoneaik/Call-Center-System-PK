@@ -1,13 +1,14 @@
+import Box from '@mui/joy/Box';
+import Sheet from '@mui/joy/Sheet';
+import Typography from '@mui/joy/Typography';
 import Content from "../../Layouts/Content.jsx";
-import Sheet from "@mui/joy/Sheet";
 import {Breadcrumbs} from "@mui/joy";
-import Box from "@mui/joy/Box";
+import Link from "@mui/joy/Link";
 import {Link as link} from "react-router-dom";
-import Link from '@mui/joy/Link';
-import Typography from "@mui/joy/Typography";
-import CustomerListTable from "./CustomerTable.jsx";
+import UserTable from "./UserTable.jsx";
 
-export default function CustomerListPage() {
+export default function UserPage() {
+
     return (
         <Content>
             <Sheet
@@ -45,7 +46,7 @@ export default function CustomerListPage() {
                                 จัดการสมาชิก
                             </Link>
                             <Typography color="primary" sx={{fontWeight: 500, fontSize: 12}}>
-                                รายการข้อมูลลูกค้า
+                                รายการข้อมูลผู้ใช้
                             </Typography>
                         </Breadcrumbs>
                     </Box>
@@ -61,10 +62,10 @@ export default function CustomerListPage() {
                         }}
                     >
                         <Typography level="h2" component="h1">
-                            รายการข้อมูลลูกค้า
+                            รายการข้อมูลผู้ใช้
                         </Typography>
                     </Box>
-                    <CustomerListTable/>
+                    <UserTable/>
                 </Box>
             </Sheet>
         </Content>

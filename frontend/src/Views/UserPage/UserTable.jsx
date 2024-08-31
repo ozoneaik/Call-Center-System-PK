@@ -1,16 +1,15 @@
-import Avatar from '@mui/joy/Avatar';
-import Box from '@mui/joy/Box';
-import Chip from '@mui/joy/Chip';
-import Table from '@mui/joy/Table';
-import Sheet from '@mui/joy/Sheet';
-import Typography from '@mui/joy/Typography';
+import Sheet from "@mui/joy/Sheet";
+import Table from "@mui/joy/Table";
 import {users} from "../../Components/data.jsx";
+import Typography from "@mui/joy/Typography";
+import Box from "@mui/joy/Box";
+import Avatar from "@mui/joy/Avatar";
 import Button from "@mui/joy/Button";
-import DeleteIcon from '@mui/icons-material/Delete';
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-export default function CustomerListTable() {
 
+function UserTable() {
     return (
         <>
             <Sheet
@@ -40,7 +39,6 @@ export default function CustomerListTable() {
                     <tr>
                         <th>ลำดับ</th>
                         <th>ชื่อ</th>
-                        <th>คำอธิบาย</th>
                         <th style={{textAlign : "center"}}>#</th>
                     </tr>
                     </thead>
@@ -56,11 +54,6 @@ export default function CustomerListTable() {
                                     <Typography>{row.name}</Typography>
                                 </Box>
                             </td>
-                            <td>
-                                <Chip>
-                                    <Typography>{row.username}</Typography>
-                                </Chip>
-                            </td>
                             <td  style={{textAlign : "center"}}>
                                 <Button size='sm' sx={{mr : 1}} variant='outlined'>
                                     <ManageAccountsIcon/>
@@ -74,7 +67,9 @@ export default function CustomerListTable() {
                     </tbody>
                 </Table>
             </Sheet>
-
         </>
+
     );
 }
+
+export default UserTable;
