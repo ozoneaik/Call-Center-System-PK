@@ -36,6 +36,8 @@ class LineController extends Controller
                     if ($response->successful()) {
                         $profile = $response->json(); // แปลง response เป็น array หรือ object
                         Log::info('PROFILE', ['request' => json_encode($profile, JSON_PRETTY_PRINT)]);
+
+
                         // เช็คว่าเคยบันทึก customer คนนี้หรือยัง
                         $checkCustomer = customers::where('custId',$userId)->where('platform','line')->first();
                         if (!$checkCustomer){
@@ -48,10 +50,27 @@ class LineController extends Controller
                             $customer->groupId = 1;
                             $customer->save();
                         }
+
+
+                        //ทำการบันทึก chat
+                        $type = $events[0]['message']['type'];
                         $chatHistory = new chatHistory();
-                        $chatHistory->custId = $events[0]['source']['userId'];
-                        $chatHistory->textMessage = $events[0]['message']['text'];
+                        $chatHistory->custId = $userId;
+                        $chatHistory->typeMessage = $type;
+                        if ($type == 'text'){
+                            $text = $events[0]['message']['text'];
+                            $chatHistory->textMessage = $text;
+                        }elseif ($type == 'image'){
+                            $imageId = $events[0]['message']['id'];
+                            $chatHistory->textMessage = 'https://api-data.line.me/v2/bot/message/'.$imageId.'/content/preview';
+                        }elseif ($type == 'sticker'){
+                            $stickerId = $events[0]['message']['stickerId'];
+                            $chatHistory->textMessage = 'https://stickershop.line-scdn.net/stickershop/v1/sticker/'.$stickerId.'/iPhone/sticker.png';
+                        }
                         $chatHistory->save();
+
+
+
                         //ส่ง event ไปยัง web socket
                         $options = [
                             'cluster' => env('PUSHER_APP_CLUSTER'),
@@ -62,6 +81,8 @@ class LineController extends Controller
                         $pusher->trigger($chatId, 'my-event', [
                             'message' => $events[0]['message']['text']
                         ]);
+
+
                     } else {
                         // จัดการกับกรณีที่การร้องขอไม่สำเร็จ
                         $error = $response->body(); // รับข้อความ error
@@ -77,5 +98,25 @@ class LineController extends Controller
         return response()->json([
             'response' => $request->all()
         ]);
+    }
+
+
+    public function sendMessage(Request $request) : JsonResponse{
+        $URL = 'https://api.line.me/v2/bot/message/push';
+        $data_body = $request->dataBody;
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('CHANNEL_ACCESS_TOKEN')
+            ])->asJson()->post($URL,
+                $data_body
+            );
+
+            return response()->json([
+                'message' => $response->successful() ? 'ส่งข้อความสำเร็จ' : 'ไม่สามารถส่งข้อความได้กรุณาติดต่อ admin',
+            ],$response->status());
+
+        }catch (ConnectionException $e){
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

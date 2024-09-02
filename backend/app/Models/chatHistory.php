@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @property mixed $custId
  * @property mixed $textMessage
+ * @property mixed $typeMessage
  */
 class chatHistory extends Model
 {
@@ -15,5 +16,5 @@ class chatHistory extends Model
 
 //    protected $table = 'chat_history';
 
-    protected $fillable = ['custId','empReply','textMessage','platform'];
+    protected $fillable = ['custId','typeMessage','textMessage','platform'];
 }

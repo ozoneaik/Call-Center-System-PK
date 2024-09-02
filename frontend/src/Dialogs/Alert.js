@@ -22,3 +22,13 @@ export const AlertWithConfirm = (
         }
     })
 }
+
+export const AlertStandard = ({title,text,icon = 'error'}) => {
+    Swal.fire({
+        icon,
+        title,
+        text,
+    }).then((result) => {
+        console.log(result);
+    })
+}

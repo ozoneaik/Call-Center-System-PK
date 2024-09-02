@@ -7,24 +7,63 @@ import MessageInput from './MessageInput';
 import MessagesPaneHeader from './MessagesPaneHeader';
 import {useEffect, useState} from "react";
 
+import echo from "../Test/echo.js";
+import {useParams} from "react-router-dom";
+import {SendMessageApi} from "../../Api/sendMessage.js";
+import {AlertStandard, AlertWithConfirm} from "../../Dialogs/Alert.js";
+
 export default function MessagesPane(props) {
     const { chat } = props;
     const [chatMessages, setChatMessages] = useState(chat.messages);
     const [textAreaValue, setTextAreaValue] = useState('');
 
     useEffect(() => {
+        console.log('chat props',chat);
         setChatMessages(chat.messages);
+        chatSocket();
     }, [chat.messages]);
 
-    // เมื่อกดส่งข้อความ
-    const handelSubmit = () => {
-        const newId = chatMessages.length + 1;
-        const newIdString = newId.toString();
-        setChatMessages([
-            ...chatMessages,
-            {id: newIdString, sender: 'You', content: textAreaValue, timestamp: 'Just now',},
-        ]);
+    const chatSocket = () => {
+        const channel = echo.channel(`chat.Ueecf3a08fa18b3864d2d7f50e70933f4`);
+        channel.listen('.my-event', (event) => {
+            console.log('Message received:',event.message);
+            if (event.message){
+                CustSend(event.message);
+            }
+        });
+        return () => {
+            channel.stopListening('.my-event');
+            echo.leaveChannel('chat.{id}');
+        };
     }
+
+    // เมื่อกดส่งข้อความ
+    const handelSubmit = async () => {
+        const {data,status} = await SendMessageApi(textAreaValue,'Ueecf3a08fa18b3864d2d7f50e70933f4');
+        if (status !== 200){
+            AlertStandard({text: data.message});
+        }else{
+            const newId = chatMessages.length ;
+            const newIdString = newId.toString();
+            setChatMessages([
+                ...chatMessages,
+                {id: newIdString, sender: 'You', content: textAreaValue, timestamp: 'Just now',},
+            ]);
+            setTextAreaValue('');
+        }
+    }
+
+    const CustSend = (message) => {
+        const sender = chat.sender;
+        setChatMessages((prevMessages) => {
+            const newId = prevMessages.length;
+            const newIdString = newId.toString();
+            return [
+                ...prevMessages,
+                { id: newIdString, content: message, sender: sender, timestamp: 'Just now' },
+            ];
+        });
+    };
 
     return (
         <Sheet
