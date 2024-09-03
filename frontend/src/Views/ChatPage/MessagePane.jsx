@@ -9,20 +9,23 @@ import {useEffect, useState} from "react";
 import echo from "../Test/echo.js";
 import {SendMessageApi} from "../../Api/sendMessage.js";
 import {AlertStandard} from "../../Dialogs/Alert.js";
+import {useAuth} from "../../Contexts/AuthContext.jsx";
 
 export default function MessagesPane(props) {
     const {chat} = props;
     const [chatMessages, setChatMessages] = useState([]);
     const [textAreaValue, setTextAreaValue] = useState('');
+    const {user} = useAuth();
 
     useEffect(() => {
         console.log('chat props', chat);
         setChatMessages(chat.messages);
         chatSocket();
+        console.log('chat', chat)
     }, [chat.messages]);
 
     const chatSocket = () => {
-        const channel = echo.channel(`chat.Ueecf3a08fa18b3864d2d7f50e70933f4`);
+        const channel = echo.channel(`chat.U46b6c4a6d94fc78d60c66f5e9703818a`);
         channel.listen('.my-event', (event) => {
             console.log('Message received:', event.message);
             if (event.message) {
@@ -37,8 +40,8 @@ export default function MessagesPane(props) {
 
     // เมื่อกดส่งข้อความ
     const handelSubmit = async () => {
-        const {data, status} = await SendMessageApi(textAreaValue, 'Ueecf3a08fa18b3864d2d7f50e70933f4');
-        console.log(data,status)
+        const {data, status} = await SendMessageApi(textAreaValue, 'U46b6c4a6d94fc78d60c66f5e9703818a');
+        console.log(data, status)
         if (status !== 200) {
             AlertStandard({text: data.message});
         } else {
@@ -65,6 +68,23 @@ export default function MessagesPane(props) {
         });
     };
 
+    const ChatPane = ({message, index}) => {
+        const isYou = message.sender === 'You';
+        return (
+            <>
+                <Stack
+                    key={index} direction="row" spacing={2}
+                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
+                >
+                    {message.sender !== 'You' && (
+                        <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
+                    )}
+                    <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                </Stack>
+            </>
+        )
+    }
+
     return (
         <Sheet
             sx={{
@@ -81,22 +101,9 @@ export default function MessagesPane(props) {
                 }}
             >
                 <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
-                    {chatMessages.map((message, index) => {
-                        const isYou = message.sender === 'You';
-                        return (
-                            <>
-                                <Stack
-                                    key={index} direction="row" spacing={2}
-                                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
-                                >
-                                    {message.sender !== 'You' && (
-                                        <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
-                                    )}
-                                    <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
-                                </Stack>
-                            </>
-                        );
-                    })}
+                    {chatMessages.map((message, index) => (
+                        <ChatPane key={index} index={index} message={message}/>
+                    ))}
                 </Stack>
             </Box>
             <MessageInput textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handelSubmit}/>

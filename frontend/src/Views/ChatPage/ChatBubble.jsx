@@ -4,9 +4,11 @@ import Stack from '@mui/joy/Stack';
 import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
+import {useAuth} from "../../Contexts/AuthContext.jsx";
 
 
 export default function ChatBubble(props) {
+    const {user} = useAuth();
     const {content, variant, timestamp, attachment = undefined, sender} = props;
     const isSent = variant === 'sent';
     return (
@@ -17,7 +19,7 @@ export default function ChatBubble(props) {
                 sx={{justifyContent: 'space-between', mb: 0.25}}
             >
                 <Typography level="body-xs">
-                    {sender === 'You' ? sender : sender.name}
+                    {sender === user.name ? sender : sender.name}
                 </Typography>
                 <Typography level="body-xs">{timestamp}</Typography>
             </Stack>
