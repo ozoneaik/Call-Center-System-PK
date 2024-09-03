@@ -1,35 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import echo from './echo';
-import {useParams} from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { MessageAllAPi } from "../../Api/sendMessage.js";
 
 const TestPage = () => {
-    const [messages, setMessages] = useState([]);
-    const {id} = useParams();
+    const [messages, setMessages] = useState([]); // ประกาศ state สำหรับเก็บข้อมูลแชท
+    const { id } = useParams(); // ดึงค่า id ของห้องแชทจากพารามิเตอร์ของ URL
 
     useEffect(() => {
-        // const channel = echo.channel('notifications');
+        listMessage(); // เรียกฟังก์ชันเมื่อคอมโพเนนต์ถูก mount
+    }, []); // ใส่ [] เพื่อให้ useEffect ทำงานครั้งเดียวเมื่อ mount
 
-        const channel = echo.channel(`chat.${id}`);
-        // Listen for 'my-event' instead of 'MessageSent'
-        channel.listen('.my-event', (event) => {
-            console.log('Message received:',event.message); // Debug log
-            setMessages((prevMessages) => [...prevMessages, event.message]);
-        });
-
-        return () => {
-            channel.stopListening('.my-event');
-            echo.leaveChannel('chat.{id}');
-        };
-    }, []);
+    const listMessage = async () => {
+        try {
+            const { data, status } = await MessageAllAPi(); // เรียก API เพื่อดึงข้อมูลแชท
+            console.log(data, status); // แสดงข้อมูลและสถานะที่ได้รับจาก API ใน console
+            setMessages(data); // เก็บข้อมูลแชทใน state messages
+        } catch (error) {
+            console.error('Failed to fetch messages:', error); // แสดงข้อผิดพลาดถ้ามีปัญหาในการเรียก API
+        }
+    }
 
     return (
         <div>
-            id room chat : {id}
-            <div>
-                {messages.map((msg, index) => (
-                    <div key={index}>{msg}</div>
-                ))}
-            </div>
+            <h3>Id Room Chat: {id}</h3> {/* แสดง id ของห้องแชท */}
+            {/*<div>*/}
+            {/*    {messages.map((msg, index) => (*/}
+            {/*        <div key={index}>Message ID: {msg.id}</div> // แสดงข้อมูล id ของแต่ละข้อความแชท*/}
+            {/*    ))}*/}
+            {/*</div>*/}
         </div>
     );
 };

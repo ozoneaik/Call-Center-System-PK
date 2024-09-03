@@ -74,7 +74,7 @@ export default function ChatListItem(props) {
                         <AvatarWithStatus online={sender.online} src={sender.avatar} />
                         <Box sx={{ flex: 1 }}>
                             <Typography level="title-sm">{sender.name}</Typography>
-                            <Typography level="body-sm">{sender.username}</Typography>
+                            <Typography level="body-sm">{sender.description}</Typography>
                         </Box>
                         <Box sx={{ lineHeight: 1.5, textAlign: 'right' }}>
                             {messages[0].unread && (

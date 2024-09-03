@@ -6,19 +6,17 @@ import ChatBubble from './ChatBubble';
 import MessageInput from './MessageInput';
 import MessagesPaneHeader from './MessagesPaneHeader';
 import {useEffect, useState} from "react";
-
 import echo from "../Test/echo.js";
-import {useParams} from "react-router-dom";
 import {SendMessageApi} from "../../Api/sendMessage.js";
-import {AlertStandard, AlertWithConfirm} from "../../Dialogs/Alert.js";
+import {AlertStandard} from "../../Dialogs/Alert.js";
 
 export default function MessagesPane(props) {
-    const { chat } = props;
-    const [chatMessages, setChatMessages] = useState(chat.messages);
+    const {chat} = props;
+    const [chatMessages, setChatMessages] = useState([]);
     const [textAreaValue, setTextAreaValue] = useState('');
 
     useEffect(() => {
-        console.log('chat props',chat);
+        console.log('chat props', chat);
         setChatMessages(chat.messages);
         chatSocket();
     }, [chat.messages]);
@@ -26,8 +24,8 @@ export default function MessagesPane(props) {
     const chatSocket = () => {
         const channel = echo.channel(`chat.Ueecf3a08fa18b3864d2d7f50e70933f4`);
         channel.listen('.my-event', (event) => {
-            console.log('Message received:',event.message);
-            if (event.message){
+            console.log('Message received:', event.message);
+            if (event.message) {
                 CustSend(event.message);
             }
         });
@@ -39,11 +37,12 @@ export default function MessagesPane(props) {
 
     // เมื่อกดส่งข้อความ
     const handelSubmit = async () => {
-        const {data,status} = await SendMessageApi(textAreaValue,'Ueecf3a08fa18b3864d2d7f50e70933f4');
-        if (status !== 200){
+        const {data, status} = await SendMessageApi(textAreaValue, 'Ueecf3a08fa18b3864d2d7f50e70933f4');
+        console.log(data,status)
+        if (status !== 200) {
             AlertStandard({text: data.message});
-        }else{
-            const newId = chatMessages.length ;
+        } else {
+            const newId = chatMessages.length;
             const newIdString = newId.toString();
             setChatMessages([
                 ...chatMessages,
@@ -54,13 +53,14 @@ export default function MessagesPane(props) {
     }
 
     const CustSend = (message) => {
+        console.log(chat.sender);
         const sender = chat.sender;
         setChatMessages((prevMessages) => {
             const newId = prevMessages.length;
             const newIdString = newId.toString();
             return [
                 ...prevMessages,
-                { id: newIdString, content: message, sender: sender, timestamp: 'Just now' },
+                {id: newIdString, content: message, sender: sender, timestamp: 'Just now'},
             ];
         });
     };
@@ -68,31 +68,33 @@ export default function MessagesPane(props) {
     return (
         <Sheet
             sx={{
-                height: { xs: 'calc(100dvh - var(--Header-height))', md: '100dvh' },
+                height: {xs: 'calc(100dvh - var(--Header-height))', md: '100dvh'},
                 display: 'flex', flexDirection: 'column',
                 backgroundColor: 'background.level1',
             }}
         >
-            <MessagesPaneHeader sender={chat.sender} />
+            <MessagesPaneHeader sender={chat.sender}/>
             <Box
                 sx={{
                     display: 'flex', flex: 1, minHeight: 0, px: 2, py: 3,
                     overflowY: 'scroll', flexDirection: 'column-reverse',
                 }}
             >
-                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
+                <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
                     {chatMessages.map((message, index) => {
                         const isYou = message.sender === 'You';
                         return (
-                            <Stack
-                                key={index} direction="row" spacing={2}
-                                sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
-                            >
-                                {message.sender !== 'You' && (
-                                    <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
-                                )}
-                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
-                            </Stack>
+                            <>
+                                <Stack
+                                    key={index} direction="row" spacing={2}
+                                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
+                                >
+                                    {message.sender !== 'You' && (
+                                        <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
+                                    )}
+                                    <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                                </Stack>
+                            </>
                         );
                     })}
                 </Stack>

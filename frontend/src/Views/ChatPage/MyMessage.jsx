@@ -2,10 +2,21 @@ import Sheet from '@mui/joy/Sheet';
 import MessagesPane from "./MessagePane.jsx";
 import ChatsPane from './ChatsPane';
 import {chats} from "../../Components/data.jsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import {MessageAllAPi} from "../../Api/sendMessage.js";
 
 export default function MyMessage() {
-    const [selectedChat, setSelectedChat] = useState(chats[0]);
+    const [selectedChat, setSelectedChat] = useState();
+    const [Ischats, setChats] = useState([]);
+
+    useEffect(()=>{
+        getMessages()
+    },[])
+    const getMessages = async () => {
+        const {data,status} = await MessageAllAPi();
+        setSelectedChat(data.chats[0])
+        setChats(data.chats);
+    }
     return (
         <>
             <Sheet
@@ -24,9 +35,17 @@ export default function MyMessage() {
                         transition: 'transform 0.4s, width 0.4s', zIndex: 100, width: '100%', top: 52,
                     }}
                 >
-                    <ChatsPane chats={chats} selectedChatId={selectedChat.id} setSelectedChat={setSelectedChat}/>
+                    {
+                        Ischats.length > 0 && selectedChat && (
+                            <ChatsPane chats={Ischats} selectedChatId={selectedChat.id} setSelectedChat={setSelectedChat}/>
+                        )
+                    }
                 </Sheet>
-                <MessagesPane chat={selectedChat} />
+                {
+                    selectedChat && (
+                        <MessagesPane chat={selectedChat} />
+                    )
+                }
             </Sheet>
         </>
     );

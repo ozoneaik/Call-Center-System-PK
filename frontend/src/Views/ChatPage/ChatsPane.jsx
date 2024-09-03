@@ -9,9 +9,10 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ChatListItem from './ChatListItem';
 import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
+import {toggleMessagesPane} from "../../Components/utils.js";
 
 export default function ChatsPane(props) {
-    const {chats, setSelectedChat, selectedChatId, setSelectedManage, selectedManageId} = props;
+    const {chats, setSelectedChat, selectedChatId,} = props;
     return (
         <Sheet
             sx={{

@@ -1,6 +1,8 @@
 import axiosClient from "../Axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
 
+
+const prefix = '/messages'
 export const SendMessageApi = async (text,sendTo) => {
     const dataBody = {
         to : sendTo,
@@ -13,6 +15,15 @@ export const SendMessageApi = async (text,sendTo) => {
     }
     try {
         const {data,status} = await axiosClient.post('/sendMessage', {dataBody});
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}
+
+export const MessageAllAPi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${prefix}/listMessage`);
         return {data, status};
     }catch(error) {
         return ErrorResponse(error);

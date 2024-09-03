@@ -4,12 +4,31 @@ import Chip from '@mui/joy/Chip';
 import Table from '@mui/joy/Table';
 import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
-import {users} from "../../Components/data.jsx";
 import Button from "@mui/joy/Button";
 import DeleteIcon from '@mui/icons-material/Delete';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import {useEffect, useState} from "react";
+import {listCustApi} from "../../Api/Customer.js";
+import {AlertWithConfirm} from "../../Dialogs/Alert.js";
+import {CircularProgress} from "@mui/joy";
 
 export default function CustomerListTable() {
+    const [customers, setCustomers] = useState([]);
+    const [show, setShow] = useState(false);
+    useEffect(() => {
+        CustomerList().then((r) => console.log(r));
+    }, []);
+    const CustomerList = async () => {
+        setShow(true);
+        const {data, status} = await listCustApi();
+        console.log(data, status)
+        if (status === 200) {
+            setCustomers(data.customers);
+        } else {
+            AlertWithConfirm({text: data.message})
+        }
+        setShow(false);
+    }
 
     return (
         <>
@@ -17,7 +36,7 @@ export default function CustomerListTable() {
                 className="OrderTableContainer"
                 variant="outlined"
                 sx={{
-                    display: { sm: 'initial'}, width: '100%',
+                    display: {sm: 'initial'}, width: '100%',
                     borderRadius: 'sm', flexShrink: 1, overflow: 'auto', minHeight: 0,
                 }}
             >
@@ -35,37 +54,45 @@ export default function CustomerListTable() {
                         <th>ลำดับ</th>
                         <th>ชื่อ</th>
                         <th>คำอธิบาย</th>
-                        <th style={{textAlign : "center"}}>#</th>
+                        <th style={{textAlign: "center"}}>#</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {users.map((row, index) => (
-                        <tr key={index}>
-                            <td>
-                                <Typography>{index + 1}</Typography>
-                            </td>
-                            <td>
-                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                    <Avatar src={row.avatar} size="sm"/>
-                                    <Typography>{row.name}</Typography>
-                                </Box>
-                            </td>
-                            <td>
-                                <Chip>
-                                    <Typography>{row.username}</Typography>
-                                </Chip>
-                            </td>
-                            <td  style={{textAlign : "center"}}>
-                                <Button size='sm' sx={{mr : 1}} variant='outlined'>
-                                    <ManageAccountsIcon/>
-                                </Button>
-                                <Button size='sm' color='danger' variant='outlined'>
-                                    <DeleteIcon/>
-                                </Button>
+                    {show ? (
+                        <tr>
+                            <td colSpan={4} style={{textAlign: "center"}}>
+                                <CircularProgress color="primary" size="sm" />
                             </td>
                         </tr>
-                    ))}
-                    </tbody>
+                    ) : (
+                        customers.map((row, index) => (
+                            <tr key={index}>
+                                <td>
+                                    <Typography>{index + 1}</Typography>
+                                </td>
+                                <td>
+                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                        <Avatar src={row.avatar} size="sm" />
+                                        <Typography>{row.name}</Typography>
+                                    </Box>
+                                </td>
+                                <td>
+                                    <Chip>
+                                        <Typography>{row.description}</Typography>
+                                    </Chip>
+                                </td>
+                                <td style={{ textAlign: "center" }}>
+                                    <Button size='sm' sx={{ mr: 1 }} variant='outlined'>
+                                        <ManageAccountsIcon />
+                                    </Button>
+                                    <Button size='sm' color='danger' variant='outlined'>
+                                        <DeleteIcon />
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                    < /tbody>
                 </Table>
             </Sheet>
 
