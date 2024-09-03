@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique()->comment('รหัสพนักงาน');
             $table->string('name')->comment('ชื่อพนักงาน');
+            $table->string('description')->nullable()->comment('คำอธิบาย');
+            $table->string('avatar')->nullable()->comment('รูปประจำตัว');
             $table->string('email')->unique()->comment('อีเมลพนักงาน');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role')->default('sale')->comment('ตำแหน่ง');
-            $table->json('groups')->nullable()->comment('อยู่ห้องแชทไหนบ้าง');
+            $table->json('rooms')->nullable()->comment('อยู่ห้องแชทไหนบ้าง');
             $table->rememberToken();
             $table->timestamps();
         });

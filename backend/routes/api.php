@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChatHistoryController;
+use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\line\LineController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -9,9 +11,20 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/sendMessage',[LineController::class,'sendMessage']);
-   Route::post('/logout', [AuthController::class, 'logout']);
-   Route::get('/user', [AuthController::class, 'user']);
+
+    Route::prefix('customer')->group(function () {
+        Route::get('/list', [CustomersController::class, 'CustomerList']);
+    });
+
+    Route::prefix('messages')->group(function () {
+       Route::get('/listMessage',[ChatHistoryController::class, 'LatestChatHistory']);
+    });
+
+    Route::post('/sendMessage', [LineController::class, 'sendMessage']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
 });
 
-Route::post('/line/webhook',[LineController::class, 'webhook']);
+Route::post('/line/webhook', [LineController::class, 'webhook']);
+
+

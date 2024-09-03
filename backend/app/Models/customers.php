@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @method static where(string $string, mixed $userId)
  * @property mixed $custId
- * @property mixed $name
+ * @property mixed|string $name
  * @property mixed $imageUrl
  * @property mixed|string $platform
  * @property mixed $description
@@ -17,7 +17,5 @@ use Illuminate\Database\Eloquent\Model;
 class customers extends Model
 {
     use HasFactory;
-    protected $fillable = [
-        'custId','name','platform','description','groupId','imageUrl'
-    ];
+    protected $fillable = ['custId','name','platform','description','roomId','avatar','online'];
 }

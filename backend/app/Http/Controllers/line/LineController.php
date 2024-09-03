@@ -57,6 +57,7 @@ class LineController extends Controller
                         $chatHistory = new chatHistory();
                         $chatHistory->custId = $userId;
                         $chatHistory->typeMessage = $type;
+                        $chatHistory->sender = $customer;
                         if ($type == 'text'){
                             $text = $events[0]['message']['text'];
                             $chatHistory->textMessage = $text;
@@ -101,7 +102,7 @@ class LineController extends Controller
     }
 
 
-    public function sendMessage(Request $request) : JsonResponse{
+    public function sendMessage(Request $request){
         $URL = 'https://api.line.me/v2/bot/message/push';
         $data_body = $request->dataBody;
         try {
@@ -111,8 +112,18 @@ class LineController extends Controller
                 $data_body
             );
 
+            if ($response->successful()) {
+                $chatHistory = new chatHistory();
+                $chatHistory->custId = $data_body['to'];
+                $chatHistory->sender = json_encode(auth()->user());
+                $chatHistory->content = $data_body['messages'][0]['text'];
+                $chatHistory->contentType = $data_body['messages'][0]['type'];
+                $chatHistory->save();
+            }
+
             return response()->json([
                 'message' => $response->successful() ? 'ส่งข้อความสำเร็จ' : 'ไม่สามารถส่งข้อความได้กรุณาติดต่อ admin',
+                'data' => $data_body
             ],$response->status());
 
         }catch (ConnectionException $e){
