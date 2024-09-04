@@ -7,90 +7,97 @@ import MessageInput from './MessageInput';
 import MessagesPaneHeader from './MessagesPaneHeader';
 import {useEffect, useState} from "react";
 import echo from "../Test/echo.js";
-import {SendMessageApi} from "../../Api/sendMessage.js";
+import {MessageSelectApi, SendMessageApi} from "../../Api/sendMessage.js";
 import {AlertStandard} from "../../Dialogs/Alert.js";
 import {useAuth} from "../../Contexts/AuthContext.jsx";
 
 export default function MessagesPane(props) {
     const {chat} = props;
     const [chatMessages, setChatMessages] = useState([]);
+    const [sender, setSender] = useState();
     const [textAreaValue, setTextAreaValue] = useState('');
     const {user} = useAuth();
 
+
     useEffect(() => {
-        console.log('chat props', chat);
-        setChatMessages(chat.messages);
-        chatSocket();
-        console.log('chat', chat)
-    }, [chat.messages]);
+        console.log(chat.sender.custId);
+        getMessage(chat.sender.custId).then(()=> console.log('getMessage'));
+        setSender(chat.sender);
+    }, [chat]);
 
-    const chatSocket = () => {
-        const channel = echo.channel(`chat.U46b6c4a6d94fc78d60c66f5e9703818a`);
-        channel.listen('.my-event', (event) => {
-            console.log('Message received:', event.message);
-            if (event.message) {
-                CustSend(event.message);
-            }
-        });
-        return () => {
-            channel.stopListening('.my-event');
-            echo.leaveChannel('chat.{id}');
-        };
-    }
+    useEffect(() => {
+        if (sender) {
+            const channel = echo.channel(`chat.${sender.custId}`);
+            channel.listen('.my-event', (event) => {
+                console.log('Message received:', event.message);
+                if (event.message) {
+                    CustSend(event.message);
+                }
+            });
 
-    // เมื่อกดส่งข้อความ
-    const handelSubmit = async () => {
-        const {data, status} = await SendMessageApi(textAreaValue, 'U46b6c4a6d94fc78d60c66f5e9703818a');
-        console.log(data, status)
-        if (status !== 200) {
-            AlertStandard({text: data.message});
-        } else {
-            const newId = chatMessages.length;
-            const newIdString = newId.toString();
-            setChatMessages([
-                ...chatMessages,
-                {id: newIdString, sender: 'You', content: textAreaValue, timestamp: 'Just now',},
-            ]);
-            setTextAreaValue('');
+            return () => {
+                channel.stopListening('.my-event');
+                echo.leaveChannel(`chat.${sender.custId}`);
+            };
+        }
+    }, [sender]);
+
+    const getMessage = async (id) => {
+        const {data,status} = await MessageSelectApi(id);
+        if (status === 200) {
+            setChatMessages(data.chats.messages);
         }
     }
 
+    // เมื่อกดส่งข้อความ
+    const handleSubmit = async () => {
+        const {data, status} = await SendMessageApi(textAreaValue, sender.custId);
+        console.log(data, status);
+        if (status !== 200) {
+            AlertStandard({text: data.message});
+        } else {
+            const newId = chatMessages.length.toString();
+            setChatMessages([
+                ...chatMessages,
+                {id: newId, sender: user, content: textAreaValue, created_at: new Date().toString()},
+            ]);
+            setTextAreaValue('');
+        }
+    };
+
     const CustSend = (message) => {
-        console.log(chat.sender);
-        const sender = chat.sender;
+        console.log('CustSend >> ', sender.custId);
         setChatMessages((prevMessages) => {
-            const newId = prevMessages.length;
-            const newIdString = newId.toString();
+            const newId = prevMessages.length.toString();
             return [
                 ...prevMessages,
-                {id: newIdString, content: message, sender: sender, timestamp: 'Just now'},
+                {id: newId, content: message, sender: chat.sender, created_at: new Date().toString()},
             ];
         });
     };
 
     const ChatPane = ({message, index}) => {
-        const isYou = message.sender === 'You';
+        const isYou = message.sender.code === user.code;
         return (
             <>
                 <Stack
                     key={index} direction="row" spacing={2}
                     sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
                 >
-                    {message.sender !== 'You' && (
+                    {message.sender.code !== user.code && (
                         <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
                     )}
                     <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
                 </Stack>
             </>
-        )
-    }
+        );
+    };
 
     return (
         <Sheet
             sx={{
                 height: {xs: 'calc(100dvh - var(--Header-height))', md: '100dvh'},
-                display: 'flex', flexDirection: 'column',
-                backgroundColor: 'background.level1',
+                display: 'flex', flexDirection: 'column', backgroundColor: 'background.level1',
             }}
         >
             <MessagesPaneHeader sender={chat.sender}/>
@@ -101,12 +108,16 @@ export default function MessagesPane(props) {
                 }}
             >
                 <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
-                    {chatMessages.map((message, index) => (
-                        <ChatPane key={index} index={index} message={message}/>
-                    ))}
+                    {
+                        chatMessages.length > 0 && (
+                            chatMessages.map((message, index) => (
+                                <ChatPane key={index} index={index} message={message}/>
+                            ))
+                        )
+                    }
                 </Stack>
             </Box>
-            <MessageInput textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handelSubmit}/>
+            <MessageInput textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handleSubmit}/>
         </Sheet>
     );
 }

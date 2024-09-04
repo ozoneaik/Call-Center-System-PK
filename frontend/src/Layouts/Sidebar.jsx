@@ -143,7 +143,7 @@ export default function Sidebar() {
                             <ListItemContent>
                                 <Typography level="title-sm">ห้องแชททั้งหมด</Typography>
                             </ListItemContent>
-                            <Chip size="sm" color="danger" variant="solid">10</Chip>
+                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
                         </ListItemButton>
                     </ListItem>
                     <ListItem nested>
@@ -173,7 +173,7 @@ export default function Sidebar() {
                             <ListItemContent>
                                 <Typography level="title-sm">ห้องแชทที่ 2</Typography>
                             </ListItemContent>
-                            <Chip size="sm" color="danger" variant="solid">10</Chip>
+                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
                         </ListItemButton>
                     </ListItem>
                 </List>

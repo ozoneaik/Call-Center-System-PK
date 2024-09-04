@@ -9,8 +9,6 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ChatListItem from './ChatListItem';
 import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
-import {toggleMessagesPane} from "../../Components/utils.js";
-
 export default function ChatsPane(props) {
     const {chats, setSelectedChat, selectedChatId,} = props;
     return (
@@ -25,13 +23,10 @@ export default function ChatsPane(props) {
                 sx={{alignItems: 'center', justifyContent: 'space-between', p: 2, pb: 1.5}}
             >
                 <Typography
-                    component="h1"
+                    component="h1" sx={{fontSize: {xs: 'md', md: 'lg'}, fontWeight: 'lg', mr: 'auto'}}
                     endDecorator={
-                        <Chip variant="soft" color="primary" size="md" slotProps={{root: {component: 'span'}}}>
-                            10
-                        </Chip>
+                        <Chip variant="soft" color="primary" size="md" slotProps={{root: {component: 'span'}}}>10</Chip>
                     }
-                    sx={{fontSize: {xs: 'md', md: 'lg'}, fontWeight: 'lg', mr: 'auto'}}
                 >
                     ข้อความ
                 </Typography>
@@ -41,12 +36,7 @@ export default function ChatsPane(props) {
                 >
                     <EditNoteRoundedIcon/>
                 </IconButton>
-                <IconButton
-                    variant="plain" aria-label="edit" color="neutral" size="sm" sx={{display: {sm: 'none'}}}
-                    // onClick={() => {
-                    //     toggleMessagesPane();
-                    // }}
-                >
+                <IconButton variant="plain" aria-label="edit" color="neutral" size="sm" sx={{display: {sm: 'none'}}}>
                     <CloseRoundedIcon/>
                 </IconButton>
             </Stack>

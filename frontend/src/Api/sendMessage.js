@@ -29,3 +29,12 @@ export const MessageAllAPi = async () => {
         return ErrorResponse(error);
     }
 }
+
+export const MessageSelectApi = async (id) => {
+    try {
+        const {data,status} = await axiosClient.get(`${prefix}/selectMessage/${id}`);
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}

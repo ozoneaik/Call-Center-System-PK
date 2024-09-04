@@ -51,8 +51,10 @@ export default function ChatListItem(props) {
                     <DialogActions>
                         <Button variant="solid" color="primary" onClick={() => {
                             setOpen(false);
+                            console.log(id)
                             toggleMessagesPane();
                             setSelectedChat({ id, sender, messages });
+                            localStorage.setItem('selectChat',id);
                         }}>
                             <TextsmsIcon/>
                         </Button>
@@ -77,7 +79,7 @@ export default function ChatListItem(props) {
                             <Typography level="body-sm">{sender.description}</Typography>
                         </Box>
                         <Box sx={{ lineHeight: 1.5, textAlign: 'right' }}>
-                            {messages[0].unread && (
+                            {messages[messages.length-1].unread && (
                                 <CircleIcon sx={{ fontSize: 12 }} color="danger" />
                             )}
                             <Typography
@@ -85,7 +87,7 @@ export default function ChatListItem(props) {
                                 noWrap
                                 sx={{ display: { xs: 'none', md: 'block' } }}
                             >
-                                5 mins ago
+                                5 นาทีก่อน
                             </Typography>
                         </Box>
                     </Stack>
@@ -96,7 +98,7 @@ export default function ChatListItem(props) {
                             overflow: 'hidden', textOverflow: 'ellipsis',
                         }}
                     >
-                        {messages[0].content}
+                        {messages[messages.length-1].content}
                     </Typography>
                 </ListItemButton>
             </ListItem>

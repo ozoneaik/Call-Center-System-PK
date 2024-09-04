@@ -1,20 +1,25 @@
 import Sheet from '@mui/joy/Sheet';
 import MessagesPane from "./MessagePane.jsx";
 import ChatsPane from './ChatsPane';
-import {chats} from "../../Components/data.jsx";
 import {useEffect, useState} from "react";
 import {MessageAllAPi} from "../../Api/sendMessage.js";
+import echo from "../Test/echo.js";
+import {newMessage} from "./newMessage.jsx";
 
 export default function MyMessage() {
     const [selectedChat, setSelectedChat] = useState();
     const [Ischats, setChats] = useState([]);
 
     useEffect(()=>{
-        getMessages()
+        getMessages().then(()=>console.log('getMessages'));
+        newMessage({onPassed : (res)=> {
+            getMessages().then(()=>{});
+        }});
     },[])
     const getMessages = async () => {
+        const id = localStorage.getItem("selectChat") ? localStorage.getItem("selectChat") : 0;
         const {data,status} = await MessageAllAPi();
-        setSelectedChat(data.chats[0])
+        setSelectedChat(data.chats[id])
         setChats(data.chats);
     }
     return (
