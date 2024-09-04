@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @method static where(string $string, mixed $userId)
+ * @method static orderBy(string $string, string $string1)
  * @property mixed $custId
  * @property mixed|string $name
  * @property mixed $imageUrl

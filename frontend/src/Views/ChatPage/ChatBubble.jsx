@@ -8,7 +8,7 @@ import {useAuth} from "../../Contexts/AuthContext.jsx";
 
 export default function ChatBubble(props) {
     const {user} = useAuth();
-    const {content, variant,created_at, attachment = undefined, sender} = props;
+    const {content, contentType, variant, created_at, attachment = undefined, sender} = props;
     const isSent = variant === 'sent';
     return (
         <Box sx={{maxWidth: '60%', minWidth: 'auto'}}>
@@ -38,33 +38,44 @@ export default function ChatBubble(props) {
                     </Stack>
                 </Sheet>
             ) : (
-                <Box
-                    sx={{position: 'relative'}}
-                >
-                    <Sheet
-                        color={isSent ? 'primary' : 'neutral'} variant={isSent ? 'solid' : 'soft'}
-                        sx={[
-                            {p: 1.25, borderRadius: 'lg',},
-                            isSent ? {borderTopRightRadius: 0,} : {borderTopRightRadius: 'lg',},
-                            isSent ? {borderTopLeftRadius: 'lg',} : {borderTopLeftRadius: 0,},
-                            isSent ? {
-                                backgroundColor: 'var(--joy-palette-primary-solidBg)'
-                            } : {
-                                backgroundColor: 'background.body',
-                            },
-                        ]}
+                (
+                    <Box
+                        sx={{position: 'relative'}}
                     >
-                        <Typography
-                            level="body-sm"
+                        <Sheet
+                            color={isSent ? 'primary' : 'neutral'} variant={isSent ? 'solid' : 'soft'}
                             sx={[
-                                isSent ? {color: 'var(--joy-palette-common-white)',} : {color: 'var(--joy-palette-text-primary)'},
+                                {p: 1.25, borderRadius: 'lg',},
+                                isSent ? {borderTopRightRadius: 0,} : {borderTopRightRadius: 'lg',},
+                                isSent ? {borderTopLeftRadius: 'lg',} : {borderTopLeftRadius: 0,},
+                                isSent ? {
+                                    backgroundColor: 'var(--joy-palette-primary-solidBg)'
+                                } : {
+                                    backgroundColor: 'background.body',
+                                },
                             ]}
                         >
-                            {content}
-                        </Typography>
-                    </Sheet>
-                </Box>
-            )}
+                            {
+                                contentType === 'text' ? (
+                                    <Typography
+                                        level="body-sm"
+                                        sx={[
+                                            isSent ? {color: 'var(--joy-palette-common-white)',} : {color: 'var(--joy-palette-text-primary)'},
+                                        ]}
+                                    >
+                                        {content}
+                                    </Typography>
+
+                                ) : (
+                                    <img src={content} alt=""/>
+
+                                )
+                            }
+                        </Sheet>
+                    </Box>
+                )
+            )
+            }
         </Box>
     );
 }

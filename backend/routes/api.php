@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatHistoryController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\line\LineController;
+use App\Http\Controllers\ShortChatController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +25,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/sendMessage', [LineController::class, 'sendMessage']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/profile', [AuthController::class, 'user']);
+    Route::prefix('user')->group(function () {
+       Route::get('/list',[UserController::class,'UserList']);
+    });
+
+    Route::prefix('shortChat')->group(function(){
+       Route::get('/list',[ShortChatController::class,'shortChatList']);
+    });
 });
 
 Route::post('/line/webhook', [LineController::class, 'webhook']);

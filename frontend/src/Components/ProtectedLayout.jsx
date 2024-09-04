@@ -9,7 +9,7 @@ function ProtectedLayout() {
     useEffect(() => {
         (async () => {
             try{
-                const resp = await axiosClient.get('/user');
+                const resp = await axiosClient.get('/profile');
                 if (resp.status === 200) {
                     setUser(resp.data.user);
                 }else{

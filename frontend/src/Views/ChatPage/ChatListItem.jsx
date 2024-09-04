@@ -79,7 +79,7 @@ export default function ChatListItem(props) {
                             <Typography level="body-sm">{sender.description}</Typography>
                         </Box>
                         <Box sx={{ lineHeight: 1.5, textAlign: 'right' }}>
-                            {messages[messages.length-1].unread && (
+                            {messages[0].unread && (
                                 <CircleIcon sx={{ fontSize: 12 }} color="danger" />
                             )}
                             <Typography
@@ -87,7 +87,7 @@ export default function ChatListItem(props) {
                                 noWrap
                                 sx={{ display: { xs: 'none', md: 'block' } }}
                             >
-                                5 นาทีก่อน
+                                {new Date(messages[0].created_at).toLocaleString()}
                             </Typography>
                         </Box>
                     </Stack>
@@ -98,7 +98,9 @@ export default function ChatListItem(props) {
                             overflow: 'hidden', textOverflow: 'ellipsis',
                         }}
                     >
-                        {messages[messages.length-1].content}
+                        {
+                            messages[0].contentType === 'text' ? messages[0].content : 'ส่งไฟล์เข้ามา'
+                        }
                     </Typography>
                 </ListItemButton>
             </ListItem>
