@@ -21,9 +21,9 @@ export const SendMessageApi = async (text,sendTo) => {
     }
 }
 
-export const MessageAllAPi = async () => {
+export const MessageAllAPi = async (id) => {
     try {
-        const {data,status} = await axiosClient.get(`${prefix}/listMessage`);
+        const {data,status} = await axiosClient.get(`${prefix}/listMessage/room/${id}`);
         return {data, status};
     }catch(error) {
         return ErrorResponse(error);

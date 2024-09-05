@@ -1,16 +1,17 @@
 import Stack from '@mui/joy/Stack';
 import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
-import {Chip, IconButton} from '@mui/joy';
+import {IconButton} from '@mui/joy';
 import List from '@mui/joy/List';
-import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ChatListItem from './ChatListItem';
 import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
+import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
+
 export default function ChatsPane(props) {
-    const {chats, setSelectedChat, selectedChatId,} = props;
+    const {roomId, chats, setSelectedChat, selectedChatId,} = props;
     return (
         <Sheet
             sx={{
@@ -24,18 +25,9 @@ export default function ChatsPane(props) {
             >
                 <Typography
                     component="h1" sx={{fontSize: {xs: 'md', md: 'lg'}, fontWeight: 'lg', mr: 'auto'}}
-                    endDecorator={
-                        <Chip variant="soft" color="primary" size="md" slotProps={{root: {component: 'span'}}}>10</Chip>
-                    }
                 >
-                    ข้อความ
+                    {Number(roomId) === 0 ? 'ห้องแชทใหม่' : `ห้องแชทที่ ${roomId}`}
                 </Typography>
-                <IconButton
-                    variant="plain" aria-label="edit" color="neutral" size="sm"
-                    sx={{display: {xs: 'none', sm: 'unset'}}}
-                >
-                    <EditNoteRoundedIcon/>
-                </IconButton>
                 <IconButton variant="plain" aria-label="edit" color="neutral" size="sm" sx={{display: {sm: 'none'}}}>
                     <CloseRoundedIcon/>
                 </IconButton>
@@ -50,13 +42,29 @@ export default function ChatsPane(props) {
                     '--ListItem-paddingX': '1rem',
                 }}
             >
-                {chats.map((chat) => (
-                    <ChatListItem
-                        key={chat.id}{...chat}
-                        setSelectedChat={setSelectedChat}
-                        selectedChatId={selectedChatId}
-                    ></ChatListItem>
-                ))}
+                {
+                    chats.length > 0 ? (
+                        chats.map((chat) => (
+                            <ChatListItem
+                                key={chat.id}{...chat}
+                                setSelectedChat={setSelectedChat}
+                                selectedChatId={selectedChatId}
+                            ></ChatListItem>
+                        ))
+                    ) : (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                            <div>
+                                <Typography sx={{textAlign : 'center'}}>
+                                    <SentimentVeryDissatisfiedIcon/>
+                                </Typography>
+                                <Typography>ไม่มีรายแชทในห้องนี้</Typography>
+                            </div>
+                        </Box>
+
+                    )
+
+
+                }
             </List>
         </Sheet>
     );

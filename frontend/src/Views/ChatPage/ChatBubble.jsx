@@ -5,11 +5,16 @@ import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import {useAuth} from "../../Contexts/AuthContext.jsx";
+import {Link as L} from "react-router-dom";
+import Link from "@mui/joy/Link";
+
+
 
 export default function ChatBubble(props) {
     const {user} = useAuth();
     const {content, contentType, variant, created_at, attachment = undefined, sender} = props;
     const isSent = variant === 'sent';
+
     return (
         <Box sx={{maxWidth: '60%', minWidth: 'auto'}}>
             <Stack direction="row" spacing={2} sx={{justifyContent: 'space-between', mb: 0.25}}>
@@ -56,21 +61,33 @@ export default function ChatBubble(props) {
                             ]}
                         >
                             {
-                                contentType === 'text' ? (
+                                contentType === 'sticker' ? (
+                                    <img src={content} alt=""/>
+                                ) : contentType === 'image' ? (
+                                    <Sheet
+                                        variant="outlined"
+                                        sx={[
+                                            {px: 1.75, py: 1.25, borderRadius: 'lg',},
+                                            isSent ? {borderTopRightRadius: 0} : {borderTopRightRadius: 'lg'},
+                                            isSent ? {borderTopLeftRadius: 'lg'} : {borderTopLeftRadius: 0},
+                                        ]}
+                                    >
+                                        <Stack direction="row" spacing={1.5} sx={{alignItems: 'center'}}>
+                                            <Link component={L} to={content} target={'_blank'}>
+                                                <img src={content} width={200} alt=""/>
+                                            </Link>
+                                        </Stack>
+                                    </Sheet>
+                                ) : (
                                     <Typography
                                         level="body-sm"
                                         sx={[
                                             isSent ? {color: 'var(--joy-palette-common-white)',} : {color: 'var(--joy-palette-text-primary)'},
                                         ]}
-                                    >
-                                        {content}
-                                    </Typography>
-
-                                ) : (
-                                    <img src={content} alt=""/>
-
+                                    >{content}</Typography>
                                 )
                             }
+
                         </Sheet>
                     </Box>
                 )

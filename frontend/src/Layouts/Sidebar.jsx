@@ -26,6 +26,7 @@ import {Link, useNavigate} from "react-router-dom";
 import {useAuth} from "../Contexts/AuthContext.jsx";
 import {LogoutApi} from "../Api/Auth.js";
 import {AlertWithConfirm} from "../Dialogs/Alert.js";
+import TryIcon from '@mui/icons-material/Try';
 
 function Toggler(props) {
     const {defaultExpanded, renderToggle, children} = props;
@@ -137,22 +138,13 @@ export default function Sidebar() {
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>
-                    <ListItem>
-                        <ListItemButton component={Link} to={'/chats'}>
-                            <QuestionAnswerRoundedIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">ห้องแชททั้งหมด</Typography>
-                            </ListItemContent>
-                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
-                        </ListItemButton>
-                    </ListItem>
                     <ListItem nested>
                         <Toggler
                             renderToggle={({open, setOpen}) => (
                                 <ListItemButton onClick={() => setOpen(!open)}>
                                     <QuestionAnswerRoundedIcon/>
                                     <ListItemContent>
-                                        <Typography level="title-sm">ห้องแชทที่ 1</Typography>
+                                        <Typography level="title-sm">ไม่มี</Typography>
                                     </ListItemContent>
                                     <KeyboardArrowDownIcon
                                         sx={[open ? {transform: 'rotate(180deg)',} : {transform: 'none',},]}
@@ -168,10 +160,19 @@ export default function Sidebar() {
                         </Toggler>
                     </ListItem>
                     <ListItem>
-                        <ListItemButton component={Link} to={'/chats'}>
+                        <ListItemButton component={Link} to={'/chats/room/0'}>
+                            <TryIcon/>
+                            <ListItemContent>
+                                <Typography level="title-sm">ห้องแชทใหม่</Typography>
+                            </ListItemContent>
+                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton component={Link} to={'/chats/room/1'}>
                             <QuestionAnswerRoundedIcon/>
                             <ListItemContent>
-                                <Typography level="title-sm">ห้องแชทที่ 2</Typography>
+                                <Typography level="title-sm">ห้องแชทที่ 1</Typography>
                             </ListItemContent>
                             {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
                         </ListItemButton>

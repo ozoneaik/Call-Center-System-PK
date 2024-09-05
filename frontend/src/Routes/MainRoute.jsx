@@ -24,9 +24,7 @@ export const route = createBrowserRouter([
         path: '/', element: <ProtectedLayout/>, children: [
             {path: '/home', element: <HomePage/>},
             {
-                path: '/chats', element: <ChatPage/>, children: [
-                    {path: ':id', element: <MyMessage/>},
-                ]
+                path: '/chats/room/:id',element: <ChatPage/>
             },
             {
                 path: '/customer', element: <CustomerListPage/>, children: []

@@ -14,8 +14,8 @@ class ChatHistoryController extends Controller
         $this->chatHistoryService = $chatHistoryService;
     }
 
-    public function LatestChatHistory() : JsonResponse{
-        $customers = customers::orderBy('id','desc')->get();
+    public function LatestChatHistory($id) : JsonResponse{
+        $customers = customers::where('roomId',$id)->orderBy('id','desc')->get();
         $data = [];
         foreach ($customers as $index => $customer) {
             // สร้างข้อมูลพื้นฐานสำหรับแต่ละ customer
