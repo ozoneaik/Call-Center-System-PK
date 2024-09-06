@@ -3,6 +3,7 @@ import Box from "@mui/joy/Box";
 import Sidebar from "./Sidebar.jsx";
 import {CssVarsProvider} from "@mui/joy/styles";
 import Header from "./Header.jsx";
+import {useEffect} from "react";
 
 export default function Content({children}) {
     return (

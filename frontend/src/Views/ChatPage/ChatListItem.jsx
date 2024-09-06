@@ -17,7 +17,7 @@ import Divider from "@mui/joy/Divider";
 import Button from "@mui/joy/Button";
 import TextsmsIcon from '@mui/icons-material/Textsms';
 import Avatar from "@mui/joy/Avatar";
-import {checkRoomListApi} from "../../Api/chatRooms.js";
+import {changeRoomApi, chatRoomListApi} from "../../Api/chatRooms.js";
 
 export default function ChatListItem(props) {
     const {id, sender, messages, selectedChatId, setSelectedChat} = props;
@@ -29,10 +29,20 @@ export default function ChatListItem(props) {
         });
     }, []);
     const getChatRooms = async () => {
-        const {data, status} = await checkRoomListApi();
+        const {data, status} = await chatRoomListApi();
         if (status === 200) {
             setChatRooms(data.chatRooms)
         }
+    }
+
+    const handleChangeRoom = async (roomId, custId) => {
+       const {data,status} = await changeRoomApi(roomId,custId);
+       if (status === 200) {
+           alert(data.message)
+           location.reload()
+       }else{
+           alert('unSuccess')
+       }
     }
     return (
         <>
@@ -45,22 +55,23 @@ export default function ChatListItem(props) {
                     <DialogContent>
                         <Box>
                             <Avatar src={sender.avatar}/>
-                            ชื่อลูกค้า : {sender.name}
-                            <br/>
-                            รายละเอียด : {sender.username}
-                            <br/>
-                            จาก : Line
-                            <br/>
+                            <p><span style={{fontWeight: "bold"}}>ชื่อลูกค้า :</span> {sender.name}</p>
+                            <p><span style={{fontWeight: "bold"}}>รายละเอียด :</span> {sender.description}</p>
+                            <p><span style={{fontWeight: "bold"}}>จาก :</span> Line</p>
                         </Box>
                         <Divider/>
                         <Box>
                             <Typography level="title-sm">ย้ายไปยังห้อง</Typography>
-                            <Button disabled={sender.roomId === 0} sx={{mr: 1}} size='sm' variant='outlined'>ห้องแชทรวม</Button>
                             {
                                 chatRooms.length > 0 ? (
                                     chatRooms.map((chatRoom, index) => (
-                                            <Button disabled={chatRoom.id === sender.roomId} sx={{mr: 1}} key={index}
-                                                    size='sm' variant='outlined'>{chatRoom.name}</Button>
+                                            <Button
+                                                onClick={() => handleChangeRoom(chatRoom.id, sender.custId)}
+                                                disabled={chatRoom.id === sender.roomId}
+                                                sx={{mr: 1}} key={index} size='sm' variant='outlined'
+                                            >
+                                                {chatRoom.name}
+                                            </Button>
                                         )
                                     )
                                 ) : (

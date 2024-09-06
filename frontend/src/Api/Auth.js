@@ -27,3 +27,13 @@ export const LogoutApi = async () => {
         return ErrorResponse(error);
     }
 }
+
+
+export const ProfileApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get('/profile');
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}

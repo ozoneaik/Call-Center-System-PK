@@ -1,8 +1,8 @@
 import * as React from 'react';
+import {useEffect, useState} from 'react';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import Avatar from '@mui/joy/Avatar';
 import Box from '@mui/joy/Box';
-import Chip from '@mui/joy/Chip';
 import Divider from '@mui/joy/Divider';
 import IconButton from '@mui/joy/IconButton';
 import Input from '@mui/joy/Input';
@@ -27,6 +27,8 @@ import {useAuth} from "../Contexts/AuthContext.jsx";
 import {LogoutApi} from "../Api/Auth.js";
 import {AlertWithConfirm} from "../Dialogs/Alert.js";
 import TryIcon from '@mui/icons-material/Try';
+import {chatRoomListApi} from "../Api/chatRooms.js";
+import Chip from "@mui/joy/Chip";
 
 function Toggler(props) {
     const {defaultExpanded, renderToggle, children} = props;
@@ -54,6 +56,19 @@ function Toggler(props) {
 export default function Sidebar() {
     const {user} = useAuth();
     const navigate = useNavigate();
+    const [listRoom, setListRooms] = useState([]);
+
+    useEffect(() => {
+        getListRoom().then(() => {
+        });
+    }, [])
+
+    const getListRoom = async () => {
+        const {data, status} = await chatRoomListApi();
+        if (status === 200) {
+            setListRooms(data.chatRooms);
+        }
+    }
 
     const Logout = () => {
         AlertWithConfirm({
@@ -133,7 +148,7 @@ export default function Sidebar() {
                     <ListItem>
                         <ListItemButton component={Link} to={'/home'}>
                             <HomeRoundedIcon/>
-                            <ListItemContent >
+                            <ListItemContent>
                                 <Typography level="title-sm">หน้าหลัก</Typography>
                             </ListItemContent>
                         </ListItemButton>
@@ -159,24 +174,25 @@ export default function Sidebar() {
                             </List>
                         </Toggler>
                     </ListItem>
-                    <ListItem>
-                        <ListItemButton component={Link} to={'/chats/room/0'}>
-                            <TryIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">ห้องแชทใหม่</Typography>
-                            </ListItemContent>
-                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem>
-                        <ListItemButton component={Link} to={'/chats/room/1'}>
-                            <QuestionAnswerRoundedIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">ห้องแชทที่ 1</Typography>
-                            </ListItemContent>
-                            {/*<Chip size="sm" color="danger" variant="solid">10</Chip>*/}
-                        </ListItemButton>
-                    </ListItem>
+                    {
+                        listRoom.length > 0 && (
+                            listRoom.map((list, index) => (
+                                <ListItem key={index}>
+                                    <ListItemButton component={Link} to={`/chats/room/${list.id}`}>
+                                        <TryIcon/>
+                                        <ListItemContent>
+                                            <Typography level="title-sm">{list.name}</Typography>
+                                        </ListItemContent>
+                                        {
+                                            list.unReads > 0 && (
+                                                <Chip size="sm" color="danger" variant="solid">{list.unReads}</Chip>
+                                            )
+                                        }
+                                    </ListItemButton>
+                                </ListItem>
+                            ))
+                        )
+                    }
                 </List>
                 <List
                     size="sm"

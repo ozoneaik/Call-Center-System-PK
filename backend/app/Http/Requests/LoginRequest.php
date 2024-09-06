@@ -20,18 +20,12 @@ class LoginRequest extends FormRequest
 
     public function messages() : array {
         return [
-            'email.required' => 'อีเมลไม่ถูกต้อง',
-            'password.required' => 'รหัสไม่ถูกต้อง',
+            'email.required' => 'กรุณากรอกอีเมล',
+            'email.email' => 'รูปแบบอีเมลไม่ถูกต้อง',
+            'email.exists' => 'ไม่พบบัญชีที่ใช้อีเมลนี้',
+            'password.required' => 'กรุณากรอกรหัสผ่าน',
+            'password.string' => 'รูปแบบรหัสผ่านต้องเป็นตัวอักษร',
         ];
     }
-    protected function withValidator($validator): void
-    {
-        $validator->after(function ($validator) {
-            if ($this->email && $this->password) {
-                if (!auth()->attempt($this->only('email', 'password'))) {
-                    $validator->errors()->add('email', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-                }
-            }
-        });
-    }
+
 }

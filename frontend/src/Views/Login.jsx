@@ -47,8 +47,8 @@ function ColorSchemeToggle(props) {
 }
 
 export default function JoySignInSideTemplate() {
-    const [email, setEmail] = useState('test@gmail.com');
-    const [password, setPassword] = useState('1111d');
+    const [email, setEmail] = useState('70010@mail.com');
+    const [password, setPassword] = useState('1111');
     const [loading, setLoading] = useState(false);
     const {csrfToken, setUser} = useAuth();
 
