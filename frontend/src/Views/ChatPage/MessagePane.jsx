@@ -20,8 +20,7 @@ export default function MessagesPane(props) {
 
 
     useEffect(() => {
-        console.log(chat.sender.custId);
-        getMessage(chat.sender.custId).then(()=> console.log('getMessage'));
+        getMessage(chat.sender.custId).then(() => {});
         setSender(chat.sender);
     }, [chat]);
 
@@ -29,21 +28,21 @@ export default function MessagesPane(props) {
         if (sender) {
             const channel = echo.channel(`chat.${sender.custId}`);
             channel.listen('.my-event', (event) => {
-                console.log('Message received:', event.message);
                 if (event.message) {
                     CustSend(event.message);
                 }
             });
-
             return () => {
                 channel.stopListening('.my-event');
                 echo.leaveChannel(`chat.${sender.custId}`);
             };
         }
+
+
     }, [sender]);
 
     const getMessage = async (id) => {
-        const {data,status} = await MessageSelectApi(id);
+        const {data, status} = await MessageSelectApi(id);
         if (status === 200) {
             setChatMessages(data.chats.messages);
         }
@@ -52,7 +51,6 @@ export default function MessagesPane(props) {
     // เมื่อกดส่งข้อความ
     const handleSubmit = async () => {
         const {data, status} = await SendMessageApi(textAreaValue, sender.custId);
-        console.log(data, status);
         if (status !== 200) {
             AlertStandard({text: data.message});
         } else {
@@ -66,7 +64,6 @@ export default function MessagesPane(props) {
     };
 
     const CustSend = (message) => {
-        console.log('CustSend >> ', sender.custId);
         setChatMessages((prevMessages) => {
             const newId = prevMessages.length.toString();
             return [
@@ -117,7 +114,15 @@ export default function MessagesPane(props) {
                     }
                 </Stack>
             </Box>
-            <MessageInput textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handleSubmit}/>
+            {
+                sender && (
+                    <MessageInput
+                        textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handleSubmit}
+                        Disable={!(user.role === 'admin' || sender.userReply === user.code)}
+                    />
+                )
+            }
+
         </Sheet>
     );
 }

@@ -6,7 +6,7 @@ import {Stack } from '@mui/joy';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {useRef} from "react";
 export default function MessageInput(props) {
-    const { textAreaValue, setTextAreaValue, onSubmit } = props;
+    const { textAreaValue, setTextAreaValue, onSubmit ,Disable} = props;
     const textAreaRef = useRef(null);
     const handleClick = () => {
         if (textAreaValue.trim() !== '') {
@@ -17,7 +17,7 @@ export default function MessageInput(props) {
     return (
         <Box sx={{ px: 2, pb: 3 }}>
             <FormControl>
-                <Textarea placeholder="พิมพ์ข้อความที่นี่..." aria-label="Message" ref={textAreaRef}
+                <Textarea disabled={Disable} placeholder={!Disable ? 'พิมพ์ข้อความที่นี่...' : 'คุณไม่มีสิทธิ์'} aria-label="Message" ref={textAreaRef}
                     onChange={(e) => {
                         setTextAreaValue(e.target.value);
                     }}
@@ -32,7 +32,7 @@ export default function MessageInput(props) {
                         >
                             <Button
                                 size="sm" color="primary" sx={{ alignSelf: 'center', borderRadius: 'sm' }}
-                                endDecorator={<SendRoundedIcon />} onClick={handleClick}
+                                endDecorator={<SendRoundedIcon />} onClick={handleClick} disabled={Disable}
                             >
                                 ส่ง (ctrl + enter)
                             </Button>

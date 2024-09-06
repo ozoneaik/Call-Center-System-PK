@@ -6,6 +6,7 @@ use App\Events\MessageNotification;
 use App\Http\Controllers\Controller;
 use App\Models\chatHistory;
 use App\Models\customers;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -113,12 +114,25 @@ class LineController extends Controller
             );
 
             if ($response->successful()) {
-                $chatHistory = new chatHistory();
-                $chatHistory->custId = $data_body['to'];
-                $chatHistory->sender = json_encode(auth()->user());
-                $chatHistory->content = $data_body['messages'][0]['text'];
-                $chatHistory->contentType = $data_body['messages'][0]['type'];
-                $chatHistory->save();
+                try {
+                    $chatHistory = new chatHistory();
+                    $chatHistory->custId = $data_body['to'];
+                    $chatHistory->sender = json_encode(auth()->user());
+                    $chatHistory->content = $data_body['messages'][0]['text'];
+                    $chatHistory->contentType = $data_body['messages'][0]['type'];
+                    $chatHistory->save();
+                    $options = [
+                        'cluster' => env('PUSHER_APP_CLUSTER'),
+                        'useTLS' => true
+                    ];
+                    $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), $options);
+                    $pusher->trigger('notifications', 'my-event', [
+                        'message' => 'new message'
+                    ]);
+                }catch (\Exception|GuzzleException $e){
+                    return response()->json(['error' => $e->getMessage()], 500);
+                }
+
             }
 
             return response()->json([

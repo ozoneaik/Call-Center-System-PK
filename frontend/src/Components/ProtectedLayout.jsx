@@ -5,21 +5,16 @@ import axiosClient from "../Axios.js";
 import {ProfileApi} from "../Api/Auth.js";
 
 function ProtectedLayout() {
-    console.log("ProtectedLayout rendered");
-    const {setUser} = useAuth();
-
+    const {user,setUser} = useAuth();
+    if (!user){
+        window.location.href = "/login";
+    }
     useEffect(() => {
-        console.log('ProtectedLayout useEffect triggered');
         (async () => {
             try {
                 const {data,status} = await ProfileApi();
                 if (status === 200) {
                     setUser(data.user);
-                    return (
-                        <div>
-                            <Outlet/>
-                        </div>
-                    );
                 } else {
                     window.location.href = "/login";
                 }
@@ -33,11 +28,11 @@ function ProtectedLayout() {
         })()
     }, []);
 
-    return (
-        <div>
-            <Outlet/>
-        </div>
-    );
+        return (
+            <div>
+                <Outlet/>
+            </div>
+        );
 
 }
 

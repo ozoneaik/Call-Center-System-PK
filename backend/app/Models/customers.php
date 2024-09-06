@@ -19,5 +19,5 @@ use Illuminate\Database\Eloquent\Model;
 class customers extends Model
 {
     use HasFactory;
-    protected $fillable = ['custId','name','platform','description','roomId','avatar','online'];
+    protected $fillable = ['custId','name','platform','description','roomId','avatar','online','userReply'];
 }

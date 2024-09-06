@@ -20,32 +20,51 @@ import Box from "@mui/joy/Box";
 import {Grid} from "@mui/joy";
 import {userListApi} from "../../Api/User.js";
 import {shortChatListApi} from "../../Api/shortChats.js";
+import {SendMessageApi} from "../../Api/sendMessage.js";
+import {changeUserReplyApi} from "../../Api/Customer.js";
 
-
-export default function MessagesPaneHeader(props) {
+export default function MessagesPaneHeader({sender}) {
     const [open, setOpen] = useState(false);
     const [sendToEmp, setSendToEmp] = useState(false);
-    const {sender} = props;
     const [users, setUsers] = useState([]);
     const [shortChats, setShortChats] = useState([]);
+
     useEffect(() => {
-        getUsers().then(() => {
-        })
-        getShortChats().then(() => {
-        })
+        userListApi().then(({data, status}) => status === 200 && setUsers(data.users));
+        shortChatListApi().then(({data, status}) => status === 200 && setShortChats(data.short_chats));
     }, []);
-    const getUsers = async () => {
-        const {data, status} = await userListApi();
-        if (status === 200) {
-            setUsers(data.users);
+
+    const  shortChatSubmit = async (custId, Item) => {
+        const {status} = await SendMessageApi(Item,custId);
+        if (status === 200){
+            alert('send success');
+        }
+        setOpen(false)
+    }
+    const changeUserReply = async (custId, Item) => {
+        const {status} = await changeUserReplyApi(Item,custId);
+        if (status === 200){
+            await shortChatSubmit(custId, 'ระบบได้กำลังย้ายท่านไปหาช่าง')
+            alert('send success');
         }
     }
-    const getShortChats = async () => {
-        const {data, status} = await shortChatListApi();
-        if (status === 200) {
-            setShortChats(data.short_chats);
-        }
-    }
+
+    const renderButtons = (items, keyPrefix) => items.map((item, index) => {
+        return (
+            <Grid key={`${keyPrefix}-${index}`} size={4}>
+                <Button
+                    startDecorator={<OpenInNew/>}
+                    onClick={() => {
+                        keyPrefix === 'shortChat' ?
+                            shortChatSubmit(sender.custId, item.chat_text) : changeUserReply(sender.custId, item.code)
+                    }}
+                >
+                    {item.code || item.chat_text} {item.name}
+                </Button>
+            </Grid>
+        )
+    });
+
     return (
         <>
             <Modal open={open} onClose={() => setOpen(false)}>
@@ -53,17 +72,9 @@ export default function MessagesPaneHeader(props) {
                     <DialogTitle><RateReviewIcon/>ตัวช่วยตอบ</DialogTitle>
                     <Divider/>
                     <DialogContent>
-                        <Box component="section" sx={{p: 1,}}>
+                        <Box component="section" sx={{p: 1}}>
                             <Grid container spacing={1} sx={{flexGrow: 1}}>
-                                {
-                                    shortChats.length > 0 && (
-                                        shortChats.map((shortChat, index) => (
-                                            <Grid key={index} size={4}>
-                                                <Button startDecorator={<OpenInNew/>}>{shortChat.chat_text}</Button>
-                                            </Grid>
-                                        ))
-                                    )
-                                }
+                                {renderButtons(shortChats, 'shortChat')}
                             </Grid>
                         </Box>
                     </DialogContent>
@@ -72,61 +83,44 @@ export default function MessagesPaneHeader(props) {
 
             <Modal open={sendToEmp} onClose={() => setSendToEmp(false)}>
                 <ModalDialog variant="outlined" role="alertdialog">
-                    <DialogTitle>
-                        <SendIcon/>ส่งต่อไปยัง
-                    </DialogTitle>
+                    <DialogTitle><SendIcon/>ส่งต่อไปยัง</DialogTitle>
                     <Divider/>
                     <DialogContent>
-                        <Box component="section" sx={{p: 1,}}>
+                        <Box component="section" sx={{p: 1}}>
                             <Grid container spacing={1} sx={{flexGrow: 1}}>
-                                {
-                                    users.length > 0 && (
-                                        users.map((user, index) => (
-                                            <Grid key={index} size={4}>
-                                                <Button startDecorator={<OpenInNew/>}>{user.code} {user.name}</Button>
-                                            </Grid>
-                                        ))
-                                    )
-                                }
+                                {renderButtons(users, 'user')}
                             </Grid>
                         </Box>
                     </DialogContent>
                 </ModalDialog>
             </Modal>
 
-
             <Stack
                 direction="row"
                 sx={{
-                    justifyContent: 'space-between', py: {xs: 2, md: 2}, px: {xs: 1, md: 2},
+                    justifyContent: 'space-between', py: 2, px: {xs: 1, md: 2},
                     borderBottom: '1px solid', borderColor: 'divider', backgroundColor: 'background.body',
                 }}
             >
-                <Stack direction="row" spacing={{xs: 1, md: 2}} sx={{alignItems: 'center'}}>
+                <Stack direction="row" spacing={2} sx={{alignItems: 'center'}}>
                     <IconButton
-                        variant="plain" color="neutral"
-                        size="sm" sx={{display: {xs: 'inline-flex', sm: 'none'}}}
-                        onClick={() => toggleMessagesPane()}
+                        variant="plain" color="neutral" size="sm"
+                        sx={{display: {xs: 'inline-flex', sm: 'none'}}} onClick={toggleMessagesPane}
                     >
                         <ArrowBackIosNewRoundedIcon/>
                     </IconButton>
                     <Avatar size="lg" src={sender.avatar}/>
                     <div>
-                        <Typography
-                            component="h2" noWrap
-                            endDecorator={
-                                sender.online ? (
-                                    <Chip
-                                        variant="outlined" size="sm" color="neutral" sx={{borderRadius: 'sm'}}
-                                        startDecorator={<CircleIcon sx={{fontSize: 8}} color="success"/>}
-                                        slotProps={{root: {component: 'span'}}}
-                                    >
-                                        Online
-                                    </Chip>
-                                ) : undefined
-                            }
-                            sx={{fontWeight: 'lg', fontSize: 'lg'}}
-                        >
+                        <Typography component="h2" noWrap endDecorator={
+                            sender.online && (
+                                <Chip
+                                    variant="outlined" size="sm" color="neutral" sx={{borderRadius: 'sm'}}
+                                    startDecorator={<CircleIcon sx={{fontSize: 8}} color="success"/>}
+                                >
+                                    Online
+                                </Chip>
+                            )
+                        } sx={{fontWeight: 'lg', fontSize: 'lg'}}>
                             {sender.name}
                         </Typography>
                         <Typography level="body-sm">{sender.description}</Typography>
@@ -134,13 +128,10 @@ export default function MessagesPaneHeader(props) {
                 </Stack>
                 <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
                     <Button variant="outlined" color="neutral" onClick={() => setSendToEmp(true)}>
-                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ส่งต่อ</Typography>
-                        &nbsp;
-                        <SendIcon/>
+                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ส่งต่อ</Typography>&nbsp;<SendIcon/>
                     </Button>
                     <Button variant="outlined" color="neutral" onClick={() => setOpen(true)}>
-                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ช่วยตอบ</Typography>
-                        &nbsp;
+                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ช่วยตอบ</Typography>&nbsp;
                         <RateReviewIcon/>
                     </Button>
                 </Stack>

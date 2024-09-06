@@ -34,4 +34,10 @@ class RegisterRequest extends FormRequest
             ]
         ];
     }
+
+    public function messages(): array{
+        return [
+            'name.required' => 'no name'
+        ];
+    }
 }

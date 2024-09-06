@@ -19,7 +19,7 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request) : JsonResponse{
         $data = $request->validated();
-        $user = $this->authService->register($data);
+        $user = $this->authService->register($request);
         $token = $user->createToken('auth_token')->plainTextToken;
         $cookie = cookie('token',$token,60*24);
         return response()->json([

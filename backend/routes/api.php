@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('customer')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::post('/changeRoom',[CustomersController::class, 'changeRoom']);
+        Route::post('/changeUserReply',[CustomersController::class, 'changeUserReply']);
     });
 
     Route::prefix('chatRoom')->group(function(){
@@ -30,8 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/listMessage/room/{id}', [ChatHistoryController::class, 'LatestChatHistory']);
         Route::get('/selectMessage/{id}', [ChatHistoryController::class, 'ChatSelectById']);
     });
-
     Route::post('/sendMessage', [LineController::class, 'sendMessage']);
+
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'user']);
     Route::prefix('user')->group(function () {

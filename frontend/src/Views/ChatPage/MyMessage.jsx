@@ -3,7 +3,6 @@ import MessagesPane from "./MessagePane.jsx";
 import ChatsPane from './ChatsPane';
 import {useEffect, useState} from "react";
 import {MessageAllAPi} from "../../Api/sendMessage.js";
-import echo from "../Test/echo.js";
 import {newMessage} from "./newMessage.jsx";
 import {useParams} from "react-router-dom";
 
@@ -13,8 +12,8 @@ export default function MyMessage() {
     const [Ischats, setChats] = useState([]);
 
     useEffect(()=>{
-        getMessages().then(()=>console.log('getMessages'));
-        newMessage({onPassed : (res)=> {
+        getMessages().then(()=>{});
+        newMessage({onPassed : ()=> {
             getMessages().then(()=>{});
         }});
     },[id])
