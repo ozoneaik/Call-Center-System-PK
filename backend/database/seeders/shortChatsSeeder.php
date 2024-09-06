@@ -12,24 +12,18 @@ class shortChatsSeeder extends Seeder
      */
     public function run(): void
     {
-        short_chat::create([
-            'chat_text' => 'สวัสดีครับ มีอะไรให้ช่วยไหมครับ?',
-        ]);
+        $shortChats = [
+            'สวัสดีครับ มีอะไรให้ช่วยไหมครับ?',
+            'ต้องการให้ช่วยอะไรบอกได้นะครับ',
+            'ขอบคุณสำหรับข้อความนะครับ!',
+            'กรุณารอสักครู่ ขอตรวจสอบข้อมูลก่อนครับ',
+            'ลาก่อนครับ ขอให้เป็นวันที่ดีนะครับ!',
+        ];
 
-        short_chat::create([
-            'chat_text' => 'ต้องการให้ช่วยอะไรบอกได้นะครับ',
-        ]);
-
-        short_chat::create([
-            'chat_text' => 'ขอบคุณสำหรับข้อความนะครับ!',
-        ]);
-
-        short_chat::create([
-            'chat_text' => 'กรุณารอสักครู่ ขอตรวจสอบข้อมูลก่อนครับ',
-        ]);
-
-        short_chat::create([
-            'chat_text' => 'ลาก่อนครับ ขอให้เป็นวันที่ดีนะครับ!',
-        ]);
+        foreach ($shortChats as $chatText) {
+            short_chat::create([
+                'chat_text' => $chatText,
+            ]);
+        }
     }
 }

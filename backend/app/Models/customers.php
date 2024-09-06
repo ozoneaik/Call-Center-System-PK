@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @method static where(string $string, mixed $userId)
  * @method static orderBy(string $string, string $string1)
+ * @method static create(array $array)
  * @property mixed $custId
  * @property mixed|string $name
  * @property mixed $imageUrl
