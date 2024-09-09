@@ -11,6 +11,7 @@ import {useEffect, useState} from "react";
 import {listCustApi} from "../../Api/Customer.js";
 import {AlertWithConfirm} from "../../Dialogs/Alert.js";
 import {CircularProgress} from "@mui/joy";
+import {Link} from "react-router-dom";
 
 export default function CustomerListTable() {
     const [customers, setCustomers] = useState([]);
@@ -82,9 +83,11 @@ export default function CustomerListTable() {
                                     </Chip>
                                 </td>
                                 <td style={{ textAlign: "center" }}>
-                                    <Button size='sm' sx={{ mr: 1 }} variant='outlined'>
-                                        <ManageAccountsIcon />
-                                    </Button>
+                                        <Link to={`/customer/detail/${row.custId}`}>
+                                            <Button size='sm' sx={{ mr: 1 }} variant='outlined'>
+                                                <ManageAccountsIcon />
+                                            </Button>
+                                        </Link>
                                     <Button size='sm' color='danger' variant='outlined'>
                                         <DeleteIcon />
                                     </Button>

@@ -122,7 +122,6 @@ export default function MessagesPane(props) {
                     />
                 )
             }
-
         </Sheet>
     );
 }

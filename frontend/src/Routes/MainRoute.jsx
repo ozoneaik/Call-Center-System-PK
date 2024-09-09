@@ -7,10 +7,10 @@ import HomePage from "../Views/HomePage/page.jsx";
 import NotFoundPage from "../Views/NotFoundPage/page.jsx";
 import App from "../App.jsx";
 import ChatPage from "../Views/ChatPage/page.jsx";
-import MyMessage from "../Views/ChatPage/MyMessage.jsx";
 import TestPage from "../Views/Test/page.jsx";
 import CustomerListPage from "../Views/CustomerPage/page.jsx";
 import UserListTable from "../Views/UserPage/page.jsx";
+import Detail from "../Views/CustomerPage/Detail.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},
@@ -27,7 +27,10 @@ export const route = createBrowserRouter([
                 path: '/chats/room/:id',element: <ChatPage/>
             },
             {
-                path: '/customer', element: <CustomerListPage/>, children: []
+                path: '/customer', children: [
+                    {path : 'list', element: <CustomerListPage/>},
+                    {path : 'detail/:custId' ,element : <Detail/>}
+                ]
             },
             {
                 path : '/user', element: <UserListTable/>, children : []

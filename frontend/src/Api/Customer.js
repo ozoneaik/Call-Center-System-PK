@@ -12,6 +12,24 @@ export const listCustApi = async () => {
         return ErrorResponse(error);
     }
 }
+
+export const CustDetailApi = async (custId) => {
+    try {
+        const {data,status} = await axiosClient.get(`${prefix}/detail/${custId}`);
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}
+
+export const UpdateCustDetailApi = async (custId,detail) => {
+    try {
+        const {data,status} = await axiosClient.post(`${prefix}/update`,{custId,detail});
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}
 export const changeUserReplyApi = async (Item,custId) => {
     try {
         const {data,status} = await axiosClient.post(`${prefix}/changeUserReply`,{Item,custId});

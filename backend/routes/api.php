@@ -7,10 +7,7 @@ use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\line\LineController;
 use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\UserController;
-
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -19,6 +16,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('customer')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
+        Route::get('/detail/{custId}',[CustomersController::class, 'CustomerDetail']);
+        Route::post('/update',[CustomersController::class, 'UpdateCustomer']);
         Route::post('/changeRoom',[CustomersController::class, 'changeRoom']);
         Route::post('/changeUserReply',[CustomersController::class, 'changeUserReply']);
     });

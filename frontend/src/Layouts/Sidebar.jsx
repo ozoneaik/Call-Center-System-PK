@@ -19,7 +19,6 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import GroupIcon from '@mui/icons-material/Group';
-import ChatIcon from '@mui/icons-material/Chat';
 import ColorSchemeToggle from "../Components/ColorSchemeToggle.jsx";
 import {closeSidebar} from "../Components/utils.js";
 import {Link, useNavigate} from "react-router-dom";
@@ -29,6 +28,7 @@ import {AlertWithConfirm} from "../Dialogs/Alert.js";
 import TryIcon from '@mui/icons-material/Try';
 import {chatRoomListApi} from "../Api/chatRooms.js";
 import Chip from "@mui/joy/Chip";
+import Logo from '../assets/logo.png';
 
 function Toggler(props) {
     const {defaultExpanded, renderToggle, children} = props;
@@ -124,7 +124,7 @@ export default function Sidebar() {
             />
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
                 <IconButton variant="soft" color="danger" size="sm">
-                    <ChatIcon/>
+                    <img src={Logo || ''} alt="" width={25}/>
                 </IconButton>
                 <Typography level="title-lg">Pumpkin Co.</Typography>
                 <ColorSchemeToggle sx={{ml: 'auto'}}/>
@@ -197,7 +197,8 @@ export default function Sidebar() {
                 <List
                     size="sm"
                     sx={{
-                        mt: 'auto', flexGrow: 0, mb: 2,
+                        mt: 'auto', flexGrow: 0,
+                        mb: 2,
                         '--ListItem-radius': (theme) => theme.vars.radius.sm,
                         '--List-gap': '8px',
                     }}
@@ -209,7 +210,7 @@ export default function Sidebar() {
                         </ListItemButton>
                     </ListItem>
                     <ListItem>
-                        <ListItemButton component={Link} to={'/customer'}>
+                        <ListItemButton component={Link} to={'/customer/list'}>
                             <GroupIcon/>
                             จัดการลูกค้า
                         </ListItemButton>

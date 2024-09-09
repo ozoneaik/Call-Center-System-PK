@@ -10,6 +10,32 @@ class CustomerService{
         return customers::all();
     }
 
+    public function detail(string $custId) : array{
+        $detail = customers::where('custId', $custId)->first();
+        if ($detail){
+            $data['find'] = true;
+            $data['detail'] = $detail;
+        }else{
+            $data['find'] = false;
+            $data['detail'] = null;
+        }
+        return $data;
+    }
+
+    public function update(string $custId, $FormData){
+        $customer = customers::where('custId', $custId)->first();
+        $customer->name = $FormData['name'];
+        $customer->description = $FormData['description'];
+        if ($customer->save()){
+            $data['status'] = true;
+            $data['customer'] = $customer;
+        }else{
+            $data['status'] = false;
+            $data['customer'] = null;
+        }
+        return $data;
+    }
+
     public function changeRoom ($custId,$roomId): array
     {
         $res['message'] = 'เปลี่ยนห้องแชทสำเร็จ';

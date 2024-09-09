@@ -13,11 +13,14 @@ use Pusher\Pusher;
 class CustomersController extends Controller
 {
     protected CustomerService $customerService;
-    public function __construct(CustomerService $customerService){
+
+    public function __construct(CustomerService $customerService)
+    {
         $this->customerService = $customerService;
     }
 
-    public function CustomerList() : JsonResponse{
+    public function CustomerList(): JsonResponse
+    {
         $customers = $this->customerService->list();
         return response()->json([
             'message' => 'Success',
@@ -25,21 +28,68 @@ class CustomersController extends Controller
         ]);
     }
 
-    public function changeRoom(CustomerRequest $request) : JsonResponse{
+    public function CustomerDetail(string $custId): JsonResponse
+    {
+        try {
+            $message = 'ดึงข้อมูลไม่สำเร็จ';
+            $status = 400;
+            $detail = [];
+            $data = $this->customerService->detail($custId);
+            if ($data['find']) {
+                $status = 200;
+                $message = 'ดึงข้อข้อมูลสำเร็จ';
+                $detail = $data['detail'];
+            }
+            return response()->json([
+                'message' => $message,
+                'detail' => $detail,
+            ], $status);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function UpdateCustomer(Request $request): JsonResponse
+    {
+        try {
+            $message = 'อัพเดทข้อมูลไม่สำเร็จ';
+            $status = 400;
+            $update = $this->customerService->update($request->custId,$request->detail);
+            if ($update['status']) {
+                $status = 200;
+                $message = 'อัพเดทข้อมูลสำเร็จ';
+                $customer = $update['customer'];
+            }
+            return response()->json([
+                'message' => $message,
+                'customer' => $customer ? $customer : null,
+            ], $status);
+        }catch (\Exception $e){
+            return response()->json([
+                'message' => $e->getMessage()
+            ],500);
+        }
+    }
+
+    public function changeRoom(CustomerRequest $request): JsonResponse
+    {
         $request = $request->validated();
         $custId = $request['custId'];
         $roomId = $request['roomId'];
-        $update = $this->customerService->changeRoom($custId,$roomId);
+        $update = $this->customerService->changeRoom($custId, $roomId);
         return response()->json([
-            'custId' => substr($custId,0,15).'...',
+            'custId' => substr($custId, 0, 15) . '...',
             'message' => $update['message'],
-        ],$update['status'] ? 200 : 400);
+        ], $update['status'] ? 200 : 400);
     }
 
-    public function changeUserReply (Request $request) : JsonResponse{
+    public function changeUserReply(Request $request): JsonResponse
+    {
         $message = 'เกิดข้อผิดพลาด';
         try {
-            customers::where('custId',$request->custId)->update(['userReply' => $request->Item]);
+            customers::where('custId', $request->custId)->update(['userReply' => $request->Item]);
             $status = 200;
             $options = [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
@@ -49,15 +99,15 @@ class CustomersController extends Controller
             $pusher->trigger('notifications', 'my-event', [
                 'message' => 'new message'
             ]);
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             $message = $e->getMessage();
-            $status  = 500;
+            $status = 500;
         } catch (GuzzleException $e) {
             $message = 'trigger error';
-            $status  = 400;
+            $status = 400;
         }
         return response()->json([
             'message' => $message,
-        ],$status);
+        ], $status);
     }
 }
