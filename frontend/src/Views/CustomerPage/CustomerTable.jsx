@@ -5,7 +5,6 @@ import Table from '@mui/joy/Table';
 import Sheet from '@mui/joy/Sheet';
 import Typography from '@mui/joy/Typography';
 import Button from "@mui/joy/Button";
-import DeleteIcon from '@mui/icons-material/Delete';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import {useEffect, useState} from "react";
 import {listCustApi} from "../../Api/Customer.js";
@@ -55,6 +54,7 @@ export default function CustomerListTable() {
                         <th>ลำดับ</th>
                         <th>ชื่อ</th>
                         <th>คำอธิบาย</th>
+                        <th>แพลตฟอร์ม</th>
                         <th style={{textAlign: "center"}}>#</th>
                     </tr>
                     </thead>
@@ -62,7 +62,7 @@ export default function CustomerListTable() {
                     {show ? (
                         <tr>
                             <td colSpan={4} style={{textAlign: "center"}}>
-                                <CircularProgress color="primary" size="sm" />
+                                <CircularProgress color="primary" size="sm"/>
                             </td>
                         </tr>
                     ) : (
@@ -72,25 +72,27 @@ export default function CustomerListTable() {
                                     <Typography>{index + 1}</Typography>
                                 </td>
                                 <td>
-                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                        <Avatar src={row.avatar} size="sm" />
+                                    <Box sx={{display: 'flex', gap: 2, alignItems: 'center'}}>
+                                        <Avatar src={row.avatar} size="sm"/>
                                         <Typography>{row.name}</Typography>
                                     </Box>
                                 </td>
                                 <td>
                                     <Chip>
-                                        <Typography>{row.description}</Typography>
+                                        <Typography>@&nbsp;{row.description}</Typography>
                                     </Chip>
                                 </td>
-                                <td style={{ textAlign: "center" }}>
-                                        <Link to={`/customer/detail/${row.custId}`}>
-                                            <Button size='sm' sx={{ mr: 1 }} variant='outlined'>
-                                                <ManageAccountsIcon />
-                                            </Button>
-                                        </Link>
-                                    <Button size='sm' color='danger' variant='outlined'>
-                                        <DeleteIcon />
-                                    </Button>
+                                <td>
+                                    <Chip color={row.platform === 'line' ? 'success' : 'danger'}>
+                                        <Typography>{row.platform}</Typography>
+                                    </Chip>
+                                </td>
+                                <td style={{textAlign: "center"}}>
+                                    <Link to={`/customer/detail/${row.custId}`}>
+                                        <Button size='sm' variant='outlined'>
+                                            <ManageAccountsIcon/>
+                                        </Button>
+                                    </Link>
                                 </td>
                             </tr>
                         ))

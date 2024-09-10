@@ -103,7 +103,8 @@ class LineController extends Controller
     }
 
 
-    public function sendMessage(Request $request){
+    public function sendMessage(Request $request): JsonResponse
+    {
         $URL = 'https://api.line.me/v2/bot/message/push';
         $data_body = $request->dataBody;
         try {

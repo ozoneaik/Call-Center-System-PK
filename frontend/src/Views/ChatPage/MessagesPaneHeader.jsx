@@ -34,19 +34,20 @@ export default function MessagesPaneHeader({sender}) {
         shortChatListApi().then(({data, status}) => status === 200 && setShortChats(data.short_chats));
     }, []);
 
-    const  shortChatSubmit = async (custId, Item) => {
-        const {status} = await SendMessageApi(Item,custId);
-        if (status === 200){
-            alert('send success');
+    const shortChatSubmit = async (custId, Item) => {
+        const {status} = await SendMessageApi(Item, custId);
+        if (status === 200) {
+            alert('ส่งสำเร็จ');
         }
-        setOpen(false)
+        setOpen(false);
     }
     const changeUserReply = async (custId, Item) => {
-        const {status} = await changeUserReplyApi(Item,custId);
-        if (status === 200){
+        const {status} = await changeUserReplyApi(Item, custId);
+        if (status === 200) {
             await shortChatSubmit(custId, 'ระบบได้กำลังย้ายท่านไปหาช่าง')
-            alert('send success');
+            alert('ย้ายสำเร็จ');
         }
+        setSendToEmp(false);
     }
 
     const renderButtons = (items, keyPrefix) => items.map((item, index) => {
@@ -65,36 +66,30 @@ export default function MessagesPaneHeader({sender}) {
         )
     });
 
+    const modalDialog = ({prefix, isOpen, handleClose}) => {
+        return (
+            <Modal open={isOpen} onClose={handleClose}>
+                <ModalDialog variant="outlined" role="alertdialog">
+                    <DialogTitle>
+                        {prefix === 'shortChat' ? (<><RateReviewIcon /> ตัวช่วยตอบ</>) : (<><SendIcon /> ส่งต่อไปยัง</>)}
+                    </DialogTitle>
+                    <Divider />
+                    <DialogContent>
+                        <Box component="section" sx={{ p: 1 }}>
+                            <Grid container spacing={1} sx={{ flexGrow: 1 }}>
+                                {prefix === 'shortChat' ? renderButtons(shortChats, 'shortChat') : renderButtons(users, 'user')}
+                            </Grid>
+                        </Box>
+                    </DialogContent>
+                </ModalDialog>
+            </Modal>
+        );
+    };
+
     return (
         <>
-            <Modal open={open} onClose={() => setOpen(false)}>
-                <ModalDialog variant="outlined" role="alertdialog">
-                    <DialogTitle><RateReviewIcon/>ตัวช่วยตอบ</DialogTitle>
-                    <Divider/>
-                    <DialogContent>
-                        <Box component="section" sx={{p: 1}}>
-                            <Grid container spacing={1} sx={{flexGrow: 1}}>
-                                {renderButtons(shortChats, 'shortChat')}
-                            </Grid>
-                        </Box>
-                    </DialogContent>
-                </ModalDialog>
-            </Modal>
-
-            <Modal open={sendToEmp} onClose={() => setSendToEmp(false)}>
-                <ModalDialog variant="outlined" role="alertdialog">
-                    <DialogTitle><SendIcon/>ส่งต่อไปยัง</DialogTitle>
-                    <Divider/>
-                    <DialogContent>
-                        <Box component="section" sx={{p: 1}}>
-                            <Grid container spacing={1} sx={{flexGrow: 1}}>
-                                {renderButtons(users, 'user')}
-                            </Grid>
-                        </Box>
-                    </DialogContent>
-                </ModalDialog>
-            </Modal>
-
+            {modalDialog({prefix: 'shortChat', isOpen: open, handleClose: () => setOpen(false)})}
+            {modalDialog({prefix: 'user', isOpen: sendToEmp, handleClose: () => setSendToEmp(false)})}
             <Stack
                 direction="row"
                 sx={{

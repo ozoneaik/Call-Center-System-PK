@@ -10,7 +10,8 @@ import ChatPage from "../Views/ChatPage/page.jsx";
 import TestPage from "../Views/Test/page.jsx";
 import CustomerListPage from "../Views/CustomerPage/page.jsx";
 import UserListTable from "../Views/UserPage/page.jsx";
-import Detail from "../Views/CustomerPage/Detail.jsx";
+import CustomerDetail from "../Views/CustomerPage/CustomerDetail.jsx";
+import UserDetail from "../Views/UserPage/UserDetail.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},
@@ -29,11 +30,14 @@ export const route = createBrowserRouter([
             {
                 path: '/customer', children: [
                     {path : 'list', element: <CustomerListPage/>},
-                    {path : 'detail/:custId' ,element : <Detail/>}
+                    {path : 'detail/:custId' ,element : <CustomerDetail/>}
                 ]
             },
             {
-                path : '/user', element: <UserListTable/>, children : []
+                path : '/user', children : [
+                    {path : 'list', element: <UserListTable/>},
+                    {path : 'detail/:custId' ,element : <UserDetail/>}
+                ]
             }
         ],
     },

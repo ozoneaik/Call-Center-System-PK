@@ -6,6 +6,7 @@ import {Link as link} from "react-router-dom";
 import Link from '@mui/joy/Link';
 import Typography from "@mui/joy/Typography";
 import CustomerListTable from "./CustomerTable.jsx";
+import Button from "@mui/joy/Button";
 
 export default function CustomerListPage() {
     return (
@@ -36,8 +37,8 @@ export default function CustomerListPage() {
                             aria-label="breadcrumbs"
                             sx={{pl: 0}}
                         >
-                            <Link component={link} underline="none" color="neutral" aria-label="Home" to={'/home'}>
-                                จัดการสมาชิก
+                            <Link component={link} underline="none" color="neutral" aria-label="Home" to={'/customer/list'}>
+                                จัดการลูกค้า
                             </Link>
                             <Typography color="primary" sx={{fontWeight: 500, fontSize: 12}}>
                                 รายการข้อมูลลูกค้า

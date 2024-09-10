@@ -6,6 +6,8 @@ import {Breadcrumbs} from "@mui/joy";
 import Link from "@mui/joy/Link";
 import {Link as link} from "react-router-dom";
 import UserTable from "./UserTable.jsx";
+import Button from "@mui/joy/Button";
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 export default function UserPage() {
 
@@ -64,6 +66,7 @@ export default function UserPage() {
                         <Typography level="h2" component="h1">
                             รายการข้อมูลผู้ใช้
                         </Typography>
+                        <Button component={link} to={'/home'} startDecorator={<PersonAddIcon />}>เพิ่มผู้ใช้</Button>
                     </Box>
                     <UserTable/>
                 </Box>
