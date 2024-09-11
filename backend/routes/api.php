@@ -14,6 +14,14 @@ Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    // จัดการ User
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/profile', [AuthController::class, 'user']);
+    Route::prefix('user')->group(function () {
+        Route::get('/list', [UserController::class, 'UserList']);
+        Route::post('/delete', [UserController::class, 'UserDelete']);
+    });
+    // จัดการลูกค้า
     Route::prefix('customer')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}',[CustomersController::class, 'CustomerDetail']);
@@ -21,23 +29,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/changeRoom',[CustomersController::class, 'changeRoom']);
         Route::post('/changeUserReply',[CustomersController::class, 'changeUserReply']);
     });
-
+    // จัดการแชท
     Route::prefix('chatRoom')->group(function(){
        Route::get('/list',[ChatRoomsController::class,'list']);
     });
-
     Route::prefix('messages')->group(function () {
         Route::get('/listMessage/room/{id}', [ChatHistoryController::class, 'LatestChatHistory']);
         Route::get('/selectMessage/{id}', [ChatHistoryController::class, 'ChatSelectById']);
     });
     Route::post('/sendMessage', [LineController::class, 'sendMessage']);
-
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/profile', [AuthController::class, 'user']);
-    Route::prefix('user')->group(function () {
-        Route::get('/list', [UserController::class, 'UserList']);
-    });
-
     Route::prefix('shortChat')->group(function () {
         Route::get('/list', [ShortChatController::class, 'shortChatList']);
     });

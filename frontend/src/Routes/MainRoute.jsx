@@ -12,6 +12,7 @@ import CustomerListPage from "../Views/CustomerPage/page.jsx";
 import UserListTable from "../Views/UserPage/page.jsx";
 import CustomerDetail from "../Views/CustomerPage/CustomerDetail.jsx";
 import UserDetail from "../Views/UserPage/UserDetail.jsx";
+import CustDmPage from "../Views/NewCustDmPage/page.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},
@@ -25,18 +26,21 @@ export const route = createBrowserRouter([
         path: '/', element: <ProtectedLayout/>, children: [
             {path: '/home', element: <HomePage/>},
             {
-                path: '/chats/room/:id',element: <ChatPage/>
-            },
-            {
-                path: '/customer', children: [
-                    {path : 'list', element: <CustomerListPage/>},
-                    {path : 'detail/:custId' ,element : <CustomerDetail/>}
+                path: '/chats', children: [
+                    {path : 'cust-dm-message',element: <CustDmPage/>},
+                    {path: 'room/:id', element: <ChatPage/>},
                 ]
             },
             {
-                path : '/user', children : [
-                    {path : 'list', element: <UserListTable/>},
-                    {path : 'detail/:custId' ,element : <UserDetail/>}
+                path: '/customer', children: [
+                    {path: 'list', element: <CustomerListPage/>},
+                    {path: 'detail/:custId', element: <CustomerDetail/>}
+                ]
+            },
+            {
+                path: '/user', children: [
+                    {path: 'list', element: <UserListTable/>},
+                    {path: 'detail/:custId', element: <UserDetail/>}
                 ]
             }
         ],

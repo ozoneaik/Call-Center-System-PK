@@ -9,6 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import {useEffect, useState} from "react";
 import {userListApi} from "../../Api/User.js";
 import {CircularProgress} from "@mui/joy";
+import {Link} from "react-router-dom";
 
 
 function UserTable() {
@@ -67,7 +68,7 @@ function UserTable() {
                                         </Box>
                                     </td>
                                     <td  style={{textAlign : "center"}}>
-                                        <Button size='sm' sx={{mr : 1}} variant='outlined'>
+                                        <Button size='sm' sx={{mr : 1}} variant='outlined' component={Link} to={`/user/detail/${row.code}`}>
                                             <ManageAccountsIcon/>
                                         </Button>
                                         <Button size='sm' color='danger' variant='outlined'>
