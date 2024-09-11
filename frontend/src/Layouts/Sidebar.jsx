@@ -26,7 +26,7 @@ import {chatRoomListApi} from "../Api/chatRooms.js";
 import Chip from "@mui/joy/Chip";
 import Logo from '../assets/logo.png';
 
-const listItemComponent = ({title, icon, path, unReads = 0, Selected = false}) => (
+const SidebarItem = ({title, icon, path, unReads = 0, Selected = false}) => (
     <ListItem>
         <ListItemButton selected={Selected} component={Link} to={path}>
             {icon}
@@ -88,7 +88,7 @@ export default function Sidebar() {
                 sx={{
                     position: 'fixed', zIndex: 9998, top: 0, left: 0, width: '100vw', height: '100vh',
                     transition: 'opacity 0.4s',
-                    opacity: 'var(--SideNavigation-slideIn)', backgroundColor: 'var(--joy-palette-background-backdrop)',
+                    opacity: 'var(--SideNavigation-slideIn)',
                     transform: {
                         xs: 'translateX(calc(100% * (var(--SideNavigation-slideIn, 0) - 1) + var(--SideNavigation-slideIn, 0) * var(--Sidebar-width, 0px)))',
                         lg: 'translateX(-100%)',
@@ -116,14 +116,22 @@ export default function Sidebar() {
                         '--ListItem-radius': (theme) => theme.vars.radius.sm,
                     }}
                 >
-                    {listItemComponent({title: 'หน้าหลัก', path: '/home', icon: <HomeRoundedIcon/>})}
+                    <SidebarItem title='หน้าหลัก' Selected={pathname.startsWith(`/home`)} path={`/home`}
+                                 icon={<HomeRoundedIcon/>}
+                    />
+                    <SidebarItem
+                        title='ห้องแชท'
+                        Selected={pathname.startsWith(`/chats/cust-dm-message`)}
+                        path={`/chats/cust-dm-message`} icon={<TryIcon/>}
+                    />
                     {
                         listRoom.length > 0 && (
                             listRoom.map((list, index) => (
-                                listItemComponent({
-                                    title: list.name, path: `/chats/room/${list.id}`, icon: <TryIcon/>,
-                                    unReads: list.unReads, Selected: pathname.startsWith(`/chats/room/${list.id}`)
-                                })
+                                <SidebarItem
+                                    key={index} title={list.name}
+                                    Selected={pathname.startsWith(`/chats/room/${list.id}`)}
+                                    path={`/chats/room/${list.id}`} icon={<TryIcon/>} unReads={list.unReads}
+                                />
                             ))
                         )
                     }
@@ -135,18 +143,15 @@ export default function Sidebar() {
                         '--ListItem-radius': (theme) => theme.vars.radius.sm,
                     }}
                 >
-                    {listItemComponent({
-                        title: 'การตั้งค่า', path: '',
-                        icon: <SettingsRoundedIcon/>, Selected: pathname.startsWith('/settings')
-                    })}
-                    {listItemComponent({
-                        title: 'จัดการลูกค้า', path: '/customer/list',
-                        icon: <GroupIcon/>, Selected: pathname.startsWith('/customer')
-                    })}
-                    {listItemComponent({
-                        title: 'จัดการผู้ใช้', path: '/user/list',
-                        icon: <GroupIcon/>, Selected: pathname.startsWith('/user')
-                    })}
+                    <SidebarItem title='การตั้งค่า' Selected={pathname.startsWith(`/settings`)} path={``}
+                                 icon={<SettingsRoundedIcon/>}
+                    />
+                    <SidebarItem title='จัดการลูกค้า' Selected={pathname.startsWith(`/customer`)}
+                                 path={`/customer/list`} icon={<GroupIcon/>}
+                    />
+                    <SidebarItem title='จัดการผู้ใช้' Selected={pathname.startsWith(`/user`)}
+                                 path={`/user/list`} icon={<GroupIcon/>}
+                    />
                 </List>
             </Box>
             <Divider/>

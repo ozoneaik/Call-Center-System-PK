@@ -7,6 +7,7 @@ import {listCustApi} from "../../Api/Customer.js";
 import Avatar from "@mui/joy/Avatar";
 import Button from "@mui/joy/Button";
 import ChatIcon from '@mui/icons-material/Chat';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 
 const formatTime = (date) => {
     const D = new Date(date);
@@ -72,11 +73,11 @@ const ContentTableComponent = ({ data, clock }) => (
                         <td>{formatTime(row.created_at)}</td>
                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
                         <td style={{textAlign: "center"}}>
-                            <Button size='sm' variant='outlined'>
+                            <Button size='sm' variant='outlined' sx={{mr: 1}}>
                                 <ChatIcon/>
                             </Button>
-                            <Button size='sm' variant='outlined'>
-                                <ChatIcon/>
+                            <Button size='sm' variant='outlined' color="warning">
+                                <ManageAccountsIcon/>
                             </Button>
                         </td>
                     </tr>
@@ -92,21 +93,14 @@ const ContentTableComponent = ({ data, clock }) => (
 );
 
 const NewCustDmPage = () => {
-    const [clock, setClock] = useState(new Date());
     const [data, setData] = useState([]);
 
     useEffect(() => {
         getCustDm().then();
-        const interval = setInterval(() => {
-            setClock(new Date());
-        }, 1000);
-
-        return () => clearInterval(interval);
     }, []);
 
     const getCustDm = async () => {
         const {data,status} = await listCustApi();
-        console.log(data,status)
         if (status === 200) {
             setData(data.customers)
         }
@@ -115,9 +109,9 @@ const NewCustDmPage = () => {
     return (
         <>
             <HeaderComponent title="กำลังสนทนา" />
-            <ContentTableComponent data={data} clock={clock} />
+            <ContentTableComponent data={data}/>
             <HeaderComponent title="รอดำเนินการ" />
-            <ContentTableComponent data={data} clock={clock} />
+            <ContentTableComponent data={[]}/>
         </>
     );
 };
