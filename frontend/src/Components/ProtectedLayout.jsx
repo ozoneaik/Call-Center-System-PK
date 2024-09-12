@@ -1,18 +1,43 @@
 import {Outlet} from "react-router-dom";
 import {useAuth} from "../Contexts/AuthContext.jsx";
-import {useEffect} from "react";
-import axiosClient from "../Axios.js";
+import React, {useEffect, useState} from "react";
 import {ProfileApi} from "../Api/Auth.js";
+import {newMessage} from "../Views/ChatPage/newMessage.jsx";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import Typography from "@mui/joy/Typography";
+import {Snackbar} from "@mui/joy";
+import Box from "@mui/joy/Box";
+import useSound from "./Sound.jsx";
+import soundMessage from '../assets/audio/notification.mp3'
 
 function ProtectedLayout() {
-    const {user,setUser} = useAuth();
-    if (!user){
+    const {user, setUser} = useAuth();
+    const [state, setState] = useState({
+        open: false,
+        vertical: 'top',
+        horizontal: 'right',
+        sender: '',
+        content: ''
+    });
+    const {vertical, horizontal, open, sender, content} = state;
+    const handleClick = (newState, senderName, content) => {
+        setState({...newState, sender: senderName, content});
+    };
+    if (!user) {
         window.location.href = "/login";
     }
     useEffect(() => {
+        newMessage({
+            onPassed: (status, event) => {
+                if (!event.system_send){
+                    handleClick({vertical: 'top', horizontal: 'right', open: true}, event.custId, event.content);
+                    useSound(soundMessage);
+                }
+            }
+        });
         (async () => {
             try {
-                const {data,status} = await ProfileApi();
+                const {data, status} = await ProfileApi();
                 if (status === 200) {
                     setUser(data.user);
                 } else {
@@ -28,11 +53,30 @@ function ProtectedLayout() {
         })()
     }, []);
 
-        return (
-            <div>
-                <Outlet/>
-            </div>
-        );
+    return (
+        <div>
+            <Snackbar
+                anchorOrigin={{vertical, horizontal}}
+                open={open}
+                onClose={() => {
+                    setState({...state, open: false});
+                }}
+                key={vertical + horizontal}
+                color="success"
+                startDecorator={<NotificationsIcon/>}
+                size="md"
+                variant="soft"
+            >
+                <Box>
+                    <Typography level="title-sm" fontWeight="bold" className="mb-1">
+                        จาก {sender}
+                    </Typography>
+                    <Typography level="body-sm">{content}</Typography>
+                </Box>
+            </Snackbar>
+            <Outlet/>
+        </div>
+    );
 
 }
 

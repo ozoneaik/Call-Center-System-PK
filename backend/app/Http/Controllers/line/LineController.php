@@ -128,7 +128,7 @@ class LineController extends Controller
                     ];
                     $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), $options);
                     $pusher->trigger('notifications', 'my-event', [
-                        'message' => 'new message'
+                        'system_send' => true
                     ]);
                 }catch (\Exception|GuzzleException $e){
                     return response()->json(['error' => $e->getMessage()], 500);

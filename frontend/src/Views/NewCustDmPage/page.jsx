@@ -4,7 +4,7 @@ import Box from "@mui/joy/Box";
 import {Link as link, Link} from "react-router-dom";
 import {Breadcrumbs} from "@mui/joy";
 import Sheet from "@mui/joy/Sheet";
-import NewCustDmPage from "./newCustomer.jsx";
+import NewCustDmPage from "./NewCustDm.jsx";
 
 export default function CustDmPage(){
     return (

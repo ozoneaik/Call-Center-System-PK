@@ -32,18 +32,16 @@ const HeaderComponent = ({ title }) => (
     </Box>
 );
 
-const ContentTableComponent = ({ data, clock }) => (
+const ContentTableComponent = ({ data }) => (
     <Sheet
-        className="OrderTableContainer"
-        variant="outlined"
+        className="OrderTableContainer" variant="outlined"
         sx={{
             display: { sm: 'initial' }, width: '100%', maxHeight: 400, borderRadius: 'sm',
             flexShrink: 1, overflow: 'auto', minHeight: 0,
         }}
     >
         <Table
-            stickyHeader
-            hoverRow
+            stickyHeader hoverRow
             sx={{
                 '--TableCell-headBackground': 'var(--joy-palette-background-level1)',
                 '--Table-headerUnderlineThickness': '1px',
@@ -94,24 +92,25 @@ const ContentTableComponent = ({ data, clock }) => (
 
 const NewCustDmPage = () => {
     const [data, setData] = useState([]);
-
     useEffect(() => {
         getCustDm().then();
+
     }, []);
 
     const getCustDm = async () => {
-        const {data,status} = await listCustApi();
+        console.log('getCustDm')
+        const {data, status} = await listCustApi();
         if (status === 200) {
-            setData(data.customers)
+            setData(data.customers);
         }
     }
 
     return (
         <>
-            <HeaderComponent title="กำลังสนทนา" />
-            <ContentTableComponent data={data}/>
-            <HeaderComponent title="รอดำเนินการ" />
+            <HeaderComponent title="กำลังสนทนา"/>
             <ContentTableComponent data={[]}/>
+            <HeaderComponent title="รอดำเนินการ" />
+            <ContentTableComponent data={data}/>
         </>
     );
 };
