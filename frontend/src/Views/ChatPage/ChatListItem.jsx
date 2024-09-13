@@ -7,7 +7,7 @@ import Typography from '@mui/joy/Typography';
 import CircleIcon from '@mui/icons-material/Circle';
 import AvatarWithStatus from './AvatarWithStatus';
 import {toggleMessagesPane} from "../../Components/utils.js";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import DialogTitle from '@mui/joy/DialogTitle';
 import DialogContent from '@mui/joy/DialogContent';
 import DialogActions from '@mui/joy/DialogActions';
@@ -17,36 +17,24 @@ import Divider from "@mui/joy/Divider";
 import Button from "@mui/joy/Button";
 import TextsmsIcon from '@mui/icons-material/Textsms';
 import Avatar from "@mui/joy/Avatar";
-import {changeRoomApi, chatRoomListApi} from "../../Api/chatRooms.js";
+import {changeRoomApi} from "../../Api/chatRooms.js";
 
 export default function ChatListItem(props) {
-    const {id, sender, messages, selectedChatId, setSelectedChat} = props;
+    const {id, chatRooms, sender, messages, selectedChatId, setSelectedChat} = props;
     const selected = selectedChatId === id;
-    const [chatRooms, setChatRooms] = useState([]);
     const [open, setOpen] = useState(false);
-    useEffect(() => {
-        getChatRooms().then(() => {
-        });
-    }, []);
-    const getChatRooms = async () => {
-        const {data, status} = await chatRoomListApi();
-        if (status === 200) {
-            setChatRooms(data.chatRooms)
-        }
-    }
-
     const handleChangeRoom = async (roomId, custId) => {
-       const {data,status} = await changeRoomApi(roomId,custId);
-       if (status === 200) {
-           alert(data.message)
-           location.reload()
-       }else{
-           alert('unSuccess')
-       }
+        const {data, status} = await changeRoomApi(roomId, custId);
+        if (status === 200) {
+            alert(data.message)
+            location.reload()
+        } else {
+            alert('unSuccess')
+        }
     }
     return (
         <>
-            <Modal open={open} onClose={() => setOpen(false)}>
+            <Modal open={open} onClose={()=>setOpen(false)}>
                 <ModalDialog variant="outlined" role="alertdialog">
                     <DialogTitle>
                         รายละเอียด
@@ -96,11 +84,10 @@ export default function ChatListItem(props) {
                     </DialogActions>
                 </ModalDialog>
             </Modal>
-
             <ListItem>
                 <ListItemButton
                     onClick={() => {
-                        setOpen(true)
+                        setOpen(true);
                     }}
                     selected={selected}
                     color="neutral"

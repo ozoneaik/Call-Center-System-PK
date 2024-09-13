@@ -9,6 +9,10 @@ import {Snackbar} from "@mui/joy";
 import Box from "@mui/joy/Box";
 import useSound from "./Sound.jsx";
 import soundMessage from '../assets/audio/notification.mp3'
+import {CssVarsProvider} from "@mui/joy/styles";
+import CssBaseline from "@mui/joy/CssBaseline";
+import Sidebar from "../Layouts/Sidebar.jsx";
+import Header from "../Layouts/Header.jsx";
 
 function ProtectedLayout() {
     const {user, setUser} = useAuth();
@@ -29,7 +33,7 @@ function ProtectedLayout() {
     useEffect(() => {
         newMessage({
             onPassed: (status, event) => {
-                if (!event.system_send){
+                if (!event.system_send) {
                     handleClick({vertical: 'top', horizontal: 'right', open: true}, event.custId, event.content);
                     useSound(soundMessage);
                 }
@@ -74,7 +78,17 @@ function ProtectedLayout() {
                     <Typography level="body-sm">{content}</Typography>
                 </Box>
             </Snackbar>
-            <Outlet/>
+            <CssVarsProvider disableTransitionOnChange>
+                <CssBaseline/>
+                <Box sx={{display: 'flex', minHeight: '100dvh'}}>
+                    <Sidebar/>
+                    <Header/>
+                    <Box component="main" className="MainContent" sx={{flex: 1}}>
+                        <Outlet/>
+                    </Box>
+                </Box>
+            </CssVarsProvider>
+
         </div>
     );
 

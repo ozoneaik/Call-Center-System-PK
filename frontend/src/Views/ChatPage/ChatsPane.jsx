@@ -11,7 +11,7 @@ import Input from "@mui/joy/Input";
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 
 export default function ChatsPane(props) {
-    const {roomId,roomName, chats, setSelectedChat, selectedChatId,} = props;
+    const {roomId , chatRooms,roomName, chats, setSelectedChat, selectedChatId,} = props;
     return (
         <Sheet
             sx={{
@@ -48,6 +48,7 @@ export default function ChatsPane(props) {
                             <ChatListItem
                                 key={chat.id}{...chat}
                                 setSelectedChat={setSelectedChat}
+                                chatRooms={chatRooms}
                                 selectedChatId={selectedChatId}
                             ></ChatListItem>
                         ))

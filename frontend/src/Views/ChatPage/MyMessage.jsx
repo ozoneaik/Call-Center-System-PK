@@ -5,23 +5,33 @@ import {useEffect, useState} from "react";
 import {MessageAllAPi} from "../../Api/sendMessage.js";
 import {newMessage} from "./newMessage.jsx";
 import {useParams} from "react-router-dom";
+import {chatRoomListApi} from "../../Api/chatRooms.js";
 
 export default function MyMessage() {
     const {id} = useParams();
     const [selectedChat, setSelectedChat] = useState();
     const [Ischats, setChats] = useState([]);
+    const [chatRooms, setChatRooms] = useState([]);
 
     useEffect(()=>{
-        getMessages().then(()=>{});
+        getMessages().then();
+        getChatRooms().then();
         newMessage({onPassed : ()=> {
             getMessages().then(()=>{});
         }});
-    },[id])
+    },[])
     const getMessages = async () => {
         const Id = localStorage.getItem("selectChat") ? localStorage.getItem("selectChat") : 0;
         const {data,status} = await MessageAllAPi(id);
         setSelectedChat(data.chats[Id])
         setChats(data.chats);
+    }
+
+    const getChatRooms = async () => {
+        const {data, status} = await chatRoomListApi();
+        if (status === 200) {
+            setChatRooms(data.chatRooms)
+        }
     }
     return (
         <>
@@ -42,8 +52,8 @@ export default function MyMessage() {
                 >
                     {
                         Ischats.length > 0 ? selectedChat && (
-                            <ChatsPane roomId={id} chats={Ischats} selectedChatId={selectedChat.id} setSelectedChat={setSelectedChat}/>
-                        ) : <ChatsPane roomId={id} chats={[]} selectedChatId={0} setSelectedChat={0}/>
+                            <ChatsPane chatRooms={chatRooms} roomId={id} chats={Ischats} selectedChatId={selectedChat.id} setSelectedChat={setSelectedChat}/>
+                        ) : <ChatsPane chatRooms={chatRooms} roomId={id} chats={[]} selectedChatId={0} setSelectedChat={0}/>
                     }
                 </Sheet>
                 {
