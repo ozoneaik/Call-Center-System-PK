@@ -12,6 +12,13 @@ class UserService{
     }
 
     public function delete($code) : bool{
-        return User::where('code', $code)->delete();
+        try {
+            if ($code === auth()->user()->code){
+                return false;
+            }
+            return User::where('code', $code)->delete();
+        }catch (\Exception $e){
+            return false;
+        }
     }
 }

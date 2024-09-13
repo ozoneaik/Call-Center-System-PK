@@ -1,5 +1,11 @@
 import Swal from "sweetalert2";
 
+const options = {
+    confirmButtonColor: '#f16a4b',
+    allowOutsideClick: false,
+    showCancelButton: true,
+}
+
 export const AlertWithConfirm = (
     {
         title,
@@ -11,9 +17,7 @@ export const AlertWithConfirm = (
     }) => {
     Swal.fire({
         icon, title, text, cancelButtonText, confirmButtonText,
-        confirmButtonColor : '#f16a4b',
-        allowOutsideClick: false,
-        showCancelButton: true,
+        ...options
     }).then((result) => {
         if (result.isConfirmed) {
             onPassed(true);
@@ -23,11 +27,12 @@ export const AlertWithConfirm = (
     })
 }
 
-export const AlertStandard = ({title,text,icon = 'error'}) => {
+export const AlertStandard = ({title, text, icon = 'error'}) => {
     Swal.fire({
         icon,
         title,
         text,
+        ...options
     }).then((result) => {
         console.log(result);
     })

@@ -28,6 +28,29 @@ class CustomersController extends Controller
         ]);
     }
 
+    public function CustomerListNewDm() : JsonResponse{
+        $message = 'ดึงข้อมูลไม่สำเร็จ';
+        $status = 400;
+        try {
+            $customers = $this->customerService->listNewDm();
+            if ($customers['status']){
+                $message = 'ดึงข้อมูลสำเร็จ';
+                $status = 200;
+            }else{
+                $customers['progress'] = [];
+                $customers['pending'] = [];
+            }
+        }catch (\Exception $exception){
+            $status = 500;
+            $message = $exception->getMessage();
+        }
+        return response()->json([
+            'message' => $message,
+            'progress' => $customers['progress'],
+            'pending' => $customers['pending'],
+        ],$status);
+    }
+
     public function CustomerDetail(string $custId): JsonResponse
     {
         try {

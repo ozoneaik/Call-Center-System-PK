@@ -1,7 +1,6 @@
 import Content from "../../Layouts/Content.jsx";
 import Typography from "@mui/joy/Typography";
 import Box from "@mui/joy/Box";
-import {Link as link, Link} from "react-router-dom";
 import {Breadcrumbs} from "@mui/joy";
 import Sheet from "@mui/joy/Sheet";
 import NewCustDmPage from "./NewCustDm.jsx";
@@ -32,11 +31,11 @@ export default function CustDmPage(){
                 >
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
                         <Breadcrumbs size="sm" aria-label="breadcrumbs" sx={{pl: 0}}>
-                            <Link component={link} underline="none" color="neutral" aria-label="Home" to={'/home'}>
-                                จัดการสมาชิก
-                            </Link>
                             <Typography color="primary" sx={{fontWeight: 500, fontSize: 12}}>
-                                รายการข้อมูลผู้ใช้
+                                ห้องแชท
+                            </Typography>
+                            <Typography color="primary" sx={{fontWeight: 500, fontSize: 12}}>
+
                             </Typography>
                         </Breadcrumbs>
                     </Box>

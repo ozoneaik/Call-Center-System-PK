@@ -17,12 +17,12 @@ export default function MyMessage() {
         getMessages().then();
         getChatRooms().then();
         newMessage({onPassed : ()=> {
-            getMessages().then(()=>{});
+            getMessages().then();
         }});
-    },[])
+    },[id])
     const getMessages = async () => {
         const Id = localStorage.getItem("selectChat") ? localStorage.getItem("selectChat") : 0;
-        const {data,status} = await MessageAllAPi(id);
+        const {data} = await MessageAllAPi(id);
         setSelectedChat(data.chats[Id])
         setChats(data.chats);
     }

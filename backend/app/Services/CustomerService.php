@@ -10,6 +10,17 @@ class CustomerService{
         return customers::all();
     }
 
+    public function listNewDm() : array{
+        try {
+            $data['progress'] = customers::where('status','progress')->get();
+            $data['pending'] = customers::where('status','pending')->get();
+            $data['status'] = true;
+        }catch (\Exception $exception){
+            $data['status'] = false;
+        }
+        return $data;
+    }
+
     public function detail(string $custId) : array{
         $detail = customers::where('custId', $custId)->first();
         if ($detail){

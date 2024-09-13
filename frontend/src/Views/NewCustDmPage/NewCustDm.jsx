@@ -3,7 +3,7 @@ import Table from '@mui/joy/Table';
 import Typography from '@mui/joy/Typography';
 import Box from '@mui/joy/Box';
 import Sheet from '@mui/joy/Sheet';
-import {listCustApi} from "../../Api/Customer.js";
+import {listCustNewDmAPi} from "../../Api/Customer.js";
 import Avatar from "@mui/joy/Avatar";
 import Button from "@mui/joy/Button";
 import ChatIcon from '@mui/icons-material/Chat';
@@ -91,26 +91,28 @@ const ContentTableComponent = ({ data }) => (
 );
 
 const NewCustDmPage = () => {
-    const [data, setData] = useState([]);
+    const [pending, setPending] = useState([]);
+    const [progress, setProgress] = useState([]);
     useEffect(() => {
         getCustDm().then();
-
     }, []);
 
     const getCustDm = async () => {
         console.log('getCustDm')
-        const {data, status} = await listCustApi();
+        const {data, status} = await listCustNewDmAPi();
+        console.log(data, status)
         if (status === 200) {
-            setData(data.customers);
+            setPending(data.pending);
+            setProgress(data.progress)
         }
     }
 
     return (
         <>
             <HeaderComponent title="กำลังสนทนา"/>
-            <ContentTableComponent data={[]}/>
+            <ContentTableComponent data={progress}/>
             <HeaderComponent title="รอดำเนินการ" />
-            <ContentTableComponent data={data}/>
+            <ContentTableComponent data={pending}/>
         </>
     );
 };

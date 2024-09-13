@@ -13,6 +13,15 @@ export const listCustApi = async () => {
     }
 }
 
+export const listCustNewDmAPi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${prefix}/list/CustomerListNewDm`);
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}
+
 export const CustDetailApi = async (custId) => {
     try {
         const {data,status} = await axiosClient.get(`${prefix}/detail/${custId}`);
