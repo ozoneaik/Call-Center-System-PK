@@ -21,6 +21,7 @@ return new class extends Migration
             $table->boolean('online')->default(1)->nullable()->comment('สถานะออนไลน์');
             $table->tinyInteger('roomId')->nullable()->comment('ลูกค้าอยู่กลุ่มแชทไหน');
             $table->string('userReply')->nullable()->comment('คุยกับ user คนไหน');
+            $table->string('status')->default('pending')->comment('สถานะการคุยของแชทนี้');
             $table->timestamps();
         });
     }
