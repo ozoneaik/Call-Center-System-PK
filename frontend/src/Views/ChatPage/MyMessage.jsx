@@ -13,7 +13,7 @@ export default function MyMessage() {
     const [selectedChat, setSelectedChat] = useState();
     const [Ischats, setChats] = useState([]);
     const [chatRooms, setChatRooms] = useState([]);
-    const Id = localStorage.getItem("selectChat") ? localStorage.getItem("selectChat") : 'Main';
+    const Id = localStorage.getItem("selectChat") ? localStorage.getItem("selectChat") : '0';
 
     useEffect(() => {
         getMessages().then();

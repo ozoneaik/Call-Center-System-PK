@@ -60,6 +60,7 @@ export default function JoySignInSideTemplate() {
         const {data, status} = await LoginApi(email, password);
         console.log(data, status)
         if (status === 200) {
+            localStorage.setItem('selectChat', '0');
             setUser(data.user);
             return <Navigate to="/profile"/>;
         } else {
