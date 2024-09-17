@@ -49,8 +49,9 @@ export default function MessagesPane(props) {
     }
 
     // เมื่อกดส่งข้อความ
-    const handleSubmit = async () => {
-        const {data, status} = await SendMessageApi(textAreaValue, sender.custId);
+    const handleSubmit = async (TXT) => {
+        console.log('text',TXT)
+        const {data, status} = await SendMessageApi(TXT, sender.custId);
         if (status !== 200) {
             AlertStandard({text: data.message});
         } else {
@@ -117,7 +118,7 @@ export default function MessagesPane(props) {
             {
                 sender && (
                     <MessageInput
-                        textAreaValue={textAreaValue} setTextAreaValue={setTextAreaValue} onSubmit={handleSubmit}
+                        onSubmit={(TXT) => handleSubmit(TXT)}
                         Disable={!(user.role === 'admin' || sender.userReply === user.code)}
                     />
                 )

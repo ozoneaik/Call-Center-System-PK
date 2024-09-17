@@ -7,7 +7,7 @@ import {listCustNewDmAPi} from "../../Api/Customer.js";
 import Avatar from "@mui/joy/Avatar";
 import Button from "@mui/joy/Button";
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import {convertDate, convertLocalDate} from "../../Components/Options.jsx";
+import {convertDate} from "../../Components/Options.jsx";
 
 
 const NewCustDmPage = () => {
@@ -27,7 +27,7 @@ const NewCustDmPage = () => {
         getCustDm().then();
     }, []);
 
-    const TimeComponent = ({ createdAt }) => {
+    const TimeComponent = ({createdAt}) => {
         const [time, setTime] = useState(new Date(createdAt));
 
         useEffect(() => {
@@ -53,7 +53,7 @@ const NewCustDmPage = () => {
         </Box>
     );
 
-    const ContentTableComponent = ({data,pending = false}) => {
+    const ContentTableComponent = ({data, pending = false}) => {
         return (
             <Sheet
                 className="OrderTableContainer" variant="outlined"

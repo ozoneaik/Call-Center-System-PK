@@ -34,7 +34,7 @@ export default function ChatListItem(props) {
     }
     return (
         <>
-            <Modal open={open} onClose={()=>setOpen(false)}>
+            <Modal open={open} onClose={() => setOpen(false)}>
                 <ModalDialog variant="outlined" role="alertdialog">
                     <DialogTitle>
                         รายละเอียด
@@ -84,6 +84,8 @@ export default function ChatListItem(props) {
                     </DialogActions>
                 </ModalDialog>
             </Modal>
+
+
             <ListItem>
                 <ListItemButton
                     onClick={() => {
@@ -97,7 +99,7 @@ export default function ChatListItem(props) {
                         <AvatarWithStatus online={sender.online} src={sender.avatar}/>
                         <Box sx={{flex: 1}}>
                             <Typography level="title-sm">{sender.name}</Typography>
-                            <Typography level="body-sm">{sender.description}</Typography>
+                            <Typography level="title-sm" fontSize={'smaller'}>{sender.description}</Typography>
                         </Box>
                         <Box sx={{lineHeight: 1.5, textAlign: 'right'}}>
                             {messages[0].unread && (
@@ -120,7 +122,7 @@ export default function ChatListItem(props) {
                         }}
                     >
                         {
-                            messages[0].contentType === 'text' ? messages[0].content : 'ส่งไฟล์เข้ามา'
+                            messages[0].contentType === 'text' ? messages[0].content : 'ส่งรูปภาพ หรือ Sticker เข้ามา'
                         }
                     </Typography>
                 </ListItemButton>

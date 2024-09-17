@@ -6,22 +6,20 @@ import {Stack } from '@mui/joy';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {useRef} from "react";
 export default function MessageInput(props) {
-    const { textAreaValue, setTextAreaValue, onSubmit ,Disable} = props;
+    const {onSubmit ,Disable} = props;
     const textAreaRef = useRef(null);
     const handleClick = () => {
-        if (textAreaValue.trim() !== '') {
-            onSubmit();
-            setTextAreaValue('');
+        const TextareaElement = textAreaRef.current.querySelector('textarea');
+        if (TextareaElement) {
+            console.log(TextareaElement.value)
         }
+        onSubmit(TextareaElement.value);
+        TextareaElement.value = null
     };
     return (
         <Box sx={{ px: 2, pb: 3 }}>
             <FormControl>
-                <Textarea disabled={Disable} placeholder={!Disable ? 'พิมพ์ข้อความที่นี่...' : 'คุณไม่มีสิทธิ์'} aria-label="Message" ref={textAreaRef}
-                    onChange={(e) => {
-                        setTextAreaValue(e.target.value);
-                    }}
-                    value={textAreaValue} minRows={3} maxRows={10}
+                <Textarea disabled={Disable} id={'Input'} placeholder={!Disable ? 'พิมพ์ข้อความที่นี่...' : 'คุณไม่มีสิทธิ์'} aria-label="Message" ref={textAreaRef}
                     endDecorator={
                         <Stack
                             direction="row"

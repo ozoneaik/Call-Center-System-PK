@@ -9,9 +9,10 @@ import ChatListItem from './ChatListItem';
 import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
+import FistPane from "./FistPane.jsx";
 
 export default function ChatsPane(props) {
-    const {roomId , chatRooms,roomName, chats, setSelectedChat, selectedChatId,} = props;
+    const {roomId, chatRooms, roomName, chats, setSelectedChat, selectedChatId,} = props;
     return (
         <Sheet
             sx={{
@@ -42,20 +43,27 @@ export default function ChatsPane(props) {
                     '--ListItem-paddingX': '1rem',
                 }}
             >
+
                 {
                     chats.length > 0 ? (
-                        chats.map((chat) => (
-                            <ChatListItem
-                                key={chat.id}{...chat}
-                                setSelectedChat={setSelectedChat}
-                                chatRooms={chatRooms}
-                                selectedChatId={selectedChatId}
-                            ></ChatListItem>
-                        ))
+                        <>
+                            <FistPane setSelectedChat={setSelectedChat} selectedChatId={selectedChatId}/>
+                            {
+                                chats.map((chat) => (
+                                    chat.id !== 0 &&
+                                    <ChatListItem
+                                        key={chat.id}{...chat}
+                                        setSelectedChat={setSelectedChat}
+                                        chatRooms={chatRooms}
+                                        selectedChatId={selectedChatId}
+                                    ></ChatListItem>
+                                ))
+                            }
+                        </>
                     ) : (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                             <div>
-                                <Typography sx={{textAlign : 'center'}}>
+                                <Typography sx={{textAlign: 'center'}}>
                                     <SentimentVeryDissatisfiedIcon/>
                                 </Typography>
                                 <Typography>ไม่มีรายแชทในห้องนี้</Typography>

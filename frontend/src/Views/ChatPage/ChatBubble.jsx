@@ -12,7 +12,7 @@ import Link from "@mui/joy/Link";
 
 export default function ChatBubble(props) {
     const {user} = useAuth();
-    const {content, contentType, variant, created_at, attachment = undefined, sender} = props;
+    const {id,content, contentType, variant, created_at, attachment = undefined, sender} = props;
     const isSent = variant === 'sent';
 
     return (
@@ -87,7 +87,6 @@ export default function ChatBubble(props) {
                                     >{content}</Typography>
                                 )
                             }
-
                         </Sheet>
                     </Box>
                 )
