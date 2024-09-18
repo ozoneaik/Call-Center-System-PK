@@ -26,7 +26,7 @@ export const route = createBrowserRouter([
             {path: '/home', element: <HomePage/>},
             {
                 path: '/chats', children: [
-                    {path : 'cust-dm-message',element: <CustDmPage/>},
+                    // {path : 'cust-dm-message',element: <CustDmPage/>},
                     {path: 'room/:id', element: <ChatPage/>},
                 ]
             },

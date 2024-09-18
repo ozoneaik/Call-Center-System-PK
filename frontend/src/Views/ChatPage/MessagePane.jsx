@@ -10,6 +10,7 @@ import echo from "../Test/echo.js";
 import {MessageSelectApi, SendMessageApi} from "../../Api/sendMessage.js";
 import {AlertStandard} from "../../Dialogs/Alert.js";
 import {useAuth} from "../../Contexts/AuthContext.jsx";
+import {ContentIsNotYou, ContentIsYou, Layout, Main} from "../../assets/styles/MessagePaneStyle.js";
 
 export default function MessagesPane(props) {
     const {chat} = props;
@@ -20,7 +21,8 @@ export default function MessagesPane(props) {
 
 
     useEffect(() => {
-        getMessage(chat.sender.custId).then(() => {});
+        getMessage(chat.sender.custId).then(() => {
+        });
         setSender(chat.sender);
     }, [chat]);
 
@@ -50,7 +52,7 @@ export default function MessagesPane(props) {
 
     // เมื่อกดส่งข้อความ
     const handleSubmit = async (TXT) => {
-        console.log('text',TXT)
+        console.log('text', TXT)
         const {data, status} = await SendMessageApi(TXT, sender.custId);
         if (status !== 200) {
             AlertStandard({text: data.message});
@@ -58,7 +60,12 @@ export default function MessagesPane(props) {
             const newId = chatMessages.length.toString();
             setChatMessages([
                 ...chatMessages,
-                {id: newId, sender: user, content: textAreaValue, created_at: new Date().toString()},
+                {
+                    id: newId,
+                    sender: user,
+                    content: textAreaValue,
+                    created_at: new Date().toString()
+                },
             ]);
             setTextAreaValue('');
         }
@@ -69,7 +76,12 @@ export default function MessagesPane(props) {
             const newId = prevMessages.length.toString();
             return [
                 ...prevMessages,
-                {id: newId, content: message, sender: chat.sender, created_at: new Date().toString()},
+                {
+                    id: newId,
+                    content: message,
+                    sender: chat.sender,
+                    created_at: new Date().toString()
+                },
             ];
         });
     };
@@ -78,10 +90,7 @@ export default function MessagesPane(props) {
         const isYou = message.sender.code === user.code;
         return (
             <>
-                <Stack
-                    key={index} direction="row" spacing={2}
-                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
-                >
+                <Stack key={index} direction="row" spacing={2} sx={isYou ? ContentIsYou : ContentIsNotYou}>
                     {message.sender.code !== user.code && (
                         <AvatarWithStatus online={message.sender.online} src={message.sender.avatar}/>
                     )}
@@ -92,25 +101,19 @@ export default function MessagesPane(props) {
     };
 
     return (
-        <Sheet
-            sx={{
-                height: {xs: 'calc(100dvh - var(--Header-height))', md: '100dvh'},
-                display: 'flex', flexDirection: 'column', backgroundColor: 'background.level1',
-            }}
-        >
+        <Sheet sx={Main}>
             <MessagesPaneHeader sender={chat.sender}/>
-            <Box
-                sx={{
-                    display: 'flex', flex: 1, minHeight: 0, px: 2, py: 3,
-                    overflowY: 'scroll', flexDirection: 'column-reverse',
-                }}
-            >
+            <Box sx={Layout}>
                 <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
                     {
                         chatMessages.length > 0 && (
-                            chatMessages.map((message, index) => (
-                                <ChatPane key={index} index={index} message={message}/>
-                            ))
+                            chatMessages.map((message, index) =>
+                                <ChatPane
+                                    key={index}
+                                    index={index}
+                                    message={message}
+                                ></ChatPane>
+                            )
                         )
                     }
                 </Stack>

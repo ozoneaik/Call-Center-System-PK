@@ -19,7 +19,11 @@ class ChatHistoryController extends Controller
     public function LatestChatHistory($id): JsonResponse
     {
         $customers = customers::where('roomId', $id)->orderBy('id', 'desc')->get();
+        // fake ข้อมูลมา
         $data[0]['id'] = 0;
+        $data[0]['sender']['id'] = 0;
+        $data[0]['messages'][] = 'hello world';
+
         foreach ($customers as $index => $customer) {
             // สร้างข้อมูลพื้นฐานสำหรับแต่ละ customer
             $data[$index+1]['id'] = $index+1;
@@ -46,13 +50,7 @@ class ChatHistoryController extends Controller
         $data['sender'] = $customerDetails ? $customerDetails->toArray() : null;
 
         // ดึง 10 ข้อความล่าสุดโดยเรียงจาก id มากไปน้อย
-        $chatHistories = chatHistory::where('custId', $id)
-            ->orderBy('id', 'desc')
-            ->take(100)
-            ->get()
-            ->values(); // Ensure the data stays as array and doesn't turn into an object
-
-        // Map ข้อมูลแชทและ decode sender
+        $chatHistories = chatHistory::where('custId', $id)->orderBy('id', 'desc')->take(100)->get()->values();
         $data['messages'] = $chatHistories->map(function ($chatHistory) {
             $chatHistoryArray = $chatHistory->toArray();
             $chatHistoryArray['sender'] = json_decode($chatHistory->sender);

@@ -22,6 +22,7 @@ import {userListApi} from "../../Api/User.js";
 import {shortChatListApi} from "../../Api/shortChats.js";
 import {SendMessageApi} from "../../Api/sendMessage.js";
 import {changeUserReplyApi} from "../../Api/Customer.js";
+import {BackIcon, ButtonTextShortCut, PaneHeader} from "../../assets/styles/MessagePaneStyle.js";
 
 export default function MessagesPaneHeader({sender}) {
     const [open, setOpen] = useState(false);
@@ -90,18 +91,9 @@ export default function MessagesPaneHeader({sender}) {
         <>
             {modalDialog({prefix: 'shortChat', isOpen: open, handleClose: () => setOpen(false)})}
             {modalDialog({prefix: 'user', isOpen: sendToEmp, handleClose: () => setSendToEmp(false)})}
-            <Stack
-                direction="row"
-                sx={{
-                    justifyContent: 'space-between', py: 2, px: {xs: 1, md: 2},
-                    borderBottom: '1px solid', borderColor: 'divider', backgroundColor: 'background.body',
-                }}
-            >
+            <Stack direction="row" sx={PaneHeader}>
                 <Stack direction="row" spacing={2} sx={{alignItems: 'center'}}>
-                    <IconButton
-                        variant="plain" color="neutral" size="sm"
-                        sx={{display: {xs: 'inline-flex', sm: 'none'}}} onClick={toggleMessagesPane}
-                    >
+                    <IconButton size="sm" sx={BackIcon} onClick={toggleMessagesPane}>
                         <ArrowBackIosNewRoundedIcon/>
                     </IconButton>
                     <Avatar size="lg" src={sender.avatar}/>
@@ -123,10 +115,10 @@ export default function MessagesPaneHeader({sender}) {
                 </Stack>
                 <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
                     <Button variant="outlined" color="neutral" onClick={() => setSendToEmp(true)}>
-                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ส่งต่อ</Typography>&nbsp;<SendIcon/>
+                        <Typography sx={ButtonTextShortCut}>ส่งต่อ</Typography>&nbsp;<SendIcon/>
                     </Button>
                     <Button variant="outlined" color="neutral" onClick={() => setOpen(true)}>
-                        <Typography sx={{display: {xs: 'none', lg: 'block'}}}>ช่วยตอบ</Typography>&nbsp;
+                        <Typography sx={ButtonTextShortCut}>ช่วยตอบ</Typography>&nbsp;
                         <RateReviewIcon/>
                     </Button>
                 </Stack>

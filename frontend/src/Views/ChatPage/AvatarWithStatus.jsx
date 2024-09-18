@@ -1,9 +1,6 @@
 import Badge from '@mui/joy/Badge';
 import Avatar from '@mui/joy/Avatar';
-
-
 export default function AvatarWithStatus(props) {
-    // eslint-disable-next-line react/prop-types
     const { online = false, ...other } = props;
     return (
         <div>

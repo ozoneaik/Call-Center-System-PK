@@ -24,7 +24,6 @@ import {AlertWithConfirm} from "../Dialogs/Alert.js";
 
 
 function ColorSchemeToggle(props) {
-    // eslint-disable-next-line react/prop-types
     const {onClick, ...other} = props;
     const {mode, setMode} = useColorScheme();
     const [mounted, setMounted] = React.useState(false);

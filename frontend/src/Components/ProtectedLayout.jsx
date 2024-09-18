@@ -34,7 +34,7 @@ function ProtectedLayout() {
         newMessage({
             onPassed: (status, event) => {
                 if (!event.system_send) {
-                    handleClick({vertical: 'top', horizontal: 'right', open: true}, event.custId, event.content);
+                    handleClick({vertical: 'top', horizontal: 'right', open: true}, event.custName, event.content);
                     useSound(soundMessage);
                 }
             }

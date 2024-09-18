@@ -10,23 +10,15 @@ import Box from "@mui/joy/Box";
 import Input from "@mui/joy/Input";
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 import FistPane from "./FistPane.jsx";
+import ListDivider from "@mui/joy/ListDivider";
+import {BoxStyle, Main, Head, HeadTitle, ListStyle} from "../../assets/styles/ChatPaneStyle.js";
 
 export default function ChatsPane(props) {
-    const {roomId, chatRooms, roomName, chats, setSelectedChat, selectedChatId,} = props;
+    const {roomId, chatRooms, chats, setSelectedChat, selectedChatId,} = props;
     return (
-        <Sheet
-            sx={{
-                borderRight: '1px solid', borderColor: 'divider', overflowY: 'auto',
-                height: {sm: 'calc(100dvh - var(--Header-height))', md: '100dvh'},
-            }}
-        >
-            <Stack
-                direction="row" spacing={1}
-                sx={{alignItems: 'center', justifyContent: 'space-between', p: 2, pb: 1.5}}
-            >
-                <Typography
-                    component="h1" sx={{fontSize: {xs: 'md', md: 'lg'}, fontWeight: 'lg', mr: 'auto'}}
-                >
+        <Sheet sx={Main}>
+            <Stack direction="row" spacing={1} sx={Head}>
+                <Typography component="h1" sx={HeadTitle}>
                     {Number(roomId) === 0 ? 'ห้องแชทใหม่' : `ห้องแชทที่ ${roomId}`}
                 </Typography>
                 <IconButton variant="plain" aria-label="edit" color="neutral" size="sm" sx={{display: {sm: 'none'}}}>
@@ -36,32 +28,26 @@ export default function ChatsPane(props) {
             <Box sx={{px: 2, pb: 1.5}}>
                 <Input size="sm" startDecorator={<SearchRoundedIcon/>} placeholder="Search" aria-label="Search"/>
             </Box>
-            <List
-                sx={{
-                    py: 0,
-                    '--ListItem-paddingY': '0.75rem',
-                    '--ListItem-paddingX': '1rem',
-                }}
-            >
-
+            <List sx={ListStyle}>
                 {
                     chats.length > 0 ? (
                         <>
                             <FistPane setSelectedChat={setSelectedChat} selectedChatId={selectedChatId}/>
+                            <Typography fontWeight='bold'>รายการแชท</Typography>
+                            <ListDivider sx={{margin: 0}}/>
                             {
                                 chats.map((chat) => (
                                     chat.id !== 0 &&
                                     <ChatListItem
-                                        key={chat.id}{...chat}
+                                        key={chat.id} {...chat}
                                         setSelectedChat={setSelectedChat}
                                         chatRooms={chatRooms}
-                                        selectedChatId={selectedChatId}
                                     ></ChatListItem>
                                 ))
                             }
                         </>
                     ) : (
-                        <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                        <Box sx={BoxStyle}>
                             <div>
                                 <Typography sx={{textAlign: 'center'}}>
                                     <SentimentVeryDissatisfiedIcon/>
@@ -69,10 +55,7 @@ export default function ChatsPane(props) {
                                 <Typography>ไม่มีรายแชทในห้องนี้</Typography>
                             </div>
                         </Box>
-
                     )
-
-
                 }
             </List>
         </Sheet>
