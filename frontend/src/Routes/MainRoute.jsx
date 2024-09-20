@@ -11,7 +11,6 @@ import TestPage from "../Views/Test/page.jsx";
 import CustomerListPage from "../Views/CustomerPage/page.jsx";
 import UserListTable from "../Views/UserPage/page.jsx";
 import CustomerDetail from "../Views/CustomerPage/CustomerDetail.jsx";
-import CustDmPage from "../Views/NewCustDmPage/page.jsx";
 
 export const route = createBrowserRouter([
     {path: '/', element: <App/>},

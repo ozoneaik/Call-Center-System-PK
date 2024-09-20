@@ -19,27 +19,24 @@ class ChatHistoryController extends Controller
     public function LatestChatHistory($id): JsonResponse
     {
         $customers = customers::where('roomId', $id)->orderBy('id', 'desc')->get();
-        // fake ข้อมูลมา
-        $data[0]['id'] = 0;
-        $data[0]['sender']['id'] = 0;
-        $data[0]['messages'][] = 'hello world';
+
 
         foreach ($customers as $index => $customer) {
             // สร้างข้อมูลพื้นฐานสำหรับแต่ละ customer
-            $data[$index+1]['id'] = $index+1;
+            $data[$index]['id'] = $index+1;
             // ดึงข้อมูลของ customer จากฐานข้อมูล
             $customerDetails = customers::where('custId', $customer->custId)->first();
             // แปลงข้อมูล customer เป็น JSON
-            $data[$index+1]['sender'] = $customerDetails ? $customerDetails->toArray() : null;
+            $data[$index]['sender'] = $customerDetails ? $customerDetails->toArray() : null;
             // ดึงข้อมูล chatHistory และแปลง sender เป็น JSON
             $chatHistories = chatHistory::where('custId', $customer->custId)->orderBy('id', 'desc')->first();
             // แปลงข้อมูล chatHistory เป็น array พร้อมแปลง sender เป็น JSON
-            $data[$index+1]['messages'][] = json_decode($chatHistories);
+            $data[$index]['messages'][] = json_decode($chatHistories);
         }
 
         return response()->json([
             'message' => "สำเร็จ",
-            'chats' => $data
+            'chats' => $data ?? []
         ]);
     }
 

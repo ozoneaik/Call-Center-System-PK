@@ -38,6 +38,10 @@ export const PaneHeader = {
     backgroundColor: 'background.body',
 }
 
+export const HeadTitle = {
+    fontWeight: 'lg', fontSize: 'lg'
+}
+
 
 export const BackIcon = {
     display: {
@@ -46,9 +50,17 @@ export const BackIcon = {
     }
 }
 
+export const Description = {
+    display: {
+        xs: 'none',
+        lg: 'block'
+    },
+}
+
 export const ButtonTextShortCut = {
     display: {
         xs: 'none',
         lg: 'block'
-    }
+    },
+    fontSize: 14
 }

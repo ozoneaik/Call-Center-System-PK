@@ -1,11 +1,10 @@
 import Avatar from '@mui/joy/Avatar';
 import Button from '@mui/joy/Button';
-import Chip from '@mui/joy/Chip';
 import IconButton from '@mui/joy/IconButton';
 import SendIcon from '@mui/icons-material/Send';
 import Stack from '@mui/joy/Stack';
 import Typography from '@mui/joy/Typography';
-import CircleIcon from '@mui/icons-material/Circle';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import {toggleMessagesPane} from "../../Components/utils.js";
@@ -22,7 +21,13 @@ import {userListApi} from "../../Api/User.js";
 import {shortChatListApi} from "../../Api/shortChats.js";
 import {SendMessageApi} from "../../Api/sendMessage.js";
 import {changeUserReplyApi} from "../../Api/Customer.js";
-import {BackIcon, ButtonTextShortCut, PaneHeader} from "../../assets/styles/MessagePaneStyle.js";
+import {
+    BackIcon,
+    ButtonTextShortCut,
+    Description,
+    HeadTitle,
+    PaneHeader
+} from "../../assets/styles/MessagePaneStyle.js";
 
 export default function MessagesPaneHeader({sender}) {
     const [open, setOpen] = useState(false);
@@ -72,12 +77,12 @@ export default function MessagesPaneHeader({sender}) {
             <Modal open={isOpen} onClose={handleClose}>
                 <ModalDialog variant="outlined" role="alertdialog">
                     <DialogTitle>
-                        {prefix === 'shortChat' ? (<><RateReviewIcon /> ตัวช่วยตอบ</>) : (<><SendIcon /> ส่งต่อไปยัง</>)}
+                        {prefix === 'shortChat' ? (<><RateReviewIcon/> ตัวช่วยตอบ</>) : (<><SendIcon/> ส่งต่อไปยัง</>)}
                     </DialogTitle>
-                    <Divider />
+                    <Divider/>
                     <DialogContent>
-                        <Box component="section" sx={{ p: 1 }}>
-                            <Grid container spacing={1} sx={{ flexGrow: 1 }}>
+                        <Box component="section" sx={{p: 1}}>
+                            <Grid container spacing={1} sx={{flexGrow: 1}}>
                                 {prefix === 'shortChat' ? renderButtons(shortChats, 'shortChat') : renderButtons(users, 'user')}
                             </Grid>
                         </Box>
@@ -98,27 +103,22 @@ export default function MessagesPaneHeader({sender}) {
                     </IconButton>
                     <Avatar size="lg" src={sender.avatar}/>
                     <div>
-                        <Typography component="h2" noWrap endDecorator={
-                            sender.online && (
-                                <Chip
-                                    variant="outlined" size="sm" color="neutral" sx={{borderRadius: 'sm'}}
-                                    startDecorator={<CircleIcon sx={{fontSize: 8}} color="success"/>}
-                                >
-                                    Online
-                                </Chip>
-                            )
-                        } sx={{fontWeight: 'lg', fontSize: 'lg'}}>
+                        <Typography component="h2" noWrap sx={HeadTitle}>
                             {sender.name}
                         </Typography>
-                        <Typography level="body-sm">{sender.description}</Typography>
+                        <Typography level="body-sm" sx={Description}>{sender.description}</Typography>
                     </div>
                 </Stack>
                 <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
-                    <Button variant="outlined" color="neutral" onClick={() => setSendToEmp(true)}>
-                        <Typography sx={ButtonTextShortCut}>ส่งต่อ</Typography>&nbsp;<SendIcon/>
+                    <Button size='sm' variant="outlined" color="success" onClick={() => setOpen(true)}>
+                        <Typography color="success" sx={ButtonTextShortCut}>จบการสนทนา</Typography>&nbsp;
+                        <CheckBoxIcon/>
                     </Button>
-                    <Button variant="outlined" color="neutral" onClick={() => setOpen(true)}>
-                        <Typography sx={ButtonTextShortCut}>ช่วยตอบ</Typography>&nbsp;
+                    <Button size='sm' variant="outlined" color="warning" onClick={() => setSendToEmp(true)}>
+                        <Typography color='warning' sx={ButtonTextShortCut}>ส่งต่อ</Typography>&nbsp;<SendIcon/>
+                    </Button>
+                    <Button size='sm' variant="outlined" color="primary" onClick={() => setOpen(true)}>
+                        <Typography color='primary' sx={ButtonTextShortCut}>ช่วยตอบ</Typography>&nbsp;
                         <RateReviewIcon/>
                     </Button>
                 </Stack>

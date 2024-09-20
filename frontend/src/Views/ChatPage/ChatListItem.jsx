@@ -29,18 +29,14 @@ export default function ChatListItem(props) {
                             <Typography level="title-sm" fontSize={'smaller'}>{sender.description}</Typography>
                         </Box>
                         <Box sx={DateAndUnRead}>
-                            {
-                                messages[0].unread && <CircleIcon fontSize='12' color="danger"/>
-                            }
+                            {messages[0].unread && <CircleIcon fontSize='12' color="danger"/>}
                             <Typography level="body-xs" noWrap sx={{display: {xs: 'none', md: 'block'}}}>
                                 {new Date(messages[0].created_at).toLocaleString()}
                             </Typography>
                         </Box>
                     </Stack>
                     <Typography level="body-sm" sx={Content}>
-                        {
-                            messages[0].contentType === 'text' ? messages[0].content : 'ส่งรูปภาพ หรือ Sticker เข้ามา'
-                        }
+                        {messages[0].contentType === 'text' ? messages[0].content : 'ส่งรูปภาพ หรือ Sticker เข้ามา'}
                     </Typography>
                 </ListItemButton>
             </ListItem>

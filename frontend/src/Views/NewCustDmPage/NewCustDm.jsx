@@ -14,7 +14,6 @@ import DialogTitle from "@mui/joy/DialogTitle";
 import Divider from "@mui/joy/Divider";
 import DialogContent from "@mui/joy/DialogContent";
 import DialogActions from "@mui/joy/DialogActions";
-import TextsmsIcon from "@mui/icons-material/Textsms";
 import {changeRoomApi} from "../../Api/chatRooms.js";
 import {toggleMessagesPane} from "../../Components/utils.js";
 
@@ -82,6 +81,13 @@ const NewCustDmPage = ({chatRooms,setSelectedChat}) => {
         return <td>{convertDate(time)}</td>;
     };
 
+    const handleChat = () => {
+        setOpen(false);
+        toggleMessagesPane();
+        setSelectedChat({id : select.custId, sender : select});
+        localStorage.setItem('selectChat', '1');
+    }
+
     const HeaderComponent = ({title}) => (
         <Box sx={HeaderComponentStyle}>
             <Typography level="h2">{title}</Typography>
@@ -120,15 +126,8 @@ const NewCustDmPage = ({chatRooms,setSelectedChat}) => {
                         </Box>
                     </DialogContent>
                     <DialogActions>
-                        <Button variant="solid" color="primary"
-                                onClick={() => {
-                                    setOpen(false);
-                                    toggleMessagesPane();
-                                    setSelectedChat({id : select.custId, sender : select});
-                                    localStorage.setItem('selectChat', '1');
-                                }}
-                        >
-                            <TextsmsIcon/>
+                        <Button variant="solid" color="primary" onClick={handleChat}>
+                            รับเรื่อง
                         </Button>
                         <Button variant="solid" color="neutral" onClick={() => setOpen(false)}>
                             จัดการข้อมูล

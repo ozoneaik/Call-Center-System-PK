@@ -112,16 +112,6 @@ function HomePage() {
                             </CardContent>
                         </Card>
                     </Grid>
-
-                    {/* ปุ่มดำเนินการ */}
-                    <Grid xs={12} sx={{mt: 2}}>
-                        <Button variant="solid" color="primary" startDecorator={<ChatIcon/>} sx={{mr: 2}}>
-                            เริ่มแชทใหม่
-                        </Button>
-                        <Button variant="outlined" color="neutral">
-                            ดูรายงานเพิ่มเติม
-                        </Button>
-                    </Grid>
                 </Grid>
             </Box>
         </Content>
