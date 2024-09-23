@@ -28,11 +28,11 @@ class CustomersController extends Controller
         ]);
     }
 
-    public function CustomerListNewDm() : JsonResponse{
+    public function CustomerListNewDm($roomId) : JsonResponse{
         $message = 'ดึงข้อมูลไม่สำเร็จ';
         $status = 400;
         try {
-            $customers = $this->customerService->listNewDm();
+            $customers = $this->customerService->listNewDm($roomId);
             if ($customers['status']){
                 $message = 'ดึงข้อมูลสำเร็จ';
                 $status = 200;

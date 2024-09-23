@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActiveConversationsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatHistoryController;
 use App\Http\Controllers\ChatRoomsController;
@@ -23,19 +24,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการลูกค้า
     Route::prefix('customer')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
-        Route::get('/list/CustomerListNewDm', [CustomersController::class, 'CustomerListNewDm']);
+        Route::get('/list/CustomerListNewDm/{roomId}', [CustomersController::class, 'CustomerListNewDm']);
         Route::get('/detail/{custId}',[CustomersController::class, 'CustomerDetail']);
         Route::post('/update',[CustomersController::class, 'UpdateCustomer']);
         Route::post('/changeRoom',[CustomersController::class, 'changeRoom']);
         Route::post('/changeUserReply',[CustomersController::class, 'changeUserReply']);
+
     });
     // จัดการแชท
     Route::prefix('chatRoom')->group(function(){
        Route::get('/list',[ChatRoomsController::class,'list']);
     });
     Route::prefix('messages')->group(function () {
-        Route::get('/listMessage/room/{id}', [ChatHistoryController::class, 'LatestChatHistory']);
         Route::get('/selectMessage/{id}', [ChatHistoryController::class, 'ChatSelectById']);
+        Route::post('/receive',[ActiveConversationsController::class, 'receive']);
+        Route::post('/endTalk', [ActiveConversationsController::class, 'endTalk']);
     });
     Route::post('/sendMessage', [LineController::class, 'sendMessage']);
     Route::prefix('shortChat')->group(function () {

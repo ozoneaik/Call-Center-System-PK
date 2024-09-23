@@ -10,10 +10,10 @@ class CustomerService{
         return customers::all();
     }
 
-    public function listNewDm() : array{
+    public function listNewDm($roomId) : array{
         try {
-            $data['progress'] = customers::where('status','progress')->get();
-            $data['pending'] = customers::where('status','pending')->get();
+            $data['progress'] = customers::where('status','progress')->where('roomId',$roomId)->get();
+            $data['pending'] = customers::where('status','pending')->where('roomId',$roomId)->get();
             $data['status'] = true;
         }catch (\Exception $exception){
             $data['status'] = false;
