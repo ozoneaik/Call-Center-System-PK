@@ -1,125 +1,88 @@
-import * as React from 'react';
 import {useState} from 'react';
-import {CssVarsProvider, useColorScheme} from '@mui/joy/styles';
+import {Navigate} from 'react-router-dom';
+import {useAuth} from '../context/AuthContext';
+import Box from "@mui/joy/Box";
+import Typography from "@mui/joy/Typography";
+import {CssVarsProvider} from '@mui/joy/styles';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import CssBaseline from '@mui/joy/CssBaseline';
-import Box from '@mui/joy/Box';
 import Button from '@mui/joy/Button';
 import Divider from '@mui/joy/Divider';
 import FormControl from '@mui/joy/FormControl';
 import FormLabel from '@mui/joy/FormLabel';
 import IconButton from '@mui/joy/IconButton';
 import Input from '@mui/joy/Input';
-import Typography from '@mui/joy/Typography';
 import Stack from '@mui/joy/Stack';
-import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
-import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import LoginIcon from '@mui/icons-material/Login';
-import ChatIcon from '@mui/icons-material/Chat';
-import {LoginApi} from "../Api/Auth.js";
-import {useAuth} from "../Contexts/AuthContext.jsx";
-import {Navigate} from "react-router-dom";
 import {CircularProgress} from "@mui/joy";
-import {AlertWithConfirm} from "../Dialogs/Alert.js";
+import ColorSchemeToggle from "../ColorSchemeToggle.jsx";
+import {LoginStyle} from "../styles/LoginStyle.js";
+import Logo from "../assets/logo.png";
+import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {loginApi} from "../api/Auth.js";
 
-
-function ColorSchemeToggle(props) {
-    const {onClick, ...other} = props;
-    const {mode, setMode} = useColorScheme();
-    const [mounted, setMounted] = React.useState(false);
-    React.useEffect(() => setMounted(true), []);
-    return (
-        <IconButton
-            aria-label="toggle light/dark mode"
-            size="sm"
-            variant="outlined"
-            disabled={!mounted}
-            onClick={(event) => {
-                setMode(mode === 'light' ? 'dark' : 'light');
-                onClick?.(event);
-            }}
-            {...other}
-        >
-            {mode === 'light' ? <DarkModeRoundedIcon/> : <LightModeRoundedIcon/>}
-        </IconButton>
-    );
-}
-
-export default function JoySignInSideTemplate() {
-    const [email, setEmail] = useState('70010@mail.com');
+export default function Login() {
+    const [email, setEmail] = useState('70010');
     const [password, setPassword] = useState('1111');
     const [loading, setLoading] = useState(false);
-    const {csrfToken, setUser} = useAuth();
+    const {setUser, csrfToken} = useAuth();
 
-
-    const onSubmit = async (e) => {
+    // login user
+    const handleSubmit = async (e) => {
         setLoading(true);
         e.preventDefault();
         await csrfToken();
-        const {data, status} = await LoginApi(email, password);
-        console.log(data, status)
-        if (status === 200) {
-            localStorage.setItem('selectChat', '0');
-            setUser(data.user);
-            return <Navigate to="/profile"/>;
-        } else {
-            AlertWithConfirm({text: data.message})
+        try {
+            const Email = email+'@mail.local'
+            const {data, status} = await loginApi(Email, password);
+            if (status === 200) {
+                setUser(data.user);
+                return <Navigate to="/home"/>;
+            } else {
+                AlertDiaLog({text: data.message})
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }
+    };
+
     return (
         <CssVarsProvider defaultMode="dark" disableTransitionOnChange>
             <CssBaseline/>
             <GlobalStyles styles={{':root': {'--Form-maxWidth': '800px', '--Transition-duration': '0.4s',},}}/>
             <Box
-                sx={(theme) => ({
-                    width: {xs: '100%', md: '50vw'}, transition: 'width var(--Transition-duration)',
-                    transitionDelay: 'calc(var(--Transition-duration) + 0.1s)', position: 'relative', zIndex: 1,
-                    display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(12px)',
-                    backgroundColor: 'rgba(255 255 255 / 0.2)',
-                    [theme.getColorSchemeSelector('dark')]: {
-                        backgroundColor: 'rgba(19 19 24 / 0.4)',
-                    },
-                })}
+                sx={[LoginStyle.Layout, (theme) => ({
+                    [theme.getColorSchemeSelector('dark')]: {backgroundColor: 'rgba(19 19 24 / 0.4)',},
+                })]}
             >
-                <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100dvh', width: '100%', px: 2,}}>
-                    <Box component="header" sx={{py: 3, display: 'flex', justifyContent: 'space-between',}}>
-                        <Box sx={{gap: 2, display: 'flex', alignItems: 'center'}}>
-                            <IconButton variant="soft" size="sm" sx={{backgroundColor: '#f15739'}} color='black'>
-                                <ChatIcon/>
+                <Box sx={LoginStyle.ContentLeft}>
+                    <Box component="header" sx={LoginStyle.Header}>
+                        <Box sx={LoginStyle.Title}>
+                            <IconButton variant="soft" size="sm" color='danger'>
+                                <img src={Logo || ''} alt="" width={25}/>
                             </IconButton>
                             <Typography level="title-lg">PUMPKIN ครบทุกเรื่อง เครื่องมือช่าง</Typography>
                         </Box>
                         <ColorSchemeToggle/>
                     </Box>
-                    <Box
-                        component="main"
-                        sx={{
-                            my: 'auto', py: 2, pb: 5, display: 'flex', flexDirection: 'column', mx: 'auto',
-                            gap: 2, width: 400, maxWidth: '100%', borderRadius: 'sm',
-                            '& form': {display: 'flex', flexDirection: 'column', gap: 2,},
-                            [`& .MuiFormLabel-asterisk`]: {visibility: 'hidden',},
-                        }}
-                    >
+                    <Box sx={LoginStyle.ContentLeftMain}>
                         <Stack gap={4} sx={{mb: 2}}>
                             <Stack gap={1}>
                                 <Typography component="h1" level="h3">
-                                    Call Center System <br/> ระบบแชทบริการลูกค้า
+                                    Call Center System
+                                    <br/>
+                                    ระบบแชทบริการลูกค้า
                                 </Typography>
                             </Stack>
                         </Stack>
-                        <Divider
-                            sx={(theme) => ({
-                                [theme.getColorSchemeSelector('light')]: {color: {xs: '#FFF', md: 'text.tertiary'},},
-                            })}
-                        >
+                        <Divider sx={(theme) => ({[theme.getColorSchemeSelector('light')]: LoginStyle.ThemeLight})}>
                             เข้าสู่ระบบ
                         </Divider>
                         <Stack gap={4} sx={{mt: 2}}>
-                            <form onSubmit={onSubmit} method={'POST'}>
+                            <form onSubmit={handleSubmit} method={'POST'}>
                                 <FormControl required>
                                     <FormLabel>รหัสพนักงาน</FormLabel>
-                                    <Input defaultValue={email} onChange={(e) => setEmail(e.target.value)} type="email"
+                                    <Input defaultValue={email} onChange={(e) => setEmail(e.target.value)} type={'text'}
                                            name="email"/>
                                 </FormControl>
                                 <FormControl required>
@@ -131,14 +94,7 @@ export default function JoySignInSideTemplate() {
                                     <Button
                                         sx={{backgroundColor: '#f15739', '&:hover': {backgroundColor: 'darkorange'}}}
                                         disabled={loading} type="submit" fullWidth>
-                                        {
-                                            !loading ?
-                                                <span>
-                                                    <LoginIcon/>
-                                                </span>
-                                                :
-                                                <CircularProgress/>
-                                        }
+                                        {!loading ? <span><LoginIcon/></span> : <CircularProgress/>}
                                     </Button>
                                 </Stack>
 
@@ -153,21 +109,10 @@ export default function JoySignInSideTemplate() {
                 </Box>
             </Box>
             <Box
-                sx={(theme) => ({
-                    height: '100%', position: 'fixed', right: 0, top: 0, bottom: 0, left: {xs: 0, md: '50vw'},
-                    transition:
-                        'background-image var(--Transition-duration), left var(--Transition-duration) !important',
-                    transitionDelay: 'calc(var(--Transition-duration) + 0.1s)',
-                    backgroundColor: 'background.level1', backgroundSize: 'cover', backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundImage:
-                        'url(https://www.pumpkintool.com/wp-content/uploads/2017/11/Company-1.png)',
-                    [theme.getColorSchemeSelector('dark')]: {
-                        backgroundImage:
-                            'url(https://unforgettabletravel.com/wp-content/uploads/2021/07/Asiatique-the-Riverfront-market-Bangkok.jpg)',
-                    },
-                })}
-            />
+                sx={[LoginStyle.ContentRight, (theme) => ({
+                    [theme.getColorSchemeSelector('dark')]: LoginStyle.ImageDark,
+                })]}>
+            </Box>
         </CssVarsProvider>
     );
 }

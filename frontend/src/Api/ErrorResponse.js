@@ -1,5 +1,5 @@
 export const ErrorResponse = (error) => {
-    let message = 'Server error';
+    let message = 'เกิดข้อผิดพลาดกับ server';
     let status = 500;
     if (error.response) {
         message = error.response.data.message;

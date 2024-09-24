@@ -1,8 +1,8 @@
-import * as React from 'react';
 import {useEffect, useState} from 'react';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import Avatar from '@mui/joy/Avatar';
 import Box from '@mui/joy/Box';
+import Chip from '@mui/joy/Chip';
 import Divider from '@mui/joy/Divider';
 import IconButton from '@mui/joy/IconButton';
 import List from '@mui/joy/List';
@@ -11,91 +11,76 @@ import ListItemButton, {listItemButtonClasses} from '@mui/joy/ListItemButton';
 import ListItemContent from '@mui/joy/ListItemContent';
 import Typography from '@mui/joy/Typography';
 import Sheet from '@mui/joy/Sheet';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import GroupIcon from '@mui/icons-material/Group';
-import ColorSchemeToggle from "../Components/ColorSchemeToggle.jsx";
-import {closeSidebar} from "../Components/utils.js";
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import HomeIcon from '@mui/icons-material/Home';
+import Logo from '../assets/logo.png'
+import ColorSchemeToggle from '../ColorSchemeToggle';
+import {closeSidebar} from '../utils';
+import {LayoutStyle} from "../styles/LayoutStyle.js";
+import {useAuth} from "../context/AuthContext.jsx";
+import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {logoutApi} from "../api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
-import {useAuth} from "../Contexts/AuthContext.jsx";
-import {LogoutApi} from "../Api/Auth.js";
-import {AlertWithConfirm} from "../Dialogs/Alert.js";
-import TryIcon from '@mui/icons-material/Try';
-import {chatRoomListApi} from "../Api/chatRooms.js";
-import Chip from "@mui/joy/Chip";
-import Logo from '../assets/logo.png';
-
-const SidebarItem = ({title, icon, path, unReads = 0, Selected = false}) => (
-    <ListItem>
-        <ListItemButton selected={Selected} component={Link} to={path}>
-            {icon}
-            <ListItemContent>
-                <Typography level="title-sm">{title}</Typography>
-            </ListItemContent>
-            {unReads > 0 && (<Chip size="sm" color="danger" variant="solid">{unReads}</Chip>)}
-        </ListItemButton>
-    </ListItem>
-);
+import {chatRoomListApi} from "../api/Messages.js";
 
 export default function Sidebar() {
-    const {user} = useAuth();
+    const {user, setUser} = useAuth();
     const navigate = useNavigate();
-    const [listRoom, setListRooms] = useState([]);
+    const [chatRooms, setChatRooms] = useState([]);
     const {pathname} = useLocation();
 
     useEffect(() => {
-        getListRoom().then();
+        const fetchChatRooms = async () => {
+            const {data, status} = await chatRoomListApi();
+            status === 200 && setChatRooms(data.chatRooms);
+        }
+        fetchChatRooms().then(() => console.log('fetch 👏'));
     }, [])
 
-    const getListRoom = async () => {
-        const {data, status} = await chatRoomListApi();
-        status === 200 ? setListRooms(data.chatRooms) : setListRooms([]);
-    }
-
     const Logout = () => {
-        AlertWithConfirm({
+        AlertDiaLog({
             text: 'ต้องการออกจากระบบหรือไม่',
+            icon: 'info',
+            Outside: true,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const {status} = await LogoutApi();
-                    if (status === 200) {
-                        localStorage.removeItem('user')
-                        navigate('/login')
-                    }
+                    const {data, status} = await logoutApi();
+                    status === 200 && setUser(null)
+                    AlertDiaLog({
+                        icon: status === 200 ? 'success' : 'error',
+                        text: data.message,
+                        onPassed: (confirm) => {
+                            if (confirm) {
+                                localStorage.removeItem('notification');
+                                navigate('/')
+                            }
+                        }
+                    });
+                } else {
+                    console.log('confirm is False')
                 }
             }
         });
     }
+
+
     return (
-        <Sheet
-            className="Sidebar"
-            sx={{
-                position: {xs: 'fixed', md: 'sticky'}, zIndex: 1001,
-                transform: {xs: 'translateX(calc(100% * (var(--SideNavigation-slideIn, 0) - 1)))', md: 'none',},
-                transition: 'transform 0.4s, width 0.4s', height: '100dvh', width: 'var(--Sidebar-width)',
-                top: 0, p: 2, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2,
-                borderRight: '1px solid', borderColor: 'divider',
-            }}
-        >
+        <Sheet className="Sidebar" sx={LayoutStyle.Sidebar.Layout}>
             <GlobalStyles
                 styles={(theme) => ({
-                    ':root': {'--Sidebar-width': '220px', [theme.breakpoints.up('lg')]: {'--Sidebar-width': '240px',}}
+                    ':root': {
+                        '--Sidebar-width': '220px',
+                        [theme.breakpoints.up('lg')]: {
+                            '--Sidebar-width': '240px',
+                        },
+                    },
                 })}
             />
-            <Box
-                className="Sidebar-overlay"
-                sx={{
-                    position: 'fixed', zIndex: 1000, top: 0, left: 0, width: '100vw', height: '100vh',
-                    transition: 'opacity 0.4s',
-                    opacity: 'var(--SideNavigation-slideIn)',
-                    transform: {
-                        xs: 'translateX(calc(100% * (var(--SideNavigation-slideIn, 0) - 1) + var(--SideNavigation-slideIn, 0) * var(--Sidebar-width, 0px)))',
-                        lg: 'translateX(-100%)',
-                    },
-                }}
-                onClick={() => closeSidebar()}
-            />
+            <Box sx={LayoutStyle.Sidebar.Overlay} onClick={() => closeSidebar()}/>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
                 <IconButton variant="soft" color="danger" size="sm">
                     <img src={Logo || ''} alt="" width={25}/>
@@ -103,60 +88,57 @@ export default function Sidebar() {
                 <Typography level="title-lg">Pumpkin Co.</Typography>
                 <ColorSchemeToggle sx={{ml: 'auto'}}/>
             </Box>
-            <Box
-                sx={{
-                    minHeight: 0, overflow: 'hidden auto', flexGrow: 1, display: 'flex',
-                    flexDirection: 'column', [`& .${listItemButtonClasses.root}`]: {gap: 1.5,},
-                }}
-            >
-                <List
-                    size="sm"
-                    sx={{
-                        gap: 1, '--List-nestedInsetStart': '30px',
-                        '--ListItem-radius': (theme) => theme.vars.radius.sm,
-                    }}
-                >
-                    <SidebarItem title='หน้าหลัก' Selected={pathname.startsWith(`/home`)} path={`/home`}
-                                 icon={<HomeRoundedIcon/>}
-                    />
-                    <SidebarItem
-                        title='ห้องแชท'
-                        Selected={pathname.startsWith(`/chats/cust-dm-message`)}
-                        path={`/chats/cust-dm-message`} icon={<TryIcon/>}
-                    />
+            <Box sx={{...LayoutStyle.Sidebar.ListItemButton, [`& .${listItemButtonClasses.root}`]: {gap: 1.5,},}}>
+                <List size="sm" sx={LayoutStyle.Sidebar.List}>
+
+                    <ListItem component={Link} to={`/home`}>
+                        <ListItemButton selected={pathname === `/home`}>
+                            <HomeIcon/>
+                            <ListItemContent>
+                                <Typography level="title-sm">หน้าหลัก</Typography>
+                            </ListItemContent>
+                        </ListItemButton>
+                    </ListItem>
                     {
-                        listRoom.length > 0 && (
-                            listRoom.map((list, index) => (
-                                <SidebarItem
-                                    key={index} title={list.name}
-                                    Selected={pathname.startsWith(`/chats/room/${list.id}`)}
-                                    path={`/chats/room/${list.id}`} icon={<TryIcon/>} unReads={list.unReads}
-                                />
+                        chatRooms && (
+                            chatRooms.map((chatRoom, index) => (
+                                <ListItem key={index} component={Link} to={`/chat/room/${index}`}>
+                                    <ListItemButton selected={pathname === `/chat/room/${index}`}>
+                                        <QuestionAnswerRoundedIcon/>
+                                        <ListItemContent>
+                                            <Typography level="title-sm">{chatRoom.name}</Typography>
+                                        </ListItemContent>
+                                        <Chip size="sm" color="primary" variant="solid">{chatRoom.unReads}</Chip>
+                                    </ListItemButton>
+                                </ListItem>
                             ))
                         )
                     }
                 </List>
-                <List
-                    size="sm"
-                    sx={{
-                        mt: 'auto', flexGrow: 0, mb: 2, '--List-gap': '8px',
-                        '--ListItem-radius': (theme) => theme.vars.radius.sm,
-                    }}
-                >
-                    <SidebarItem title='การตั้งค่า' Selected={pathname.startsWith(`/settings`)} path={``}
-                                 icon={<SettingsRoundedIcon/>}
-                    />
-                    <SidebarItem title='จัดการลูกค้า' Selected={pathname.startsWith(`/customer`)}
-                                 path={`/customer/list`} icon={<GroupIcon/>}
-                    />
-                    <SidebarItem title='จัดการผู้ใช้' Selected={pathname.startsWith(`/user`)}
-                                 path={`/user/list`} icon={<GroupIcon/>}
-                    />
+                <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
+                    <ListItem>
+                        <ListItemButton>
+                            <MeetingRoomIcon/>
+                            จัดการห้องแชท
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton>
+                            <PeopleAltIcon/>
+                            จัดการลูกค้า
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton>
+                            <ManageAccountsIcon/>
+                            จัดการผู้ใช้
+                        </ListItemButton>
+                    </ListItem>
                 </List>
             </Box>
             <Divider/>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
-                <Avatar variant="outlined" size="sm" src={user.avatar}/>
+                <Avatar variant="outlined" size="sm"/>
                 <Box sx={{minWidth: 0, flex: 1}}>
                     <Typography level="title-sm">{user.name}</Typography>
                     <Typography level="body-xs">{user.email}</Typography>

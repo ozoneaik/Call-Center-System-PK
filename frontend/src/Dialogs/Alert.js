@@ -1,39 +1,22 @@
 import Swal from "sweetalert2";
 
 const options = {
-    confirmButtonColor: '#f16a4b',
-    allowOutsideClick: false,
     showCancelButton: true,
+    showConfirmButton: true,
+    confirmButtonText: 'ตกลง',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#f15721'
 }
 
-export const AlertWithConfirm = (
-    {
-        title,
-        text,
-        icon = 'error',
-        cancelButtonText = 'ปิด',
-        confirmButtonText = 'ตกลง',
-        onPassed
-    }) => {
+export const AlertDiaLog = ({title, text, icon, Outside,timer, onPassed}) => {
     Swal.fire({
-        icon, title, text, cancelButtonText, confirmButtonText,
-        ...options
+        title : title,
+        text : text,
+        icon : icon ? icon : 'error',
+        allowOutsideClick : Outside ? Outside : false,
+        timer: timer ? timer : null,
+        ...options,
     }).then((result) => {
-        if (result.isConfirmed) {
-            onPassed(true);
-        } else {
-            onPassed(false);
-        }
-    })
-}
-
-export const AlertStandard = ({title, text, icon = 'error'}) => {
-    Swal.fire({
-        icon,
-        title,
-        text,
-        ...options
-    }).then((result) => {
-        console.log(result);
+        onPassed(result.isConfirmed);
     })
 }

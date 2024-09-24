@@ -1,7 +1,8 @@
-import axiosClient from "../Axios.js";
+import axiosClient from "../axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
 
-export const LoginApi = async (email,password) => {
+
+export const loginApi = async (email,password) =>{
     try {
         const {data,status} = await axiosClient.post('/login',{email,password});
         return {data, status};
@@ -10,28 +11,18 @@ export const LoginApi = async (email,password) => {
     }
 }
 
-export const RegisterApi = async (body) => {
-    try {
-        const {data,status} = await axiosClient.post('/register',body);
-        return {data, status};
-    }catch(error) {
-        return ErrorResponse(error);
-    }
-}
-
-export const LogoutApi = async () => {
-    try {
-        const {data,status} = await axiosClient.post('/logout');
-        return {data, status};
-    }catch(error) {
-        return ErrorResponse(error);
-    }
-}
-
-
-export const ProfileApi = async () => {
+export const profileApi = async () => {
     try {
         const {data,status} = await axiosClient.get('/profile');
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}
+
+export const logoutApi = async () => {
+    try {
+        const {data,status} = await axiosClient.post('/logout');
         return {data, status};
     }catch(error) {
         return ErrorResponse(error);
