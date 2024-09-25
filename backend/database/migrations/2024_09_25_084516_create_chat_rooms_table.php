@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('chat_rooms', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->comment('ชื่อห้องแชท');
-            $table->string('status')->default('active')->comment('สถานะห้องแชท');
-            $table->tinyInteger('unReads')->comment('จำนวนข้อความที่ยังไม่ได้อ่าน');
+            $table->string('roomId')->comment('รหัสห้อง');
+            $table->string('roomName')->comment('ชื่อห้อง');
+            $table->tinyInteger('unRead')->comment('ข้อความที่ยังไม่ได้อ่าน');
             $table->timestamps();
         });
     }

@@ -24,12 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการลูกค้า
     Route::prefix('customer')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
-        Route::get('/list/CustomerListNewDm/{roomId}', [CustomersController::class, 'CustomerListNewDm']);
         Route::get('/detail/{custId}',[CustomersController::class, 'CustomerDetail']);
         Route::post('/update',[CustomersController::class, 'UpdateCustomer']);
-        Route::post('/changeRoom',[CustomersController::class, 'changeRoom']);
-        Route::post('/changeUserReply',[CustomersController::class, 'changeUserReply']);
-
     });
     // จัดการแชท
     Route::prefix('chatRoom')->group(function(){

@@ -13,15 +13,15 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique()->comment('รหัสพนักงาน');
-            $table->string('name')->comment('ชื่อพนักงาน');
+            $table->string('empCode')->unique()->comment('รหัสพนักงาน');
+            $table->string('empName')->comment('ชื่อพนักงาน');
             $table->string('description')->nullable()->comment('คำอธิบาย');
             $table->string('avatar')->nullable()->comment('รูปประจำตัว');
             $table->string('email')->unique()->comment('อีเมลพนักงาน');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role')->default('sale')->comment('ตำแหน่ง');
-            $table->json('rooms')->nullable()->comment('อยู่ห้องแชทไหนบ้าง');
+            $table->string('roomId')->nullable()->comment('อยู่ห้องแชทไหน');
             $table->rememberToken();
             $table->timestamps();
         });

@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\ActiveConversations;
-use App\Models\chatHistory;
-use App\Models\customers;
+use App\Models\ChatHistory;
+use App\Models\Customers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ class ActiveConversationService
         $data['message'] = 'สำเร็จ';
         $data['status'] = true;
         try {
-            $check = customers::where('custId', $custId)->first();
+            $check = Customers::where('custId', $custId)->first();
             if ($check) {
                 if ($check->status !== 'progress') {
                     DB::beginTransaction();
@@ -47,7 +47,7 @@ class ActiveConversationService
                 throw new \Exception('คุณได้ดำเนินจบการสนทนากับลูกค้าคนนี้ไปแล้ว');
             }
             $active->end_time = Carbon::now();
-            $chatHistory = chatHistory::where('custId',$custId)->where('conversationId',$active->id)->get();
+            $chatHistory = ChatHistory::where('custId',$custId)->where('conversationId',$active->id)->get();
             $active->count_chat = count($chatHistory);
             if ($active->save()){
                 $customer = customers::where('custId',$custId)->first();

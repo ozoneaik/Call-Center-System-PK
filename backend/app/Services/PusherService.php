@@ -7,23 +7,27 @@ use Pusher\Pusher;
 use Pusher\PusherException;
 
 class PusherService{
-    /**
-     * @throws PusherException
-     * @throws ApiErrorException
-     * @throws GuzzleException
-     */
-    public function triggerPusher($custId , $message): void
+
+    protected ResponseService  $response;
+    public function __construct(ResponseService $response){
+        $this->response = $response;
+    }
+
+    public function triggerPusher($custId , $message): array
     {
-        $options = [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'useTLS' => true
-        ];
-
-        $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), $options);
-
-        $pusher->trigger('chat.' . $custId, 'my-event', ['message' => $message]);
-        $pusher->trigger('notifications', 'my-event', [
-            'message' => $message,
-        ]);
+        try {
+            $options = ['cluster' => env('PUSHER_APP_CLUSTER'), 'useTLS' => true];
+            $pusher = new Pusher(env('PUSHER_APP_KEY'), env('PUSHER_APP_SECRET'), env('PUSHER_APP_ID'), $options);
+            $pusher->trigger('chat.' . $custId, 'my-event', ['message' => $message]);
+            $pusher->trigger('notifications', 'my-event', [
+                'message' => $message,
+            ]);
+            $data = $this->response->Res(true,'การแจ้งเตือนสำเร็จ','ไม่พบข้อผิดพลาด');
+        }catch (\Exception $e){
+            $data = $this->response->Res(false,'การแจ้งเตือนไม่สำเร็จ',$e->getMessage());
+        } catch (GuzzleException $e) {
+            $data = $this->response->Res(false,'การแจ้งเตือนไม่สำเร็จ',$e->getMessage());
+        }
+        return $data;
     }
 }

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class notifications extends Model
+class Rates extends Model
 {
     use HasFactory;
-    protected $fillable = ['custId','countNotification'];
+    protected $fillable = ['custId','rate','latestRoomId'];
 }

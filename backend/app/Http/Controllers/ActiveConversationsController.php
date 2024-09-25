@@ -27,7 +27,10 @@ class ActiveConversationsController extends Controller
             if ($store['status']) {
                 $message = 'บันทึกข้อมูลสำเร็จ';
                 $status = 200;
-                $this->pusherService->triggerPusher('test','มีการรับเรื่อง');
+                $notification = $this->pusherService->triggerPusher('test','มีการรับเรื่อง');
+                if (!$notification['status']){
+                    throw new \Exception($notification['message']);
+                }
             } else {
                 throw new \Exception($store['message']);
             }

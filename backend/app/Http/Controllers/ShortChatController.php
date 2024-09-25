@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\shortChatService;
+use App\Services\ShortChatService;
 use Illuminate\Http\JsonResponse;
 
 class ShortChatController extends Controller
 {
-    protected shortChatService $shortChatService;
-    public function __construct(shortChatService $shortChatService){
+    protected ShortChatService  $shortChatService;
+    public function __construct(ShortChatService $shortChatService){
         $this->shortChatService = $shortChatService;
     }
     public function shortChatList() :JsonResponse{
-        $short_chats = $this->shortChatService->shortChatList();
+        $ShortChats = $this->shortChatService->list();
         return response()->json([
             'message' => 'success',
-            'short_chats' => $short_chats
+            'short_chats' => $ShortChats
         ]);
     }
 }

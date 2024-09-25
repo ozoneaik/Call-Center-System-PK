@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('notifications', function (Blueprint $table) {
+        Schema::create('rates', function (Blueprint $table) {
             $table->id();
             $table->string('custId')->comment('รหัสลูกค้า');
-            $table->tinyInteger('countNotification')->comment('จำนวนการแจ้งเตือน');
+            $table->tinyInteger('rate')->comment('จำนวนดาวที่ลูกค้าประเมิน');
+            $table->string('latestRoomId')->comment('ห้องปัจจุบัน');
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('notifications');
+        Schema::dropIfExists('rates');
     }
 };
