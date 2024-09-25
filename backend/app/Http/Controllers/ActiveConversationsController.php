@@ -23,40 +23,35 @@ class ActiveConversationsController extends Controller
         $status = 400;
         try {
             $request->validate(['custId' => 'required'], ['custId.required' => 'ไม่พบ field custId']);
-            $store = $this->activeConversationService->store($request->custId);
+            $store = $this->activeConversationService->store($request['custId']);
             if ($store['status']) {
                 $message = 'บันทึกข้อมูลสำเร็จ';
                 $status = 200;
-                $notification = $this->pusherService->triggerPusher('test','มีการรับเรื่อง');
-                if (!$notification['status']){
-                    throw new \Exception($notification['message']);
-                }
-            } else {
-                throw new \Exception($store['message']);
-            }
+                $notification = $this->pusherService->triggerPusher('test', 'มีการรับเรื่อง');
+                if (!$notification['status']) $message = $notification['message'];
+            } else $message = $store['message'];
         } catch (\Exception $exception) {
+            $status = 500;
             $message = $exception->getMessage();
         }
-        return response()->json([
-            'message' => $message
-        ],$status);
+        return response()->json(['message' => $message], $status);
     }
 
     public function endTalk(Request $request): JsonResponse
     {
         $status = 400;
         try {
-            $end = $this->activeConversationService->endTalk($request->custId);
+            $end = $this->activeConversationService->endTalk($request['custId']);
             if ($end['status']) {
                 $status = 200;
-                $this->pusherService->triggerPusher('test','ตรวจพบการการจบสนทนา');
+                $this->pusherService->triggerPusher('test', 'ตรวจพบการการจบสนทนา');
             }
             $message = $end['message'];
-        }catch (\Exception $exception) {
+        } catch (\Exception $exception) {
             $message = $exception->getMessage();
         }
         return response()->json([
-           'message' => $message
-        ],$status);
+            'message' => $message
+        ], $status);
     }
 }

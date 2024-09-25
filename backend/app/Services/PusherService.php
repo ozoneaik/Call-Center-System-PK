@@ -2,16 +2,11 @@
 namespace App\Services;
 
 use GuzzleHttp\Exception\GuzzleException;
-use Pusher\ApiErrorException;
 use Pusher\Pusher;
-use Pusher\PusherException;
 
 class PusherService{
 
     protected ResponseService  $response;
-    public function __construct(ResponseService $response){
-        $this->response = $response;
-    }
 
     public function triggerPusher($custId , $message): array
     {
@@ -24,9 +19,9 @@ class PusherService{
             ]);
             $data = $this->response->Res(true,'การแจ้งเตือนสำเร็จ','ไม่พบข้อผิดพลาด');
         }catch (\Exception $e){
-            $data = $this->response->Res(false,'การแจ้งเตือนไม่สำเร็จ',$e->getMessage());
+            $data = $this->response->Res(false,'การแจ้งเตือนผิดพลาด',$e->getMessage());
         } catch (GuzzleException $e) {
-            $data = $this->response->Res(false,'การแจ้งเตือนไม่สำเร็จ',$e->getMessage());
+            $data = $this->response->Res(false,'การแจ้งเตือนผิดพลาด',$e->getMessage());
         }
         return $data;
     }

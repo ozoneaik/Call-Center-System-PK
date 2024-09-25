@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\short_chat;
+use App\Models\ShortChats;
 use Illuminate\Database\Seeder;
 
-class shortChatsSeeder extends Seeder
+class ShortChatsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -21,8 +21,8 @@ class shortChatsSeeder extends Seeder
         ];
 
         foreach ($shortChats as $chatText) {
-            short_chat::create([
-                'chat_text' => $chatText,
+            ShortChats::create([
+                'content' => $chatText,
             ]);
         }
     }

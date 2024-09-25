@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('empCode')->unique()->comment('รหัสพนักงาน');
-            $table->string('empName')->comment('ชื่อพนักงาน');
+            $table->string('name')->comment('ชื่อพนักงาน');
             $table->string('description')->nullable()->comment('คำอธิบาย');
             $table->string('avatar')->nullable()->comment('รูปประจำตัว');
             $table->string('email')->unique()->comment('อีเมลพนักงาน');

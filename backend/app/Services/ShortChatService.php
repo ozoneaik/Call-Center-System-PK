@@ -1,11 +1,12 @@
 <?php
 namespace App\Services;
-use App\Models\short_chat;
+use App\Models\ShortChats;
 use Illuminate\Database\Eloquent\Collection;
 
 class ShortChatService{
     public function list(): Collection
     {
-        return short_chat::all();
+        $list = ShortChats::all();
+        return ShortChats::all();
     }
 }

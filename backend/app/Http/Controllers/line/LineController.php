@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\line;
 
 use App\Http\Controllers\Controller;
-use App\Models\chatHistory;
+use App\Models\ChatHistory;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +27,7 @@ class LineController extends Controller
 
             if ($response->successful()) {
                 try {
-                    $chatHistory = new chatHistory();
+                    $chatHistory = new ChatHistory();
                     $chatHistory->custId = $data_body['to'];
                     $chatHistory->sender = json_encode(auth()->user());
                     $chatHistory->content = $data_body['messages'][0]['text'];

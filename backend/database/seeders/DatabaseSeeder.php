@@ -18,11 +18,11 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Test User',
-            'code' => '70010',
-            'email' => '70010@mail.com',
+            'empCode' => '70010',
+            'name' => 'พนักงาน ภูวเดช',
+            'email' => '70010@mail.local',
             'role' => 'admin',
-            'rooms' => '[1,2,3]',
+            'roomId' => 'ROOM0',
             'description' => 'อะไรเอ้่ย',
             'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
             'password' => Hash::make('1111'),
