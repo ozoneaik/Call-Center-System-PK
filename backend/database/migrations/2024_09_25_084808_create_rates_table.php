@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('custId')->comment('รหัสลูกค้า');
             $table->tinyInteger('rate')->comment('จำนวนดาวที่ลูกค้าประเมิน');
+            $table->string('status')->default('pending')->comment('สถานะ');
             $table->string('latestRoomId')->comment('ห้องปัจจุบัน');
             $table->timestamps();
         });
