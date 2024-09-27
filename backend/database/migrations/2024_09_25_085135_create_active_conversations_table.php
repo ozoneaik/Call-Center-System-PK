@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('totalTime')->nullable()->comment('เวลาสนทนารวม');
             $table->string('from_empCode')->nullable()->comment('ส่งต่อมาจากพนักงานคนไหน');
             $table->string('from_roomId')->nullable()->comment('ส่งต่อมาจากห้องไหน');
-            $table->string('empCode')->comment('พนักงานที่รับเรื่อง');
+            $table->string('empCode')->nullable()->comment('พนักงานที่รับเรื่อง');
             $table->integer('rateRef')->comment('รหัสอ้างอิงไปยังตาราง Rates');
             $table->timestamps();
         });

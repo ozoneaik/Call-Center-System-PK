@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @method static where(string $string, $roomId)
+ * @method static create(array $array)
  */
 class ChatRooms extends Model
 {

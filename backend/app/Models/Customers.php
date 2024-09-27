@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @method static where(string $string, $custId)
  * @method static create(array $array)
+ * @method static select(string $string)
  */
 class Customers extends Model
 {

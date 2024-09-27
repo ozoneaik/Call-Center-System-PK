@@ -11,11 +11,5 @@ class ShortChatController extends Controller
     public function __construct(ShortChatService $shortChatService){
         $this->shortChatService = $shortChatService;
     }
-    public function shortChatList() :JsonResponse{
-        $ShortChats = $this->shortChatService->list();
-        return response()->json([
-            'message' => 'success',
-            'short_chats' => $ShortChats
-        ]);
-    }
+
 }

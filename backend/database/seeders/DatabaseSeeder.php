@@ -17,18 +17,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $users = [
+            [
+                'empCode' => '70010',
+                'name' => 'พนักงาน ภูวเดช',
+                'email' => '70010@mail.local',
+                'role' => 'admin',
+                'roomId' => 'ROOM00',
+                'description' => 'อะไรเอ้่ย',
+                'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
+                'password' => Hash::make('1111'),
+            ],
+            [
+                'empCode' => 'BOT',
+                'name' => 'BOT',
+                'email' => 'BOT@mail.local',
+                'role' => 'admin',
+                'roomId' => 'ROOM00',
+                'description' => 'ฉันคือ BOT',
+                'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
+                'password' => Hash::make('1111'),
+            ]
 
-        User::factory()->create([
-            'empCode' => '70010',
-            'name' => 'พนักงาน ภูวเดช',
-            'email' => '70010@mail.local',
-            'role' => 'admin',
-            'roomId' => 'ROOM0',
-            'description' => 'อะไรเอ้่ย',
-            'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
-            'password' => Hash::make('1111'),
-        ]);
+        ];
+
+        foreach ($users as $user) {
+            User::factory()->create($user);
+        }
 
         PlatformAccessTokens::create([
             'accessTokenId' => '0001',

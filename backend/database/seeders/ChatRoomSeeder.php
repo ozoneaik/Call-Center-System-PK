@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\chat_rooms;
+use App\Models\ChatRooms;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -13,26 +13,30 @@ class ChatRoomSeeder extends Seeder
      */
     public function run(): void
     {
-        chat_rooms::create([
-            'id' => 0,
-            'name' => 'ห้องแชทรวม',
-            'unReads' => 1,
-            'status' => true
+        ChatRooms::create([
+            'roomId' => 'ROOM00',
+            'roomName' => 'ห้องแชทบอท',
+            'unRead' => 1,
         ]);
-        chat_rooms::create([
-            'name' => 'ห้องแชทที่ 1',
-            'unReads' => 1,
-            'status' => true
+        ChatRooms::create([
+            'roomId' => 'ROOM01',
+            'roomName' => 'ห้องแชทรวม',
+            'unRead' => 1,
         ]);
-        chat_rooms::create([
-            'name' => 'ห้องแชทที่ 2',
-            'unReads' => 2,
-            'status' => true
+        ChatRooms::create([
+            'roomId' => 'ROOM02',
+            'roomName' => 'ห้องแชทช่าง',
+            'unRead' => 1,
         ]);
-        chat_rooms::create([
-            'name' => 'ห้องแชทที่ 3',
-            'unReads' => 3,
-            'status' => true
+        ChatRooms::create([
+            'roomId' => 'ROOM03',
+            'roomName' => 'ห้องแชทฝ่ายประสานงาน',
+            'unRead' => 1,
+        ]);
+        ChatRooms::create([
+            'roomId' => 'ROOM04',
+            'roomName' => 'ห้องแชทฝ่ายประสานการขาย',
+            'unRead' => 1,
         ]);
     }
 }
