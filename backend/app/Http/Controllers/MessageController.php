@@ -32,9 +32,37 @@ class MessageController extends Controller
         return response()->json('hello');
     }
 
-    public function receive(): JsonResponse
+    public function receive(Request $request): JsonResponse
     {
-        return response()->json('hello');
+        $status = 400;
+        $detail = 'ไม่พบข้อผิดพลาด';
+        $rateId = $request['rateId'];
+        try {
+            DB::beginTransaction();
+            if (!$rateId) throw new \Exception('ไม่พบ activeConversationId');
+            $updateAC = ActiveConversations::where('rateRef', $rateId)->where('receiveAt', null)->first();
+            if (!$updateAC) throw new \Exception('ไม่พบ activeConversation จาก rateRef ที่ receiveAt = null');
+            $updateAC['receiveAt'] = Carbon::now();
+            $updateAC['empCode'] = auth()->user()->empCode;
+            if ($updateAC->save()) {
+                $updateRate = Rates::where('id', $rateId)->first();
+                if (!$updateRate) throw new \Exception('ไม่พบ Rate ที่ต้องการรับเรื่อง');
+                $updateRate['status'] = 'progress';
+                if ($updateRate->save()){
+                    $message = 'รับเรื่องสำเร็จ';
+                    $status = 200;
+                }else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
+            } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท activeConversation';
+            DB::commit();
+        } catch (\Exception $e) {
+            $detail = $e->getMessage();
+            DB::rollBack();
+        } finally {
+            return response()->json([
+                'message' => $message ?? 'เกิดข้อผิดพลาด',
+                'detail' => $detail,
+            ], $status);
+        }
     }
 
     public function sendTo(): JsonResponse
@@ -78,6 +106,4 @@ class MessageController extends Controller
             ], $status);
         }
     }
-
-
 }
