@@ -102,13 +102,13 @@ export default function Sidebar() {
                     {
                         chatRooms && (
                             chatRooms.map((chatRoom, index) => (
-                                <ListItem key={index} component={Link} to={`/chat/room/${index}`}>
-                                    <ListItemButton selected={pathname === `/chat/room/${index}`}>
+                                <ListItem key={index} component={Link} to={`/chat/room/${chatRoom.roomId}`}>
+                                    <ListItemButton selected={pathname === `/chat/room/${chatRoom.roomId}`}>
                                         <QuestionAnswerRoundedIcon/>
                                         <ListItemContent>
-                                            <Typography level="title-sm">{chatRoom.name}</Typography>
+                                            <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                         </ListItemContent>
-                                        <Chip size="sm" color="primary" variant="solid">{chatRoom.unReads}</Chip>
+                                        <Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>
                                     </ListItemButton>
                                 </ListItem>
                             ))

@@ -23,7 +23,7 @@ export const MessageCustApi = async (custId) => {
 // ดึงรายการห้องแชท
 export const chatRoomListApi = async () => {
     try {
-        const {data,status} = await axiosClient.get('chatRoom/list');
+        const {data,status} = await axiosClient.get('chatRooms/list');
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -50,6 +50,7 @@ export const receiveApi = async (custId) => {
     }
 }
 
+// จบการสนทนา
 export const endTalkApi = async (custId) => {
     try {
         const {data,status} = await axiosClient.post('/messages/endTalk',{custId});

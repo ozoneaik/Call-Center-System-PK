@@ -1,12 +1,15 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Customers;
-use App\Models\PlatformAccessTokens;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 
-class MessageService{
-    public function differentTime($S,$T) : string{
+class MessageService
+{
+    public function differentTime($S, $T): string
+    {
         try {
             $startTime = Carbon::parse($S);
             $endTime = Carbon::parse($T);
@@ -15,24 +18,53 @@ class MessageService{
             $minutes = floor(($diffInSeconds % 3600) / 60);
             $seconds = $diffInSeconds % 60;
             return "{$hours} ชั่วโมง {$minutes} นาที {$seconds} วินาที";
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             return "เกิดข้อผิดพลาดในการคำนวน";
         }
     }
 
-    public function sendMsgByLine($custId){
+    public function sendMsgByLine($custId, $messages): array
+    {
         try {
-            $customer = Customers::select('platformRef')->where('custId', $custId)->first();
-            if ($customer){
-                $platformAccessToken = PlatformAccessTokens::where('accessTokenId',$customer['platformRef'])->first();
-                if ($platformAccessToken) {
-                    $accessToken = $platformAccessToken['accessToken'];
-                }
-            }else{
-                throw new \Exception('ไม่พบ Id');
+            $data['status'] = false;
+            switch ($messages['contentType']) {
+                case 'text':
+                    $msg['type'] = 'text';
+                    $msg['text'] = $messages['content'];
+                    break;
+                case 'image' :
+                    $msg['type'] = 'image';
+                    $msg['originalContentUrl'] = 'https://gratisography.com/wp-content/uploads/2024/03/gratisography-funflower-800x525.jpg';
+                    $msg['previewImageUrl'] = 'https://gratisography.com/wp-content/uploads/2024/03/gratisography-funflower-800x525.jpg';
+                    break;
+                case 'sticker' :
+                    $msg['type'] = 'sticker';
+                    $msg['packageId'] = '446';
+                    $msg['stickerId'] = '1988';
+                    break;
+                default :
+                    throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type');
             }
-        }catch (\Exception $e){
-
+            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.accessTokenId')
+                ->where('custId', 'LIKE', $custId)
+                ->select('PAT.accessToken')
+                ->get();
+            $accessToken = $token[0]->accessToken;
+            $URL = 'https://api.line.me/v2/bot/message/push';
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken
+            ])->asJson()->post($URL, [
+                'to' => $custId,
+                'messages' => [$msg]
+            ]);
+            if ($response->status() == 200) {
+                $data['status'] = true;
+            } else throw new \Exception($response->json());
+            $data['messages'] = $response->json();
+        } catch (\Exception $e) {
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
         }
     }
 }
