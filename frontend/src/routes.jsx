@@ -24,14 +24,14 @@ export const routes = createBrowserRouter([
                     {path: 'home', element: <Home/>},
                     {
                         path: '/chat', children: [
-                            {path: 'room/:roomId', element: <MainChat/>,},
+                            {path: 'room/:roomId/:roomName', element: <MainChat/>,},
                         ]
                     }
                 ]
             },
             {
-                path: '/chat', children: [
-                    {path : 'message/:custId', element : <MessagePane/>},
+                path: '/select', children: [
+                    {path : 'message/:rateId/:activeId/:custId', element : <MessagePane/>},
                 ]
             }
         ]

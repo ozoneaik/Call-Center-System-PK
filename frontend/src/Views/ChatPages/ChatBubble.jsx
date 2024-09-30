@@ -14,7 +14,7 @@ export default function Bubble(props) {
         <Box sx={{maxWidth: '60%', minWidth: 'auto'}}>
             <Stack direction="row" spacing={2} sx={MessageStyle.Bubble.Main}>
                 <Typography level="body-xs">
-                    {sender === user.name ? sender : sender.name}
+                    {isSent ? sender.name : sender.custName}
                 </Typography>
                 <Typography level="body-xs">{new Date(created_at).toLocaleString()}</Typography>
             </Stack>

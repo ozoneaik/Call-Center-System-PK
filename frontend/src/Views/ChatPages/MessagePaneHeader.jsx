@@ -10,15 +10,17 @@ import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {endTalkApi} from "../../api/Messages.js";
+import {useAuth} from "../../context/AuthContext.jsx";
 
 function MessagePaneHeader(props) {
+    const {user} = useAuth();
     const {sender, chatRooms, shortChat} = props;
     const [sendingOpen, setSendingOpen] = useState(false);
     const [shortCut, setShortcut] = useState(false);
 
-    const Btn = ({title, color, icon, onClick}) => (
-        <Button color={color} variant="outlined" size="sm" startDecorator={icon} onClick={onClick}>
-            <Typography color={color} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
+    const Btn = ({title, color, icon, onClick,disable=true}) => (
+        <Button color={color} disabled={disable} variant="outlined" size="sm" startDecorator={icon} onClick={onClick}>
+            <Typography color={disable ? '' : color} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
                 {title}
             </Typography>
         </Button>
@@ -27,7 +29,7 @@ function MessagePaneHeader(props) {
     const endTalk = (custId) => {
         AlertDiaLog({
             title: 'จบการสนทนา',
-            text : 'กด "ตกลง" เพื่อจบการสนทนา',
+            text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
             icon: 'info',
             onPassed: async (confirm) => {
                 if (confirm) {
@@ -37,10 +39,10 @@ function MessagePaneHeader(props) {
                         icon : status === 200 ? 'success' : 'error',
                         onPassed : () => window.close()
                     });
-                }
+                }else console.log('กด ยกเลิก การจบสนทนา')
             }
         });
-    }
+    };
 
     return (
         <>
@@ -49,7 +51,7 @@ function MessagePaneHeader(props) {
                     <Avatar size="lg" src={sender.avatar}/>
                     <div>
                         <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
-                            {sender.name}
+                            {sender.custName}
                         </Typography>
                         <Chip size='sm'>
                             {sender.description}
@@ -60,14 +62,17 @@ function MessagePaneHeader(props) {
                     <Btn
                         title={'ส่งต่อไปยัง'} color={'primary'} icon={<TelegramIcon/>}
                         onClick={() => setSendingOpen(true)}
+                        disable={sender.emp !== user.empCode}
                     />
                     <Btn
                         title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
                         onClick={() => setShortcut(true)}
+                        disable={sender.emp !== user.empCode}
                     />
                     <Btn
                         title={'จบการสนทนา'} color={'success'} icon={<DoneIcon/>}
                         onClick={() => endTalk(sender.custId)}
+                        disable={sender.emp !== user.empCode}
                     />
                 </Stack>
             </Stack>
@@ -80,7 +85,7 @@ function MessagePaneHeader(props) {
                     {
                         chatRooms.length > 0 && (
                             chatRooms.map((room, index) => (
-                                <Button key={index}>{room.name}</Button>
+                                <Button key={index}>{room.roomName}</Button>
                             ))
                         )
                     }
@@ -93,7 +98,7 @@ function MessagePaneHeader(props) {
                     {
                         shortChat.length > 0 && (
                             shortChat.map((row, index) => (
-                                <Button color={'warning'} key={index}>{row.chat_text}</Button>
+                                <Button color='warning' key={index}>{row.content}</Button>
                             ))
                         )
                     }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class MessageService
 {
+    // หาผลรวมของเวลาสนทนา
     public function differentTime($S, $T): string
     {
         try {
@@ -23,6 +24,7 @@ class MessageService
         }
     }
 
+    // ส่งข้อความจากพนักงาน
     public function sendMsgByLine($custId, $messages): array
     {
         try {
@@ -67,4 +69,6 @@ class MessageService
             return $data;
         }
     }
+
+    // ดึงรายการแชท
 }

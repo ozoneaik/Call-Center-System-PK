@@ -1,19 +1,22 @@
 import axiosClient from "../axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
 
-export const CustomerListNewDm = async (roomId) => {
+const display = '/display';
+
+// ดึงรายการแชทตามห้อง
+export const MessageListApi = async (roomId) => {
     try {
-        const {data,status} = await axiosClient.get(`/customer/list/CustomerListNewDm/${roomId}`);
+        const {data,status} = await axiosClient.get(`${display}/message/list/${roomId}`);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
     }
 }
 
-// ดึงข้อมูลของลูกค้าคนนั้นๆ
-export const MessageCustApi = async (custId) => {
+// ดึงรายการแชทของลูกค้าคนนั้นๆ
+export const selectMessageApi = async (rateId,activeId,custId) => {
     try {
-        const {data,status} = await axiosClient.get(`/messages/selectMessage/${custId}`);
+        const {data,status} = await axiosClient.post(`${display}/select/${custId}`,{rateId,activeId});
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -33,7 +36,7 @@ export const chatRoomListApi = async () => {
 // ดึงรายการแชทด่วน
 export const shortChatApi = async () => {
     try {
-        const {data,status} = await axiosClient.get('shortChat/list');
+        const {data,status} = await axiosClient.get('shortChats/list');
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -41,9 +44,9 @@ export const shortChatApi = async () => {
 }
 
 // รับเรื่อง
-export const receiveApi = async (custId) => {
+export const receiveApi = async (rateId,roomId) => {
     try {
-        const {data,status} = await axiosClient.post('messages/receive', {custId});
+        const {data,status} = await axiosClient.post('messages/receive', {rateId,roomId});
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

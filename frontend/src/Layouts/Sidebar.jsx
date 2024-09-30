@@ -30,8 +30,9 @@ import {chatRoomListApi} from "../api/Messages.js";
 export default function Sidebar() {
     const {user, setUser} = useAuth();
     const navigate = useNavigate();
-    const [chatRooms, setChatRooms] = useState([]);
+    const [chatRooms, setChatRooms] = useState([{roomName : '', roomId : ''}]);
     const {pathname} = useLocation();
+    const currentRoomId = pathname.split('/')[3];
 
     useEffect(() => {
         const fetchChatRooms = async () => {
@@ -42,10 +43,7 @@ export default function Sidebar() {
     }, [])
 
     const Logout = () => {
-        AlertDiaLog({
-            text: 'ต้องการออกจากระบบหรือไม่',
-            icon: 'info',
-            Outside: true,
+        AlertDiaLog({text: 'ต้องการออกจากระบบหรือไม่', icon: 'info', Outside: true,
             onPassed: async (confirm) => {
                 if (confirm) {
                     const {data, status} = await logoutApi();
@@ -57,12 +55,10 @@ export default function Sidebar() {
                             if (confirm) {
                                 localStorage.removeItem('notification');
                                 navigate('/')
-                            }
+                            } else console.log('confirm is False')
                         }
                     });
-                } else {
-                    console.log('confirm is False')
-                }
+                } else console.log('confirm is False')
             }
         });
     }
@@ -90,7 +86,6 @@ export default function Sidebar() {
             </Box>
             <Box sx={{...LayoutStyle.Sidebar.ListItemButton, [`& .${listItemButtonClasses.root}`]: {gap: 1.5,},}}>
                 <List size="sm" sx={LayoutStyle.Sidebar.List}>
-
                     <ListItem component={Link} to={`/home`}>
                         <ListItemButton selected={pathname === `/home`}>
                             <HomeIcon/>
@@ -102,13 +97,13 @@ export default function Sidebar() {
                     {
                         chatRooms && (
                             chatRooms.map((chatRoom, index) => (
-                                <ListItem key={index} component={Link} to={`/chat/room/${chatRoom.roomId}`}>
-                                    <ListItemButton selected={pathname === `/chat/room/${chatRoom.roomId}`}>
+                                <ListItem key={index} component={Link} to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
+                                    <ListItemButton selected={currentRoomId === chatRoom.roomId}>
                                         <QuestionAnswerRoundedIcon/>
                                         <ListItemContent>
                                             <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                         </ListItemContent>
-                                        <Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>
+                                        {/*<Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>*/}
                                     </ListItemButton>
                                 </ListItem>
                             ))

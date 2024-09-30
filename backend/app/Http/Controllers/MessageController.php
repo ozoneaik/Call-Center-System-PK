@@ -42,11 +42,11 @@ class MessageController extends Controller
             $storeChatHistory['sender'] = json_encode(auth()->user());
             $storeChatHistory['conversationRef'] = $conversationId;
             if ($storeChatHistory->save()) {
-                $sendMsgByLine = $this->messageService->sendMsgByLine($custId,$messages);
+                $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $messages);
                 if ($sendMsgByLine['status']) {
                     $message = 'ส่งข้อความสำเร็จ';
                     $status = 200;
-                } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => '.$sendMsgByLine['message']);
+                } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
             } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             DB::commit();
         } catch (\Exception $e) {
@@ -65,11 +65,15 @@ class MessageController extends Controller
         $status = 400;
         $detail = 'ไม่พบข้อผิดพลาด';
         $rateId = $request['rateId'];
+        $roomId = $request['roomId'];
         try {
             DB::beginTransaction();
-            if (!$rateId) throw new \Exception('ไม่พบ activeConversationId');
-            $updateAC = ActiveConversations::where('rateRef', $rateId)->where('receiveAt', null)->first();
-            if (!$updateAC) throw new \Exception('ไม่พบ activeConversation จาก rateRef ที่ receiveAt = null');
+            if (!$rateId) throw new \Exception('ไม่พบ AcId');
+            $updateAC = ActiveConversations::where('rateRef', $rateId)
+                ->where('roomId', $roomId)
+                ->where('receiveAt', null)
+                ->first();
+            if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['empCode'] = auth()->user()->empCode;
             if ($updateAC->save()) {
@@ -80,7 +84,7 @@ class MessageController extends Controller
                     $message = 'รับเรื่องสำเร็จ';
                     $status = 200;
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
-            } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท activeConversation';
+            } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -160,7 +164,7 @@ class MessageController extends Controller
                 } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
             /* ส่งการ์ดประเมิน */
-            $this->messageService->sendMsgByLine($updateRate['custId']);
+//            $this->messageService->sendMsgByLine($updateRate['custId']);
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
