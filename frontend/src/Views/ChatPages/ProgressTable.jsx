@@ -3,9 +3,10 @@ import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
 import {Button, Sheet, Table} from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import {convertFullDate, convertLocalDate, getRandomColor} from "../../Components/Options.jsx";
+import {convertFullDate, differentDate, getRandomColor} from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
+import {useEffect, useState} from "react";
 
 export const ProgressTable = ({dataset}) => {
     const handleChat = (rateId, activeId, custId) => {
@@ -13,6 +14,29 @@ export const ProgressTable = ({dataset}) => {
         const path = `${window.location.origin}/select/message/${params}`;
         window.open(path, '_blank');
     };
+
+    const TimeDisplay = ({startTime}) => {
+        const [timeDiff, setTimeDiff] = useState(differentDate(startTime));
+
+        useEffect(() => {
+            // ตั้ง interval เพื่ออัพเดทเวลาใหม่ทุกๆ 1 วินาที
+            const interval = setInterval(() => {
+                setTimeDiff(differentDate(startTime));
+            }, 1000);
+
+            // ล้าง interval เมื่อ component ถูกทำลาย
+            return () => clearInterval(interval);
+        }, [startTime]); // ขึ้นอยู่กับค่า startTime
+
+        return (
+            <Chip color="primary">
+                <Typography sx={ChatPageStyle.TableText}>
+                    {startTime ? timeDiff : 'ยังไม่เริ่มสนทนา'}
+                </Typography>
+            </Chip>
+        );
+    };
+
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
@@ -22,12 +46,12 @@ export const ProgressTable = ({dataset}) => {
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
                     <tr>
-                        <th style={{width : 200}}>ชื่อลูกค้า</th>
-                        <th style={{width : 200}}>พนักงานรับเรื่อง</th>
-                        <th style={{width : 200}}>วันที่รับเรื่อง</th>
-                        <th style={{width : 200}}>เวลาเรื่ม</th>
-                        <th style={{width : 200}}>เวลาที่สนทนา</th>
-                        <th style={{width : 150}}>จัดการ</th>
+                        <th style={{width: 200}}>ชื่อลูกค้า</th>
+                        <th style={{width: 200}}>พนักงานรับเรื่อง</th>
+                        <th style={{width: 200}}>วันที่รับเรื่อง</th>
+                        <th style={{width: 200}}>เวลาเรื่ม</th>
+                        <th style={{width: 200}}>เวลาที่สนทนา</th>
+                        <th style={{width: 150}}>จัดการ</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -60,16 +84,12 @@ export const ProgressTable = ({dataset}) => {
                                 <td>
                                     <Chip color="warning">
                                         <Typography sx={ChatPageStyle.TableText}>
-                                            {data.startTime ? convertLocalDate(data.startTime) : 'ยังไม่เริ่มสนทนา'}
+                                            {data.startTime ? convertFullDate(data.startTime) : 'ยังไม่เริ่มสนทนา'}
                                         </Typography>
                                     </Chip>
                                 </td>
                                 <td>
-                                    <Chip color="primary">
-                                        <Typography sx={ChatPageStyle.TableText}>
-                                            {data.endTime ? convertLocalDate(data.endTime) : 'ยังไม่เริ่มสนทนา'}
-                                        </Typography>
-                                    </Chip>
+                                    <TimeDisplay startTime={data.startTime}/>
                                 </td>
                                 <td>
                                     <Button

@@ -7,8 +7,10 @@ use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\Customers;
 use App\Models\Rates;
 use App\Services\MessageService;
+use App\Services\PusherService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,22 +20,25 @@ use Illuminate\Support\Facades\DB;
 class MessageController extends Controller
 {
     protected MessageService $messageService;
+    protected PusherService $pusherService;
 
-    public function __construct(MessageService $messageService)
+    public function __construct(MessageService $messageService, PusherService $pusherService)
     {
         $this->messageService = $messageService;
+        $this->pusherService = $pusherService;
     }
 
     // ฟังก์ชั่นการส่งข้อความ
-    public function send(sendMessageRequest $request): JsonResponse
+    public function send(sendMessageRequest $request) : JsonResponse
     {
         $status = 400;
         $detail = 'ไม่พบข้อผิดพลาด';
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
         $messages = $request['messages'][0];
-
         try {
+            $checkCustId = Customers::where('custId',$custId)->first();
+            if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
             DB::beginTransaction();
             $storeChatHistory = new ChatHistory();
             $storeChatHistory['custId'] = $custId;
@@ -85,6 +90,11 @@ class MessageController extends Controller
                     $status = 200;
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
             } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
+            $notification = $this->pusherService->newMessage(null,false,'มีการรับเรื่อง');
+            if (!$notification['status']) {
+                $status = 400;
+                throw new \Exception('การแจ้งเตือนผิดพลาด');
+            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -127,6 +137,11 @@ class MessageController extends Controller
                     } else throw new \Exception('ไม่สามารถส่งต่อได้ (storeAC error)');
                 } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversation ได้');
             } else throw new \Exception('ไม่สามารถอัพเดท Rate ได้');
+            $notification = $this->pusherService->newMessage(null,false,'มีการส่งต่อ');
+            if (!$notification['status']) {
+                $status = 400;
+                throw new \Exception('การแจ้งเตือนผิดพลาด');
+            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -165,6 +180,11 @@ class MessageController extends Controller
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
             /* ส่งการ์ดประเมิน */
 //            $this->messageService->sendMsgByLine($updateRate['custId']);
+            $notification = $this->pusherService->newMessage(null,false,'มีการจบสนทนา');
+            if (!$notification['status']) {
+                $status = 400;
+                throw new \Exception('การแจ้งเตือนผิดพลาด');
+            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();

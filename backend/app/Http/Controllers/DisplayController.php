@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\selectMessageRequest;
+use App\Models\ActiveConversations;
+use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Services\DisplayService;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +39,8 @@ class DisplayController extends Controller
             $sender = Customers::where('custId',$custId)->first();
             if (!$sender) throw new \Exception('ไม่พบ sender');
             $emp = $this->displayService->getEmpReply($request['activeId']);
+            $room = ActiveConversations::where('id', $request['activeId'])->first();
+            $room = ChatRooms::where('roomId', $room['roomId'])->first();
             if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
             $message = 'ดึงข้อมูลสำเร็จ';
@@ -47,6 +51,7 @@ class DisplayController extends Controller
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',
                 'detail' => $detail,
+                'room' => $room ?? [],
                 'rateId' => $request['rateId'],
                 'activeId' => $request['activeId'],
                 'sender' => $sender ?? [],

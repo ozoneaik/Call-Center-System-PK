@@ -14,11 +14,11 @@ import {useAuth} from "../../context/AuthContext.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, shortChat} = props;
+    const {sender, chatRooms, shortChat, roomSelect, shortCustSend, sendTo,endTalk} = props;
     const [sendingOpen, setSendingOpen] = useState(false);
     const [shortCut, setShortcut] = useState(false);
 
-    const Btn = ({title, color, icon, onClick,disable=true}) => (
+    const Btn = ({title, color, icon, onClick, disable = true}) => (
         <Button color={color} disabled={disable} variant="outlined" size="sm" startDecorator={icon} onClick={onClick}>
             <Typography color={disable ? '' : color} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
                 {title}
@@ -26,23 +26,31 @@ function MessagePaneHeader(props) {
         </Button>
     );
 
-    const endTalk = (custId) => {
-        AlertDiaLog({
-            title: 'จบการสนทนา',
-            text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
-            icon: 'info',
-            onPassed: async (confirm) => {
-                if (confirm) {
-                    const {data,status} = await endTalkApi(custId);
-                    AlertDiaLog({
-                        text : data.message,
-                        icon : status === 200 ? 'success' : 'error',
-                        onPassed : () => window.close()
-                    });
-                }else console.log('กด ยกเลิก การจบสนทนา')
-            }
-        });
-    };
+    const sendShortCut = (content) => {
+        const msgFromShortCut = {
+            content: content,
+            contentType: 'text',
+        }
+        shortCustSend(msgFromShortCut)
+    }
+
+    // const endTalk = (custId) => {
+    //     AlertDiaLog({
+    //         title: 'จบการสนทนา',
+    //         text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
+    //         icon: 'info',
+    //         onPassed: async (confirm) => {
+    //             if (confirm) {
+    //                 const {data, status} = await endTalkApi(custId);
+    //                 AlertDiaLog({
+    //                     text: data.message,
+    //                     icon: status === 200 ? 'success' : 'error',
+    //                     onPassed: () => window.close()
+    //                 });
+    //             } else console.log('กด ยกเลิก การจบสนทนา')
+    //         }
+    //     });
+    // };
 
     return (
         <>
@@ -85,7 +93,13 @@ function MessagePaneHeader(props) {
                     {
                         chatRooms.length > 0 && (
                             chatRooms.map((room, index) => (
-                                <Button key={index}>{room.roomName}</Button>
+                                <Button
+                                    onClick={() => sendTo(room.roomId)}
+                                    key={index}
+                                    disabled={room.id === roomSelect.id}
+                                >
+                                    {room.roomName}
+                                </Button>
                             ))
                         )
                     }
@@ -98,7 +112,12 @@ function MessagePaneHeader(props) {
                     {
                         shortChat.length > 0 && (
                             shortChat.map((row, index) => (
-                                <Button color='warning' key={index}>{row.content}</Button>
+                                <Button
+                                    onClick={() => sendShortCut(row.content)}
+                                    color='warning' key={index}
+                                >
+                                    {row.content}
+                                </Button>
                             ))
                         )
                     }

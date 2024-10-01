@@ -46,3 +46,20 @@ export function convertFullDate(date) {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
     // return `${hours}:${minutes}:${seconds}`;
 }
+
+export const differentDate = (startTime) => {
+    const startAt = new Date(startTime);
+    const now = new Date();
+    // คำนวณความต่างของเวลาในหน่วย milliseconds
+    const diffInMillis = now - startAt;
+    // แปลง millisecond เป็นวินาที
+    let diffInSeconds = Math.floor(diffInMillis / 1000);
+    // คำนวณจำนวนวัน ชั่วโมง นาที และวินาที
+    const days = Math.floor(diffInSeconds / (3600 * 24));
+    diffInSeconds %= 3600 * 24;
+    const hours = Math.floor(diffInSeconds / 3600);
+    diffInSeconds %= 3600;
+    const minutes = Math.floor(diffInSeconds / 60);
+    const seconds = diffInSeconds % 60;
+    return `${days} วัน ${hours} ชั่วโมง ${minutes} นาที ${seconds} วินาที`;
+}

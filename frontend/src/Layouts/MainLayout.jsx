@@ -12,9 +12,7 @@ export default function MainLayout() {
     useEffect(() => {
         (async () => {
             const {data, status} = await profileApi();
-            if (status === 200) {
-                setUser(data.user);
-            }
+            status === 200 && setUser(data.user)
             if (status === 401) {
                 localStorage.removeItem('user');
                 setUser(null);
@@ -23,18 +21,11 @@ export default function MainLayout() {
         })();
         newMessage({
             onPassed: (status, event) => {
-                console.log(status, event);
                 setNotification(event);
             }
         });
     }, []);
-    if (!user) {
-        return <Navigate to="/login"/>;
-    }
+    if (!user) return <Navigate to="/login"/>;
 
-    return (
-        <>
-            <Outlet/>
-        </>
-    )
+    return (<Outlet/>)
 }

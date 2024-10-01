@@ -43,7 +43,7 @@ export const MessageStyle = {
         flexDirection: 'column-reverse',
     },
     TextArea: {
-        justifyContent: 'space-between',
+        justifyContent: 'end',
         alignItems: 'center',
         flexGrow: 1,
         p: 1,

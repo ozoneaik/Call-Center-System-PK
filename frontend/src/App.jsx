@@ -18,8 +18,11 @@ function App() {
 
     useEffect(() => {
         if (notification) {
+            console.log('notification => ',notification.title,notification)
             setSender(notification);
-            handleClick({ vertical: 'top', horizontal: 'right' })();
+            if (notification.title === 'มีข้อความใหม่เข้ามา'){
+                handleClick({ vertical: 'top', horizontal: 'right' })();
+            }
         }
     },[notification])
 

@@ -6,14 +6,27 @@ use App\Models\Rates;
 
 class DisplayService{
     public function MessageList($roomId,$status){
-        return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
-            ->leftJoin('customers', 'rates.custId', 'customers.custId')
-            ->leftJoin('users','active_conversations.empCode','users.empCode')
-            ->where('rates.latestRoomId', $roomId)
-            ->where('rates.status', $status)
-            ->where('active_conversations.roomId', $roomId)
-            ->select('customers.custName','customers.avatar', 'active_conversations.*', 'rates.status','users.name as empName')
-            ->get();
+        if ($status === 'progress') {
+            return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
+                ->leftJoin('customers', 'rates.custId', 'customers.custId')
+                ->leftJoin('users','active_conversations.empCode','users.empCode')
+                ->where('rates.latestRoomId', $roomId)
+                ->where('rates.status', $status)
+                ->where('active_conversations.endTime',null)
+                ->where('active_conversations.roomId', $roomId)
+                ->select('customers.custName','customers.avatar', 'active_conversations.*', 'rates.status','users.name as empName')
+                ->get();
+        }else{
+            return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
+                ->leftJoin('customers', 'rates.custId', 'customers.custId')
+                ->leftJoin('users','active_conversations.empCode','users.empCode')
+                ->where('rates.latestRoomId', $roomId)
+                ->where('rates.status', $status)
+                ->where('active_conversations.receiveAt',null)
+                ->where('active_conversations.roomId', $roomId)
+                ->select('customers.custName','customers.avatar', 'active_conversations.*', 'rates.status','users.name as empName')
+                ->get();
+        }
     }
 
     public function getEmpReply($activeId){
@@ -26,10 +39,8 @@ class DisplayService{
         // ดึง 100 รายการล่าสุด
         $chatHistory = ChatHistory::where('custId', $custId)
             ->orderBy('id', 'desc')
-            ->take(100)
-            ->get()
-            ->sortBy('id')
-            ->values();
+            ->take(100)->get()
+            ->sortBy('id')->values();
 
         // แปลง sender จาก JSON string เป็น array
         $chatHistory = $chatHistory->map(function ($chat) {

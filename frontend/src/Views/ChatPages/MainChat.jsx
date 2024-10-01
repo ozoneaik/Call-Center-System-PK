@@ -18,7 +18,7 @@ export default function MainChat() {
     const [pending, setPending] = useState([]);
     const [loading, setLoading] = useState(false);
     useEffect(() => {
-
+        //
         // if (roomId === 'ROOM00'){
         //     AlertDiaLog({
         //         icon : 'info',
@@ -47,7 +47,7 @@ export default function MainChat() {
 
     const ContentComponent = () => (
         <>
-            <ProgressTable dataset={progress} title={'รอดำเนินการ'}/>
+            <ProgressTable dataset={progress}/>
             <PendingTable disable={roomId === 'ROOM00'} dataset={pending}/>
         </>
     )
@@ -58,7 +58,8 @@ export default function MainChat() {
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
                         <BreadcrumbsComponent list={BreadcrumbsPath}/>
                     </Box>
-                    {loading ? <LinearProgress color="danger" size="lg"/> : <ContentComponent/>}
+                    {/*{loading ? <LinearProgress color="danger" size="lg"/> : <ContentComponent/>}*/}
+                    <ContentComponent/>
                 </Box>
             </Sheet>
         </>
