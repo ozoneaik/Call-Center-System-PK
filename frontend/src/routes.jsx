@@ -8,6 +8,7 @@ import NotFoundPage from "./views/NotFound.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
 import MessagePane from "./views/ChatPages/MessagePane.jsx";
 import Home from "./views/Home.jsx";
+import ChatRoomMain from "./Views/ChatRoomPages/ChatRoomMain.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -26,7 +27,8 @@ export const routes = createBrowserRouter([
                         path: '/chat', children: [
                             {path: 'room/:roomId/:roomName', element: <MainChat/>,},
                         ]
-                    }
+                    },
+                    {path: '/chatRooms',element: <ChatRoomMain/>}
                 ]
             },
             {

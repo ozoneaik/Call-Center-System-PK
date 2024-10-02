@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import Avatar from '@mui/joy/Avatar';
 import Box from '@mui/joy/Box';
-import Chip from '@mui/joy/Chip';
 import Divider from '@mui/joy/Divider';
 import IconButton from '@mui/joy/IconButton';
 import List from '@mui/joy/List';
@@ -95,7 +94,7 @@ export default function Sidebar() {
                         </ListItemButton>
                     </ListItem>
                     {
-                        chatRooms && (
+                        chatRooms.length > 0 && (
                             chatRooms.map((chatRoom, index) => (
                                 <ListItem key={index} component={Link} to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
                                     <ListItemButton selected={currentRoomId === chatRoom.roomId}>
@@ -111,10 +110,16 @@ export default function Sidebar() {
                     }
                 </List>
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
-                    <ListItem>
-                        <ListItemButton>
+                    <ListItem component={Link} to={`/chatRooms`}>
+                        <ListItemButton selected={pathname === '/chatRooms'}>
                             <MeetingRoomIcon/>
                             จัดการห้องแชท
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem>
+                        <ListItemButton>
+                            <ManageAccountsIcon/>
+                            จัดการข้อความส่งด่วน
                         </ListItemButton>
                     </ListItem>
                     <ListItem>
@@ -133,7 +138,7 @@ export default function Sidebar() {
             </Box>
             <Divider/>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
-                <Avatar variant="outlined" size="sm"/>
+                <Avatar src={user.avatar} variant="outlined" size="sm"/>
                 <Box sx={{minWidth: 0, flex: 1}}>
                     <Typography level="title-sm">{user.name}</Typography>
                     <Typography level="body-xs">{user.email}</Typography>

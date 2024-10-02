@@ -15,6 +15,8 @@ import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import Typography from "@mui/joy/Typography";
+import {alertTitleClasses} from "@mui/material";
 
 export default function MessagePane() {
     const {user} = useAuth();
@@ -46,8 +48,8 @@ export default function MessagePane() {
                 setSender(data.sender)
             } else {
                 AlertDiaLog({
-                    title: 'เกิดข้อผิดพลาด',
-                    text: data.message,
+                    title: data.message,
+                    text: data.detail,
                     onPassed: (confirm) => confirm && window.close()
                 });
             }
@@ -93,6 +95,10 @@ export default function MessagePane() {
     const handleSend = async (c) => {
         const C = c ? {...c} : msg;
         console.log(C)
+        if (C.content === null || C.content === undefined || C.content === '') {
+            alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
+            return;
+        }
         const {data, status} = await sendApi({
             msg: C,
             custId: sender.custId,
@@ -120,21 +126,17 @@ export default function MessagePane() {
     const handleChangeRoom = async (roomId) => {
         console.log(roomId)
         const {data, status} = await senToApi({rateId, activeConversationId: activeId, latestRoomId: roomId});
-        if (status === 200) {
-            AlertDiaLog({
-                title: data.message, text: data.detail, icon: 'success', onPassed: (confirm) => {
-                    window.close()
-                }
-            })
-        } else {
-            AlertDiaLog({
-                title: data.message, text: data.detail, onPassed: (confirm) => {
-                }
-            })
-        }
+        AlertDiaLog({
+            icon : status === 200 && 'success',
+            title : data.message,
+            text: data.detail,
+            onPassed : (confirm) => {
+                confirm && window.close();
+            }
+        });
     }
 
-    const endTalk = (e) => {
+    const endTalk = () => {
         AlertDiaLog({
             title: `จบการสนทนา ${rateId} ${activeId}`,
             text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
@@ -143,7 +145,7 @@ export default function MessagePane() {
                 if (confirm) {
                     const {data, status} = await endTalkApi({rateId, activeConversationId: activeId});
                     AlertDiaLog({
-                        title : data.message,
+                        title: data.message,
                         text: data.detail,
                         icon: status === 200 ? 'success' : 'error',
                         onPassed: () => window.close()
@@ -158,7 +160,7 @@ export default function MessagePane() {
             <Sheet sx={MessageStyle.Layout}>
                 {/*Message Pane Header*/}
                 <MessagePaneHeader
-                    endTalk = {(e) => endTalk(e)}
+                    endTalk={(e) => endTalk(e)}
                     sendTo={(c) => handleChangeRoom(c)}
                     shortCustSend={(c) => sendFromShortCut(c)}
                     sender={sender}
@@ -199,37 +201,23 @@ export default function MessagePane() {
                             onChange={(e) => setMsg({...msg, content: e.target.value})}
                             endDecorator={
                                 <Stack direction="row" sx={MessageStyle.TextArea}>
-                                    <Button
-                                        disabled={sender.emp !== user.empCode}
-                                        color="warning"
-                                        endDecorator={<InsertEmoticonIcon/>}
-                                        onClick={handleSend}
-                                        sx={{mr: 1}}
-                                    >
-                                        ส่ง sticker
+                                    <Button disabled={sender.emp !== user.empCode} color="warning" onClick={handleSend} sx={{mr: 1}}>
+                                        <Typography sx={{mr: 1,color: 'white',display : {xs: 'none',sm : 'block'}}}>ส่ง sticker</Typography>
+                                        <InsertEmoticonIcon/>
                                     </Button>
-                                    <Button
-                                        disabled={sender.emp !== user.empCode}
-                                        color="danger"
-                                        endDecorator={<LocalSeeIcon/>}
-                                        onClick={handleSend}
-                                        sx={{mr: 1}}
-                                    >
-                                        แนปรูป
+                                    <Button disabled={sender.emp !== user.empCode} color="danger" onClick={handleSend} sx={{mr: 1}}>
+                                        <Typography sx={{mr: 1,color: 'white',display : {xs: 'none',sm : 'block'}}}>แนปรูป</Typography>
+                                        <LocalSeeIcon/>
                                     </Button>
-                                    <Button
-                                        disabled={sender.emp !== user.empCode}
-                                        color="primary"
-                                        endDecorator={<SendRoundedIcon/>}
-                                        onClick={handleSend}
-                                    >
-                                        ส่ง ( ctrl+enter )
+                                    <Button disabled={sender.emp !== user.empCode} color="primary" onClick={handleSend}>
+                                        <Typography sx={{color: 'white',display : {xs: 'none',sm : 'block'}}}>ส่ง ( ctrl+enter )</Typography>
+                                        <SendRoundedIcon/>
                                     </Button>
                                 </Stack>
                             }
                             onKeyDown={(event) => {
                                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                                    handleSend()
+                                    handleSend().then()
                                 }
                             }}
                         />

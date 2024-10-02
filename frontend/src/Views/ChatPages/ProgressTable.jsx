@@ -103,7 +103,7 @@ export const ProgressTable = ({dataset}) => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={5} style={{textAlign: 'center'}}>
+                                <td colSpan={6} style={{textAlign: 'center'}}>
                                     <Chip color={getRandomColor()}>ไม่มีข้อมูล</Chip>
                                 </td>
                             </tr>

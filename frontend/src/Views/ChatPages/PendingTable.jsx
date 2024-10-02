@@ -3,11 +3,13 @@ import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
 import {Button, Sheet, Table} from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import {getRandomColor} from "../../Components/Options.jsx";
+import {convertFullDate, getRandomColor} from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {receiveApi} from "../../Api/Messages.js";
+import {useAuth} from "../../context/AuthContext.jsx";
+import {useParams} from "react-router-dom";
 
 const data = [{
     custName: '', userReply: '', updated_at: '',
@@ -15,7 +17,9 @@ const data = [{
     empCode : '',receiveAt : '',empName : ''
 }];
 export const PendingTable = (props) => {
-    const {dataset = data,disable} = props;
+    const {roomId} = useParams();
+    const {user} = useAuth();
+    const {dataset = data} = props;
     const handleChat = (rateId, activeId, custId,roomId) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
@@ -36,6 +40,11 @@ export const PendingTable = (props) => {
             }
         });
     };
+    // const seeChat = (rateId, activeId, custId) => {
+    //     const params = `${rateId}/${activeId}/${custId}`;
+    //     const path = `${window.location.origin}/select/message/${params}`;
+    //     window.open(path, '_blank');
+    // };
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
@@ -45,11 +54,11 @@ export const PendingTable = (props) => {
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
                     <tr>
-                        <th>ชื่อลูกค้า</th>
-                        <th>พนักงานรับเรื่อง</th>
-                        <th>จากห้องแชท</th>
-                        <th>จากพนักงาน</th>
-                        <th>จัดการ</th>
+                        <th style={{width: 200}}>ชื่อลูกค้า</th>
+                        <th style={{width: 200}}>เมื่อ</th>
+                        <th style={{width: 200}}>จากห้องแชท</th>
+                        <th style={{width: 200}}>จากพนักงาน</th>
+                        <th style={{width: 150}}>จัดการ</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -59,9 +68,10 @@ export const PendingTable = (props) => {
                                 <td>
                                     <div style={{display: "flex", alignItems: "center"}}>
                                         {data.avatar && <Avatar size='sm' sx={{mr: 1}} src={data.avatar}/>}
-                                        <Typography>
-                                            {data.custName}
-                                        </Typography>
+                                        <Box>
+                                            <Typography>{data.custName}</Typography>
+                                            <Chip color="success" size="sm">{data.description}</Chip>
+                                        </Box>
                                     </div>
                                 </td>
                                 <td>
@@ -69,7 +79,7 @@ export const PendingTable = (props) => {
                                         {data.userReply &&
                                             <Avatar color={getRandomColor()} size='sm' sx={{mr: 1}}/>}
                                         <Typography>
-                                            {data.empCode || '-'}
+                                            {convertFullDate(data.updated_at)}
                                         </Typography>
                                     </div>
                                 </td>
@@ -88,13 +98,24 @@ export const PendingTable = (props) => {
                                     </Chip>
                                 </td>
                                 <td>
-                                    <Button size='sm' variant='outlined' sx={{mr: 1}}
-                                            disabled={index !== 0}
-                                            startDecorator={<ChatIcon/>}
-                                            onClick={() => handleChat(data.rateRef, data.id, data.custId,data.roomId)}
-                                    >
-                                        <Typography>รับเรื่อง {disable ? 'true' : 'false'}</Typography>
-                                    </Button>
+                                    <Box sx={{display:'flex'}}>
+
+                                        <Button size='sm' variant='outlined' sx={{mr: 1}}
+                                                disabled={user.role === 'admin' ? false : (index !== 0 || user.roomId !== roomId)}
+                                                startDecorator={<ChatIcon/>}
+                                                onClick={() => handleChat(data.rateRef, data.id, data.custId,data.roomId)}
+                                        >
+                                            <Typography>รับเรื่อง</Typography>
+                                        </Button>
+                                        {/*<Button size='sm' variant='outlined' sx={{mr: 1}}*/}
+                                        {/*        color='warning'*/}
+                                        {/*        disabled={user.role === 'admin' ? false : (index !== 0 || user.roomId !== roomId)}*/}
+                                        {/*        startDecorator={<ChatIcon/>}*/}
+                                        {/*        onClick={() => seeChat(data.rateRef, data.id, data.custId)}*/}
+                                        {/*>*/}
+                                        {/*    <Typography>ดูข้อความ</Typography>*/}
+                                        {/*</Button>*/}
+                                    </Box>
                                 </td>
                             </tr>
                         )) : (

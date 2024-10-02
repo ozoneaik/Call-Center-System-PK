@@ -70,5 +70,92 @@ class MessageService
         }
     }
 
-    // ดึงรายการแชท
+    public function MsgEndTalk($custId, $rateId) : array
+    {
+
+        try {
+            $URL = 'https://api.line.me/v2/bot/message/push';
+            $URL_RATING = env('APP_WEBHOOK_URL')."/$custId/$rateId";
+            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.accessTokenId')
+                ->where('custId', 'LIKE', $custId)
+                ->select('PAT.accessToken')
+                ->get();
+            $accessToken = $token[0]->accessToken;
+
+            $body = [
+                "to" => $custId,
+                "messages" => [
+                    [
+                        "type" => "flex",
+                        "altText" => "this is a flex message",
+                        "contents" => [
+                            "type" => "bubble",
+                            "body" => [
+                                "type" => "box",
+                                "layout" => "vertical",
+                                "contents" => [
+                                    [
+                                        "type" => "text",
+                                        "text" => "ขอบคุณที่ใช้บริการแชทของเรา! 🙏",
+                                        "weight" => "bold",
+                                        "size" => "lg",
+                                        "wrap" => true,
+                                        "color" => "#eb5622"
+                                    ],
+                                    [
+                                        "type" => "text",
+                                        "text" => "เพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้โดยคลิกที่ลิงก์ด้านล่างค่ะ/ครับ",
+                                        "wrap" => true,
+                                        "size" => "md",
+                                        "color" => "#666666",
+                                        "margin" => "md"
+                                    ],
+                                    [
+                                        "type" => "separator",
+                                        "margin" => "lg"
+                                    ],
+                                    [
+                                        "type" => "button",
+                                        "action" => [
+                                            "type" => "uri",
+                                            "label" => "คลิกที่นี่เพื่อประเมิน",
+                                            "uri" => $URL_RATING
+                                        ],
+                                        "style" => "primary",
+                                        "color" => "#eb5622",
+                                        "margin" => "lg",
+                                        "height" => "sm"
+                                    ],
+                                    [
+                                        "type" => "text",
+                                        "text" => "ขอบคุณสำหรับความคิดเห็นของคุณ 😊",
+                                        "size" => "sm",
+                                        "color" => "#999999",
+                                        "wrap" => true,
+                                        "margin" => "lg",
+                                        "align" => "center"
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ];
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken
+            ])->asJson()->post($URL, $body);
+            if ($response->status() == 200) {
+                $data['status'] = true;
+                $data['message'] = 'ส่งประเมินสำเร็จ';
+            } else {
+                throw new \Exception('ส่งประเมินไม่ได้');
+            }
+        } catch (\Exception $e) {
+            $data['status'] = false;
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
 }

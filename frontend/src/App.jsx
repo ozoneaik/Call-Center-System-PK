@@ -4,6 +4,7 @@ import {useNotification} from "./context/NotiContext.jsx";
 import Typography from "@mui/joy/Typography";
 import Avatar from "@mui/joy/Avatar";
 import Box from "@mui/joy/Box";
+import CancelIcon from '@mui/icons-material/Cancel';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
 
     const handleClose = () => {
         setState({ ...state, open: false });
+        localStorage.removeItem('notification');
     };
 
     return (
@@ -40,6 +42,7 @@ function App() {
                 variant='outlined'
                 color="success"
                 startDecorator={sender.contentType ? <Avatar src={sender.avatar}/> : <CircleNotificationsIcon/>}
+                endDecorator={<Typography color='danger' onClick={()=>handleClose()}>ปิด</Typography>}
                 size='lg'
                 anchorOrigin={{ vertical, horizontal }}
                 open={open}

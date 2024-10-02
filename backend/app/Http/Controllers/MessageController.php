@@ -29,7 +29,7 @@ class MessageController extends Controller
     }
 
     // ฟังก์ชั่นการส่งข้อความ
-    public function send(sendMessageRequest $request) : JsonResponse
+    public function send(sendMessageRequest $request): JsonResponse
     {
         $status = 400;
         $detail = 'ไม่พบข้อผิดพลาด';
@@ -37,9 +37,21 @@ class MessageController extends Controller
         $conversationId = $request['conversationId'];
         $messages = $request['messages'][0];
         try {
-            $checkCustId = Customers::where('custId',$custId)->first();
+            $checkCustId = Customers::where('custId', $custId)->first();
             if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
             DB::beginTransaction();
+            $checkConversation = ActiveConversations::where('id', $conversationId)->first();
+            if ($checkConversation) {
+                if (!empty($checkConversation['receiveAt'])) {
+                    if (empty($checkConversation['startTime'])) {
+                        $checkConversation['startTime'] = Carbon::now();
+                        $notification = $this->pusherService->newMessage(null, false, 'เริ่มสนทนาแล้ว');
+                        if (!$notification['status']) throw new \Exception('การแจ้งเตือนผิดพลาด');
+                    }
+                    if ($checkConversation->save()) $status = 200;
+                    else throw new \Exception('เจอปัญหา startTime ไม่ได้');
+                }
+            } else throw new \Exception('ไม่พบ active Id');
             $storeChatHistory = new ChatHistory();
             $storeChatHistory['custId'] = $custId;
             $storeChatHistory['content'] = $messages['content'];
@@ -90,7 +102,7 @@ class MessageController extends Controller
                     $status = 200;
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
             } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
-            $notification = $this->pusherService->newMessage(null,false,'มีการรับเรื่อง');
+            $notification = $this->pusherService->newMessage(null, false, 'มีการรับเรื่อง');
             if (!$notification['status']) {
                 $status = 400;
                 throw new \Exception('การแจ้งเตือนผิดพลาด');
@@ -137,7 +149,7 @@ class MessageController extends Controller
                     } else throw new \Exception('ไม่สามารถส่งต่อได้ (storeAC error)');
                 } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversation ได้');
             } else throw new \Exception('ไม่สามารถอัพเดท Rate ได้');
-            $notification = $this->pusherService->newMessage(null,false,'มีการส่งต่อ');
+            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
             if (!$notification['status']) {
                 $status = 400;
                 throw new \Exception('การแจ้งเตือนผิดพลาด');
@@ -174,13 +186,15 @@ class MessageController extends Controller
                 $updateAC['endTime'] = Carbon::now();
                 $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
                 if ($updateAC->save()) {
+                    /* ส่งการ์ดประเมิน */
+                    $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
+                    if (!$send['status']) throw new \Exception($send['message']);
                     $message = 'คุณได้จบการสนทนาแล้ว';
                     $status = 200;
                 } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
-            /* ส่งการ์ดประเมิน */
-//            $this->messageService->sendMsgByLine($updateRate['custId']);
-            $notification = $this->pusherService->newMessage(null,false,'มีการจบสนทนา');
+
+            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
             if (!$notification['status']) {
                 $status = 400;
                 throw new \Exception('การแจ้งเตือนผิดพลาด');

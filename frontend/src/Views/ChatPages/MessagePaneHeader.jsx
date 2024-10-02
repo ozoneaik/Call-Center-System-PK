@@ -8,18 +8,17 @@ import TelegramIcon from '@mui/icons-material/Telegram';
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
-import {AlertDiaLog} from "../../Dialogs/Alert.js";
-import {endTalkApi} from "../../api/Messages.js";
 import {useAuth} from "../../context/AuthContext.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, shortChat, roomSelect, shortCustSend, sendTo,endTalk} = props;
+    const {sender, chatRooms, shortChat, roomSelect, shortCustSend, sendTo, endTalk} = props;
     const [sendingOpen, setSendingOpen] = useState(false);
     const [shortCut, setShortcut] = useState(false);
 
     const Btn = ({title, color, icon, onClick, disable = true}) => (
-        <Button color={color} disabled={disable} variant="outlined" size="sm" startDecorator={icon} onClick={onClick}>
+        <Button color={color} disabled={disable} variant="outlined" size="sm" onClick={onClick}>
+            {icon}
             <Typography color={disable ? '' : color} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
                 {title}
             </Typography>
@@ -32,25 +31,13 @@ function MessagePaneHeader(props) {
             contentType: 'text',
         }
         shortCustSend(msgFromShortCut)
+        setShortcut(false)
     }
 
-    // const endTalk = (custId) => {
-    //     AlertDiaLog({
-    //         title: 'จบการสนทนา',
-    //         text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
-    //         icon: 'info',
-    //         onPassed: async (confirm) => {
-    //             if (confirm) {
-    //                 const {data, status} = await endTalkApi(custId);
-    //                 AlertDiaLog({
-    //                     text: data.message,
-    //                     icon: status === 200 ? 'success' : 'error',
-    //                     onPassed: () => window.close()
-    //                 });
-    //             } else console.log('กด ยกเลิก การจบสนทนา')
-    //         }
-    //     });
-    // };
+    const sendToMoreRoom = (roomId) => {
+        sendTo(roomId);
+        setSendingOpen(false);
+    }
 
     return (
         <>
@@ -85,6 +72,7 @@ function MessagePaneHeader(props) {
                 </Stack>
             </Stack>
 
+            {/* modal ส่งต่อไปยัง */}
             <Modal open={sendingOpen} onClose={() => setSendingOpen(false)}>
                 <ModalDialog>
                     <ModalClose/>
@@ -94,9 +82,8 @@ function MessagePaneHeader(props) {
                         chatRooms.length > 0 && (
                             chatRooms.map((room, index) => (
                                 <Button
-                                    onClick={() => sendTo(room.roomId)}
-                                    key={index}
-                                    disabled={room.id === roomSelect.id}
+                                    onClick={() => sendToMoreRoom(room.roomId)}
+                                    key={index} disabled={room.id === roomSelect.id}
                                 >
                                     {room.roomName}
                                 </Button>
@@ -105,6 +92,7 @@ function MessagePaneHeader(props) {
                     }
                 </ModalDialog>
             </Modal>
+            {/* modal ตัวช่วยตอบ */}
             <Modal open={shortCut} onClose={() => setShortcut(false)}>
                 <ModalDialog>
                     <ModalClose/>
@@ -112,10 +100,7 @@ function MessagePaneHeader(props) {
                     {
                         shortChat.length > 0 && (
                             shortChat.map((row, index) => (
-                                <Button
-                                    onClick={() => sendShortCut(row.content)}
-                                    color='warning' key={index}
-                                >
+                                <Button onClick={() => sendShortCut(row.content)} color='warning' key={index}>
                                     {row.content}
                                 </Button>
                             ))

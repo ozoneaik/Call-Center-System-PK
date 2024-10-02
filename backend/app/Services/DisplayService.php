@@ -24,7 +24,7 @@ class DisplayService{
                 ->where('rates.status', $status)
                 ->where('active_conversations.receiveAt',null)
                 ->where('active_conversations.roomId', $roomId)
-                ->select('customers.custName','customers.avatar', 'active_conversations.*', 'rates.status','users.name as empName')
+                ->select('customers.custName','customers.avatar','customers.description', 'active_conversations.*', 'rates.status','users.name as empName')
                 ->get();
         }
     }
