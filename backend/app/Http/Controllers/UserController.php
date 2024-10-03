@@ -9,11 +9,14 @@ use Illuminate\Http\Request;
 class UserController extends Controller
 {
     protected UserService $userService;
-    public function __construct(UserService $userService){
+
+    public function __construct(UserService $userService)
+    {
         $this->userService = $userService;
     }
 
-    public function UserList() : JsonResponse{
+    public function UserList(): JsonResponse
+    {
         $users = $this->userService->getAllUsers();
         return response()->json([
             'message' => 'success',
@@ -21,22 +24,23 @@ class UserController extends Controller
         ]);
     }
 
-    public function UserDelete(Request $request) : JsonResponse{
-        $message = 'ไม่สามารถลบผู้ใช้รหัส '.$request->get('code').' ได้';
+    public function UserDelete($empCode): JsonResponse
+    {
         $status = 400;
+        $detail = 'ไม่มีข้อผิดพลาด';
         try {
-            $code = $request->get('code');
-            $user = $this->userService->delete($code);
-            if ($user) {
+            $user = $this->userService->delete($empCode);
+            if ($user['status']) {
                 $status = 200;
-                $message = 'ลบผู้ใช้รหัส '.$request->get('code').' สำเร็จ';
-            }
-        }catch (\Exception $exception){
-            $status = 500;
-            $message = $exception->getMessage();
+                $message = $user['message'];
+            } else throw new \Exception($user['message']);
+        } catch (\Exception $exception) {
+            $detail = $exception->getMessage();
+        } finally {
+            return response()->json([
+                'message' => $message ?? 'เกิดข้อผิดพลาด',
+                'detail' => $detail
+            ], $status);
         }
-        return response()->json([
-            'message' => $message,
-        ],$status);
     }
 }

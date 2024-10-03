@@ -18,14 +18,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการพนักงาน
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'user']);
-    Route::prefix('user')->group(function () {
+    Route::prefix('users')->group(function () {
         Route::get('/list', [UserController::class, 'UserList']);
         Route::put('/update/{empCode}', [UserController::class, 'update']);
-        Route::post('/delete', [UserController::class, 'UserDelete']);
+        Route::delete('/delete/{empCode}', [UserController::class, 'UserDelete']);
     });
 
     // จัดการลูกค้า
-    Route::prefix('customer')->group(function () {
+    Route::prefix('customers')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}', [CustomersController::class, 'CustomerDetail']);
         Route::post('/update', [CustomersController::class, 'UpdateCustomer']);

@@ -14,13 +14,13 @@ import {useParams} from "react-router-dom";
 const data = [{
     custName: '', userReply: '', updated_at: '',
     from_roomId: '', from_empCode: '', rateRef: '',
-    empCode : '',receiveAt : '',empName : ''
+    empCode: '', receiveAt: '', empName: ''
 }];
 export const PendingTable = (props) => {
     const {roomId} = useParams();
     const {user} = useAuth();
     const {dataset = data} = props;
-    const handleChat = (rateId, activeId, custId,roomId) => {
+    const handleChat = (rateId, activeId, custId, roomId) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
             text: 'กด "ตกลง" เพื่อยืนยันรับเรื่อง',
@@ -30,21 +30,16 @@ export const PendingTable = (props) => {
             ...options,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const {data, status} = await receiveApi(rateId,roomId);
+                    const {data, status} = await receiveApi(rateId, roomId);
                     if (status === 200) {
                         const params = `${rateId}/${activeId}/${custId}`;
                         const path = `${window.location.origin}/select/message/${params}`;
                         window.open(path, '_blank');
-                    } else AlertDiaLog({title: data.message,text:data.detail});
+                    } else AlertDiaLog({title: data.message, text: data.detail});
                 } else console.log('ไม่ได้ confirm');
             }
         });
     };
-    // const seeChat = (rateId, activeId, custId) => {
-    //     const params = `${rateId}/${activeId}/${custId}`;
-    //     const path = `${window.location.origin}/select/message/${params}`;
-    //     window.open(path, '_blank');
-    // };
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
@@ -98,23 +93,15 @@ export const PendingTable = (props) => {
                                     </Chip>
                                 </td>
                                 <td>
-                                    <Box sx={{display:'flex'}}>
+                                    <Box sx={{display: 'flex'}}>
 
                                         <Button size='sm' variant='outlined' sx={{mr: 1}}
-                                                disabled={user.role === 'admin' ? false : (index !== 0 || user.roomId !== roomId)}
+                                                disabled={user.role === 'admin' ? false : ((user.roomId === roomId) ? (index !== 0) : true)}
                                                 startDecorator={<ChatIcon/>}
-                                                onClick={() => handleChat(data.rateRef, data.id, data.custId,data.roomId)}
+                                                onClick={() => handleChat(data.rateRef, data.id, data.custId, data.roomId)}
                                         >
                                             <Typography>รับเรื่อง</Typography>
                                         </Button>
-                                        {/*<Button size='sm' variant='outlined' sx={{mr: 1}}*/}
-                                        {/*        color='warning'*/}
-                                        {/*        disabled={user.role === 'admin' ? false : (index !== 0 || user.roomId !== roomId)}*/}
-                                        {/*        startDecorator={<ChatIcon/>}*/}
-                                        {/*        onClick={() => seeChat(data.rateRef, data.id, data.custId)}*/}
-                                        {/*>*/}
-                                        {/*    <Typography>ดูข้อความ</Typography>*/}
-                                        {/*</Button>*/}
                                     </Box>
                                 </td>
                             </tr>

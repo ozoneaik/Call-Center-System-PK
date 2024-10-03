@@ -1,7 +1,7 @@
 import axiosClient from "../axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
 
-const display = '/display';
+
 
 
 /* ------------------------------------------api ที่เกี่ยวกับ ห้องแชท ---------------------------------------------*/
@@ -80,6 +80,7 @@ export const endTalkApi = async ({rateId,activeConversationId}) => {
 }
 // ------------------------------------------------------------------------------------------------------------
 /* ------------------------------------------ api แสดงผลเกี่ยวกับ chats ------------------------------------------*/
+const display = '/display';
 
 // ดึงรายการแชทตามห้อง
 export const MessageListApi = async (roomId) => {
@@ -101,3 +102,38 @@ export const selectMessageApi = async (rateId,activeId,custId) => {
     }
 }
 // ------------------------------------------------------------------------------------------------------------
+/* ------------------------------------------- api เกี่ยวกับ customer -------------------------------------------*/
+const customers = '/customers';
+// ดึงรายการลูกค้า
+export const customersListApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${customers}/list`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------
+/* --------------------------------------------- api เกี่ยวกับ user ----------------------------------------------*/
+const users = '/users';
+
+// ดึงรายการผู้ใช้
+export const usersListApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${users}/list`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ดึงรายการผู้ใช้
+export const deleteUserApi = async (empCode) => {
+    try {
+        const {data,status} = await axiosClient.delete(`${users}/delete/${empCode}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}

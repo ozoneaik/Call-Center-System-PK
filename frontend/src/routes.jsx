@@ -1,5 +1,4 @@
 import {createBrowserRouter} from "react-router-dom";
-import App from "./App.jsx";
 import ProtectedLayout from "./layouts/ProtectedLayout.jsx";
 import MainChat from "./views/ChatPages/MainChat.jsx";
 import GuestLayout from "./layouts/GuestLayout.jsx";
@@ -8,18 +7,22 @@ import NotFoundPage from "./views/NotFound.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
 import MessagePane from "./views/ChatPages/MessagePane.jsx";
 import Home from "./views/Home.jsx";
-import ChatRoomMain from "./Views/ChatRoomPages/ChatRoomMain.jsx";
+import ChatRooms from "./Views/ChatRooms.jsx";
+import ShortChats from "./Views/ShortChats.jsx";
+import Customers from "./Views/Customers.jsx";
+import Users from "./Views/Users.jsx";
+import CheckAdmin from "./Components/CheckAdmin.jsx";
 
 export const routes = createBrowserRouter([
     {
         path: '/',
-        element: <GuestLayout />,
+        element: <GuestLayout/>,
         children: [
-            {path: '/', element: <Login />,},
+            {path: '/', element: <Login/>,},
         ],
     },
     {
-        path : '/' ,element : <MainLayout/>, children : [
+        path: '/', element: <MainLayout/>, children: [
             {
                 path: '/', element: <ProtectedLayout/>, children: [
                     {path: 'home', element: <Home/>},
@@ -28,16 +31,23 @@ export const routes = createBrowserRouter([
                             {path: 'room/:roomId/:roomName', element: <MainChat/>,},
                         ]
                     },
-                    {path: '/chatRooms',element: <ChatRoomMain/>}
+                    {
+                        path: '/', element: <CheckAdmin/>, children: [
+                            {path: '/chatRooms', element: <ChatRooms/>},
+                            {path: '/shortChats', element: <ShortChats/>},
+                            {path: '/customers', element: <Customers/>},
+                            {path: '/users', element: <Users/>},
+                        ]
+                    },
                 ]
             },
             {
                 path: '/select', children: [
-                    {path : 'message/:rateId/:activeId/:custId', element : <MessagePane/>},
+                    {path: 'message/:rateId/:activeId/:custId', element: <MessagePane/>},
                 ]
             }
         ]
     },
-
-    {path : '*' , element : <NotFoundPage/>}
+    {path: 'access/denied', element: <NotFoundPage/>},
+    {path: '*', element: <NotFoundPage/>}
 ])

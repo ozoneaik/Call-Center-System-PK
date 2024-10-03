@@ -18,32 +18,9 @@ class CustomersController extends Controller
     {
         $customers = $this->customerService->list();
         return response()->json([
-            'message' => 'Success',
+            'message' => 'ดึงข้อมูลลูกค้าสำเร็จ',
             'customers' => $customers
         ]);
-    }
-
-    public function CustomerListNewDm($roomId) : JsonResponse{
-        $message = 'ดึงข้อมูลไม่สำเร็จ';
-        $status = 400;
-        try {
-            $customers = $this->customerService->listNewDm($roomId);
-            if ($customers['status']){
-                $message = 'ดึงข้อมูลสำเร็จ';
-                $status = 200;
-            }else{
-                $customers['progress'] = [];
-                $customers['pending'] = [];
-            }
-        }catch (\Exception $exception){
-            $status = 500;
-            $message = $exception->getMessage();
-        }
-        return response()->json([
-            'message' => $message,
-            'progress' => $customers['progress'],
-            'pending' => $customers['pending'],
-        ],$status);
     }
 
     public function CustomerDetail(string $custId): JsonResponse

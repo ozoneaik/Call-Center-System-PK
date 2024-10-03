@@ -11,10 +11,12 @@ import ListItemContent from '@mui/joy/ListItemContent';
 import Typography from '@mui/joy/Typography';
 import Sheet from '@mui/joy/Sheet';
 import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import TokenIcon from '@mui/icons-material/Token';
 import HomeIcon from '@mui/icons-material/Home';
 import Logo from '../assets/logo.png'
 import ColorSchemeToggle from '../ColorSchemeToggle';
@@ -109,6 +111,8 @@ export default function Sidebar() {
                         )
                     }
                 </List>
+                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>สำหรับ ผู้ดูแลระบบ</Typography>
+                <Divider/>
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
                     <ListItem component={Link} to={`/chatRooms`}>
                         <ListItemButton selected={pathname === '/chatRooms'}>
@@ -116,22 +120,28 @@ export default function Sidebar() {
                             จัดการห้องแชท
                         </ListItemButton>
                     </ListItem>
-                    <ListItem>
-                        <ListItemButton>
+                    <ListItem component={Link} to={'/shortChats'}>
+                        <ListItemButton selected={pathname === '/shortChats'}>
                             <ManageAccountsIcon/>
                             จัดการข้อความส่งด่วน
                         </ListItemButton>
                     </ListItem>
-                    <ListItem>
-                        <ListItemButton>
+                    <ListItem component={Link} to={'/customers'}>
+                        <ListItemButton selected={pathname === '/customers'}>
                             <PeopleAltIcon/>
                             จัดการลูกค้า
                         </ListItemButton>
                     </ListItem>
-                    <ListItem>
-                        <ListItemButton>
+                    <ListItem component={Link} to={'/users'}>
+                        <ListItemButton selected={pathname === '/users'}>
                             <ManageAccountsIcon/>
                             จัดการผู้ใช้
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem component={Link} to={'/users'}>
+                        <ListItemButton selected={pathname === '/users'}>
+                            <TokenIcon/>
+                            จัดการ token
                         </ListItemButton>
                     </ListItem>
                 </List>

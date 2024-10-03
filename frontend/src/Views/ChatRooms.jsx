@@ -1,16 +1,18 @@
-import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
+import { ChatPageStyle } from "../styles/ChatPageStyle.js";
 import {Sheet, Box, Grid, Table, Button, FormControl, FormLabel, Input, CircularProgress} from "@mui/joy";
-import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
+import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import {useEffect, useState} from "react";
-import {chatRoomListApi} from "../../Api/Messages.js";
+import {chatRoomListApi} from "../Api/Messages.js";
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import SaveIcon from '@mui/icons-material/Save';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import DeleteIcon from "@mui/icons-material/Delete";
 
 
 const BreadcrumbsPath = [{ name: 'จัดการห้องแชท' }, { name: 'รายละเอียด' }];
 
-export default function ChatRoomMain() {
+export default function ChatRooms() {
     const [chatRooms, setChatRooms] = useState([]);
     const [latestId, setLatestId] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -43,23 +45,24 @@ export default function ChatRoomMain() {
                 <Grid container spacing={2}>
 
                     {/* Add/Edit Form */}
-                    <Grid xs={12} sm={6}>
+                    <Grid xs={12} sm={4}>
                         <Box sx={{ bgcolor: 'background.surface', borderRadius: 'sm' }}>
                             <Box sx={ChatPageStyle.BoxTable}>
                                 <Typography level="h2" component="h1">เพิ่ม/แก้ไขห้องแชท</Typography>
                             </Box>
                             <form>
                                 <FormControl sx={{ mb: 2 }}>
-                                    <FormLabel>ไอดีห้อง (ex.ROOM99)</FormLabel>
+                                    <FormLabel>ไอดีห้อง</FormLabel>
                                     <Input
+                                        readOnly
                                         defaultValue={latestId}
                                         placeholder="กดปุ่ม generate เพื่อสร้างไอดี"
                                         endDecorator={<Button onClick={()=>generateRoomId()}><AutoFixHighIcon/></Button>}
                                     />
                                 </FormControl>
                                 <FormControl sx={{ mb: 2 }}>
-                                    <FormLabel>ชื่อห้อง (ex.ห้องประสานงาน)</FormLabel>
-                                    <Input type="number" placeholder="กรอกจำนวนผู้ใช้สูงสุด" />
+                                    <FormLabel>ชื่อห้อง</FormLabel>
+                                    <Input type="text" placeholder="ex.ห้องประสานงาน" />
                                 </FormControl>
                                 <Button type="submit" startDecorator={<SaveIcon/>}>บันทึก</Button>
                             </form>
@@ -67,7 +70,7 @@ export default function ChatRoomMain() {
                     </Grid>
 
                     {/* Chat Room List Table */}
-                    <Grid xs={12} sm={6}>
+                    <Grid xs={12} sm={8}>
                         <Box sx={{ bgcolor: 'background.surface', borderRadius: 'sm' }}>
                             <Box sx={ChatPageStyle.BoxTable}>
                                 <Typography level="h2" component="h1">รายการ</Typography>
@@ -89,7 +92,12 @@ export default function ChatRoomMain() {
                                                     <td>{chatRoom.roomId}</td>
                                                     <td>{chatRoom.roomName}</td>
                                                     <td>
-                                                        <Button size='sm'>แก้ไข</Button>
+                                                        <Button size='sm' sx={{mr:1}}>
+                                                            <EditNoteIcon/>
+                                                        </Button>
+                                                        <Button size='sm' color='danger'>
+                                                            <DeleteIcon/>
+                                                        </Button>
                                                     </td>
                                                 </tr>
                                             ))

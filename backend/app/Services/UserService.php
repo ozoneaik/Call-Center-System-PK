@@ -8,17 +8,30 @@ use Illuminate\Database\Eloquent\Collection;
 class UserService{
     public function getAllUsers(): Collection
     {
-        return User::all();
+        return User::leftJoin('chat_rooms','users.roomId','=','chat_rooms.roomId')
+            ->select('users.*','chat_rooms.roomName','chat_rooms.roomId')
+            ->get();
     }
 
-    public function delete($code) : bool{
+    public function delete($empCode) : array{
+        $data['status'] = false;
         try {
-            if ($code === auth()->user()->code){
-                return false;
+            if ($empCode === auth()->user()->empCode){
+                throw new \Exception("คุณไม่สามารถลบคุณเองได้");
+            }else{
+                $delete = User::where('empCode', $empCode)->delete();
+                if ($delete){
+                    $data['status'] = true;
+                    $data['message'] = 'ลบผู้ใช้รหัส '.$empCode.' สำเร็จ';
+                }else{
+                    throw new \Exception('เกิดข้อผิดพลาดขณะลบ users');
+                }
             }
-            return User::where('code', $code)->delete();
         }catch (\Exception $e){
-            return false;
+            $data['status'] = false;
+            $data['message'] = $e->getMessage();
+        }finally{
+            return $data;
         }
     }
 }
