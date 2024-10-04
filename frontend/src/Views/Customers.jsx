@@ -2,7 +2,7 @@ import {ChatPageStyle} from "../styles/ChatPageStyle.js";
 import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import {useEffect, useState} from "react";
-import {customersListApi} from "../Api/Messages.js";
+import {customersListApi, customerUpdateApi} from "../Api/Messages.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import Chip from "@mui/joy/Chip";
@@ -10,6 +10,7 @@ import {convertFullDate, getRandomColor} from "../Components/Options.jsx";
 import Button from "@mui/joy/Button";
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import ModalDialog from "../Components/ModalDialog.jsx";
+import {AlertDiaLog} from "../Dialogs/Alert.js";
 
 const BreadcrumbsPath = [{name: 'จัดการลูกค้า'}, {name: 'รายละเอียด'}];
 const customersRef = {
@@ -28,18 +29,20 @@ export default function Customers() {
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     useEffect(() => {
-        setLoading(true);
-        const getCustomers = async () => {
-            const {data, status} = await customersListApi();
-            status === 200 && setCustomers(data.customers);
-        }
         getCustomers().finally(() => setLoading(false));
     }, [])
 
-    const handleEditClick = (customer) => {
+    const getCustomers = async () => {
+        setLoading(true);
+        const {data, status} = await customersListApi();
+        status === 200 && setCustomers(data.customers);
+    }
+
+    const handleEditClick = async (customer) => {
         setSelected(customer);
         setOpen(true);
         console.log('open:', open);  // ตรวจสอบสถานะ
+
     };
 
     return (

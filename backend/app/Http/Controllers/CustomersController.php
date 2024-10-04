@@ -49,9 +49,11 @@ class CustomersController extends Controller
     public function UpdateCustomer(Request $request): JsonResponse
     {
         try {
+            $customer = $request['customer'];
+            $custId = $customer['custId'];
             $message = 'อัพเดทข้อมูลไม่สำเร็จ';
             $status = 400;
-            $update = $this->customerService->update($request->custId,$request->detail);
+            $update = $this->customerService->update($custId,$customer);
             if ($update['status']) {
                 $status = 200;
                 $message = 'อัพเดทข้อมูลสำเร็จ';

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MessageService
 {
@@ -148,6 +149,7 @@ class MessageService
                 $data['status'] = true;
                 $data['message'] = 'ส่งประเมินสำเร็จ';
             } else {
+                Log::info($response->json());
                 throw new \Exception('ส่งประเมินไม่ได้');
             }
         } catch (\Exception $e) {

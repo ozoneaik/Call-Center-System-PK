@@ -156,6 +156,17 @@ export const customersListApi = async () => {
     }
 }
 
+// แก้ไขข้อมูลลูกค้า
+export const customerUpdateApi = async (customer) => {
+    try {
+        console.log(customer)
+        const {data, status} = await axiosClient.put(`${customers}/update`, {customer});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 // ------------------------------------------------------------------------------------------------------------
 /* --------------------------------------------- api เกี่ยวกับ user ----------------------------------------------*/
 const users = '/users';

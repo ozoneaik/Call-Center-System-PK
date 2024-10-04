@@ -32,10 +32,10 @@ class CustomerService{
         return $data;
     }
 
-    public function update(string $custId, $FormData) : array{
+    public function update($custId, $FormData) : array{
         $customer = customers::where('custId', $custId)->first();
-        $customer->name = $FormData['name'];
-        $customer->description = $FormData['description'];
+        $customer['custName'] = $FormData['custName'];
+        $customer['description'] = $FormData['description'];
         if ($customer->save()){
             $data['status'] = true;
             $data['customer'] = $customer;

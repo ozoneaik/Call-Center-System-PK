@@ -29,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('customers')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}', [CustomersController::class, 'CustomerDetail']);
-        Route::post('/update', [CustomersController::class, 'UpdateCustomer']);
+        Route::put('/update', [CustomersController::class, 'UpdateCustomer']);
     });
 
     // จัดการห้องแชท

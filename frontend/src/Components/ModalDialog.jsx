@@ -10,6 +10,8 @@ import {convertFullDate} from "./Options.jsx";
 import Button from "@mui/joy/Button";
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
+import {customerUpdateApi} from "../api/Messages.js";
+import {AlertDiaLog} from "../Dialogs/Alert.js";
 
 export default function ModalDialog({open, setOpen, selected, event, chatRooms}) {
     let newData = {...selected};
@@ -25,6 +27,13 @@ export default function ModalDialog({open, setOpen, selected, event, chatRooms})
         console.log(newData);
         e.preventDefault();
         setOpen(false);
+        const {data, status} = await customerUpdateApi(newData);
+        AlertDiaLog({
+            title: data.message,
+            text: data.detail,
+            icon: status === 200 && 'success',
+            onPassed: (confirm) => console.log('hello world')
+        });
     }
     return (
         <Modal open={open} onClose={() => setOpen(false)} sx={CustomerStyle.Modal}>

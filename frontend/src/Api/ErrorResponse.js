@@ -4,8 +4,8 @@ export const ErrorResponse = (error) => {
     let detail = error.response.data.message;
     if (error.response.status !== 500) {
         if (error.response) {
-            message = 'เกิดข้อผิดพลาด';
-            detail = error.response.data.message;
+            message = error.response.data.message;
+            detail = error.response.data.detail;
             status = error.response.status;
         }
     }

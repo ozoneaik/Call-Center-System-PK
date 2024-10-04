@@ -148,7 +148,9 @@ export default function MessagePane() {
                         title: data.message,
                         text: data.detail,
                         icon: status === 200 ? 'success' : 'error',
-                        onPassed: () => window.close()
+                        onPassed: (confirm) => {
+                            confirm && window.close();
+                        }
                     });
                 } else console.log('กด ยกเลิก การจบสนทนา')
             }
