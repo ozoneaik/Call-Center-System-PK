@@ -5,11 +5,30 @@ import {ErrorResponse} from "./ErrorResponse.js";
 
 
 /* ------------------------------------------api ที่เกี่ยวกับ ห้องแชท ---------------------------------------------*/
-
+const chatRooms = '/chatRooms';
 // ดึงรายการห้องแชท
 export const chatRoomListApi = async () => {
     try {
-        const {data,status} = await axiosClient.get('chatRooms/list');
+        const {data,status} = await axiosClient.get(`${chatRooms}/list`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ดึงรายการห้องแชท
+export const storeOrUpdateChatRoomsApi = async (chatRoom) => {
+    try {
+        const {data,status} = await axiosClient.post(`${chatRooms}/store`, chatRoom);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+// ลบห้องแชท
+export const deleteChatRoomsApi = async (roomId) => {
+    try {
+        const {data,status} = await axiosClient.delete(`${chatRooms}/delete/${roomId}`);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -17,16 +36,39 @@ export const chatRoomListApi = async () => {
 }
 // ------------------------------------------------------------------------------------------------------------
 /* ------------------------------------------ api ที่เกี่ยวกับ ข้อความส่งด่วน ----------------------------------------*/
+const shortChats = '/shortChats';
 
 // ดึงรายการแชทด่วน
 export const shortChatApi = async () => {
     try {
-        const {data,status} = await axiosClient.get('shortChats/list');
+        const {data,status} = await axiosClient.get(`${shortChats}/list`);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
     }
 }
+
+// สร้างหรืออัพเดทแชทด่วน
+export const storeOrUpdateChatCreateApi = async (shortChat) => {
+    try {
+        const {data,status} = await axiosClient.post(`${shortChats}/store`,{...shortChat});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ลบแชทด่วน
+export const shortChatDeleteApi = async (id) => {
+    try {
+        const {data,status} = await axiosClient.delete(`${shortChats}/delete/${id}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+
 // ------------------------------------------------------------------------------------------------------------
 /* ----------------------------------------api ที่เกี่ยวกับการจัดการเกี่ยวกับ Chats ------------------------------------*/
 const messages = '/messages';
