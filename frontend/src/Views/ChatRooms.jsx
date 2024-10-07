@@ -160,10 +160,12 @@ export default function ChatRooms() {
                                                     <td>{chatRoom.roomName}</td>
                                                     <td>
                                                         <Box sx={{display: 'flex', gap: 1}}>
-                                                            <Button size='sm' onClick={() => setSelected(chatRoom)}>
+                                                            <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                                                    onClick={() => setSelected(chatRoom)}>
                                                                 <EditNoteIcon/>
                                                             </Button>
-                                                            <Button size='sm' color='danger'
+                                                            <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                                                    color='danger'
                                                                     onClick={() => handleDelete(chatRoom.roomId)}>
                                                                 <DeleteIcon/>
                                                             </Button>

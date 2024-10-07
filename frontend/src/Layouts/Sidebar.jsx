@@ -138,8 +138,8 @@ export default function Sidebar() {
                             จัดการผู้ใช้
                         </ListItemButton>
                     </ListItem>
-                    <ListItem component={Link} to={'/users'}>
-                        <ListItemButton selected={pathname === '/users'}>
+                    <ListItem component={Link} to={'/accessToken'}>
+                        <ListItemButton selected={pathname === '/accessToken'}>
                             <TokenIcon/>
                             จัดการ token
                         </ListItemButton>

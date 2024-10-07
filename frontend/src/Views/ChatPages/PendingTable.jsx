@@ -40,6 +40,27 @@ export const PendingTable = (props) => {
             }
         });
     };
+
+    const BtnComponent = ({rateRef, id, custId, roomId, index}) => {
+        let Disable;
+        if (user.role === 'admin') {
+            Disable = false;
+            Disable = index !== 0;
+        } else {
+            Disable = index !== 0;
+            Disable = user.roomId !== roomId;
+        }
+        return (
+            <Box sx={{display: 'flex'}}>
+                <Button size='sm' variant='outlined' sx={{mr: 1}}
+                        disabled={Disable} startDecorator={<ChatIcon/>}
+                        onClick={() => handleChat(rateRef, id, custId, roomId)}
+                >
+                    <Typography>รับเรื่อง {user.roomId} {roomId}</Typography>
+                </Button>
+            </Box>
+        )
+    }
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
@@ -93,16 +114,10 @@ export const PendingTable = (props) => {
                                     </Chip>
                                 </td>
                                 <td>
-                                    <Box sx={{display: 'flex'}}>
-
-                                        <Button size='sm' variant='outlined' sx={{mr: 1}}
-                                                disabled={user.role === 'admin' ? false : ((user.roomId === roomId) ? (index !== 0) : true)}
-                                                startDecorator={<ChatIcon/>}
-                                                onClick={() => handleChat(data.rateRef, data.id, data.custId, data.roomId)}
-                                        >
-                                            <Typography>รับเรื่อง</Typography>
-                                        </Button>
-                                    </Box>
+                                    <BtnComponent
+                                        index={index} rateRef={data.rateRef}
+                                        id={data.id} custId={data.custId} roomId={data.roomId}
+                                    />
                                 </td>
                             </tr>
                         )) : (

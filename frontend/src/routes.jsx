@@ -12,6 +12,7 @@ import ShortChats from "./Views/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
 import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
+import AccessToken from "./Views/AccessToken.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -37,6 +38,7 @@ export const routes = createBrowserRouter([
                             {path: '/shortChats', element: <ShortChats/>},
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
+                            {path : '/accessToken', element: <AccessToken/>},
                         ]
                     },
                 ]
