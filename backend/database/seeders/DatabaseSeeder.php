@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\chatHistory;
-use App\Models\LineAccessTokens;
+
+use App\Models\BotMenu;
 use App\Models\PlatformAccessTokens;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -47,9 +46,33 @@ class DatabaseSeeder extends Seeder
 
         PlatformAccessTokens::create([
             'accessTokenId' => '0001',
-            'accessToken'=> 'Token past here...',
+            'accessToken' => 'Token past here...',
             'description' => 'ห้องช่าง',
             'platform' => 'line'
         ]);
+
+        $botMenus = [
+            [
+                'roomId' => 'ROOM02',
+                'menuName' => 'ติดต่อช่าง'
+            ],
+            [
+                'roomId' => 'ROOM03',
+                'menuName' => 'ติดต่อฝ่ายประสานงาน'
+            ],
+            [
+                'roomId' => 'ROOM04',
+                'menuName' => 'ติดต่อการขาย'
+            ],
+            [
+                'roomId' => 'ROOM01',
+                'menuName' => 'อื่นๆ'
+            ]
+        ];
+
+        foreach ($botMenus as $botMenu) {
+            BotMenu::create($botMenu);
+        }
+
     }
 }
