@@ -85,5 +85,22 @@ export const MessageStyle = {
         TextIsNotSent: {
             color: 'var(--joy-palette-text-primary)'
         }
+    },
+    Info : {
+        subLayout : {
+            backgroundColor: 'background.body', borderLeft: '1px solid',
+            borderColor: 'divider'
+        },
+        Box : {
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            bgcolor: 'background.body',
+            height: '20%',
+            // backgroundColor : 'red',
+            backgroundImage: 'url(https://static.vecteezy.com/system/resources/thumbnails/030/663/548/small/brown-texture-high-quality-free-photo.jpg)',
+            objectFit: 'cover',
+        }
     }
 }

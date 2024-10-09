@@ -6,6 +6,8 @@ use App\Http\Requests\selectMessageRequest;
 use App\Models\ActiveConversations;
 use App\Models\ChatRooms;
 use App\Models\Customers;
+use App\Models\Notes;
+use App\Models\Rates;
 use App\Services\DisplayService;
 use Illuminate\Http\JsonResponse;
 
@@ -43,6 +45,11 @@ class DisplayController extends Controller
             $room = ChatRooms::where('roomId', $room['roomId'])->first();
             if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
+
+            $starList = Rates::select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();
+
+            $notes = $notes = Notes::where('custId', $custId)->orderBy('created_at','desc')->get();
+
             $message = 'ดึงข้อมูลสำเร็จ';
             $status = 200;
         } catch (\Exception $e) {
@@ -56,7 +63,9 @@ class DisplayController extends Controller
                 'activeId' => $request['activeId'],
                 'sender' => $sender ?? [],
                 'custId' => $custId,
-                'list' => $list ?? []
+                'list' => $list ?? [],
+                'starList' => $starList ?? [],
+                'notes' => $notes ?? [],
             ], $status ?? 400);
         }
 

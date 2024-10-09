@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\UserAccess;
@@ -61,6 +62,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/store', [ShortChatController::class, 'storeOrUpdate']);
             Route::delete('/delete/{id}', [ShortChatController::class, 'delete']);
         });
+    });
+
+    // จัดการ note
+    Route::prefix('notes')->group(function () {
+       Route::get('/list/{custId}', [NotesController::class, 'list']);
+       Route::post('/store', [NotesController::class, 'store']);
+       Route::put('/update/{noteId}', [NotesController::class, 'update']);
+       Route::delete('/delete/{noteId}', [NotesController::class, 'delete']);
     });
 });
 

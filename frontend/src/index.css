@@ -10,3 +10,12 @@
 a {
     text-decoration: none;
 }
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    -ms-overflow-style: none;  /* IE และ Edge */
+    scrollbar-width: none;  /* Firefox */
+}

@@ -16,7 +16,7 @@ import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import Typography from "@mui/joy/Typography";
-import {alertTitleClasses} from "@mui/material";
+import InfoMessage from "./InfoMessage.jsx";
 
 export default function MessagePane() {
     const {user} = useAuth();
@@ -37,15 +37,20 @@ export default function MessagePane() {
         contentType: 'text',
         sender: ''
     });
+    const [starList, setStarList] = useState({});
+    const [notes, setNotes] = useState({});
     const [roomSelect, setRoomSelect] = useState({});
 
     useEffect(() => {
         const fetchData = async () => {
             const {data, status} = await selectMessageApi(rateId, activeId, custId);
+            console.log(data)
             if (status === 200) {
                 setMessages(data.list);
                 setRoomSelect(data.room);
-                setSender(data.sender)
+                setSender(data.sender);
+                setStarList(data.starList);
+                setNotes(data.notes);
             } else {
                 AlertDiaLog({
                     title: data.message,
@@ -127,10 +132,10 @@ export default function MessagePane() {
         console.log(roomId)
         const {data, status} = await senToApi({rateId, activeConversationId: activeId, latestRoomId: roomId});
         AlertDiaLog({
-            icon : status === 200 && 'success',
-            title : data.message,
+            icon: status === 200 && 'success',
+            title: data.message,
             text: data.detail,
-            onPassed : (confirm) => {
+            onPassed: (confirm) => {
                 confirm && window.close();
             }
         });
@@ -159,73 +164,116 @@ export default function MessagePane() {
 
     return (
         <>
-            <Sheet sx={MessageStyle.Layout}>
-                {/*Message Pane Header*/}
-                <MessagePaneHeader
-                    endTalk={(e) => endTalk(e)}
-                    sendTo={(c) => handleChangeRoom(c)}
-                    shortCustSend={(c) => sendFromShortCut(c)}
-                    sender={sender}
-                    chatRooms={chatRooms}
-                    shortChat={shortChat}
-                    roomSelect={roomSelect}
-                />
-                {/*Message pane*/}
-                <Box sx={MessageStyle.PaneContent}>
-                    <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
-                        {
-                            messages.length > 0 && (
-                                messages.map((message, index) => {
-                                    const isYou = message.sender.empCode === user.empCode;
-                                    return (
-                                        <Stack
-                                            key={index} direction="row" spacing={2}
-                                            sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
-                                        >
-                                            <Avatar src={message.sender.avatar}/>
-                                            <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
-                                        </Stack>
-                                    );
-                                })
-                            )
-                        }
-                    </Stack>
-                </Box>
-                {/* Message Input */}
-                <Box sx={{px: 2, pb: 3}}>
-                    <FormControl>
-                        <Textarea
-                            id='inputSend'
-                            disabled={sender.emp !== user.empCode}
-                            placeholder="พิมพ์ข้อความที่นี่..."
-                            minRows={3} maxRows={10}
-                            value={msg.content}
-                            onChange={(e) => setMsg({...msg, content: e.target.value})}
-                            endDecorator={
-                                <Stack direction="row" sx={MessageStyle.TextArea}>
-                                    <Button disabled={sender.emp !== user.empCode} color="warning" onClick={handleSend} sx={{mr: 1}}>
-                                        <Typography sx={{mr: 1,color: 'white',display : {xs: 'none',sm : 'block'}}}>ส่ง sticker</Typography>
-                                        <InsertEmoticonIcon/>
-                                    </Button>
-                                    <Button disabled={sender.emp !== user.empCode} color="danger" onClick={handleSend} sx={{mr: 1}}>
-                                        <Typography sx={{mr: 1,color: 'white',display : {xs: 'none',sm : 'block'}}}>แนปรูป</Typography>
-                                        <LocalSeeIcon/>
-                                    </Button>
-                                    <Button disabled={sender.emp !== user.empCode} color="primary" onClick={handleSend}>
-                                        <Typography sx={{color: 'white',display : {xs: 'none',sm : 'block'}}}>ส่ง ( ctrl+enter )</Typography>
-                                        <SendRoundedIcon/>
-                                    </Button>
-                                </Stack>
-                            }
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                                    handleSend().then()
-                                }
-                            }}
+            <Sheet
+                sx={{
+                    flex: 1,
+                    width: '100%',
+                    mx: 'auto',
+                    pt: {xs: 'var(--Header-height)', md: 0},
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'minmax(min-content, min(80%, 800px)) 1fr',
+                        lg: 'minmax(min-content, min(80%, 1400px)) 1fr',
+                    },
+                }}
+            >
+                <Sheet
+                    sx={{
+                        position: {xs: 'fixed', sm: 'sticky'},
+                        transform: {
+                            xs: 'translateX(calc(100% * (var(--MessagesPane-slideIn, 0) - 1)))',
+                            sm: 'none',
+                        },
+                        transition: 'transform 0.4s, width 0.4s',
+                        zIndex: 100,
+                        width: '100%',
+                        top: 52,
+                    }}
+                >
+                    <Sheet sx={MessageStyle.Layout}>
+                        {/*Message Pane Header*/}
+                        <MessagePaneHeader
+                            endTalk={(e) => endTalk(e)}
+                            sendTo={(c) => handleChangeRoom(c)}
+                            shortCustSend={(c) => sendFromShortCut(c)}
+                            sender={sender}
+                            chatRooms={chatRooms}
+                            shortChat={shortChat}
+                            roomSelect={roomSelect}
                         />
-                    </FormControl>
-                </Box>
+                        {/*Message pane*/}
+                        <Box sx={MessageStyle.PaneContent}>
+                            <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
+                                {
+                                    messages.length > 0 && (
+                                        messages.map((message, index) => {
+                                            const isYou = message.sender.empCode === user.empCode;
+                                            return (
+                                                <Stack
+                                                    key={index} direction="row" spacing={2}
+                                                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
+                                                >
+                                                    <Avatar src={message.sender.avatar}/>
+                                                    <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                                                </Stack>
+                                            );
+                                        })
+                                    )
+                                }
+                            </Stack>
+                        </Box>
+                        {/* Message Input */}
+                        <Box sx={{px: 2, pb: 3}}>
+                            <FormControl>
+                                <Textarea
+                                    id='inputSend'
+                                    disabled={sender.emp !== user.empCode}
+                                    placeholder="พิมพ์ข้อความที่นี่..."
+                                    minRows={3} maxRows={10}
+                                    value={msg.content}
+                                    onChange={(e) => setMsg({...msg, content: e.target.value})}
+                                    endDecorator={
+                                        <Stack direction="row" sx={MessageStyle.TextArea}>
+                                            <Button disabled={sender.emp !== user.empCode} color="warning"
+                                                    onClick={handleSend}
+                                                    sx={{mr: 1}}>
+                                                <Typography
+                                                    sx={{mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}}}>ส่ง
+                                                    sticker</Typography>
+                                                <InsertEmoticonIcon/>
+                                            </Button>
+                                            <Button disabled={sender.emp !== user.empCode} color="danger"
+                                                    onClick={handleSend}
+                                                    sx={{mr: 1}}>
+                                                <Typography sx={{
+                                                    mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
+                                                }}>แนปรูป</Typography>
+                                                <LocalSeeIcon/>
+                                            </Button>
+                                            <Button disabled={sender.emp !== user.empCode} color="primary"
+                                                    onClick={handleSend}>
+                                                <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>ส่ง
+                                                    (
+                                                    ctrl+enter )</Typography>
+                                                <SendRoundedIcon/>
+                                            </Button>
+                                        </Stack>
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                                            handleSend().then()
+                                        }
+                                    }}
+                                />
+                            </FormControl>
+                        </Box>
+                    </Sheet>
+                </Sheet>
+                {/* Info */}
+                <InfoMessage sender={sender} starList={starList} notes={notes}/>
             </Sheet>
+
         </>
     )
 }

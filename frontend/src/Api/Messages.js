@@ -190,3 +190,15 @@ export const deleteUserApi = async (empCode) => {
         return ErrorResponse(error);
     }
 }
+
+// ------------------------------------------------------------------------------------------------------------
+/* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
+const notes = '/notes';
+export const notesListApi = async (custId) => {
+    try {
+        const {data,status} = await axiosClient.get(`${notes}/list/${custId}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
