@@ -152,9 +152,10 @@ export default function MessagePane() {
                     AlertDiaLog({
                         title: data.message,
                         text: data.detail,
+                        showConfirmButton: status === 200,
                         icon: status === 200 ? 'success' : 'error',
-                        onPassed: (confirm) => {
-                            confirm && window.close();
+                        onPassed: (C) => {
+                            C && status === 200 && window.close();
                         }
                     });
                 } else console.log('กด ยกเลิก การจบสนทนา')
@@ -205,22 +206,20 @@ export default function MessagePane() {
                         {/*Message pane*/}
                         <Box sx={MessageStyle.PaneContent}>
                             <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
-                                {
-                                    messages.length > 0 && (
-                                        messages.map((message, index) => {
-                                            const isYou = message.sender.empCode === user.empCode;
-                                            return (
-                                                <Stack
-                                                    key={index} direction="row" spacing={2}
-                                                    sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
-                                                >
-                                                    <Avatar src={message.sender.avatar}/>
-                                                    <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
-                                                </Stack>
-                                            );
-                                        })
-                                    )
-                                }
+                                {messages.length > 0 && (
+                                    messages.map((message, index) => {
+                                        const isYou = message.sender.empCode === user.empCode;
+                                        return (
+                                            <Stack
+                                                key={index} direction="row" spacing={2}
+                                                sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
+                                            >
+                                                <Avatar src={message.sender.avatar}/>
+                                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                                            </Stack>
+                                        );
+                                    })
+                                )}
                             </Stack>
                         </Box>
                         {/* Message Input */}

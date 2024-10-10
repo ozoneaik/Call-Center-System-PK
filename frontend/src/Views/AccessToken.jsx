@@ -1,5 +1,5 @@
 import {ChatPageStyle} from "../styles/ChatPageStyle.js";
-import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
+import {Box, Sheet, Table} from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import Button from "@mui/joy/Button";

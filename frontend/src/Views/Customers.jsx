@@ -2,7 +2,7 @@ import {ChatPageStyle} from "../styles/ChatPageStyle.js";
 import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import {useEffect, useState} from "react";
-import {customersListApi, customerUpdateApi} from "../Api/Messages.js";
+import {customersListApi} from "../Api/Messages.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import Chip from "@mui/joy/Chip";
@@ -10,7 +10,6 @@ import {convertFullDate, getRandomColor} from "../Components/Options.jsx";
 import Button from "@mui/joy/Button";
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import ModalDialog from "../Components/ModalDialog.jsx";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
 
 const BreadcrumbsPath = [{name: 'จัดการลูกค้า'}, {name: 'รายละเอียด'}];
 const customersRef = {
@@ -41,14 +40,19 @@ export default function Customers() {
     const handleEditClick = async (customer) => {
         setSelected(customer);
         setOpen(true);
-        console.log('open:', open);  // ตรวจสอบสถานะ
+        console.log('open:', open);
 
     };
+
+    const refresh = () => {
+        getCustomers().finally(() => setLoading(false));
+    }
 
     return (
         <>
             {/* เงื่อนไขการแสดงข้อความ "test" */}
-            {open && (<ModalDialog open={open} setOpen={setOpen} event={'customer'} selected={selected}/>)}
+            {open && (<ModalDialog open={open} setOpen={setOpen} event={'customer'} selected={selected}
+                                   Refresh={refresh}/>)}
             <Sheet sx={ChatPageStyle.Layout}>
                 <Box component="main" sx={ChatPageStyle.MainContent}>
                     <Box sx={{display: 'flex', alignItems: 'center'}}>

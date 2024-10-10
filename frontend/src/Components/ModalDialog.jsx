@@ -10,31 +10,54 @@ import {convertFullDate} from "./Options.jsx";
 import Button from "@mui/joy/Button";
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
-import {customerUpdateApi} from "../api/Messages.js";
+import {useEffect, useState} from "react";
+import {customerUpdateApi, updateUserApi} from "../Api/Messages.js";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
 
-export default function ModalDialog({open, setOpen, selected, event, chatRooms}) {
-    let newData = {...selected};
-    const handleChange = (event, newValue) => {
-        newData = {...newData, role: newValue}
+export default function ModalDialog(props) {
+
+    const {open, setOpen, event, chatRooms, Refresh} = props;
+    const [selected, setSelected] = useState({});
+    useEffect(() => {
+        setSelected(props.selected);
+    }, [])
+
+
+    const handleChangeRole = (event, newValue) => {
+        console.log(newValue, 'Role');
+        setSelected({...selected, role: newValue});
     }
+
+    const handleChangeRoomId = (event, newValue) => {
+        console.log(newValue, 'RoomId');
+        setSelected({...selected, roomId: newValue});
+    }
+
+
     const handleSubmitUser = async (e) => {
-        console.log(newData);
         e.preventDefault();
         setOpen(false);
-    }
-    const handleSubmitCustomer = async (e) => {
-        console.log(newData);
-        e.preventDefault();
-        setOpen(false);
-        const {data, status} = await customerUpdateApi(newData);
+        const {data, status} = await updateUserApi({empCode: selected.empCode, user: selected});
         AlertDiaLog({
             title: data.message,
             text: data.detail,
             icon: status === 200 && 'success',
-            onPassed: (confirm) => console.log('hello world')
+            onPassed: () => status === 200 && Refresh()
         });
     }
+
+    const handleSubmitCustomer = async (e) => {
+        e.preventDefault();
+        setOpen(false);
+        const {data, status} = await customerUpdateApi(selected);
+        AlertDiaLog({
+            title: data.message,
+            text: data.detail,
+            icon: status === 200 && 'success',
+            onPassed: () => status === 200 && Refresh()
+        });
+    }
+
     return (
         <Modal open={open} onClose={() => setOpen(false)} sx={CustomerStyle.Modal}>
             <Sheet variant="outlined" sx={CustomerStyle.ModalSheet}>
@@ -45,54 +68,71 @@ export default function ModalDialog({open, setOpen, selected, event, chatRooms})
                     <Avatar src={selected.avatar} sx={{width: 80, height: 80, boxShadow: 'md'}}/>
                 </Box>
                 <form onSubmit={event === 'user' ? handleSubmitUser : handleSubmitCustomer}>
-                    {
-                        event === 'customer' && (
-                            <>
-                                <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสลูกค้า</Typography>
-                                <Input disabled value={selected.custId} sx={{mb: 2}} fullWidth/>
-                            </>
-                        )
-                    }
+                    {event === 'customer' ? (
+                        <>
+                            <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสลูกค้า</Typography>
+                            <Input disabled value={selected.custId} sx={{mb: 2}} fullWidth/>
+                        </>
+                    ) : (
+                        <>
+                            <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสพนักงาน</Typography>
+                            <Input disabled value={selected.empCode} sx={{mb: 2}} fullWidth/>
+                        </>
+                    )}
 
                     <Typography level="body-sm" fontWeight="bold" mb={1}>ชื่อ</Typography>
-                    <Input value={selected.custName || selected.name} sx={{mb: 2}} fullWidth/>
+                    <Input
+                        value={selected.custName || selected.name || ''}
+                        onChange={(e) => {
+                            setSelected({
+                                ...selected,
+                                custName: e.target.value,
+                                name: e.target.value
+                            })
+                        }}
+                        sx={{mb: 2}} fullWidth
+                    />
 
                     <Typography level="body-sm" fontWeight="bold" mb={1}>คำอธิบาย</Typography>
-                    <Textarea value={selected.description} sx={{mb: 2}}/>
+                    <Textarea
+                        value={selected.description} sx={{mb: 2}}
+                        onChange={(e) => setSelected({...selected, description: e.target.value})}
+                    />
 
-                    {
-                        event === 'user' && (
-                            <>
-                                <Typography level="body-sm" fontWeight="bold" mb={1}>สิทธิ์</Typography>
-                                <Select
-                                    defaultValue={selected.role}
-                                    onChange={handleChange}
-                                    sx={{minWidth: '13rem', mb: 2}}
-                                    slotProps={{listbox: {sx: {width: '100%',},},}}
-                                >
-                                    <Option value="admin">ผู้ดูแลระบบ</Option>
-                                    <Option value="user">ผู้ใช้ทั่วไป</Option>
-                                </Select>
-                                <Typography level="body-sm" fontWeight="bold" mb={1}>ห้องแชท</Typography>
-                                <Select
-                                    defaultValue={selected.roomId}
-                                    onChange={handleChange}
-                                    sx={{minWidth: '13rem', mb: 2}}
-                                    slotProps={{listbox: {sx: {width: '100%'}}}}
-                                >
-                                    {
-                                        chatRooms.map((room, index) => (
-                                            <Option key={index} value={room.roomId}>
-                                                {room.roomName}
-                                            </Option>
-                                        ))
-                                    }
-                                </Select>
-                                <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสผ่านใหม่</Typography>
-                                <Input type='password' sx={{mb: 2}} fullWidth/>
-                            </>
-                        )
-                    }
+                    {event === 'user' && (
+                        <>
+                            <Typography level="body-sm" fontWeight="bold" mb={1}>สิทธิ์</Typography>
+                            <Select
+                                name={'role'}
+                                value={selected.role || ''}
+                                onChange={handleChangeRole}
+                                sx={{minWidth: '13rem', mb: 2}}
+                                slotProps={{listbox: {sx: {width: '100%',},},}}
+                            >
+                                <Option value="admin">ผู้ดูแลระบบ</Option>
+                                <Option value="user">ผู้ใช้ทั่วไป</Option>
+                            </Select>
+                            <Typography level="body-sm" fontWeight="bold" mb={1}>ห้องแชท</Typography>
+                            <Select
+                                name={'roomId'}
+                                value={selected.roomId || ''}
+                                onChange={handleChangeRoomId}
+                                sx={{minWidth: '13rem', mb: 2}}
+                                slotProps={{listbox: {sx: {width: '100%'}}}}
+                            >
+                                {
+                                    chatRooms.map((room, index) => (
+                                        <Option key={index} value={room.roomId}>
+                                            {room.roomName}
+                                        </Option>
+                                    ))
+                                }
+                            </Select>
+                            <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสผ่านใหม่</Typography>
+                            <Input onChange={(e) => setSelected({...selected, password: e.target.value})}
+                                   type='password' sx={{mb: 2}} fullWidth/>
+                        </>
+                    )}
 
                     <Divider sx={{my: 2}}/>
 

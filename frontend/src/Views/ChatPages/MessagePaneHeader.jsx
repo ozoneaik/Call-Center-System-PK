@@ -78,18 +78,16 @@ function MessagePaneHeader(props) {
                     <ModalClose/>
                     <Typography component="h2">ส่งต่อไปยัง</Typography>
                     <Typography>ห้องแชท</Typography>
-                    {
-                        chatRooms.length > 0 && (
-                            chatRooms.map((room, index) => (
-                                <Button
-                                    onClick={() => sendToMoreRoom(room.roomId)}
-                                    key={index} disabled={room.id === roomSelect.id}
-                                >
-                                    {room.roomName}
-                                </Button>
-                            ))
-                        )
-                    }
+                    {chatRooms.length > 0 && (
+                        chatRooms.map((room, index) => (
+                            <Button
+                                onClick={() => sendToMoreRoom(room.roomId)}
+                                key={index} disabled={(room.id === roomSelect.id) || (room.roomId === 'ROOM00')}
+                            >
+                                {room.roomName}
+                            </Button>
+                        ))
+                    )}
                 </ModalDialog>
             </Modal>
             {/* modal ตัวช่วยตอบ */}
@@ -97,15 +95,13 @@ function MessagePaneHeader(props) {
                 <ModalDialog>
                     <ModalClose/>
                     <Typography component="h2">ตัวช่วยตอบ</Typography>
-                    {
-                        shortChat.length > 0 && (
-                            shortChat.map((row, index) => (
-                                <Button onClick={() => sendShortCut(row.content)} color='warning' key={index}>
-                                    {row.content}
-                                </Button>
-                            ))
-                        )
-                    }
+                    {shortChat.length > 0 && (
+                        shortChat.map((row, index) => (
+                            <Button onClick={() => sendShortCut(row.content)} color='warning' key={index}>
+                                {row.content}
+                            </Button>
+                        ))
+                    )}
                 </ModalDialog>
             </Modal>
         </>

@@ -181,6 +181,15 @@ export const usersListApi = async () => {
     }
 }
 
+export const storeUserApi = async (user) => {
+    try {
+        const {data,status} = await axiosClient.post(`${users}/store`, {user});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 // ดึงรายการผู้ใช้
 export const deleteUserApi = async (empCode) => {
     try {
@@ -191,12 +200,40 @@ export const deleteUserApi = async (empCode) => {
     }
 }
 
+// อัพเดทผู้ใช้
+export const updateUserApi = async ({empCode, user}) => {
+    try {
+        const {data,status} = await axiosClient.put(`${users}/update/${empCode}`,user);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 // ------------------------------------------------------------------------------------------------------------
 /* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
 const notes = '/notes';
-export const notesListApi = async (custId) => {
+export const storeNoteApi = async ({text,custId}) => {
     try {
-        const {data,status} = await axiosClient.get(`${notes}/list/${custId}`);
+        const {data,status} = await axiosClient.post(`${notes}/store`,{custId,text});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const updateNoteApi = async ({text,id}) => {
+    try {
+        const {data,status} = await axiosClient.put(`${notes}/update`,{id,text});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const deleteNoteApi = async ({id}) => {
+    try {
+        const {data,status} = await axiosClient.delete(`${notes}/delete/${id}`);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
