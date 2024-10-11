@@ -8,6 +8,7 @@ use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ShortChatController;
+use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\UserAccess;
 use Illuminate\Support\Facades\Route;
@@ -22,7 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [AuthController::class, 'user']);
     Route::prefix('users')->group(function () {
         Route::get('/list', [UserController::class, 'UserList']);
-        Route::put('/update/{empCode}', [UserController::class, 'update']);
+        Route::post('/store', [UserController::class, 'UserStore']);
+        Route::put('/update/{empCode}', [UserController::class, 'UserUpdate']);
         Route::delete('/delete/{empCode}', [UserController::class, 'UserDelete']);
     });
 
@@ -68,9 +70,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('notes')->group(function () {
        Route::get('/list/{custId}', [NotesController::class, 'list']);
        Route::post('/store', [NotesController::class, 'store']);
-       Route::put('/update/{noteId}', [NotesController::class, 'update']);
+       Route::put('/update', [NotesController::class, 'update']);
        Route::delete('/delete/{noteId}', [NotesController::class, 'delete']);
     });
+
+    // จัดการ token
+    Route::prefix('tokens')->group(function () {
+        Route::get('list',[TokenController::class, 'list']);
+        Route::post('store',[TokenController::class, 'store']);
+        Route::put('update',[TokenController::class, 'update']);
+        Route::delete('delete/{id}',[TokenController::class, 'delete']);
+    });
+
+    Route::get('/dashboard',[DisplayController::class, 'Dashboard']);
 });
 
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @method static create(string[] $array)
+ * @method static findOrFail(mixed $request)
  */
 class PlatformAccessTokens extends Model
 {

@@ -27,24 +27,30 @@ import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {logoutApi} from "../api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {chatRoomListApi} from "../api/Messages.js";
+import {useChatRooms} from "../context/ChatRoomContext.jsx";
 
 export default function Sidebar() {
+    const {setChatRoomsContext} = useChatRooms()
     const {user, setUser} = useAuth();
     const navigate = useNavigate();
-    const [chatRooms, setChatRooms] = useState([{roomName : '', roomId : ''}]);
+    const [chatRooms, setChatRooms] = useState([{roomName: '', roomId: ''}]);
     const {pathname} = useLocation();
     const currentRoomId = pathname.split('/')[3];
 
-    useEffect(() => {
-        const fetchChatRooms = async () => {
-            const {data, status} = await chatRoomListApi();
-            status === 200 && setChatRooms(data.chatRooms);
+    const fetchChatRooms = async () => {
+        const {data, status} = await chatRoomListApi();
+        if (status === 200) {
+            setChatRooms(data.chatRooms);
+            setChatRoomsContext(data.chatRooms)
         }
+    }
+    useEffect(() => {
         fetchChatRooms().then(() => console.log('fetch 👏'));
     }, [])
 
     const Logout = () => {
-        AlertDiaLog({text: 'ต้องการออกจากระบบหรือไม่', icon: 'info', Outside: true,
+        AlertDiaLog({
+            text: 'ต้องการออกจากระบบหรือไม่', icon: 'info', Outside: true,
             onPassed: async (confirm) => {
                 if (confirm) {
                     const {data, status} = await logoutApi();
@@ -95,23 +101,23 @@ export default function Sidebar() {
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>
-                    {
-                        chatRooms.length > 0 && (
-                            chatRooms.map((chatRoom, index) => (
-                                <ListItem key={index} component={Link} to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
-                                    <ListItemButton selected={currentRoomId === chatRoom.roomId}>
-                                        <QuestionAnswerRoundedIcon/>
-                                        <ListItemContent>
-                                            <Typography level="title-sm">{chatRoom.roomName}</Typography>
-                                        </ListItemContent>
-                                        {/*<Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>*/}
-                                    </ListItemButton>
-                                </ListItem>
-                            ))
-                        )
-                    }
+                    {chatRooms && chatRooms.length > 0 && (
+                        chatRooms.map((chatRoom, index) => (
+                            <ListItem key={index} component={Link}
+                                      to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
+                                <ListItemButton selected={currentRoomId === chatRoom.roomId}>
+                                    <QuestionAnswerRoundedIcon/>
+                                    <ListItemContent>
+                                        <Typography level="title-sm">{chatRoom.roomName}</Typography>
+                                    </ListItemContent>
+                                    {/*<Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>*/}
+                                </ListItemButton>
+                            </ListItem>
+                        ))
+                    )}
                 </List>
-                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>สำหรับ ผู้ดูแลระบบ</Typography>
+                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>สำหรับ
+                    ผู้ดูแลระบบ</Typography>
                 <Divider/>
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
                     <ListItem component={Link} to={`/chatRooms`}>

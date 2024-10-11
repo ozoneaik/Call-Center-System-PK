@@ -84,7 +84,6 @@ export default function Users() {
             />}
 
 
-
             <Sheet sx={ChatPageStyle.Layout}>
                 <Box component="main" sx={ChatPageStyle.MainContent}>
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
@@ -92,11 +91,12 @@ export default function Users() {
                     </Box>
                     <Box sx={ChatPageStyle.BoxTable}>
                         <Typography level="h2" component="h1">จัดการผู้ใช้</Typography>
-                        <Button size='sm' onClick={()=>setOpenCreate(!openCreate)}>
-                            {!openCreate ? '+ เพิ่มผู้ใช้' : 'ปิด'}
+                        <Button color={!openCreate ? 'primary' : 'danger'} size='sm'
+                                onClick={() => setOpenCreate(!openCreate)}>
+                            {!openCreate ? '+ เพิ่มผู้ใช้' : 'X'}
                         </Button>
                     </Box>
-                    {openCreate && <CreateUser open={openCreate} setOpen={setOpenCreate} Refresh={refresh} />}
+                    {openCreate && <CreateUser open={openCreate} setOpen={setOpenCreate} Refresh={refresh}/>}
                     <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                         <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                             <thead>

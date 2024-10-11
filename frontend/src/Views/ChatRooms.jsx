@@ -8,11 +8,13 @@ import SaveIcon from '@mui/icons-material/Save';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import DeleteIcon from "@mui/icons-material/Delete";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {useChatRooms} from "../context/ChatRoomContext.jsx";
 
 
 const BreadcrumbsPath = [{name: 'จัดการห้องแชท'}, {name: 'รายละเอียด'}];
 
 export default function ChatRooms() {
+    const {setChatRoomsContext} = useChatRooms()
     const [chatRooms, setChatRooms] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
@@ -20,11 +22,14 @@ export default function ChatRooms() {
         getChatRooms().finally(() => setLoading(false));
     }, []);
 
+
     const getChatRooms = async () => {
         setLoading(true);
         const {data, status} = await chatRoomListApi();
-        console.log(data, status)
-        status === 200 && setChatRooms(data.chatRooms);
+        if (status === 200) {
+            setChatRooms(data.chatRooms);
+            setChatRoomsContext(data.chatRooms);
+        }
     }
 
     const handleSubmit = (e) => {
@@ -43,7 +48,9 @@ export default function ChatRooms() {
                         onPassed: () => {
                             if (status === 200) {
                                 setSelected({});
-                                getChatRooms().finally(() => setLoading(false));
+                                getChatRooms().finally(() => {
+                                    setLoading(false);
+                                });
                             } else console.log('ไม่มีการ refresh ข้อมูล');
                         }
                     });
@@ -151,36 +158,35 @@ export default function ChatRooms() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {
-                                    !loading ? (
-                                        chatRooms.length > 0 && (
-                                            chatRooms.map((chatRoom, index) => (
-                                                <tr key={index}>
-                                                    <td>{chatRoom.roomId}</td>
-                                                    <td>{chatRoom.roomName}</td>
-                                                    <td>
-                                                        <Box sx={{display: 'flex', gap: 1}}>
-                                                            <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
-                                                                    onClick={() => setSelected(chatRoom)}>
-                                                                <EditNoteIcon/>
-                                                            </Button>
-                                                            <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
-                                                                    color='danger'
-                                                                    onClick={() => handleDelete(chatRoom.roomId)}>
-                                                                <DeleteIcon/>
-                                                            </Button>
-                                                        </Box>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={3} style={{textAlign: "center"}}>
-                                                <CircularProgress color="primary" size="md"/>
-                                            </td>
-                                        </tr>
+                                {!loading ? (
+                                    chatRooms.length > 0 && (
+                                        chatRooms.map((chatRoom, index) => (
+                                            <tr key={index}>
+                                                <td>{chatRoom.roomId}</td>
+                                                <td>{chatRoom.roomName}</td>
+                                                <td>
+                                                    <Box sx={{display: 'flex', gap: 1}}>
+                                                        <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                                                onClick={() => setSelected(chatRoom)}>
+                                                            <EditNoteIcon/>
+                                                        </Button>
+                                                        <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                                                color='danger'
+                                                                onClick={() => handleDelete(chatRoom.roomId)}>
+                                                            <DeleteIcon/>
+                                                        </Button>
+                                                    </Box>
+                                                </td>
+                                            </tr>
+                                        ))
                                     )
+                                ) : (
+                                    <tr>
+                                        <td colSpan={3} style={{textAlign: "center"}}>
+                                            <CircularProgress color="primary" size="md"/>
+                                        </td>
+                                    </tr>
+                                )
                                 }
                                 </tbody>
                             </Table>

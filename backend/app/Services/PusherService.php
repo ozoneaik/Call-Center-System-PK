@@ -44,4 +44,27 @@ class PusherService
         }
     }
 
+    public function newChatRooms($chatRooms): array
+    {
+        try {
+            $AppCluster = env('PUSHER_APP_CLUSTER');
+            $AppKey = env('PUSHER_APP_KEY');
+            $AppSecret = env('PUSHER_APP_SECRET');
+            $AppID = env('PUSHER_APP_ID');
+
+            $options = ['cluster' => $AppCluster, 'useTLS' => true];
+            $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
+            $pusher->trigger('newChatRooms', 'my-event', $chatRooms);
+            $data['status'] = true;
+            $data['message'] = 'อัพเดทรายการห้อง';
+            $data['detail'] = 'ไม่พบข้อผิดพลาด';
+        } catch (\Exception|GuzzleException $e) {
+            $data['status'] = false;
+            $data['message'] = 'การแจ้งเตือนผิดพลาด';
+            $data['detail'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
 }

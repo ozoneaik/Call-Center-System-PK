@@ -6,13 +6,14 @@ import Login from "./views/Login.jsx";
 import NotFoundPage from "./views/NotFound.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
 import MessagePane from "./views/ChatPages/MessagePane.jsx";
-import Home from "./views/Home.jsx";
+import Home from "./Views/HomePages/Home.jsx";
 import ChatRooms from "./Views/ChatRooms.jsx";
 import ShortChats from "./Views/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
 import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
 import AccessToken from "./Views/AccessToken.jsx";
+import TestUi from "./TestUi.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -38,7 +39,7 @@ export const routes = createBrowserRouter([
                             {path: '/shortChats', element: <ShortChats/>},
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
-                            {path : '/accessToken', element: <AccessToken/>},
+                            {path: '/accessToken', element: <AccessToken/>},
                         ]
                     },
                 ]
@@ -51,5 +52,6 @@ export const routes = createBrowserRouter([
         ]
     },
     {path: 'access/denied', element: <NotFoundPage/>},
+    {path: 'test', element: <TestUi/>},
     {path: '*', element: <NotFoundPage/>}
 ])

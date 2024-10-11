@@ -71,12 +71,12 @@ class MessageService
         }
     }
 
-    public function MsgEndTalk($custId, $rateId) : array
+    public function MsgEndTalk($custId, $rateId): array
     {
 
         try {
             $URL = 'https://api.line.me/v2/bot/message/push';
-            $URL_RATING = env('APP_WEBHOOK_URL')."/$custId/$rateId";
+            $URL_RATING = env('APP_WEBHOOK_URL') . "/$custId/$rateId";
             $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.accessTokenId')
                 ->where('custId', 'LIKE', $custId)
                 ->select('PAT.accessToken')
@@ -142,6 +142,7 @@ class MessageService
                     ]
                 ]
             ];
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken
             ])->asJson()->post($URL, $body);
@@ -149,8 +150,9 @@ class MessageService
                 $data['status'] = true;
                 $data['message'] = 'ส่งประเมินสำเร็จ';
             } else {
-                Log::info($response->json());
-                throw new \Exception('ส่งประเมินไม่ได้');
+                $message = $response->json();
+                $message = $message['details'][0]['message'];
+                throw new \Exception('Line API รายละเอียด >>> '.$message);
             }
         } catch (\Exception $e) {
             $data['status'] = false;

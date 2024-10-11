@@ -19,3 +19,14 @@ export const newMessage = ({onPassed}) => {
         echo.leaveChannel(`notifications`);
     };
 }
+
+export const newChatRooms = ({onPassed}) => {
+    const channel = echo.channel(`newChatRooms`);
+    channel.listen('.my-event', (event) => {
+        onPassed(true,event);
+    });
+    return () => {
+        channel.stopListening('.my-event');
+        echo.leaveChannel(`newChatRooms`);
+    };
+}

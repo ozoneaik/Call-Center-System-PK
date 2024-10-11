@@ -9,7 +9,7 @@ class UserService{
     public function getAllUsers(): Collection
     {
         return User::leftJoin('chat_rooms','users.roomId','=','chat_rooms.roomId')
-            ->select('users.*','chat_rooms.roomName','chat_rooms.roomId')
+            ->select('users.*','chat_rooms.roomName','chat_rooms.roomId')->orderBy('created_at','DESC')
             ->get();
     }
 

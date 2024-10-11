@@ -9,7 +9,9 @@ use App\Models\Customers;
 use App\Models\Notes;
 use App\Models\Rates;
 use App\Services\DisplayService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class DisplayController extends Controller
 {
@@ -68,7 +70,21 @@ class DisplayController extends Controller
                 'notes' => $notes ?? [],
             ], $status ?? 400);
         }
+    }
 
+    public function Dashboard () : JsonResponse{
+        $sevenDaysAgo = Carbon::now()->subDays(7);
+
+        $chatCounts = DB::table('chat_histories')
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(content) as content_count'))
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->json([
+            'sevenDaysAgo' => $chatCounts,
+        ]);
     }
 
 }

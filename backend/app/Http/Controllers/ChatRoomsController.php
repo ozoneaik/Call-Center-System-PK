@@ -3,17 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChatRooms;
+use App\Services\PusherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ChatRoomsController extends Controller
 {
+
+    protected PusherService $pusherService;
+
+    public function __construct(PusherService $pusherService){
+        $this->pusherService = $pusherService;
+    }
+
     public function list() : JsonResponse{
         $chatRooms = ChatRooms::all();
         return response()->json([
             'message' => 'success',
             'chatRooms' => $chatRooms
         ]);
+
     }
 
     public function store(Request $request): JsonResponse

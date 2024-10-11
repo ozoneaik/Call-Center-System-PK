@@ -11,10 +11,10 @@ class AuthService{
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'empCode' => $data['code'],
+            'empCode' => $data['empCode'],
             'description' => $data['description'],
-            'avatar' => $data['avatar'],
-            'roomId' => $data['rooms'],
+            'avatar' => $data['avatar'] ?? '',
+            'roomId' => $data['roomId'],
             'role' => $data['role'],
         ]);
     }

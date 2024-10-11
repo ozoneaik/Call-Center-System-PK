@@ -182,8 +182,9 @@ export const usersListApi = async () => {
 }
 
 export const storeUserApi = async (user) => {
+    console.log(user)
     try {
-        const {data,status} = await axiosClient.post(`${users}/store`, {user});
+        const {data,status} = await axiosClient.post(`${users}/store`, user);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -234,6 +235,56 @@ export const updateNoteApi = async ({text,id}) => {
 export const deleteNoteApi = async ({id}) => {
     try {
         const {data,status} = await axiosClient.delete(`${notes}/delete/${id}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------
+/* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
+const tokens = '/tokens';
+export const tokenListApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${tokens}/list`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const storeTokenApi = async (token) => {
+    try {
+        const {data,status} = await axiosClient.post(`${tokens}/store`, token);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const updateTokenApi = async (token) => {
+    try {
+        const {data,status} = await axiosClient.put(`${tokens}/update`,token);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const deleteTokenApi = async (id) => {
+    try {
+        const {data,status} = await axiosClient.delete(`${tokens}/delete/${id}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------
+/* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
+export const DashboardApi = async (id) => {
+    try {
+        const {data,status} = await axiosClient.get(`/dashboard`);
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
