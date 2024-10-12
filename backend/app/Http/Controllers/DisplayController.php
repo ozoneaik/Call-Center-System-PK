@@ -4,22 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\selectMessageRequest;
 use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
 use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Models\Notes;
 use App\Models\Rates;
+use App\Services\DashboardService;
 use App\Services\DisplayService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DisplayController extends Controller
 {
     protected DisplayService $displayService;
+    protected DashboardService $dashboardService;
 
-    public function __construct(DisplayService $displayService)
+    public function __construct(DisplayService $displayService, DashboardService $dashboardService)
     {
         $this->displayService = $displayService;
+        $this->dashboardService = $dashboardService;
     }
 
     public function displayMessageList($roomId): JsonResponse
@@ -72,19 +77,30 @@ class DisplayController extends Controller
         }
     }
 
-    public function Dashboard () : JsonResponse{
+    public function Dashboard(Request $request): JsonResponse
+    {
         $sevenDaysAgo = Carbon::now()->subDays(7);
 
-        $chatCounts = DB::table('chat_histories')
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(content) as content_count'))
-            ->where('created_at', '>=', $sevenDaysAgo)
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date', 'desc')
-            ->get();
+        // ดึงจำนวนข้อความแชท 7 วันล่าสุด
+        $chatCounts = $this->dashboardService->countChatLastWeek($sevenDaysAgo);
+
+        $today = $request['date'] ?? Carbon::now()->format('Y-m-d');
+        // ดึงจำนวนลูกค้าที่ทักมาวันนี้
+        $customers = $this->dashboardService->countCustomer($today);
+        //ดึงจำนวนดาววันนี้
+        $stars['rooms'] = $this->dashboardService->countStar($today);
+        $stars['total'] = Rates::whereDate('created_at',$today)->sum('rate');
+
+        //ดึงจำนวนแชทวันนี้
+        $countChats['rooms'] = $this->dashboardService->countChat($today);
+        $countChats['total'] = ChatHistory::whereDate('created_at',$today)->count('id');
 
         return response()->json([
+            'selectDate' => $today,
             'sevenDaysAgo' => $chatCounts,
+            'customers' => $customers,
+            'chatCounts' => $countChats,
+            'stars' => $stars,
         ]);
     }
-
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @method static where(string $string, $custId)
  * @method static select(\Illuminate\Contracts\Database\Query\Expression $raw)
+ * @method static whereDate(string $string, string $today)
  */
 class ChatHistory extends Model
 {

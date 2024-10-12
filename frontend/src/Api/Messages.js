@@ -282,9 +282,11 @@ export const deleteTokenApi = async (id) => {
 
 // ------------------------------------------------------------------------------------------------------------
 /* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
-export const DashboardApi = async (id) => {
+export const DashboardApi = async (currentDate) => {
     try {
-        const {data,status} = await axiosClient.get(`/dashboard`);
+        const {data,status} = await axiosClient.get(`/dashboard`,{
+            params: { date: currentDate }
+        });
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
