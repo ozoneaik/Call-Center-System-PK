@@ -15,6 +15,7 @@ import Chip from "@mui/joy/Chip";
 import {AlertDiaLog, AlertWithForm} from "../../Dialogs/Alert.js";
 import {useEffect, useState} from "react";
 import {deleteNoteApi, storeNoteApi} from "../../Api/Messages.js";
+import {toggleMessagesPane} from "../../utils.js";
 
 const StarRating = ({value, max = 5}) => (
     <Box sx={{display: 'flex', alignItems: 'center'}}>
@@ -56,7 +57,8 @@ export default function InfoMessage(props) {
         });
     };
 
-    const addNote = async () => {
+    const addNote = async (e) => {
+        e.preventDefault();
         const {data, status} = await storeNoteApi({text: newNote, custId: sender.custId});
         AlertDiaLog({
             icon: status === 200 && 'success',
@@ -101,6 +103,11 @@ export default function InfoMessage(props) {
 
     return (
         <Sheet sx={[MessageStyle.Layout, MessageStyle.Info.subLayout]}>
+            <Box onClick={() => toggleMessagesPane()} sx={{m: 1, display: {sm: 'none'}}}>
+                <Typography textAlign='center'>
+                    ปิดหน้าต่างนี้
+                </Typography>
+            </Box>
             <Box sx={MessageStyle.Info.Box}>
                 <Avatar src={sender.avatar} sx={{width: '80px', height: '80px', mb: 1}}/>
                 <Typography level="h4" sx={{mb: 0.5, color: 'white'}}>{sender.custName}</Typography>
@@ -110,17 +117,19 @@ export default function InfoMessage(props) {
             <Box sx={{p: 2, height: '40%', overflowY: 'scroll'}}>
                 <Typography level="title-md" sx={{mb: 1}}>โน๊ต</Typography>
                 <Stack spacing={1}>
-                    <Textarea value={newNote || ''} placeholder='เพิ่มโน้ต'
-                              onChange={(e) => setNewNote(e.target.value)}/>
-                    <Box sx={{display: 'flex', justifyContent: 'end', alignItems: 'center'}}>
-                        <Button size='sm' onClick={addNote}>เพิ่ม</Button>
-                    </Box>
+                    <form onSubmit={() => addNote()}>
+                        <Textarea required value={newNote || ''} placeholder='เพิ่มโน้ต'
+                                  onChange={(e) => setNewNote(e.target.value)}/>
+                        <Box sx={{display: 'flex', justifyContent: 'end', alignItems: 'center',mt : 1}}>
+                            <Button size='sm' type={"submit"}>เพิ่ม</Button>
+                        </Box>
+                    </form>
                     {notes && notes.length > 0 ? (notes.map((note, index) => (
                         <Card key={index} variant="soft" color='neutral'>
                             <CardContent>
                                 <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                     <Typography level="body-sm" sx={{color: 'text.tertiary'}}>
-                                        {note.text}
+                                        {note.text} {note.id}
                                     </Typography>
                                     <Typography level="body-sm">
                                         <IconButton size='sm' onClick={() => updateNote(note.text, note.id)}>

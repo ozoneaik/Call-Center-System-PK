@@ -1,18 +1,7 @@
 import React, {useEffect, useState} from 'react';
-import {Box, Card, CardContent, Sheet, Typography} from '@mui/joy';
+import {Box, Card, CardContent, Sheet, Table, Typography} from '@mui/joy';
 import Grid from '@mui/material/Grid2';
-import {
-    ArcElement,
-    BarElement,
-    CategoryScale,
-    Chart as ChartJS,
-    Legend,
-    LinearScale,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip
-} from 'chart.js';
+import {ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip} from 'chart.js';
 import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import {DashboardApi} from "../../Api/Messages.js";
@@ -20,10 +9,8 @@ import {BarChart, StatCard} from "../../Components/Charts.jsx";
 import Input from "@mui/joy/Input";
 import Chip from "@mui/joy/Chip";
 import {getRandomColor} from "../../Components/Options.jsx";
-import Button from "@mui/joy/Button";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, BarElement, LinearScale);
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const BreadcrumbsPath = [{name: 'หน้าหลัก'}, {name: 'รายละเอียด'}];
@@ -45,10 +32,12 @@ export default function Dashboard() {
     const [contChats, setContChats] = useState([]);
     const [customers, setCustomers] = useState({newCust: 0, totalToday: 0,});
     const [currentDate, setCurrentDate] = useState('');
+    const [pendingChats, setPendingChats] = useState([]);
     const getData = async (today) => {
         try {
             const Today = today || new Date().toISOString().split('T')[0];
             const {data, status} = await DashboardApi(Today); // เรียก API
+            console.log('fetch Data >> ', data)
             if (status === 200) {
                 const apiData = data.sevenDaysAgo; // ข้อมูลจาก API
                 // จัดการข้อมูลสำหรับแชท
@@ -66,6 +55,10 @@ export default function Dashboard() {
                 });
                 // จัดการข้อมูลสำหรับดาว
                 setStars(data.stars)
+
+                //จัดการข้อความค้าง
+                setPendingChats(data.pendingChats);
+
                 // จัดการข้อมูลสำหรับแชท
                 const newChatData = data.chatCounts.rooms.map(room => ({
                     labels: [room.roomName],
@@ -101,7 +94,7 @@ export default function Dashboard() {
     const CardCom = ({title, children}) => (
         <Card variant="outlined" sx={{height: '100%'}}>
             <CardContent sx={{display: 'flex', flexDirection: 'column', height: '100%', position: 'relative'}}>
-                <Typography textColor="text.secondary">
+                <Typography textColor="text.secondary" sx={{fontWeight: 'bold'}}>
                     {title}
                 </Typography>
                 {children}
@@ -144,26 +137,48 @@ export default function Dashboard() {
                         <Grid container spacing={2}>
                             <Grid size={{xs: 12, md: 8}}>
                                 <Grid size={12} mb={2}>
+                                    <BarChart title={'จำนวนแชทล่าสุด 7 วัน'} chatData={chatData}/>
+                                </Grid>
+                                <Grid size={12} mb={2}>
+                                    <D title={'จำนวนข้อความที่ค้าง'}>
+                                        <Box>
+                                            <Table borderAxis="both">
+                                                <thead>
+                                                <tr>
+                                                    <th style={{textAlign: 'center'}}>ห้องแชท</th>
+                                                    <th style={{textAlign: 'center'}}>จำนวนข้อความ</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {pendingChats.length > 0 && pendingChats.map((item, index) => (
+                                                    <tr key={index}>
+                                                        <td style={{textAlign: 'center'}}>{item.roomName}</td>
+                                                        <td style={{textAlign: 'center'}}>{item.cust_count}</td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </Table>
+                                        </Box>
+                                    </D>
+                                </Grid>
+                            </Grid>
+                            <Grid size={{xs: 12, md: 4}}>
+                                <Grid size={12} mb={2}>
                                     <Card variant="outlined">
                                         <Box sx={{display: 'flex', height: '100%',}}>
                                             <div style={{width: '100%', borderRight: 'solid 1px #cdd7e1'}}>
-                                                <h3 style={{textAlign: 'center'}}>ลูกค้ารายใหม่</h3>
+                                                <h4 style={{textAlign: 'center'}}>ลูกค้ารายใหม่</h4>
                                                 <h1 style={{textAlign: 'center'}}>{customers.newCust}</h1>
                                             </div>
                                             <div style={{width: '100%'}}>
-                                                <h3 style={{textAlign: 'center'}}>ลูกค้าทั้งหมด</h3>
+                                                <h4 style={{textAlign: 'center'}}>ลูกค้าทั้งหมด</h4>
                                                 <h1 style={{textAlign: 'center'}}>{customers.totalToday}</h1>
                                             </div>
                                         </Box>
                                     </Card>
                                 </Grid>
-                                <Grid size={12}>
-                                    <BarChart title={'จำนวนแชทล่าสุด 7 วัน'} chatData={chatData}/>
-                                </Grid>
-                            </Grid>
-                            <Grid size={{xs: 12, md: 4}}>
                                 <Grid size={12} mb={2}>
-                                    <D title={'จำนวนแชทวันนี้'}>
+                                    <D title={'จำนวนแชท'}>
                                         <Grid container spacing={1}>
                                             {contChats && contChats.length > 0 && contChats.map((item, index) => (
                                                 <Grid key={index} size={{xs: 6, md: 4}}>
@@ -175,16 +190,20 @@ export default function Dashboard() {
                                     </D>
                                 </Grid>
                                 <Grid size={12} mb={2}>
-                                    <D title={'จำนวนดาววันนี้'}>
-                                        <Grid container spacing={1}>
-                                            {stars && stars.rooms && stars.rooms.length > 0 && (
-                                                stars.rooms.map((item, index) => (
-                                                    <Chip size="lg" color={getRandomColor()}>
-                                                        {item.roomName} {item.count}/{stars.total}
+                                    <D title={'จำนวนดาว'}>
+                                        {stars && stars.rooms && stars.rooms.length > 0 && (
+                                            stars.rooms.map((item, index) => (
+                                                <Box sx={{
+                                                    display: 'flex', justifyContent: 'space-between',
+                                                    width: '100%',mt : 1
+                                                }} key={index}>
+                                                    <Typography fontSize={14}>{item.roomName}</Typography>
+                                                    <Chip color={getRandomColor()}>
+                                                        {item.count}/{stars.total} ⭐
                                                     </Chip>
-                                                ))
-                                            )}
-                                        </Grid>
+                                                </Box>
+                                            ))
+                                        )}
                                     </D>
                                 </Grid>
                             </Grid>
@@ -193,6 +212,5 @@ export default function Dashboard() {
                 </Sheet>
             </Box>
         </Sheet>
-
     );
 }

@@ -26,6 +26,7 @@ export function toggleSidebar() {
 }
 
 export function openMessagesPane() {
+    console.log('test')
     if (typeof window !== 'undefined') {
         document.body.style.overflow = 'hidden';
         document.documentElement.style.setProperty('--MessagesPane-slideIn', '1');

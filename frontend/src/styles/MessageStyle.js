@@ -89,7 +89,12 @@ export const MessageStyle = {
     Info : {
         subLayout : {
             backgroundColor: 'background.body', borderLeft: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
+            position: {xs: 'fixed', sm: 'sticky'},
+            transition: 'transform 0.4s, width 0.4s',
+            zIndex: 100,
+            width: '100%',
+            transform: {xs: 'translateX(calc(100% * (var(--MessagesPane-slideIn, 0) - 1)))', sm: 'none',},
         },
         Box : {
             p: 2,

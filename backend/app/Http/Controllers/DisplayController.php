@@ -95,12 +95,16 @@ class DisplayController extends Controller
         $countChats['rooms'] = $this->dashboardService->countChat($today);
         $countChats['total'] = ChatHistory::whereDate('created_at',$today)->count('id');
 
+        //ดึงจำนวนแชทที่ค้าง
+        $pendingChats = $this->dashboardService->pendingChats($today);
+
         return response()->json([
             'selectDate' => $today,
             'sevenDaysAgo' => $chatCounts,
             'customers' => $customers,
             'chatCounts' => $countChats,
             'stars' => $stars,
+            'pendingChats' => $pendingChats
         ]);
     }
 }

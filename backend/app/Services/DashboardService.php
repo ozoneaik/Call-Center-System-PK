@@ -2,8 +2,8 @@
 namespace App\Services;
 
 use App\Models\ChatRooms;
-use App\Models\Rates;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService{
@@ -64,7 +64,7 @@ class DashboardService{
         return $rooms;
     }
 
-    public function countChat($today): \Illuminate\Support\Collection
+    public function countChat($today): Collection
     {
         return  DB::table('chat_rooms')
             ->selectRaw('COALESCE(COUNT(chat_histories.content), 0) AS total_chats, chat_rooms."roomId", chat_rooms."roomName"')
@@ -77,4 +77,13 @@ class DashboardService{
             ->get();
     }
 
+    public function pendingChats($today) : Collection{
+        return DB::table('rates')
+            ->select('chat_rooms.roomName', DB::raw('COUNT(rates."custId") as cust_count'))
+            ->leftJoin('chat_rooms', 'rates.latestRoomId', '=', 'chat_rooms.roomId')
+            ->where('rates.status', 'pending')
+            ->whereDate('rates.created_at', $today)
+            ->groupBy('chat_rooms.roomName')
+            ->get();
+    }
 }

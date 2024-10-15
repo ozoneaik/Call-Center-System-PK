@@ -12,21 +12,19 @@ export const ProgressTable = ({dataset}) => {
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
         const path = `${window.location.origin}/select/message/${params}`;
-        window.open(path, '_blank');
+        const win = window.open(path, '_blank','width=900,height=800');
+        win && win.focus();
     };
 
     const TimeDisplay = ({startTime}) => {
         const [timeDiff, setTimeDiff] = useState(differentDate(startTime));
 
         useEffect(() => {
-            // ตั้ง interval เพื่ออัพเดทเวลาใหม่ทุกๆ 1 วินาที
             const interval = setInterval(() => {
                 setTimeDiff(differentDate(startTime));
             }, 1000);
-
-            // ล้าง interval เมื่อ component ถูกทำลาย
             return () => clearInterval(interval);
-        }, [startTime]); // ขึ้นอยู่กับค่า startTime
+        }, [startTime]);
 
         return (
             <Chip color="primary">
@@ -94,8 +92,7 @@ export const ProgressTable = ({dataset}) => {
                                 <td>
                                     <Button
                                         onClick={() => handleChat(data.rateRef, data.id, data.custId)}
-                                        size='sm'
-                                        variant='outlined'
+                                        size='sm' variant='outlined'
                                         sx={{mr: 1}} startDecorator={<ChatIcon/>}>
                                         <Typography>ดูข้อความ</Typography>
                                     </Button>

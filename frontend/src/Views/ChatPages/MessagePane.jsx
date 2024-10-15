@@ -49,6 +49,7 @@ export default function MessagePane() {
                 setMessages(data.list);
                 setRoomSelect(data.room);
                 setSender(data.sender);
+                document.title = data.sender.custName;
                 setStarList(data.starList);
                 setNotes(data.notes);
             } else {
@@ -179,19 +180,7 @@ export default function MessagePane() {
                     },
                 }}
             >
-                <Sheet
-                    sx={{
-                        position: {xs: 'fixed', sm: 'sticky'},
-                        transform: {
-                            xs: 'translateX(calc(100% * (var(--MessagesPane-slideIn, 0) - 1)))',
-                            sm: 'none',
-                        },
-                        transition: 'transform 0.4s, width 0.4s',
-                        zIndex: 100,
-                        width: '100%',
-                        top: 52,
-                    }}
-                >
+                <Sheet>
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader

@@ -1,4 +1,3 @@
-import {LinearProgress, Sheet} from "@mui/joy";
 import {useParams} from "react-router-dom";
 import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import {useEffect, useState} from "react";
@@ -9,6 +8,7 @@ import BreadcrumbsComponent from "../../components/Breadcrumbs.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
 import {PendingTable} from "./PendingTable.jsx";
 import {ProgressTable} from "./ProgressTable.jsx";
+import Sheet from "@mui/joy/Sheet";
 
 export default function MainChat() {
     const {notification} = useNotification();
@@ -16,17 +16,7 @@ export default function MainChat() {
     const BreadcrumbsPath = [{name: roomName}, {name: 'รายละเอียด'}];
     const [progress, setProgress] = useState([]);
     const [pending, setPending] = useState([]);
-    const [loading, setLoading] = useState(false);
     useEffect(() => {
-        //
-        // if (roomId === 'ROOM00'){
-        //     AlertDiaLog({
-        //         icon : 'info',
-        //         title : 'คำเตือน',
-        //         text : 'ห้องนี้เป็นห้องบอท กรุณาอย่าทำการอะไรในห้องนี้'
-        //     });
-        // }
-        setLoading(true);
         const fetchChats = async () => {
             try {
                 const {data, status} = await MessageListApi(roomId);
@@ -38,7 +28,6 @@ export default function MainChat() {
                 AlertDiaLog({title: 'เกิดข้อผิดพลาด'})
             } finally {
                 setTimeout(() => {
-                    setLoading(false);
                 }, 500)
             }
         }
@@ -60,6 +49,7 @@ export default function MainChat() {
                     </Box>
                     {/*{loading ? <LinearProgress color="danger" size="lg"/> : <ContentComponent/>}*/}
                     <ContentComponent/>
+
                 </Box>
             </Sheet>
         </>

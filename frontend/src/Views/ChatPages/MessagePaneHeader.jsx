@@ -9,6 +9,7 @@ import AddCommentIcon from '@mui/icons-material/AddComment';
 import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
 import {useAuth} from "../../context/AuthContext.jsx";
+import {openMessagesPane} from "../../utils.js";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
@@ -44,11 +45,11 @@ function MessagePaneHeader(props) {
             <Stack direction="row" sx={MessageStyle.PaneHeader.Stack}>
                 <Stack direction="row" spacing={{xs: 1, md: 2}} sx={{alignItems: 'center'}}>
                     <Avatar size="lg" src={sender.avatar}/>
-                    <div>
+                    <div onClick={()=>openMessagesPane()}>
                         <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
                             {sender.custName}
                         </Typography>
-                        <Chip size='sm'>
+                        <Chip size='sm' sx={{display : {xs : 'none'}}}>
                             {sender.description}
                         </Chip>
                     </div>
