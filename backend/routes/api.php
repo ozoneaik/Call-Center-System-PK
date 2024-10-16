@@ -82,7 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('delete/{id}',[TokenController::class, 'delete']);
     });
 
+    // จัดการ Dashboard
     Route::get('/dashboard',[DisplayController::class, 'Dashboard']);
+
+    // จัดการข้อความส่วนตัว
+    Route::get('/myMessages/{empCode}',[DisplayController::class, 'MyMessages']);
 });
 
 

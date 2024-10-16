@@ -9,7 +9,6 @@ import ChatIcon from "@mui/icons-material/Chat";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {receiveApi} from "../../Api/Messages.js";
 import {useAuth} from "../../context/AuthContext.jsx";
-import {useParams} from "react-router-dom";
 
 const data = [{
     custName: '', userReply: '', updated_at: '',
@@ -17,7 +16,6 @@ const data = [{
     empCode: '', receiveAt: '', empName: ''
 }];
 export const PendingTable = (props) => {
-    const {roomId} = useParams();
     const {user} = useAuth();
     const {dataset = data} = props;
     const handleChat = (rateId, activeId, custId, roomId) => {

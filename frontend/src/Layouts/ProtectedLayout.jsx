@@ -6,8 +6,7 @@ import Sidebar from "../Layouts/Sidebar.jsx";
 import Navbar from "./Navbar.jsx";
 import {LayoutStyle} from "../styles/LayoutStyle.js";
 import App from "../App.jsx";
-import Button from "@mui/joy/Button";
-import ChatIcon from '@mui/icons-material/Chat';
+import FloatingBtn from "../Components/FloatingBtn.jsx";
 
 function ProtectedLayout() {
     return (
@@ -22,15 +21,7 @@ function ProtectedLayout() {
                         <Outlet/>
                     </Box>
                 </Box>
-                <Button
-                    variant="solid" color="primary"
-                    sx={{
-                        position: 'fixed', bottom: 16, right: 16, borderRadius: '50%',
-                        padding: 0, width: 56, height: 56, minWidth: 'unset', zIndex: 1
-                    }}
-                >
-                    <ChatIcon/>
-                </Button>
+                <FloatingBtn/>
             </CssVarsProvider>
         </div>
     );

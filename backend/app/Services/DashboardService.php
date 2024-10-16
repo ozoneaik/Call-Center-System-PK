@@ -86,4 +86,25 @@ class DashboardService{
             ->groupBy('chat_rooms.roomName')
             ->get();
     }
+
+    public function myMessages($empCode){
+        return DB::table('active_conversations')
+            ->select(
+                'customers.custName',
+                'customers.avatar',
+                'chat_histories.content',
+                'rates.custId',
+                'rates.id AS rateId',
+                'active_conversations.id AS activeId'
+            )
+            ->leftJoin('rates', 'active_conversations.rateRef', '=', 'rates.id')
+            ->leftJoin('customers', 'rates.custId', '=', 'customers.custId')
+            ->leftJoin('chat_histories', 'chat_histories.custId', '=', 'customers.custId')
+            ->where('rates.status', 'like', 'progress')
+            ->where('active_conversations.empCode', 'like', '70010')
+            ->orderBy('customers.custId')
+            ->orderByDesc('chat_histories.created_at')
+            ->distinct('customers.custId')
+            ->get();
+    }
 }

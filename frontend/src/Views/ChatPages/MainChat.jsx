@@ -47,9 +47,7 @@ export default function MainChat() {
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
                         <BreadcrumbsComponent list={BreadcrumbsPath}/>
                     </Box>
-                    {/*{loading ? <LinearProgress color="danger" size="lg"/> : <ContentComponent/>}*/}
                     <ContentComponent/>
-
                 </Box>
             </Sheet>
         </>

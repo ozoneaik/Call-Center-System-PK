@@ -1,9 +1,5 @@
 import axiosClient from "../axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
-
-
-
-
 /* ------------------------------------------api ที่เกี่ยวกับ ห้องแชท ---------------------------------------------*/
 const chatRooms = '/chatRooms';
 // ดึงรายการห้องแชท
@@ -281,7 +277,7 @@ export const deleteTokenApi = async (id) => {
 }
 
 // ------------------------------------------------------------------------------------------------------------
-/* --------------------------------------------- api เกี่ยวกับ note ----------------------------------------------*/
+/* ------------------------------------------ api เกี่ยวกับ Dashboard -------------------------------------------*/
 export const DashboardApi = async (currentDate) => {
     try {
         const {data,status} = await axiosClient.get(`/dashboard`,{
@@ -292,3 +288,15 @@ export const DashboardApi = async (currentDate) => {
         return ErrorResponse(error);
     }
 }
+
+// ------------------------------------------------------------------------------------------------------------
+/* ------------------------------------------ api เกี่ยวกับ Dashboard -------------------------------------------*/
+export const MyMessagesApi = async (empCode) => {
+    try {
+        const {data,status} = await axiosClient.get(`/myMessages/${empCode}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+

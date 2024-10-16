@@ -107,4 +107,12 @@ class DisplayController extends Controller
             'pendingChats' => $pendingChats
         ]);
     }
+
+    public function MyMessages($empCode) : JsonResponse{
+        $myMessages = $this->dashboardService->myMessages($empCode);
+        return response()->json([
+            'message' => "success $empCode",
+            'detail' => $myMessages
+        ]);
+    }
 }
