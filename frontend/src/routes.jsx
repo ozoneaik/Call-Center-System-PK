@@ -8,7 +8,7 @@ import MainLayout from "./layouts/MainLayout.jsx";
 import MessagePane from "./views/ChatPages/MessagePane.jsx";
 import Home from "./Views/HomePages/Home.jsx";
 import ChatRooms from "./Views/ChatRooms.jsx";
-import ShortChats from "./Views/ShortChats.jsx";
+import ShortChats from "./Views/shortChats/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
 import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";

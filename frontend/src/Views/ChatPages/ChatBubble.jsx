@@ -4,8 +4,10 @@ import Typography from "@mui/joy/Typography";
 import {Sheet} from "@mui/joy";
 import {MessageStyle} from "../../styles/MessageStyle.js";
 import {Link} from "react-router-dom";
+import {useAuth} from "../../context/AuthContext.jsx";
 
 export default function Bubble(props) {
+    const {user} = useAuth();
     const {sender, variant, content, created_at, contentType} = props;
     const isSent = variant === 'sent';
     return (
@@ -17,7 +19,8 @@ export default function Bubble(props) {
                 <Typography level="body-xs">{new Date(created_at).toLocaleString()}</Typography>
             </Stack>
             <Box sx={{position: 'relative'}}>
-                <Sheet sx={isSent ? MessageStyle.Bubble.IsSent : MessageStyle.Bubble.IsNotSent}>
+                <Sheet sx={
+                    isSent ? sender.empCode === user.empCode ? MessageStyle.Bubble.IsMySent : MessageStyle.Bubble.IsSent : MessageStyle.Bubble.IsNotSent}>
                     {
                         contentType === 'sticker' ? (
                             <img src={content} alt=""/>
@@ -34,7 +37,7 @@ export default function Bubble(props) {
                         ) : (
                             <Typography
                                 level="body-sm"
-                                sx={isSent ? MessageStyle.Bubble.TextIsSent : MessageStyle.Bubble.TextIsNotSent}>
+                                sx={isSent ? sender.empCode === user.empCode ? MessageStyle.Bubble.TextMySent : MessageStyle.Bubble.TextIsSent : MessageStyle.Bubble.TextIsNotSent}>
                                 {content}
                             </Typography>
                         )

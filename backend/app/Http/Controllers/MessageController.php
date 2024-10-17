@@ -32,7 +32,6 @@ class MessageController extends Controller
     // ฟังก์ชั่นการส่งข้อความ
     public function send(sendMessageRequest $request): JsonResponse
     {
-        $status = 400;
         $detail = 'ไม่พบข้อผิดพลาด';
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
@@ -63,12 +62,13 @@ class MessageController extends Controller
                 $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $messages);
                 if ($sendMsgByLine['status']) {
                     $message = 'ส่งข้อความสำเร็จ';
-                    $status = 200;
                 } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
             } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             DB::commit();
+            $status = 200;
         } catch (\Exception $e) {
             $detail = $e->getMessage();
+            $status = 400;
         } finally {
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',

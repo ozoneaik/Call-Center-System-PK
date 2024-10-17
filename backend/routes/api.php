@@ -1,6 +1,4 @@
 <?php
-
-
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\CustomersController;
@@ -60,6 +58,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการข้อความส่งด่วน
     Route::prefix('shortChats')->group(function () {
         Route::get('/list', [ShortChatController::class, 'list']);
+        Route::get('/list/models/{group}', [ShortChatController::class, 'ListModels']);
+        Route::get('/list/problems/{group}/{model}', [ShortChatController::class, 'ListProblems']);
+        Route::get('/list/contents/{group}/{model}/{problem}/', [ShortChatController::class, 'ListContents']);
         Route::middleware(UserAccess::class)->group(function () {
             Route::post('/store', [ShortChatController::class, 'storeOrUpdate']);
             Route::delete('/delete/{id}', [ShortChatController::class, 'delete']);

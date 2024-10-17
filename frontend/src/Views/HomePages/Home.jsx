@@ -146,7 +146,7 @@ export default function Dashboard() {
                                                 <thead>
                                                 <tr>
                                                     <th style={{textAlign: 'center'}}>ห้องแชท</th>
-                                                    <th style={{textAlign: 'center'}}>จำนวนข้อความ</th>
+                                                    <th style={{textAlign: 'center'}}>จำนวนผู้ติดต่อ</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -167,11 +167,11 @@ export default function Dashboard() {
                                     <Card variant="outlined">
                                         <Box sx={{display: 'flex', height: '100%',}}>
                                             <div style={{width: '100%', borderRight: 'solid 1px #cdd7e1'}}>
-                                                <h4 style={{textAlign: 'center'}}>ลูกค้ารายใหม่</h4>
+                                                <h4 style={{textAlign: 'center'}}>ผู้ติดต่อใหม่</h4>
                                                 <h1 style={{textAlign: 'center'}}>{customers.newCust}</h1>
                                             </div>
                                             <div style={{width: '100%'}}>
-                                                <h4 style={{textAlign: 'center'}}>ลูกค้าทั้งหมด</h4>
+                                                <h4 style={{textAlign: 'center'}}>ผู้ติดต่อทั้งหมด</h4>
                                                 <h1 style={{textAlign: 'center'}}>{customers.totalToday}</h1>
                                             </div>
                                         </Box>

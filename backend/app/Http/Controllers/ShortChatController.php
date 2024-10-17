@@ -6,6 +6,7 @@ use App\Models\ShortChats;
 use App\Services\ShortChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Psy\Util\Json;
 
 class ShortChatController extends Controller
 {
@@ -20,6 +21,36 @@ class ShortChatController extends Controller
     {
         return response()->json([
             'list' => $this->shortChatService->list(),
+        ]);
+    }
+
+    public function ListModels($group): JsonResponse
+    {
+        $models = ShortChats::select('models')->where('groups', $group)->groupBy('models')->get();
+        return response()->json([
+            'list' => $models,
+        ]);
+    }
+
+    public function ListProblems($group, $model): JsonResponse
+    {
+        $problems = ShortChats::select('problems')
+            ->where('groups', $group)
+            ->where('models', $model)
+            ->groupBy('problems')->get();
+        return response()->json([
+            'list' => $problems,
+        ]);
+    }
+
+    public function ListContents($group, $model, $problem): JsonResponse{
+        $contents = ShortChats::select('content')
+            ->where('groups', $group)
+            ->where('models', $model)
+            ->where('problems', $problem)
+            ->groupBy('content')->get();
+        return response()->json([
+            'list' => $contents,
         ]);
     }
 

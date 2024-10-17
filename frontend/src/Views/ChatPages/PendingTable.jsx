@@ -32,7 +32,8 @@ export const PendingTable = (props) => {
                     if (status === 200) {
                         const params = `${rateId}/${activeId}/${custId}`;
                         const path = `${window.location.origin}/select/message/${params}`;
-                        window.open(path, '_blank');
+                        const win = window.open(path, '_blank','width=900,height=800');
+                        win && win.focus();
                     } else AlertDiaLog({title: data.message, text: data.detail});
                 } else console.log('ไม่ได้ confirm');
             }
@@ -54,7 +55,7 @@ export const PendingTable = (props) => {
                         disabled={Disable} startDecorator={<ChatIcon/>}
                         onClick={() => handleChat(rateRef, id, custId, roomId)}
                 >
-                    <Typography>รับเรื่อง {user.roomId} {roomId}</Typography>
+                    <Typography>รับเรื่อง</Typography>
                 </Button>
             </Box>
         )

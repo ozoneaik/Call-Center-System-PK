@@ -62,7 +62,10 @@ class MessageService
             ]);
             if ($response->status() == 200) {
                 $data['status'] = true;
-            } else throw new \Exception($response->json());
+            } else {
+                $data['status'] = false;
+                throw new \Exception($response->json());
+            }
             $data['messages'] = $response->json();
         } catch (\Exception $e) {
             $data['message'] = $e->getMessage();

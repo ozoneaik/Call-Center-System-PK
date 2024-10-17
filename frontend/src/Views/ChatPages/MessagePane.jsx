@@ -95,21 +95,23 @@ export default function MessagePane() {
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
-        await handleSend(c)
+        setMsg(c)
+        await handleSend({c: c.content})
     }
 
-    const handleSend = async (c) => {
-        const C = c ? {...c} : msg;
-        console.log(C)
-        if (C.content === null || C.content === undefined || C.content === '') {
+    const handleSend = async ({type = 'text', c}) => {
+        const C = msg.content ? msg.content :  c;
+        if (C === null || C === undefined || C === '') {
             alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
             return;
         }
         const {data, status} = await sendApi({
             msg: C,
+            contentType: type,
             custId: sender.custId,
             conversationId: activeId
         });
+        console.log(data, status)
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
             setMessages((prevMessages) => {
@@ -118,8 +120,8 @@ export default function MessagePane() {
                     ...prevMessages,
                     {
                         id: newId,
-                        content: C.content,
-                        contentType: C.contentType,
+                        content: C,
+                        contentType: type,
                         sender: user,
                         created_at: new Date().toString()
                     },
@@ -189,7 +191,6 @@ export default function MessagePane() {
                             shortCustSend={(c) => sendFromShortCut(c)}
                             sender={sender}
                             chatRooms={chatRooms}
-                            shortChat={shortChat}
                             roomSelect={roomSelect}
                         />
                         {/*Message pane*/}
@@ -197,7 +198,7 @@ export default function MessagePane() {
                             <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
                                 {messages.length > 0 && (
                                     messages.map((message, index) => {
-                                        const isYou = message.sender.empCode === user.empCode;
+                                        const isYou = message.sender.empCode;
                                         return (
                                             <Stack
                                                 key={index} direction="row" spacing={2}
@@ -240,17 +241,17 @@ export default function MessagePane() {
                                                 <LocalSeeIcon/>
                                             </Button>
                                             <Button disabled={sender.emp !== user.empCode} color="primary"
-                                                    onClick={handleSend}>
-                                                <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>ส่ง
-                                                    (
-                                                    ctrl+enter )</Typography>
+                                                    onClick={() => handleSend({type: 'text'})}>
+                                                <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
+                                                    ส่ง ( ctrl+enter )
+                                                </Typography>
                                                 <SendRoundedIcon/>
                                             </Button>
                                         </Stack>
                                     }
-                                    onKeyDown={(event) => {
+                                    onKeyDown={ async (event) => {
                                         if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                                            handleSend().then()
+                                            await handleSend({})
                                         }
                                     }}
                                 />

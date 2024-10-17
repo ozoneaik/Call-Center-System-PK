@@ -44,6 +44,34 @@ export const shortChatApi = async () => {
     }
 }
 
+export const ListModelsApi = async ({group}) => {
+    try {
+        const {data,status} = await axiosClient.get(`${shortChats}/list/models/${group}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const ListProblemsApi = async ({group,model}) => {
+    try {
+        const {data,status} = await axiosClient.get(`${shortChats}/list/problems/${group}/${model}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const ListContentsApi = async ({group,model,problem}) => {
+    try {
+        const {data,status} = await axiosClient.get(`${shortChats}/list/contents/${group}/${model}/${problem}`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+
 // สร้างหรืออัพเดทแชทด่วน
 export const storeOrUpdateChatCreateApi = async (shortChat) => {
     try {
@@ -70,16 +98,17 @@ export const shortChatDeleteApi = async (id) => {
 const messages = '/messages';
 
 // ส่งแชท
-export const sendApi = async ({msg,custId,conversationId}) => {
+export const sendApi = async ({msg,contentType,custId,conversationId}) => {
     const body = {
         custId : custId,
         conversationId,
         messages : [{
-            content : msg.content,
-            contentType : msg.contentType,
+            content : msg,
+            contentType : contentType,
             sender : 'sender'
         }]
     };
+    console.log(body,msg)
     try {
         const {data,status} = await axiosClient.post(`${messages}/send`, {...body});
         return {data,status};

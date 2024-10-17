@@ -55,12 +55,21 @@ export const MessageStyle = {
             justifyContent: 'space-between',
             mb: 0.25
         },
-        IsSent: {
+        IsMySent: {
             p: 1.25, borderRadius: 'lg',
             mr : 1,
             borderTopRightRadius: 0,
             borderTopLeftRadius: 'lg',
             backgroundColor: 'var(--joy-palette-primary-solidBg)'
+            // backgroundColor: '#d1dcf5',
+        },
+        IsSent: {
+            p: 1.25, borderRadius: 'lg',
+            mr : 1,
+            borderTopRightRadius: 0,
+            borderTopLeftRadius: 'lg',
+            // backgroundColor: 'var(--joy-palette-primary-solidBg)'
+            backgroundColor: '#d1dcf5',
         },
         IsNotSent: {
             p: 1.25, borderRadius: 'lg',
@@ -79,9 +88,11 @@ export const MessageStyle = {
             borderTopRightRadius: 'lg'
         },
         TextIsSent: {
-            color: 'var(--joy-palette-common-white)',
+            color: '#393b3d',
         },
-
+        TextMySent: {
+            color: '#ffffff',
+        },
         TextIsNotSent: {
             color: 'var(--joy-palette-text-primary)'
         }

@@ -101,7 +101,7 @@ class DashboardService{
             ->leftJoin('customers', 'rates.custId', '=', 'customers.custId')
             ->leftJoin('chat_histories', 'chat_histories.custId', '=', 'customers.custId')
             ->where('rates.status', 'like', 'progress')
-            ->where('active_conversations.empCode', 'like', '70010')
+            ->where('active_conversations.empCode', 'like', $empCode)
             ->orderBy('customers.custId')
             ->orderByDesc('chat_histories.created_at')
             ->distinct('customers.custId')

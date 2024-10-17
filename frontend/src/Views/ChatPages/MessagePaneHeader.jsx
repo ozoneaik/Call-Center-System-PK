@@ -10,10 +10,11 @@ import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
 import {useAuth} from "../../context/AuthContext.jsx";
 import {openMessagesPane} from "../../utils.js";
+import {ShortChatContent} from "../../Components/ShortChatContent.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, shortChat, roomSelect, shortCustSend, sendTo, endTalk} = props;
+    const {sender, chatRooms, roomSelect, shortCustSend, sendTo, endTalk} = props;
     const [sendingOpen, setSendingOpen] = useState(false);
     const [shortCut, setShortcut] = useState(false);
 
@@ -45,11 +46,11 @@ function MessagePaneHeader(props) {
             <Stack direction="row" sx={MessageStyle.PaneHeader.Stack}>
                 <Stack direction="row" spacing={{xs: 1, md: 2}} sx={{alignItems: 'center'}}>
                     <Avatar size="lg" src={sender.avatar}/>
-                    <div onClick={()=>openMessagesPane()}>
+                    <div onClick={() => openMessagesPane()}>
                         <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
                             {sender.custName}
                         </Typography>
-                        <Chip size='sm' sx={{display : {xs : 'none'}}}>
+                        <Chip size='sm' sx={{display: {xs: 'none'}}}>
                             {sender.description}
                         </Chip>
                     </div>
@@ -82,8 +83,8 @@ function MessagePaneHeader(props) {
                     {chatRooms.length > 0 && (
                         chatRooms.map((room, index) => (
                             <Button
-                                onClick={() => sendToMoreRoom(room.roomId)}
-                                key={index} disabled={(room.id === roomSelect.id) || (room.roomId === 'ROOM00')}
+                                onClick={() => sendToMoreRoom(room.roomId)} key={index}
+                                disabled={(room.id === roomSelect.id) || (room.roomId === 'ROOM00')}
                             >
                                 {room.roomName}
                             </Button>
@@ -96,13 +97,7 @@ function MessagePaneHeader(props) {
                 <ModalDialog>
                     <ModalClose/>
                     <Typography component="h2">ตัวช่วยตอบ</Typography>
-                    {shortChat.length > 0 && (
-                        shortChat.map((row, index) => (
-                            <Button onClick={() => sendShortCut(row.content)} color='warning' key={index}>
-                                {row.content}
-                            </Button>
-                        ))
-                    )}
+                    <ShortChatContent handle={(content) => sendShortCut(content)}/>
                 </ModalDialog>
             </Modal>
         </>
