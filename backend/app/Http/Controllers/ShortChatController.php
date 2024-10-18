@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ShortChatsRequest;
 use App\Models\ShortChats;
 use App\Services\ShortChatService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Psy\Util\Json;
 
 class ShortChatController extends Controller
@@ -19,8 +23,23 @@ class ShortChatController extends Controller
 
     public function list(): JsonResponse
     {
+        $list = ShortChats::orderBy('created_at', 'desc')->get();
+        $groups = ShortChats::select('groups as title')->groupBy('groups')->get();
+        $models = ShortChats::select('models as title')->groupBy('models')->get();
+        $problems = ShortChats::select('problems as title')->groupBy('problems')->get();
         return response()->json([
-            'list' => $this->shortChatService->list(),
+            'list' => $list,
+            'groups' => $groups,
+            'models' => $models,
+            'problems' => $problems,
+        ]);
+    }
+
+    public function ListGroups(): JsonResponse
+    {
+        $groups = ShortChats::select('groups')->groupBy('groups')->get();
+        return response()->json([
+            'list' => $groups,
         ]);
     }
 
@@ -43,7 +62,8 @@ class ShortChatController extends Controller
         ]);
     }
 
-    public function ListContents($group, $model, $problem): JsonResponse{
+    public function ListContents($group, $model, $problem): JsonResponse
+    {
         $contents = ShortChats::select('content')
             ->where('groups', $group)
             ->where('models', $model)
@@ -54,25 +74,36 @@ class ShortChatController extends Controller
         ]);
     }
 
-    public function storeOrUpdate(Request $request): JsonResponse
+    public function storeOrUpdate(ShortChatsRequest $request): JsonResponse
     {
         $status = 400;
         $detail = 'ไม่มีข้อผิดพลาด';
         try {
-            if (empty($request['content'])) throw new \Exception('ไม่พบข้อความส่งด่วนที่จะเพิ่ม');
-            $checkContent = ShortChats::where('id', $request['id'])->first();
-            if ($checkContent) {
-                $checkContent['content'] = $request['content'];
-                if (!$checkContent->save()) throw new \Exception('ไม่สามารถสร้างข้อความส่งด่วนใหม่ได้ เกิดปัญหาบางอย่าง');
-            } else {
-                $store = ShortChats::create([
-                    'content' => $request['content']
-                ]);
-                if (!$store) throw new \Exception('ไม่สามารถสร้างข้อความส่งด่วนใหม่ได้ เกิดปัญหาบางอย่าง');
+            DB::beginTransaction();
+            $groups = $request['groups'];
+            $models = $request['models'];
+            $problems = $request['problems'];
+            $content = $request['content'];
+
+            foreach ($groups as $group) {
+                foreach ($models as $model) {
+                    foreach ($problems as $problem) {
+                        ShortChats::create([
+                            'content' => $content,
+                            'groups' => $group['title'],
+                            'models' => $model['title'],
+                            'problems' => $problem['title'],
+                        ]);
+                        Log::info(Carbon::now());
+                    }
+                }
             }
+
             $message = 'สร้างข้อมูลสำเร็จ';
             $status = 200;
+            DB::commit();
         } catch (\Exception $exception) {
+            DB::rollBack();
             $detail = $exception->getMessage();
         } finally {
             return response()->json([

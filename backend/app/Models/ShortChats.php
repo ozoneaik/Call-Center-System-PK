@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static where(string $string, mixed $content)
  * @method static find($id)
  * @method static select(string $string)
+ * @method static orderBy(string $string, string $string1)
  */
 class ShortChats extends Model
 {

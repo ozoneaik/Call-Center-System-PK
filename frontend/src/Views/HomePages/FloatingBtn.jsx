@@ -1,8 +1,8 @@
 import ChatIcon from "@mui/icons-material/Chat";
 import Button from "@mui/joy/Button";
 import React, {useState} from "react";
-import {useAuth} from "../context/AuthContext.jsx";
-import {MyMessagesApi} from "../Api/Messages.js";
+import {useAuth} from "../../context/AuthContext.jsx";
+import {MyMessagesApi} from "../../Api/Messages.js";
 import Typography from "@mui/joy/Typography";
 import {Badge, ListItemDecorator, Modal} from "@mui/joy";
 import List from '@mui/joy/List';
@@ -10,12 +10,14 @@ import Sheet from "@mui/joy/Sheet";
 import ListItem from "@mui/joy/ListItem";
 import ListItemContent from "@mui/joy/ListItemContent";
 import Avatar from "@mui/joy/Avatar";
+import {useNotification} from "../../context/NotiContext.jsx";
 
 export default function FloatingBtn() {
     const [chats, setChats] = useState([]);
     const [open, setOpen] = useState(false);
     const {user} = useAuth();
-    const [count , setCount] = useState(0);
+    const {unRead} = useNotification();
+    const [count, setCount] = useState(0);
     const handleClick = async () => {
         const {data} = await MyMessagesApi(user.empCode);
         setOpen(!open);
@@ -25,7 +27,7 @@ export default function FloatingBtn() {
 
     const handleRedirect = (selected) => {
         console.log('test')
-        const params = `${selected.rateId}/${selected.activeId}/${selected.custId}`;
+        const params = `${selected.rateId}/${selected.activeId}/${selected.custId}/1`;
         const path = `${window.location.origin}/select/message/${params}`;
         const win = window.open(path, '_blank', 'width=900,height=800');
         win && win.focus();
@@ -46,7 +48,7 @@ export default function FloatingBtn() {
                                 '&:hover': {
                                     backgroundColor: 'primary.softBg', cursor: 'pointer',
                                 },
-                                    borderRadius: 10,mb : 1, width : 300
+                                borderRadius: 10, mb: 1, width: 300
                             }} key={index}>
                                 <ListItemDecorator>
                                     <Avatar src={chat.avatar}/>
@@ -68,15 +70,15 @@ export default function FloatingBtn() {
             <Button onClick={handleClick}
                     variant="solid" color="primary"
                     sx={{
-                        position: 'fixed', bottom: 16, right: 16, borderRadius: '50%',
+                        position: 'fixed', bottom: 16, right: 16, borderRadius : '50%',
                         padding: 0, width: 56, height: 56, minWidth: 'unset', zIndex: 1
                     }}
             >
                 <Badge
-                    badgeContent={count} color="danger"
-                    sx={{"& .MuiBadge-badge": {right: -12, top: -10, border: `2px solid white`, padding: '1',}}}
+                    badgeContent={unRead} color="danger"
+                    sx={{"& .MuiBadge-badge": {right: -10, top: -10, border: `2px solid white`, padding: '1',}}}
                 >
-                <ChatIcon/>
+                            <ChatIcon/>
                 </Badge>
             </Button>
         </>

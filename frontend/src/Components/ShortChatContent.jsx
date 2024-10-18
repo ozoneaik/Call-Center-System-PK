@@ -1,7 +1,7 @@
 import Grid from "@mui/material/Grid2";
 import {useEffect, useState} from "react";
 import Button from "@mui/joy/Button";
-import {ListContentsApi, ListModelsApi, ListProblemsApi, shortChatApi} from "../Api/Messages.js";
+import {ListContentsApi, ListForForm, ListGroupsApi, ListModelsApi, ListProblemsApi} from "../Api/Messages.js";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
 import Tooltip from '@mui/joy/Tooltip';
@@ -17,7 +17,7 @@ export const ShortChatContent = ({handle}) => {
     const [C, setC] = useState('');
 
     const fetchChatRoom = async () => {
-        const {data, status} = await shortChatApi();
+        const {data, status} = await ListGroupsApi();
         status === 200 && setGroups(data.list);
     }
     useEffect(() => {

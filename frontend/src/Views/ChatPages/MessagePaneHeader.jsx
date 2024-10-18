@@ -14,7 +14,7 @@ import {ShortChatContent} from "../../Components/ShortChatContent.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, roomSelect, shortCustSend, sendTo, endTalk} = props;
+    const {sender, chatRooms, roomSelect, shortCustSend, sendTo, endTalk, check} = props;
     const [sendingOpen, setSendingOpen] = useState(false);
     const [shortCut, setShortcut] = useState(false);
 
@@ -55,23 +55,26 @@ function MessagePaneHeader(props) {
                         </Chip>
                     </div>
                 </Stack>
-                <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
-                    <Btn
-                        title={'ส่งต่อไปยัง'} color={'primary'} icon={<TelegramIcon/>}
-                        onClick={() => setSendingOpen(true)}
-                        disable={sender.emp !== user.empCode}
-                    />
-                    <Btn
-                        title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
-                        onClick={() => setShortcut(true)}
-                        disable={sender.emp !== user.empCode}
-                    />
-                    <Btn
-                        title={'จบการสนทนา'} color={'success'} icon={<DoneIcon/>}
-                        onClick={() => endTalk(sender.custId)}
-                        disable={sender.emp !== user.empCode}
-                    />
-                </Stack>
+                {check === '1' && (
+                    <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
+                        <Btn
+                            title={'ส่งต่อไปยัง'} color={'primary'} icon={<TelegramIcon/>}
+                            onClick={() => setSendingOpen(true)}
+                            disable={sender.emp !== user.empCode}
+                        />
+                        <Btn
+                            title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
+                            onClick={() => setShortcut(true)}
+                            disable={sender.emp !== user.empCode}
+                        />
+                        <Btn
+                            title={'จบการสนทนา'} color={'success'} icon={<DoneIcon/>}
+                            onClick={() => endTalk(sender.custId)}
+                            disable={sender.emp !== user.empCode}
+                        />
+                    </Stack>
+                )}
+
             </Stack>
 
             {/* modal ส่งต่อไปยัง */}

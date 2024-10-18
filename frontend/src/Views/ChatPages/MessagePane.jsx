@@ -29,7 +29,7 @@ export default function MessagePane() {
         description: 'ไม่พบ description',
         emp: ''
     });
-    const {rateId, activeId, custId} = useParams();
+    const {rateId, activeId, custId, check} = useParams();
     const [chatRooms, setChatRooms] = useState([{chatRooms: []}]);
     const [shortChat, setShortChat] = useState([{short_chats: []}]);
     const [msg, setMsg] = useState({
@@ -100,7 +100,7 @@ export default function MessagePane() {
     }
 
     const handleSend = async ({type = 'text', c}) => {
-        const C = msg.content ? msg.content :  c;
+        const C = msg.content ? msg.content : c;
         if (C === null || C === undefined || C === '') {
             alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
             return;
@@ -186,6 +186,7 @@ export default function MessagePane() {
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader
+                            check={check}
                             endTalk={(e) => endTalk(e)}
                             sendTo={(c) => handleChangeRoom(c)}
                             shortCustSend={(c) => sendFromShortCut(c)}
@@ -213,54 +214,62 @@ export default function MessagePane() {
                             </Stack>
                         </Box>
                         {/* Message Input */}
-                        <Box sx={{px: 2, pb: 3}}>
-                            <FormControl>
-                                <Textarea
-                                    id='inputSend'
-                                    disabled={sender.emp !== user.empCode}
-                                    placeholder="พิมพ์ข้อความที่นี่..."
-                                    minRows={3} maxRows={10}
-                                    value={msg.content}
-                                    onChange={(e) => setMsg({...msg, content: e.target.value})}
-                                    endDecorator={
-                                        <Stack direction="row" sx={MessageStyle.TextArea}>
-                                            <Button disabled={sender.emp !== user.empCode} color="warning"
-                                                    onClick={handleSend}
-                                                    sx={{mr: 1}}>
-                                                <Typography
-                                                    sx={{mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}}}>ส่ง
-                                                    sticker</Typography>
-                                                <InsertEmoticonIcon/>
-                                            </Button>
-                                            <Button disabled={sender.emp !== user.empCode} color="danger"
-                                                    onClick={handleSend}
-                                                    sx={{mr: 1}}>
-                                                <Typography sx={{
-                                                    mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
-                                                }}>แนปรูป</Typography>
-                                                <LocalSeeIcon/>
-                                            </Button>
-                                            <Button disabled={sender.emp !== user.empCode} color="primary"
-                                                    onClick={() => handleSend({type: 'text'})}>
-                                                <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
-                                                    ส่ง ( ctrl+enter )
-                                                </Typography>
-                                                <SendRoundedIcon/>
-                                            </Button>
-                                        </Stack>
-                                    }
-                                    onKeyDown={ async (event) => {
-                                        if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                                            await handleSend({})
+                        {check === '1' && (
+                            <Box sx={{px: 2, pb: 3}}>
+                                <FormControl>
+                                    <Textarea
+                                        id='inputSend'
+                                        disabled={sender.emp !== user.empCode}
+                                        placeholder="พิมพ์ข้อความที่นี่..."
+                                        minRows={3} maxRows={10}
+                                        value={msg.content}
+                                        onChange={(e) => setMsg({...msg, content: e.target.value})}
+                                        endDecorator={
+                                            <Stack direction="row" sx={MessageStyle.TextArea}>
+                                                <Button disabled={sender.emp !== user.empCode} color="warning"
+                                                        onClick={handleSend}
+                                                        sx={{mr: 1}}>
+                                                    <Typography
+                                                        sx={{
+                                                            mr: 1,
+                                                            color: 'white',
+                                                            display: {xs: 'none', sm: 'block'}
+                                                        }}>ส่ง
+                                                        sticker</Typography>
+                                                    <InsertEmoticonIcon/>
+                                                </Button>
+                                                <Button disabled={sender.emp !== user.empCode} color="danger"
+                                                        onClick={handleSend}
+                                                        sx={{mr: 1}}>
+                                                    <Typography sx={{
+                                                        mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
+                                                    }}>แนปรูป</Typography>
+                                                    <LocalSeeIcon/>
+                                                </Button>
+                                                <Button disabled={sender.emp !== user.empCode} color="primary"
+                                                        onClick={() => handleSend({type: 'text'})}>
+                                                    <Typography
+                                                        sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
+                                                        ส่ง ( ctrl+enter )
+                                                    </Typography>
+                                                    <SendRoundedIcon/>
+                                                </Button>
+                                            </Stack>
                                         }
-                                    }}
-                                />
-                            </FormControl>
-                        </Box>
+                                        onKeyDown={async (event) => {
+                                            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                                                await handleSend({})
+                                            }
+                                        }}
+                                    />
+                                </FormControl>
+                            </Box>
+                        )}
+
                     </Sheet>
                 </Sheet>
                 {/* Info */}
-                <InfoMessage sender={sender} starList={starList} notes={notes}/>
+                <InfoMessage sender={sender} starList={starList} notes={notes} check={check}/>
             </Sheet>
 
         </>

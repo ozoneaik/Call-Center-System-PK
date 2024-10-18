@@ -58,6 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการข้อความส่งด่วน
     Route::prefix('shortChats')->group(function () {
         Route::get('/list', [ShortChatController::class, 'list']);
+        // แสดงตอนอยู่ในหน้าข้อความ
+        Route::get('/list/groups', [ShortChatController::class, 'ListGroups']);
         Route::get('/list/models/{group}', [ShortChatController::class, 'ListModels']);
         Route::get('/list/problems/{group}/{model}', [ShortChatController::class, 'ListProblems']);
         Route::get('/list/contents/{group}/{model}/{problem}/', [ShortChatController::class, 'ListContents']);
@@ -88,7 +90,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการข้อความส่วนตัว
     Route::get('/myMessages/{empCode}',[DisplayController::class, 'MyMessages']);
+
+    //ดูประวัติแชททั้งหมด
 });
+    Route::get('/chatHistory',[DisplayController::class, 'ChatHistory']);
 
 
 

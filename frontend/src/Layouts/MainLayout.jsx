@@ -8,7 +8,7 @@ import {useChatRooms} from "../context/ChatRoomContext.jsx";
 
 export default function MainLayout() {
     const {user, setUser} = useAuth();
-    const {setNotification} = useNotification();
+    const {setNotification , setUnRead} = useNotification();
     const {setChatRoomsContext} = useChatRooms();
 
     useEffect(() => {
@@ -24,6 +24,7 @@ export default function MainLayout() {
         newMessage({
             onPassed: (status, event) => {
                 setNotification(event);
+                setUnRead(event.countCustomer)
             }
         });
         newChatRooms({

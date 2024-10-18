@@ -7,11 +7,13 @@ import {convertFullDate, differentDate, getRandomColor} from "../../Components/O
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import {useEffect, useState} from "react";
+import HistoryIcon from '@mui/icons-material/History';
+import {Link} from "react-router-dom";
 
 export const ProgressTable = ({dataset}) => {
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
-        const path = `${window.location.origin}/select/message/${params}`;
+        const path = `${window.location.origin}/select/message/${params}/1`;
         const win = window.open(path, '_blank','width=900,height=800');
         win && win.focus();
     };
@@ -39,6 +41,9 @@ export const ProgressTable = ({dataset}) => {
         <>
             <Box sx={ChatPageStyle.BoxTable}>
                 <Typography level="h2" component="h1">กำลังดำเนินการ</Typography>
+                <Button component={Link} to={'/chatHistory'}>
+                    <HistoryIcon/>&nbsp;ประวัติแชททั้งหมด
+                </Button>
             </Box>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>

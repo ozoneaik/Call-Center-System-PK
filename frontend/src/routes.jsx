@@ -14,6 +14,7 @@ import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
 import AccessToken from "./Views/AccessToken.jsx";
 import TestUi from "./TestUi.jsx";
+import ChatHistory from "./Views/ChatHistory.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -42,11 +43,12 @@ export const routes = createBrowserRouter([
                             {path: '/accessToken', element: <AccessToken/>},
                         ]
                     },
+                    {path: '/chatHistory', element: <ChatHistory/>}
                 ]
             },
             {
                 path: '/select', children: [
-                    {path: 'message/:rateId/:activeId/:custId', element: <MessagePane/>},
+                    {path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane/>},
                 ]
             }
         ]

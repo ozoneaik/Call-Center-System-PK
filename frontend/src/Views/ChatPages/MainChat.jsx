@@ -9,9 +9,11 @@ import {useNotification} from "../../context/NotiContext.jsx";
 import {PendingTable} from "./PendingTable.jsx";
 import {ProgressTable} from "./ProgressTable.jsx";
 import Sheet from "@mui/joy/Sheet";
+import {useAuth} from "../../context/AuthContext.jsx";
 
 export default function MainChat() {
-    const {notification} = useNotification();
+    const {user} = useAuth()
+    const {notification,setUnRead} = useNotification();
     const {roomId, roomName} = useParams();
     const BreadcrumbsPath = [{name: roomName}, {name: 'รายละเอียด'}];
     const [progress, setProgress] = useState([]);
@@ -23,6 +25,9 @@ export default function MainChat() {
                 if (status === 200) {
                     setProgress(data.progress);
                     setPending(data.pending);
+                    const count = data.progress.filter((item) => item.empCode === user.empCode);
+                    console.log("Count:",count);
+                    setUnRead(count ? count.length : 0);
                 } else console.log('ไม่มีรายการ MessageList')
             } catch (error) {
                 AlertDiaLog({title: 'เกิดข้อผิดพลาด'})

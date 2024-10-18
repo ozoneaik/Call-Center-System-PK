@@ -44,6 +44,24 @@ export const shortChatApi = async () => {
     }
 }
 
+export const ListForForm = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${shortChats}/listForForm`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
+export const ListGroupsApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`${shortChats}/list/groups`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 export const ListModelsApi = async ({group}) => {
     try {
         const {data,status} = await axiosClient.get(`${shortChats}/list/models/${group}`);
@@ -73,9 +91,9 @@ export const ListContentsApi = async ({group,model,problem}) => {
 
 
 // สร้างหรืออัพเดทแชทด่วน
-export const storeOrUpdateChatCreateApi = async (shortChat) => {
+export const storeOrUpdateChatCreateApi = async (dataForm) => {
     try {
-        const {data,status} = await axiosClient.post(`${shortChats}/store`,{...shortChat});
+        const {data,status} = await axiosClient.post(`${shortChats}/store`,{...dataForm});
         return {data,status};
     }catch (error){
         return ErrorResponse(error);
@@ -329,3 +347,11 @@ export const MyMessagesApi = async (empCode) => {
     }
 }
 
+export const chatHistoryApi = async () => {
+    try {
+        const {data,status} = await axiosClient.get(`/chatHistory`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}

@@ -28,6 +28,7 @@ import {logoutApi} from "../api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {chatRoomListApi} from "../api/Messages.js";
 import {useChatRooms} from "../context/ChatRoomContext.jsx";
+import PersonIcon from '@mui/icons-material/Person';
 
 export default function Sidebar() {
     const {setChatRoomsContext} = useChatRooms()
@@ -116,8 +117,21 @@ export default function Sidebar() {
                         ))
                     )}
                 </List>
-                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>สำหรับ
-                    ผู้ดูแลระบบ</Typography>
+                <Typography startDecorator={<PersonIcon/>} mb={1} level='body-sm'>
+                    รายการของท่าน
+                </Typography>
+                <Divider/>
+                <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
+                    <ListItem component={Link} to={`/chatHistory`}>
+                        <ListItemButton selected={pathname === '/chatHistory'}>
+                            <MeetingRoomIcon/>
+                            ประวัติการสนทนาทั้งหมด
+                        </ListItemButton>
+                    </ListItem>
+                </List>
+                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>
+                    สำหรับผู้ดูแลระบบ
+                </Typography>
                 <Divider/>
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
                     <ListItem component={Link} to={`/chatRooms`}>

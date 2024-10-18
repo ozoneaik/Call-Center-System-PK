@@ -6,6 +6,6 @@ use Illuminate\Database\Eloquent\Collection;
 class ShortChatService{
     public function list(): Collection
     {
-        return ShortChats::select('groups')->groupBy('groups')->get();
+        return ShortChats::all();
     }
 }

@@ -31,7 +31,7 @@ export const PendingTable = (props) => {
                     const {data, status} = await receiveApi(rateId, roomId);
                     if (status === 200) {
                         const params = `${rateId}/${activeId}/${custId}`;
-                        const path = `${window.location.origin}/select/message/${params}`;
+                        const path = `${window.location.origin}/select/message/${params}/1`;
                         const win = window.open(path, '_blank','width=900,height=800');
                         win && win.focus();
                     } else AlertDiaLog({title: data.message, text: data.detail});

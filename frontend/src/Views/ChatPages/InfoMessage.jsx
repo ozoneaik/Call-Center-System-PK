@@ -28,7 +28,7 @@ const StarRating = ({value, max = 5}) => (
 );
 
 export default function InfoMessage(props) {
-    const {sender} = props;
+    const {sender, check} = props;
     const [notes, setNotes] = useState([]);
     const [starList, setStarList] = useState([]);
     const [newNote, setNewNote] = useState('');
@@ -79,6 +79,7 @@ export default function InfoMessage(props) {
 
     const deleteNote = (id) => {
         AlertDiaLog({
+            icon: 'question',
             title: 'ยืนยันการลบ',
             text: 'กด ตกลง เพื่อยืนยันการลบ',
             onPassed: async (confirm) => {
@@ -117,13 +118,15 @@ export default function InfoMessage(props) {
             <Box sx={{p: 2, height: '40%', overflowY: 'scroll'}}>
                 <Typography level="title-md" sx={{mb: 1}}>โน๊ต</Typography>
                 <Stack spacing={1}>
-                    <form onSubmit={() => addNote()}>
-                        <Textarea required value={newNote || ''} placeholder='เพิ่มโน้ต'
-                                  onChange={(e) => setNewNote(e.target.value)}/>
-                        <Box sx={{display: 'flex', justifyContent: 'end', alignItems: 'center',mt : 1}}>
-                            <Button size='sm' type={"submit"}>เพิ่ม</Button>
-                        </Box>
-                    </form>
+                    {check === '1' && (
+                        <form onSubmit={(e) => addNote(e)}>
+                            <Textarea required value={newNote || ''} placeholder='เพิ่มโน้ต'
+                                      onChange={(e) => setNewNote(e.target.value)}/>
+                            <Box sx={{display: 'flex', justifyContent: 'end', alignItems: 'center', mt: 1}}>
+                                <Button size='sm' type={"submit"}>เพิ่ม</Button>
+                            </Box>
+                        </form>
+                    )}
                     {notes && notes.length > 0 ? (notes.map((note, index) => (
                         <Card key={index} variant="soft" color='neutral'>
                             <CardContent>

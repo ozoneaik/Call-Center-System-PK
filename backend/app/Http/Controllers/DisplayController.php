@@ -55,7 +55,7 @@ class DisplayController extends Controller
 
             $starList = Rates::select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();
 
-            $notes = $notes = Notes::where('custId', $custId)->orderBy('created_at','desc')->get();
+            $notes = Notes::where('custId', $custId)->orderBy('created_at','desc')->get();
 
             $message = 'ดึงข้อมูลสำเร็จ';
             $status = 200;
@@ -113,6 +113,19 @@ class DisplayController extends Controller
         return response()->json([
             'message' => "success $empCode",
             'detail' => $myMessages
+        ]);
+    }
+
+    public function ChatHistory() : JsonResponse{
+        $list = ActiveConversations::select('active_conversations.*', 'customers.custName', 'customers.avatar','customers.description')
+            ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
+            ->distinct('active_conversations.custId')
+            ->orderBy('active_conversations.custId')
+            ->orderBy('active_conversations.created_at', 'DESC')
+            ->get();
+
+        return response()->json([
+           'list' => $list
         ]);
     }
 }

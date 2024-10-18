@@ -2,3 +2,62 @@
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
+                                        <thead>
+                                        <tr>
+                                            <th style={{width: 100}}>อันดับ</th>
+                                            <th>ชื่อ</th>
+                                            <th>หมดหมู่</th>
+                                            <th>รุ่น</th>
+                                            <th>ปัญหา</th>
+                                            <th>จัดการ</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {!loading ? (
+                                            shortChats.length > 0 && (
+                                                shortChats.map((shortChat, index) => (
+                                                    <tr key={index}>
+                                                        <td>{index + 1}</td>
+                                                        <td>{shortChat.content}</td>
+                                                        <td>{shortChat.groups}</td>
+                                                        <td>{shortChat.models}</td>
+                                                        <td>{shortChat.problems}</td>
+                                                        <td>
+                                                            <Box sx={{display: 'flex', gap: 1}}>
+                                                                <Button size='sm' onClick={() => clickEdit(shortChat)}>
+                                                                    <EditNoteIcon/>
+                                                                </Button>
+                                                                <Button size='sm' color='danger'
+                                                                        onClick={() => handleDelete(shortChat.id)}>
+                                                                    <DeleteIcon/>
+                                                                </Button>
+                                                            </Box>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={3} style={{textAlign: "center"}}>
+                                                    <CircularProgress color="primary" size="md"/>
+                                                </td>
+                                            </tr>
+                                        )}
+                                        </tbody>
+                                    </Table>
