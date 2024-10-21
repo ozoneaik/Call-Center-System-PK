@@ -1,7 +1,7 @@
 import Grid from "@mui/material/Grid2";
 import {useEffect, useState} from "react";
 import Button from "@mui/joy/Button";
-import {ListContentsApi, ListForForm, ListGroupsApi, ListModelsApi, ListProblemsApi} from "../Api/Messages.js";
+import {ListContentsApi, ListGroupsApi, ListModelsApi, ListProblemsApi} from "../Api/Messages.js";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
 import Tooltip from '@mui/joy/Tooltip';
@@ -120,7 +120,17 @@ export const ShortChatContent = ({handle}) => {
                             <Button
                                 onClick={() => setC(content.content)}
                                 disabled={C === content.content}
-                                fullWidth sx={{my: .5}}>
+                                fullWidth sx={{
+                                my: .5,
+                                width: 200,
+                                overflow: "hidden",
+                                display: "-webkit-box",
+                                WebkitBoxOrient: "vertical",
+                                WebkitLineClamp: 3,
+                                textOverflow: "ellipsis",
+                                height: "auto",
+                            }}>
+
                                 {content.content}
                             </Button>
                         </Tooltip>
@@ -128,7 +138,7 @@ export const ShortChatContent = ({handle}) => {
                 </Grid>
                 <Grid size={12}>
                     <Grid container direction="row-reverse">
-                        <Button onClick={()=>handle(C)} disabled={C === null || C === ''} size='sm'>ส่ง</Button>
+                        <Button onClick={() => handle(C)} disabled={C === null || C === ''} size='sm'>ส่ง</Button>
                     </Grid>
                 </Grid>
             </Grid>
