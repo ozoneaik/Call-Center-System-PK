@@ -133,7 +133,15 @@ export default function ShortChats() {
                                                 shortChats.map((shortChat, index) => (
                                                     <tr key={index}>
                                                         <td>{index + 1}</td>
-                                                        <td>{shortChat.content}</td>
+                                                        <td style={{
+                                                            width: 200,
+                                                            overflow: "hidden",
+                                                            display: "-webkit-box",
+                                                            WebkitBoxOrient: "vertical",
+                                                            WebkitLineClamp: 3,
+                                                            textOverflow: "ellipsis",
+                                                            height: "auto",
+                                                        }}>{shortChat.content}</td>
                                                         <td>{shortChat.groups}</td>
                                                         <td>{shortChat.models}</td>
                                                         <td>{shortChat.problems}</td>

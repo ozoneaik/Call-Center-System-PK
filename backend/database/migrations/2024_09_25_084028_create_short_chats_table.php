@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('short_chats', function (Blueprint $table) {
             $table->id();
-            $table->string('content')->comment('ข้อความ');
+            $table->text('content')->comment('ข้อความ');
             $table->string('groups')->comment('หมวดหมู่')->nullable();
             $table->string('models')->comment('รุ่น')->nullable();
             $table->string('problems')->comment('ปัญหา')->nullable();

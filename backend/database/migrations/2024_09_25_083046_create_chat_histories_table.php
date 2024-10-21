@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('chat_histories', function (Blueprint $table) {
             $table->id();
             $table->string('custId')->comment('รหัสลูกค้า');
-            $table->string('content')->comment('ข้อความ');
+            $table->text('content')->comment('ข้อความ');
             $table->string('contentType')->comment('ประเภทข้อความ');
             $table->json('sender')->comment('ผู้ส่ง');
             $table->integer('conversationRef')->comment('รหัสอ้างอิงในตาราง ActiveConversations');
