@@ -45,7 +45,7 @@ export const CreateUser = (props) => {
 
         const {data, status} = await storeUserApi(user);
         AlertDiaLog({
-            title: 'เกิดข้อผิดพลาด',
+            title: status === 200 && 'สร้างผู้ใช้สำเร็จ',
             text: data.message,
             icon: status === 200 && 'success',
             onPassed: () => {
