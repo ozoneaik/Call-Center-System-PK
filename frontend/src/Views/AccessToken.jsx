@@ -149,7 +149,7 @@ export default function AccessToken() {
                 </Box>
                 <Box sx={ChatPageStyle.BoxTable}>
                     <Typography level="h2" component="h1">จัดการ Token</Typography>
-                    <Button size='sm'>+ เพิ่ม token</Button>
+                    {/*<Button size='sm'>+ เพิ่ม token</Button>*/}
                 </Box>
                 <form onSubmit={handleSubmit}>
                     <Box sx={{display: 'flex', gap: 1}}>
