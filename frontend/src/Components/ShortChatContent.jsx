@@ -5,6 +5,7 @@ import {ListContentsApi, ListGroupsApi, ListModelsApi, ListProblemsApi} from "..
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
 import Tooltip from '@mui/joy/Tooltip';
+import {Autocomplete} from "@mui/joy";
 
 export const ShortChatContent = ({handle}) => {
     const [groups, setGroups] = useState([]);
@@ -61,80 +62,75 @@ export const ShortChatContent = ({handle}) => {
             <Grid container spacing={2}>
                 <Grid size={{xs: 12, sm: 3}}>
                     <Typography mb={1} fontSize={14}>หมวดหมู่</Typography>
-                    {groups.length > 0 && groups.map((group, i) => (
-                        <Tooltip
-                            key={i} placement="right-start"
-                            title={group.groups}
-                            variant="plain">
-                            <Button
-                                color='warning'
-                                onClick={() => selectG(group.groups)}
-                                disabled={G === group.groups} variant="outlined"
-                                fullWidth sx={{my: .5}}>
-                                {group.groups}
-                            </Button>
-                        </Tooltip>
-                    ))}
+                    <Autocomplete
+                        options={groups}
+                        placeholder={'เลือกหมวดหมู่'}
+                        isOptionEqualToValue={(option, value) => option.label === value.label}
+                        onChange={(event, value, reason, details) => {
+                            selectG(value.label)
+                        }}
+                    />
                 </Grid>
                 <Grid size={{xs: 12, sm: 3}}>
                     <Typography mb={1} fontSize={14}>รุ่น {models.length}</Typography>
-                    {models.length > 0 && models.map((model, i) => (
-                        <Tooltip
-                            key={i} placement="right-start"
-                            title="lsadjflsjflksjflksjlfjslfjlsdfjls"
-                            variant="plain">
-                            <Button
-                                color='danger'
-                                onClick={() => selectM(model.models)}
-                                disabled={M === model.models} variant="outlined"
-                                fullWidth sx={{my: .5}}>
-                                {model.models}
-                            </Button>
-                        </Tooltip>
-                    ))}
+                    {models.length > 0 && (
+                        <Autocomplete
+                            options={models}
+                            placeholder={'เลือกหมวดหมู่'}
+                            isOptionEqualToValue={(option, value) => option.label === value.label}
+                            onChange={(event, value, reason, details) => {
+                                selectM(value.label)
+                            }}
+                        />
+                    )}
                 </Grid>
                 <Grid size={{xs: 12, sm: 3}}>
                     <Typography mb={1} fontSize={14}>ปัญหา</Typography>
-                    {problems.length > 0 && problems.map((problem, i) => (
-                        <Tooltip
-                            key={i} placement="right-start"
-                            title={problem.problems}
-                            variant="plain">
-                            <Button
-                                color='primary'
-                                onClick={() => selectP(problem.problems)}
-                                disabled={P === problem.problems} variant="outlined"
-                                fullWidth sx={{my: .5}}>
-                                {problem.problems}
-                            </Button>
-                        </Tooltip>
-                    ))}
+                    {problems.length > 0 && (
+                        <Autocomplete
+                            options={problems}
+                            placeholder={'เลือกหมวดหมู่'}
+                            isOptionEqualToValue={(option, value) => option.label === value.label}
+                            onChange={(event, value, reason, details) => {
+                                selectP(value.label)
+                            }}
+                        />
+                    )}
+
                 </Grid>
                 <Grid size={{xs: 12, sm: 3}}>
                     <Typography mb={1} fontSize={14}>ข้อความส่งด่วน</Typography>
-                    {contents.length > 0 && contents.map((content, i) => (
-                        <Tooltip
-                            key={i} placement="right-start"
-                            title={content.content}
-                            variant="plain">
-                            <Button
-                                onClick={() => setC(content.content)}
-                                disabled={C === content.content}
-                                fullWidth sx={{
-                                my: .5,
-                                width: 200,
-                                overflow: "hidden",
-                                display: "-webkit-box",
-                                WebkitBoxOrient: "vertical",
-                                WebkitLineClamp: 3,
-                                textOverflow: "ellipsis",
-                                height: "auto",
-                            }}>
-
-                                {content.content}
-                            </Button>
-                        </Tooltip>
-                    ))}
+                    {contents.length > 0 && (
+                        <Autocomplete
+                            options={contents}
+                            placeholder={'เลือกหมวดหมู่'}
+                            isOptionEqualToValue={(option, value) => option.label === value.label}
+                            onChange={(event, value, reason, details) => {
+                                setC(value.label)
+                            }}
+                        />
+                        // <Tooltip
+                        //     key={i} placement="right-start"
+                        //     title={content.content}
+                        //     variant="plain">
+                        //     <Button
+                        //         onClick={() => setC(content.content)}
+                        //         disabled={C === content.content}
+                        //         fullWidth sx={{
+                        //         my: .5,
+                        //         width: 200,
+                        //         overflow: "hidden",
+                        //         display: "-webkit-box",
+                        //         WebkitBoxOrient: "vertical",
+                        //         WebkitLineClamp: 3,
+                        //         textOverflow: "ellipsis",
+                        //         height: "auto",
+                        //     }}>
+                        //
+                        //         {content.content}
+                        //     </Button>
+                        // </Tooltip>
+                    )}
                 </Grid>
                 <Grid size={12}>
                     <Grid container direction="row-reverse">

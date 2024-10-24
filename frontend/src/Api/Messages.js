@@ -115,16 +115,39 @@ export const shortChatDeleteApi = async (id) => {
 /* ----------------------------------------api ที่เกี่ยวกับการจัดการเกี่ยวกับ Chats ------------------------------------*/
 const messages = '/messages';
 
+
+export const testSendApi = async ({msg, custId, conversationId}) => {
+    const body = {
+        custId : custId,
+        conversationId : conversationId,
+        messages : []
+    }
+    try {
+        const {data,status} = await axiosClient.post(`test`, {...body});
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 // ส่งแชท
-export const sendApi = async ({msg,contentType,custId,conversationId}) => {
+export const sendApi = async ({msg,contentType,custId,conversationId,selectedFile}) => {
+    let Messages = [{
+        content : msg,
+        contentType : contentType,
+        sender : 'sender'
+    }];
+    if (selectedFile) {
+        Messages.push({
+            content: selectedFile,
+            contentType: 'image',
+            sender : 'sender'
+        })
+    }else console.log('🙏')
     const body = {
         custId : custId,
         conversationId,
-        messages : [{
-            content : msg,
-            contentType : contentType,
-            sender : 'sender'
-        }]
+        messages : Messages
     };
     console.log(body,msg)
     try {

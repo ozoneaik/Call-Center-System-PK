@@ -28,7 +28,7 @@ export default function ShortChats() {
         const {data, status} = await shortChatApi();
         console.log(data, status)
         if (status === 200) {
-            setShortChats(data.list);
+            setShortChats(data.test);
             setGroups(data.groups);
             setModels(data.models);
             setProblems(data.problems)

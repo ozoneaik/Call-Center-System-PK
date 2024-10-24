@@ -11,7 +11,6 @@ import {useAuth} from "../../context/AuthContext.jsx";
 import FormControl from "@mui/joy/FormControl";
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import LocalSeeIcon from '@mui/icons-material/LocalSee';
-import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
@@ -21,6 +20,8 @@ import InfoMessage from "./InfoMessage.jsx";
 export default function MessagePane() {
     const {user} = useAuth();
     const {notification} = useNotification();
+    const [imagePreview, setImagePreview] = useState();
+    const [selectedFile, setSelectedFile] = useState();
     const [messages, setMessages] = useState({});
     const [sender, setSender] = useState({
         custId: 'id ของลูกค้า',
@@ -109,11 +110,28 @@ export default function MessagePane() {
             msg: C,
             contentType: type,
             custId: sender.custId,
-            conversationId: activeId
+            conversationId: activeId,
+            selectedFile
         });
         console.log(data, status)
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
+            if (selectedFile){
+                setMessages((prevMessages) => {
+                    const newId = prevMessages.length.toString();
+                    return [
+                        ...prevMessages,
+                        {
+                            id: newId,
+                            content: imagePreview,
+                            contentType: 'image',
+                            sender: user,
+                            created_at: new Date().toString()
+                        },
+
+                    ]
+                })
+            }
             setMessages((prevMessages) => {
                 const newId = prevMessages.length.toString();
                 return [
@@ -129,6 +147,7 @@ export default function MessagePane() {
                 ]
             })
         } else AlertDiaLog({title: data.message, text: data.detail, onPassed: () => console.log('')});
+        handleRemoveImage();
     }
 
     const handleChangeRoom = async (roomId) => {
@@ -164,6 +183,23 @@ export default function MessagePane() {
                 } else console.log('กด ยกเลิก การจบสนทนา')
             }
         });
+    };
+
+    const handleImageChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setImagePreview(null);
+        setSelectedFile(null);
     };
 
     return (
@@ -216,34 +252,56 @@ export default function MessagePane() {
                         {/* Message Input */}
                         {check === '1' && (
                             <Box sx={{px: 2, pb: 3}}>
-                                <FormControl>
+                                <FormControl fullWidth>
+
                                     <Textarea
                                         id='inputSend'
+                                        startDecorator={
+                                            imagePreview && (
+                                                <Box sx={{position: 'relative', maxWidth: 300}}>
+                                                    <img
+                                                        src={imagePreview}
+                                                        alt="Preview"
+                                                        style={{width: '100%', height: 'auto', borderRadius: '8px'}}
+                                                    />
+                                                    <Button
+                                                        onClick={handleRemoveImage}
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            top: 8, right: 8,
+                                                            minWidth: 'auto',
+                                                            p: 0.5,
+                                                            bgcolor: 'rgba(0, 0, 0, 0.5)',
+                                                            color: 'white',
+                                                            '&:hover': {
+                                                                bgcolor: 'rgba(0, 0, 0, 0.7)',
+                                                            },
+                                                        }}
+                                                    >
+                                                        x
+                                                    </Button>
+                                                </Box>
+                                            )
+                                        }
                                         disabled={sender.emp !== user.empCode}
                                         placeholder="พิมพ์ข้อความที่นี่..."
-                                        minRows={3} maxRows={10}
+                                        minRows={imagePreview ? 1 : 3} maxRows={10}
                                         value={msg.content}
                                         onChange={(e) => setMsg({...msg, content: e.target.value})}
                                         endDecorator={
                                             <Stack direction="row" sx={MessageStyle.TextArea}>
-                                                <Button disabled={sender.emp !== user.empCode} color="warning"
-                                                        onClick={handleSend}
-                                                        sx={{mr: 1}}>
-                                                    <Typography
-                                                        sx={{
-                                                            mr: 1,
-                                                            color: 'white',
-                                                            display: {xs: 'none', sm: 'block'}
-                                                        }}>ส่ง
-                                                        sticker</Typography>
-                                                    <InsertEmoticonIcon/>
-                                                </Button>
-                                                <Button disabled={sender.emp !== user.empCode} color="danger"
-                                                        onClick={handleSend}
-                                                        sx={{mr: 1}}>
+                                                <Button
+                                                    disabled={sender.emp !== user.empCode}
+                                                    color="danger" component="label"
+                                                >
                                                     <Typography sx={{
                                                         mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
-                                                    }}>แนปรูป</Typography>
+                                                    }}>
+                                                        แนปรูป
+                                                    </Typography>
+                                                    <input type="file" hidden accept="image/*"
+                                                           onChange={handleImageChange}
+                                                    />
                                                     <LocalSeeIcon/>
                                                 </Button>
                                                 <Button disabled={sender.emp !== user.empCode} color="primary"
@@ -262,6 +320,7 @@ export default function MessagePane() {
                                             }
                                         }}
                                     />
+
                                 </FormControl>
                             </Box>
                         )}

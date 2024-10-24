@@ -34,6 +34,20 @@ export default function Bubble(props) {
                                     </Link>
                                 </Stack>
                             </Sheet>
+                        ) : contentType === 'video' ? (
+                            <Sheet
+                                variant="outlined"
+                                sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                                <Stack direction="row" spacing={1.5} sx={{alignItems: 'center'}}>
+                                    <Link to={content} target={'_blank'}>
+                                        <video width={200} controls preload="metadata"
+                                        >
+                                            <source src={content} type="video/mp4"/>
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </Link>
+                                </Stack>
+                            </Sheet>
                         ) : (
                             <Typography
                                 level="body-sm"
