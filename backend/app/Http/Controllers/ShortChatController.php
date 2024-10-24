@@ -7,10 +7,8 @@ use App\Models\ShortChats;
 use App\Services\ShortChatService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Psy\Util\Json;
 
 class ShortChatController extends Controller
 {
@@ -27,17 +25,26 @@ class ShortChatController extends Controller
         $groups = ShortChats::select('groups as title')->groupBy('groups')->get();
         $models = ShortChats::select('models as title')->groupBy('models')->get();
         $problems = ShortChats::select('problems as title')->groupBy('problems')->get();
+        $test = ShortChats::select(
+            'content',
+            DB::raw("string_agg(groups, ', ') as groups"),
+            DB::raw("string_agg(models, ', ') as models"),
+            DB::raw("string_agg(problems, ', ') as problems")
+        )
+            ->groupBy('content')
+            ->get();
         return response()->json([
             'list' => $list,
             'groups' => $groups,
             'models' => $models,
             'problems' => $problems,
+            'test' => $test
         ]);
     }
 
     public function ListGroups(): JsonResponse
     {
-        $groups = ShortChats::select('groups')->groupBy('groups')->get();
+        $groups = ShortChats::select('groups as label')->groupBy('groups')->get();
         return response()->json([
             'list' => $groups,
         ]);
@@ -45,7 +52,7 @@ class ShortChatController extends Controller
 
     public function ListModels($group): JsonResponse
     {
-        $models = ShortChats::select('models')->where('groups', $group)->groupBy('models')->get();
+        $models = ShortChats::select('models as label')->where('groups', $group)->groupBy('models')->get();
         return response()->json([
             'list' => $models,
         ]);
@@ -53,7 +60,7 @@ class ShortChatController extends Controller
 
     public function ListProblems($group, $model): JsonResponse
     {
-        $problems = ShortChats::select('problems')
+        $problems = ShortChats::select('problems as label')
             ->where('groups', $group)
             ->where('models', $model)
             ->groupBy('problems')->get();
@@ -64,7 +71,7 @@ class ShortChatController extends Controller
 
     public function ListContents($group, $model, $problem): JsonResponse
     {
-        $contents = ShortChats::select('content')
+        $contents = ShortChats::select('content as label')
             ->where('groups', $group)
             ->where('models', $model)
             ->where('problems', $problem)

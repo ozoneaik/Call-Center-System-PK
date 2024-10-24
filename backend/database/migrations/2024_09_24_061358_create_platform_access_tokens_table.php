@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('platform_access_tokens', function (Blueprint $table) {
             $table->id();
             $table->string('accessTokenId')->unique()->comment('รหัสอ้างอิง');
-            $table->string('accessToken',512)->comment('channel access token');
+            $table->string('accessToken',512)->unique()->comment('channel access token');
             $table->string('description')->comment('คำอธิบาย token');
             $table->string('platform')->comment('จากแพลตฟอร์มไหน');
             $table->timestamps();

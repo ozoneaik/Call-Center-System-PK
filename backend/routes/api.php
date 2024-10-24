@@ -13,6 +13,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/test',function (\Illuminate\Http\Request $request) {
+    $file = $request->file('file_upload');
+
+   return response()->json([
+       'message' => $request->all(),
+       'file' => $file->getSize(),
+   ]);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
 

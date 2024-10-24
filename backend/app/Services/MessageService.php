@@ -37,8 +37,8 @@ class MessageService
                     break;
                 case 'image' :
                     $msg['type'] = 'image';
-                    $msg['originalContentUrl'] = 'https://gratisography.com/wp-content/uploads/2024/03/gratisography-funflower-800x525.jpg';
-                    $msg['previewImageUrl'] = 'https://gratisography.com/wp-content/uploads/2024/03/gratisography-funflower-800x525.jpg';
+                    $msg['originalContentUrl'] = $messages['content'];
+                    $msg['previewImageUrl'] = $messages['content'];
                     break;
                 case 'sticker' :
                     $msg['type'] = 'sticker';

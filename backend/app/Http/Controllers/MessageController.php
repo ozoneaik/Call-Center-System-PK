@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 
@@ -36,6 +37,10 @@ class MessageController extends Controller
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
         $messages = $request['messages'][0];
+        $M = $request['messages'];
+        foreach ($M as $m) {
+            Log::info($m);
+        }
         try {
             $checkCustId = Customers::where('custId', $custId)->first();
             if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
@@ -52,18 +57,48 @@ class MessageController extends Controller
                     else throw new \Exception('เจอปัญหา startTime ไม่ได้');
                 }
             } else throw new \Exception('ไม่พบ active Id');
-            $storeChatHistory = new ChatHistory();
-            $storeChatHistory['custId'] = $custId;
-            $storeChatHistory['content'] = $messages['content'];
-            $storeChatHistory['contentType'] = $messages['contentType'];
-            $storeChatHistory['sender'] = json_encode(auth()->user());
-            $storeChatHistory['conversationRef'] = $conversationId;
-            if ($storeChatHistory->save()) {
-                $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $messages);
-                if ($sendMsgByLine['status']) {
-                    $message = 'ส่งข้อความสำเร็จ';
-                } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
-            } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
+            foreach ($M as $m) {
+                $storeChatHistory = new ChatHistory();
+                $storeChatHistory['custId'] = $custId;
+                $storeChatHistory['contentType'] = $m['contentType'];
+                if ($storeChatHistory['contentType'] === 'image') {
+                    $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
+                    // ส่งไฟล์แบบ multipart โดยใช้ attach()
+                    $response = Http::attach('file', $m['content']
+                        ->get(), $m['content']->getClientOriginalName())->post($URL);
+                    Log::info($m['content']);
+                    if ($response->status() == 200) {
+                        $responseJson = $response->json();
+                        $storeChatHistory['content'] = $responseJson['imagePath'];
+                        $m['content'] = $responseJson['imagePath'];
+                    } else {
+                        $storeChatHistory['content'] = 'ส่งรูปภาพ';
+                        Log::error('Error uploading file: ' . $response->status());
+                    }
+                } else {
+                    $storeChatHistory['content'] = $m['content'];
+                }
+                $storeChatHistory['sender'] = json_encode(auth()->user());
+                $storeChatHistory['conversationRef'] = $conversationId;
+                if ($storeChatHistory->save()) {
+                    $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
+                    if ($sendMsgByLine['status']) {
+                        $message = 'ส่งข้อความสำเร็จ';
+                    } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
+                } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
+            }
+//            $storeChatHistory = new ChatHistory();
+//            $storeChatHistory['custId'] = $custId;
+//            $storeChatHistory['contentType'] = $messages['contentType'];
+//            $storeChatHistory['content'] = $messages['content'];
+//            $storeChatHistory['sender'] = json_encode(auth()->user());
+//            $storeChatHistory['conversationRef'] = $conversationId;
+//            if ($storeChatHistory->save()) {
+//                $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $messages);
+//                if ($sendMsgByLine['status']) {
+//                    $message = 'ส่งข้อความสำเร็จ';
+//                } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
+//            } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             DB::commit();
             $status = 200;
         } catch (\Exception $e) {
