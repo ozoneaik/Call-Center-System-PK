@@ -13,7 +13,7 @@ import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import LocalSeeIcon from '@mui/icons-material/LocalSee';
 import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
-import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import {AlertDiaLog, AlertWithForm} from "../../Dialogs/Alert.js";
 import Typography from "@mui/joy/Typography";
 import InfoMessage from "./InfoMessage.jsx";
 
@@ -164,25 +164,31 @@ export default function MessagePane() {
     }
 
     const endTalk = () => {
-        AlertDiaLog({
-            title: `จบการสนทนา ${rateId} ${activeId}`,
-            text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
-            icon: 'info',
-            onPassed: async (confirm) => {
-                if (confirm) {
-                    const {data, status} = await endTalkApi({rateId, activeConversationId: activeId});
-                    AlertDiaLog({
-                        title: data.message,
-                        text: data.detail,
-                        showConfirmButton: status === 200,
-                        icon: status === 200 ? 'success' : 'error',
-                        onPassed: (C) => {
-                            C && status === 200 && window.close();
-                        }
-                    });
-                } else console.log('กด ยกเลิก การจบสนทนา')
-            }
-        });
+        // AlertDiaLog({
+        //     title: `จบการสนทนา`,
+        //     text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
+        //     icon: 'info',
+        //     onPassed: async (confirm) => {
+        //         if (confirm) {
+        //             const {data, status} = await endTalkApi({rateId, activeConversationId: activeId});
+        //             AlertDiaLog({
+        //                 title: data.message,
+        //                 text: data.detail,
+        //                 showConfirmButton: status === 200,
+        //                 icon: status === 200 ? 'success' : 'error',
+        //                 onPassed: (C) => {
+        //                     C && status === 200 && window.close();
+        //                 }
+        //             });
+        //         } else console.log('กด ยกเลิก การจบสนทนา')
+        //     }
+        // });
+
+        AlertWithForm({
+            // text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
+            title: `จบการสนทนา`,
+            Text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
+        })
     };
 
     const handleImageChange = (event) => {

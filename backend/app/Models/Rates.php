@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 class Rates extends Model
 {
     use HasFactory;
-    protected $fillable = ['custId','rate','latestRoomId','status'];
+    protected $fillable = ['custId','rate','latestRoomId','status','tag'];
 
 
 }
