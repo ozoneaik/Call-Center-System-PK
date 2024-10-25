@@ -6,16 +6,17 @@ import Box from "@mui/joy/Box";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
 import {useEffect, useState} from "react";
-import {chatRoomListApi, endTalkApi, selectMessageApi, sendApi, senToApi, shortChatApi} from "../../api/Messages.js";
+import {chatRoomListApi, selectMessageApi, sendApi, senToApi, shortChatApi} from "../../api/Messages.js";
 import {useAuth} from "../../context/AuthContext.jsx";
 import FormControl from "@mui/joy/FormControl";
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import LocalSeeIcon from '@mui/icons-material/LocalSee';
 import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../context/NotiContext.jsx";
-import {AlertDiaLog, AlertWithForm} from "../../Dialogs/Alert.js";
+import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import Typography from "@mui/joy/Typography";
 import InfoMessage from "./InfoMessage.jsx";
+import {ModalEndTalk} from "../../Components/ModalEndTalk.jsx";
 
 export default function MessagePane() {
     const {user} = useAuth();
@@ -42,10 +43,15 @@ export default function MessagePane() {
     const [notes, setNotes] = useState({});
     const [roomSelect, setRoomSelect] = useState({});
 
+    const [tags, setTags] = useState([]);
+    const [selectTag, setSelectTag] = useState({});
+
+    const [showModalEndTalk, setShowModalEndTalk] = useState(false);
+
     useEffect(() => {
         const fetchData = async () => {
             const {data, status} = await selectMessageApi(rateId, activeId, custId);
-            console.log(data)
+            console.log('selectedMessageApi >> ', data)
             if (status === 200) {
                 setMessages(data.list);
                 setRoomSelect(data.room);
@@ -53,6 +59,7 @@ export default function MessagePane() {
                 document.title = data.sender.custName;
                 setStarList(data.starList);
                 setNotes(data.notes);
+                setTags(data.tags)
             } else {
                 AlertDiaLog({
                     title: data.message,
@@ -116,7 +123,7 @@ export default function MessagePane() {
         console.log(data, status)
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
-            if (selectedFile){
+            if (selectedFile) {
                 setMessages((prevMessages) => {
                     const newId = prevMessages.length.toString();
                     return [
@@ -164,6 +171,8 @@ export default function MessagePane() {
     }
 
     const endTalk = () => {
+        setShowModalEndTalk(true);
+
         // AlertDiaLog({
         //     title: `จบการสนทนา`,
         //     text: 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
@@ -183,12 +192,6 @@ export default function MessagePane() {
         //         } else console.log('กด ยกเลิก การจบสนทนา')
         //     }
         // });
-
-        AlertWithForm({
-            // text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
-            title: `จบการสนทนา`,
-            Text : 'กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)',
-        })
     };
 
     const handleImageChange = (event) => {
@@ -210,20 +213,15 @@ export default function MessagePane() {
 
     return (
         <>
-            <Sheet
-                sx={{
-                    flex: 1,
-                    width: '100%',
-                    mx: 'auto',
-                    pt: {xs: 'var(--Header-height)', md: 0},
-                    display: 'grid',
-                    gridTemplateColumns: {
-                        xs: '1fr',
-                        sm: 'minmax(min-content, min(80%, 800px)) 1fr',
-                        lg: 'minmax(min-content, min(80%, 1400px)) 1fr',
-                    },
-                }}
-            >
+            {showModalEndTalk && (
+                <ModalEndTalk
+                    rateId={rateId} activeId={activeId}
+                    showModalEndTalk={showModalEndTalk}
+                    setShowModalEndTalk={setShowModalEndTalk}
+                    tags={tags}/>
+                // ModalEndTalk({rateId, activeId, showModalEndTalk, setShowModalEndTalk, tags})
+            )}
+            <Sheet sx={MessageStyle.MainLayout}>
                 <Sheet>
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
@@ -258,32 +256,16 @@ export default function MessagePane() {
                         {/* Message Input */}
                         {check === '1' && (
                             <Box sx={{px: 2, pb: 3}}>
-                                <FormControl fullWidth>
-
+                                <FormControl>
                                     <Textarea
                                         id='inputSend'
                                         startDecorator={
                                             imagePreview && (
                                                 <Box sx={{position: 'relative', maxWidth: 300}}>
-                                                    <img
-                                                        src={imagePreview}
-                                                        alt="Preview"
-                                                        style={{width: '100%', height: 'auto', borderRadius: '8px'}}
+                                                    <img src={imagePreview} alt="Preview"
+                                                         style={MessageStyle.imagePreview}
                                                     />
-                                                    <Button
-                                                        onClick={handleRemoveImage}
-                                                        sx={{
-                                                            position: 'absolute',
-                                                            top: 8, right: 8,
-                                                            minWidth: 'auto',
-                                                            p: 0.5,
-                                                            bgcolor: 'rgba(0, 0, 0, 0.5)',
-                                                            color: 'white',
-                                                            '&:hover': {
-                                                                bgcolor: 'rgba(0, 0, 0, 0.7)',
-                                                            },
-                                                        }}
-                                                    >
+                                                    <Button onClick={handleRemoveImage} sx={MessageStyle.BtnCloseImage}>
                                                         x
                                                     </Button>
                                                 </Box>
@@ -300,11 +282,7 @@ export default function MessagePane() {
                                                     disabled={sender.emp !== user.empCode}
                                                     color="danger" component="label"
                                                 >
-                                                    <Typography sx={{
-                                                        mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
-                                                    }}>
-                                                        แนปรูป
-                                                    </Typography>
+                                                    <Typography sx={MessageStyle.InsertImage}>แนปรูป</Typography>
                                                     <input type="file" hidden accept="image/*"
                                                            onChange={handleImageChange}
                                                     />
@@ -326,17 +304,14 @@ export default function MessagePane() {
                                             }
                                         }}
                                     />
-
                                 </FormControl>
                             </Box>
                         )}
-
                     </Sheet>
                 </Sheet>
                 {/* Info */}
                 <InfoMessage sender={sender} starList={starList} notes={notes} check={check}/>
             </Sheet>
-
         </>
     )
 }

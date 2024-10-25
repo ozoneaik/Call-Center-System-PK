@@ -16,6 +16,4 @@ class Rates extends Model
 {
     use HasFactory;
     protected $fillable = ['custId','rate','latestRoomId','status','tag'];
-
-
 }

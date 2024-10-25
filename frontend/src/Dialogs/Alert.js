@@ -57,38 +57,3 @@ export const AlertWithForm = ({Text,text, onPassed, id,title='แก้ไขโ
         }
     });
 }
-
-export const AlertWithFormRate = ({Text, text, onPassed,id,title}) => {
-    Swal.fire({
-        title: title,
-        text : Text,
-        input: "text",
-        inputValue: text,
-        inputAttributes: {autocapitalize: "off"},
-        inputPlaceholder : 'กรุณากรอก tag',
-        inputValidator: (value) => {
-            if (!value) {
-                return "ช่องฟอร์มไม่สามารถว่างได้";
-            }
-        },
-        ...options,
-        preConfirm: async (input) => {
-            try {
-                const {data, status} = await endTalkApi({id, text: input});
-                if (status !== 200) {
-                    return Swal.showValidationMessage(`${data.message}`);
-                }
-                return {textUpdate : input};
-            } catch (error) {
-                Swal.showValidationMessage(`Request failed: ${error}`);
-            }
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        console.log(result)
-        if (result.isConfirmed) {
-            let textUpdate = result.value.textUpdate;
-            onPassed({confirm: result.isConfirmed,textUpdate : textUpdate,id});
-        }
-    });
-}

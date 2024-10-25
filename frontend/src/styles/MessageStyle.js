@@ -1,4 +1,16 @@
 export const MessageStyle = {
+    MainLayout : {
+        flex: 1,
+        width: '100%',
+        mx: 'auto',
+        pt: {xs: 'var(--Header-height)', md: 0},
+        display: 'grid',
+        gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'minmax(min-content, min(80%, 800px)) 1fr',
+            lg: 'minmax(min-content, min(80%, 1400px)) 1fr',
+        },
+    },
     Layout: {
         height: '100dvh',
         display: 'flex',
@@ -96,6 +108,23 @@ export const MessageStyle = {
         TextIsNotSent: {
             color: 'var(--joy-palette-text-primary)'
         }
+    },
+    imagePreview : {
+        width: '100%', height: 'auto', borderRadius: '8px'
+    },
+    InsertImage : {
+        mr: 1, color: 'white', display: {xs: 'none', sm: 'block'}
+    },
+    BtnCloseImage : {
+        position: 'absolute',
+        top: 8, right: 8,
+        minWidth: 'auto',
+        p: 0.5,
+        bgcolor: 'rgba(0, 0, 0, 0.5)',
+        color: 'white',
+        '&:hover': {
+            bgcolor: 'rgba(0, 0, 0, 0.7)',
+        },
     },
     Info : {
         subLayout : {

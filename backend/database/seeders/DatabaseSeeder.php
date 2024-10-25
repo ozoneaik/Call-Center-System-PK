@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-
 use App\Models\BotMenu;
-use App\Models\PlatformAccessTokens;
+use App\Models\ChatRooms;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -39,39 +38,35 @@ class DatabaseSeeder extends Seeder
             ]
 
         ];
-
         foreach ($users as $user) {
             User::factory()->create($user);
         }
 
-        PlatformAccessTokens::create([
-            'accessTokenId' => '0001',
-            'accessToken' => 'Token past here...',
-            'description' => 'ห้องช่าง',
-            'platform' => 'line'
-        ]);
-
+        // BotMenu Seeder
         $botMenus = [
-            [
-                'roomId' => 'ROOM02',
-                'menuName' => 'ติดต่อช่าง'
-            ],
-            [
-                'roomId' => 'ROOM03',
-                'menuName' => 'ติดต่อฝ่ายประสานงาน'
-            ],
-            [
-                'roomId' => 'ROOM04',
-                'menuName' => 'ติดต่อการขาย'
-            ],
-            [
-                'roomId' => 'ROOM01',
-                'menuName' => 'อื่นๆ'
-            ]
+            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง'],
+            ['roomId' => 'ROOM03', 'menuName' => 'ติดต่อฝ่ายประสานงาน'],
+            ['roomId' => 'ROOM04', 'menuName' => 'ติดต่อการขาย'],
+            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ']
         ];
-
         foreach ($botMenus as $botMenu) {
             BotMenu::create($botMenu);
+        }
+
+        // ChatRoom Seeder
+        $rooms = [
+            ['roomId' => 'ROOM00', 'roomName' => 'ห้องแชทบอท'],
+            ['roomId' => 'ROOM01', 'roomName' => 'ห้องแชทรวม'],
+            ['roomId' => 'ROOM02', 'roomName' => 'ห้องแชทช่าง'],
+            ['roomId' => 'ROOM03', 'roomName' => 'ห้องแชทฝ่ายประสานงาน'],
+            ['roomId' => 'ROOM04', 'roomName' => 'ห้องแชทฝ่ายประสานการขาย'],
+        ];
+        foreach ($rooms as $room) {
+            ChatRooms::create([
+                'roomId' => $room['roomId'],
+                'roomName' => $room['roomName'],
+                'unRead' => 1,
+            ]);
         }
 
     }

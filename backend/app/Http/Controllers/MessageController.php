@@ -36,9 +36,8 @@ class MessageController extends Controller
         $detail = 'ไม่พบข้อผิดพลาด';
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
-        $messages = $request['messages'][0];
-        $M = $request['messages'];
-        foreach ($M as $m) {
+        $messages = $request['messages'];
+        foreach ($messages as $m) {
             Log::info($m);
         }
         try {
@@ -57,7 +56,7 @@ class MessageController extends Controller
                     else throw new \Exception('เจอปัญหา startTime ไม่ได้');
                 }
             } else throw new \Exception('ไม่พบ active Id');
-            foreach ($M as $m) {
+            foreach ($messages as $m) {
                 $storeChatHistory = new ChatHistory();
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
@@ -75,9 +74,7 @@ class MessageController extends Controller
                         $storeChatHistory['content'] = 'ส่งรูปภาพ';
                         Log::error('Error uploading file: ' . $response->status());
                     }
-                } else {
-                    $storeChatHistory['content'] = $m['content'];
-                }
+                } else $storeChatHistory['content'] = $m['content'];
                 $storeChatHistory['sender'] = json_encode(auth()->user());
                 $storeChatHistory['conversationRef'] = $conversationId;
                 if ($storeChatHistory->save()) {
@@ -87,18 +84,6 @@ class MessageController extends Controller
                     } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
                 } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             }
-//            $storeChatHistory = new ChatHistory();
-//            $storeChatHistory['custId'] = $custId;
-//            $storeChatHistory['contentType'] = $messages['contentType'];
-//            $storeChatHistory['content'] = $messages['content'];
-//            $storeChatHistory['sender'] = json_encode(auth()->user());
-//            $storeChatHistory['conversationRef'] = $conversationId;
-//            if ($storeChatHistory->save()) {
-//                $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $messages);
-//                if ($sendMsgByLine['status']) {
-//                    $message = 'ส่งข้อความสำเร็จ';
-//                } else throw new \Exception('ส่งข้อความไม่สำเร็จ error => ' . $sendMsgByLine['message']);
-//            } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             DB::commit();
             $status = 200;
         } catch (\Exception $e) {
@@ -123,9 +108,7 @@ class MessageController extends Controller
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
             $updateAC = ActiveConversations::where('rateRef', $rateId)
-                ->where('roomId', $roomId)
-                ->where('receiveAt', null)
-                ->first();
+                ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['empCode'] = auth()->user()->empCode;
@@ -169,8 +152,14 @@ class MessageController extends Controller
             if ($updateRate->save()) {
                 $updateAC = ActiveConversations::where('id', $request['activeConversationId'])->first();
                 if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');
-                if (!empty($updateAC['startTime'])) $updateAC['endTime'] = Carbon::now();
-                $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
+                if (!empty($updateAC['startTime'])) {
+                    $updateAC['endTime'] = Carbon::now();
+                    $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
+                } else {
+                    $updateAC['startTime'] = Carbon::now();
+                    $updateAC['endTime'] = $updateAC['startTime'];
+                    $updateAC['totalTime'] = '0 วัน 0 ชั่วโมง 0 นาที';
+                }
                 if ($updateAC->save()) {
                     $storeAC = new ActiveConversations();
                     $storeAC['custId'] = $updateRate['custId'];
@@ -216,6 +205,7 @@ class MessageController extends Controller
             if (!$updateRate) throw new \Exception('ไม่พบ Rates ที่ต้องการอัพเดท');
             if ($updateRate['status'] === 'success') throw new \Exception('Rates ที่ต้องการอัพเดท เคยอัพเดทแล้ว');
             $updateRate['status'] = 'success';
+            $updateRate['tag'] = $request['tagId'];
             if ($updateRate->save()) {
                 $updateAC = ActiveConversations::where('id', $activeId)->first();
                 if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');

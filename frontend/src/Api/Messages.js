@@ -178,9 +178,9 @@ export const senToApi = async ({rateId, activeConversationId,latestRoomId}) => {
 }
 
 // จบการสนทนา
-export const endTalkApi = async ({rateId,activeConversationId}) => {
+export const endTalkApi = async ({rateId,activeConversationId,tagId}) => {
     try {
-        const {data,status} = await axiosClient.post(`${messages}/endTalk`,{rateId,activeConversationId});
+        const {data,status} = await axiosClient.post(`${messages}/endTalk`,{rateId,activeConversationId,tagId});
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

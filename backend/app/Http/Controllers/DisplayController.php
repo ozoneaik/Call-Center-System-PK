@@ -9,6 +9,7 @@ use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Models\Notes;
 use App\Models\Rates;
+use App\Models\TagMenu;
 use App\Services\DashboardService;
 use App\Services\DisplayService;
 use Carbon\Carbon;
@@ -57,6 +58,8 @@ class DisplayController extends Controller
 
             $notes = Notes::where('custId', $custId)->orderBy('created_at','desc')->get();
 
+            $tags = TagMenu::all();
+
             $message = 'ดึงข้อมูลสำเร็จ';
             $status = 200;
         } catch (\Exception $e) {
@@ -73,6 +76,7 @@ class DisplayController extends Controller
                 'list' => $list ?? [],
                 'starList' => $starList ?? [],
                 'notes' => $notes ?? [],
+                'tags' => $tags ?? []
             ], $status ?? 400);
         }
     }

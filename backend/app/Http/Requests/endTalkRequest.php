@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class endTalkRequest extends FormRequest
@@ -17,12 +18,13 @@ class endTalkRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
         return [
             'rateId' => 'required|integer',
+            'tagId' => 'required|integer',
             'activeConversationId' => 'required|integer',
         ];
     }
@@ -30,6 +32,7 @@ class endTalkRequest extends FormRequest
     public function messages(): array{
         return [
             'rateId.required' => 'ไม่พบ field rateId',
+            'tagId.required' => 'ไม่พบ field tagId',
             'activeConversationId.required' => 'ไม่พบ field activeConversationId',
         ];
     }
