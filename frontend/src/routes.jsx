@@ -1,11 +1,11 @@
 import {createBrowserRouter} from "react-router-dom";
 import ProtectedLayout from "./layouts/ProtectedLayout.jsx";
-import MainChat from "./views/ChatPages/MainChat.jsx";
+import MainChat from "./Views/ChatPages/main.jsx";
 import GuestLayout from "./layouts/GuestLayout.jsx";
 import Login from "./views/Login.jsx";
 import NotFoundPage from "./views/NotFound.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
-import MessagePane from "./views/ChatPages/MessagePane.jsx";
+import MessagePane from "./Views/ChatPages/MessagePane/main.jsx";
 import Home from "./Views/HomePages/Home.jsx";
 import ChatRooms from "./Views/ChatRooms.jsx";
 import ShortChats from "./Views/shortChats/ShortChats.jsx";
@@ -15,6 +15,7 @@ import CheckAdmin from "./Components/CheckAdmin.jsx";
 import AccessToken from "./Views/AccessToken.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistory.jsx";
+import BotPage from "./Views/BotPages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -41,6 +42,7 @@ export const routes = createBrowserRouter([
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
                             {path: '/accessToken', element: <AccessToken/>},
+                            {path : '/botManage', element: <BotPage/>}
                         ]
                     },
                     {path: '/chatHistory', element: <ChatHistory/>}

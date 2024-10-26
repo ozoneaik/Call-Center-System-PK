@@ -79,7 +79,6 @@ export default function ModalDialog(props) {
                             <Input disabled value={selected.empCode} sx={{mb: 2}} fullWidth/>
                         </>
                     )}
-
                     <Typography level="body-sm" fontWeight="bold" mb={1}>ชื่อ</Typography>
                     <Input
                         value={selected.custName || selected.name || ''}
@@ -92,13 +91,11 @@ export default function ModalDialog(props) {
                         }}
                         sx={{mb: 2}} fullWidth
                     />
-
                     <Typography level="body-sm" fontWeight="bold" mb={1}>คำอธิบาย</Typography>
                     <Textarea
                         value={selected.description} sx={{mb: 2}}
                         onChange={(e) => setSelected({...selected, description: e.target.value})}
                     />
-
                     {event === 'user' && (
                         <>
                             <Typography level="body-sm" fontWeight="bold" mb={1}>สิทธิ์</Typography>
@@ -133,15 +130,11 @@ export default function ModalDialog(props) {
                                    type='password' sx={{mb: 2}} fullWidth/>
                         </>
                     )}
-
                     <Divider sx={{my: 2}}/>
-
                     <Typography level="body-sm" fontWeight="bold" mb={1}>สร้างเมื่อ</Typography>
                     <Input disabled value={convertFullDate(selected.created_at)} sx={{mb: 2}} fullWidth/>
-
                     <Typography level="body-sm" fontWeight="bold" mb={1}>อัพเดทเมื่อ</Typography>
                     <Input disabled value={convertFullDate(selected.updated_at)} sx={{mb: 3}} fullWidth/>
-
                     <Box sx={{display: 'flex', justifyContent: 'flex-end', gap: 1}}>
                         <Button startDecorator={<CloseIcon/>} variant="outlined" color="neutral"
                                 onClick={() => setOpen(false)}>

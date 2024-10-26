@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
@@ -100,8 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/myMessages/{empCode}',[DisplayController::class, 'MyMessages']);
 
     //ดูประวัติแชททั้งหมด
-});
     Route::get('/chatHistory',[DisplayController::class, 'ChatHistory']);
+
+    // จัดการ BOT
+    Route::prefix('bots')->group(function () {
+       Route::get('list',[BotMenuController::class,'botList']);
+    });
+});
 
 
 

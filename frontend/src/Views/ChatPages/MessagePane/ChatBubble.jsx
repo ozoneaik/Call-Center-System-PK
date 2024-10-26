@@ -2,9 +2,9 @@ import Stack from "@mui/joy/Stack";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
 import {Sheet} from "@mui/joy";
-import {MessageStyle} from "../../styles/MessageStyle.js";
+import {MessageStyle} from "../../../styles/MessageStyle.js";
 import {Link} from "react-router-dom";
-import {useAuth} from "../../context/AuthContext.jsx";
+import {useAuth} from "../../../context/AuthContext.jsx";
 
 export default function Bubble(props) {
     const {user} = useAuth();

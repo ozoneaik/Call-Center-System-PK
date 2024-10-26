@@ -1,15 +1,15 @@
-import {Modal, ModalClose, Sheet} from "@mui/joy";
 import Typography from "@mui/joy/Typography";
-import Button from "@mui/joy/Button";
-import Select from "@mui/joy/Select";
-import Option from '@mui/joy/Option';
-import Box from "@mui/joy/Box";
+import {MessageStyle} from "../../../styles/MessageStyle.js";
+import {Button, Modal, ModalClose, Sheet} from "@mui/joy";
+import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
-import {endTalkApi} from "../Api/Messages.js";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {endTalkApi} from "../../../Api/Messages.js";
+import {AlertDiaLog} from "../../../Dialogs/Alert.js";
+import Select from "@mui/joy/Select";
+import Option from "@mui/joy/Option";
+import Box from "@mui/joy/Box";
 
-
-export const ModalEndTalk = (props) => {
+const ModalEndTalk = (props) => {
     const {rateId, activeId, showModalEndTalk, setShowModalEndTalk, tags} = props;
     const [selectTag, setSelectTag] = useState();
     const endTalk = async () => {
@@ -27,14 +27,13 @@ export const ModalEndTalk = (props) => {
     }
     return (
         <>
+
             <Button variant="outlined" color="neutral" onClick={() => setOpen(true)}>
                 Open modal
             </Button>
             <Modal
-                aria-labelledby="modal-title"
-                aria-describedby="modal-desc"
-                open={showModalEndTalk}
-                onClose={() => setShowModalEndTalk(false)}
+                aria-labelledby="modal-title" aria-describedby="modal-desc"
+                open={showModalEndTalk} onClose={() => setShowModalEndTalk(false)}
                 sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}
             >
                 <Sheet
@@ -43,11 +42,8 @@ export const ModalEndTalk = (props) => {
                 >
                     <ModalClose variant="plain" sx={{m: 1}}/>
                     <Typography
-                        component="h2"
-                        id="modal-title"
-                        level="h4"
-                        textColor="inherit"
-                        sx={{fontWeight: 'lg', mb: 1}}
+                        component="h2" id="modal-title" level="h4"
+                        textColor="inherit" sx={{fontWeight: 'lg', mb: 1}}
                     >
                         จบการสนทนา <Typography fontSize={12} textColor='#ccc'>รหัสอ้างอิง
                         R{rateId}_AC{activeId}</Typography>
@@ -68,7 +64,27 @@ export const ModalEndTalk = (props) => {
                     </Box>
                 </Sheet>
             </Modal>
+        </>
+    )
+}
 
+export const EndTalk = (props) => {
+    const {disable, rateId, activeId, tags} = props;
+    const [showModalEndTalk, setShowModalEndTalk] = useState(false);
+    return (
+        <>
+            {showModalEndTalk && (
+                <ModalEndTalk
+                    rateId={rateId} activeId={activeId} showModalEndTalk={showModalEndTalk}
+                    setShowModalEndTalk={setShowModalEndTalk} tags={tags}/>
+            )}
+            <Button color='success' disabled={disable} variant="outlined" size="sm"
+                    onClick={() => setShowModalEndTalk(true)}>
+                <DoneIcon/>
+                <Typography color={disable ? '' : 'success'} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
+                    จบการสนทนา
+                </Typography>
+            </Button>
         </>
     )
 }

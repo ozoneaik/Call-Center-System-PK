@@ -15,7 +15,6 @@ use App\Services\DisplayService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DisplayController extends Controller
 {
@@ -132,4 +131,5 @@ class DisplayController extends Controller
            'list' => $list
         ]);
     }
+
 }

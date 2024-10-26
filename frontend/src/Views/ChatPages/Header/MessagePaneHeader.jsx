@@ -1,23 +1,21 @@
-import {MessageStyle} from "../../styles/MessageStyle.js";
+import {MessageStyle} from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import {Button, Modal, ModalClose, ModalDialog} from "@mui/joy";
 import Chip from "@mui/joy/Chip";
-import TelegramIcon from '@mui/icons-material/Telegram';
 import AddCommentIcon from '@mui/icons-material/AddComment';
-import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
-import {useAuth} from "../../context/AuthContext.jsx";
-import {openMessagesPane} from "../../utils.js";
-import {ShortChatContent} from "../../Components/ShortChatContent.jsx";
+import {useAuth} from "../../../context/AuthContext.jsx";
+import {openMessagesPane} from "../../../utils.js";
+import {ShortChatContent} from "../../../Components/ShortChatContent.jsx";
+import {EndTalk} from "./EndTalk.jsx";
+import {ChangeRoom} from "./ChangeRoom.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, roomSelect, shortCustSend, sendTo, endTalk, check} = props;
-    const [sendingOpen, setSendingOpen] = useState(false);
+    const {sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags} = props;
     const [shortCut, setShortcut] = useState(false);
-
     const Btn = ({title, color, icon, onClick, disable = true}) => (
         <Button color={color} disabled={disable} variant="outlined" size="sm" onClick={onClick}>
             {icon}
@@ -26,21 +24,14 @@ function MessagePaneHeader(props) {
             </Typography>
         </Button>
     );
-
     const sendShortCut = (content) => {
         const msgFromShortCut = {
             content: content,
             contentType: 'text',
         }
         shortCustSend(msgFromShortCut)
-        setShortcut(false)
+        setShortcut(false);
     }
-
-    const sendToMoreRoom = (roomId) => {
-        sendTo(roomId);
-        setSendingOpen(false);
-    }
-
     return (
         <>
             <Stack direction="row" sx={MessageStyle.PaneHeader.Stack}>
@@ -57,44 +48,23 @@ function MessagePaneHeader(props) {
                 </Stack>
                 {check === '1' && (
                     <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
-                        <Btn
-                            title={'ส่งต่อไปยัง'} color={'primary'} icon={<TelegramIcon/>}
-                            onClick={() => setSendingOpen(true)}
+                        <ChangeRoom
                             disable={sender.emp !== user.empCode}
+                            rateId={rateId} activeId={activeId}
+                            chatRooms={chatRooms} roomSelect={roomSelect}
                         />
                         <Btn
                             title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
                             onClick={() => setShortcut(true)}
                             disable={sender.emp !== user.empCode}
                         />
-                        <Btn
-                            title={'จบการสนทนา'} color={'success'} icon={<DoneIcon/>}
-                            onClick={() => endTalk(sender.custId)}
+                        <EndTalk
                             disable={sender.emp !== user.empCode}
+                            rateId={rateId} activeId={activeId} tags={tags}
                         />
                     </Stack>
                 )}
-
             </Stack>
-
-            {/* modal ส่งต่อไปยัง */}
-            <Modal open={sendingOpen} onClose={() => setSendingOpen(false)}>
-                <ModalDialog>
-                    <ModalClose/>
-                    <Typography component="h2">ส่งต่อไปยัง</Typography>
-                    <Typography>ห้องแชท</Typography>
-                    {chatRooms.length > 0 && (
-                        chatRooms.map((room, index) => (
-                            <Button
-                                onClick={() => sendToMoreRoom(room.roomId)} key={index}
-                                disabled={(room.id === roomSelect.id) || (room.roomId === 'ROOM00')}
-                            >
-                                {room.roomName}
-                            </Button>
-                        ))
-                    )}
-                </ModalDialog>
-            </Modal>
             {/* modal ตัวช่วยตอบ */}
             <Modal open={shortCut} onClose={() => setShortcut(false)}>
                 <ModalDialog>

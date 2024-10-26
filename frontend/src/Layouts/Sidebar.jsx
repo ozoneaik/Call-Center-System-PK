@@ -15,6 +15,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import TokenIcon from '@mui/icons-material/Token';
 import HomeIcon from '@mui/icons-material/Home';
@@ -134,6 +135,12 @@ export default function Sidebar() {
                 </Typography>
                 <Divider/>
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
+                    <ListItem component={Link} to={`/botManage`}>
+                        <ListItemButton selected={pathname === '/botManage'}>
+                            <SmartToyIcon/>
+                            จัดการเมนูของบอท
+                        </ListItemButton>
+                    </ListItem>
                     <ListItem component={Link} to={`/chatRooms`}>
                         <ListItemButton selected={pathname === '/chatRooms'}>
                             <MeetingRoomIcon/>
