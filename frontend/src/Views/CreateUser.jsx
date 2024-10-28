@@ -9,11 +9,10 @@ import Button from "@mui/joy/Button";
 import Box from '@mui/material/Box';
 import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import {useState} from "react";
-import {storeUserApi} from "../Api/Messages.js";
+import {storeUserApi} from "../Api/User.js";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
 
 export const CreateUser = (props) => {
-    const {open, setOpen, Refresh} = props;
     const {chatRoomsContext} = useChatRooms();
     const [user, setUser] = useState({
         empCode: '',

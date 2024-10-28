@@ -3,7 +3,7 @@ import {Box, Button, CircularProgress, FormControl, FormLabel, Grid, Input, Shee
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import {useEffect, useState} from "react";
-import {chatRoomListApi, deleteChatRoomsApi, storeOrUpdateChatRoomsApi} from "../Api/Messages.js";
+import {chatRoomListApi, deleteChatRoomsApi, storeOrUpdateChatRoomsApi} from "../Api/ChatRooms.js";
 import SaveIcon from '@mui/icons-material/Save';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import DeleteIcon from "@mui/icons-material/Delete";

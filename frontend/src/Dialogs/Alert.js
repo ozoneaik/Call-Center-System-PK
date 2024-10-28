@@ -1,5 +1,5 @@
 import Swal from "sweetalert2";
-import {endTalkApi, updateNoteApi} from "../Api/Messages.js";
+import {updateNoteApi} from "../Api/Note.js";
 
 const options = {
     showCancelButton: true,

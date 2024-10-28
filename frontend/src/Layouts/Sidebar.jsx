@@ -11,13 +11,8 @@ import ListItemContent from '@mui/joy/ListItemContent';
 import Typography from '@mui/joy/Typography';
 import Sheet from '@mui/joy/Sheet';
 import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import TokenIcon from '@mui/icons-material/Token';
 import HomeIcon from '@mui/icons-material/Home';
 import Logo from '../assets/logo.png'
 import ColorSchemeToggle from '../ColorSchemeToggle';
@@ -27,9 +22,10 @@ import {useAuth} from "../context/AuthContext.jsx";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {logoutApi} from "../api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
-import {chatRoomListApi} from "../api/Messages.js";
 import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import PersonIcon from '@mui/icons-material/Person';
+import {chatRoomListApi} from "../Api/ChatRooms.js";
+import {SidebarAdmin} from "./SidebarAdmin.jsx";
 
 export default function Sidebar() {
     const {setChatRoomsContext} = useChatRooms()
@@ -112,13 +108,12 @@ export default function Sidebar() {
                                     <ListItemContent>
                                         <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                     </ListItemContent>
-                                    {/*<Chip size="sm" color="primary" variant="solid">{chatRoom.unRead}</Chip>*/}
                                 </ListItemButton>
                             </ListItem>
                         ))
                     )}
                 </List>
-                <Typography startDecorator={<PersonIcon/>} mb={1} level='body-sm'>
+                <Typography startDecorator={<PersonIcon/>} level='body-sm'>
                     รายการของท่าน
                 </Typography>
                 <Divider/>
@@ -130,48 +125,9 @@ export default function Sidebar() {
                         </ListItemButton>
                     </ListItem>
                 </List>
-                <Typography startDecorator={<AdminPanelSettingsIcon/>} mb={1} level='body-sm'>
-                    สำหรับผู้ดูแลระบบ
-                </Typography>
-                <Divider/>
-                <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
-                    <ListItem component={Link} to={`/botManage`}>
-                        <ListItemButton selected={pathname === '/botManage'}>
-                            <SmartToyIcon/>
-                            จัดการเมนูของบอท
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={`/chatRooms`}>
-                        <ListItemButton selected={pathname === '/chatRooms'}>
-                            <MeetingRoomIcon/>
-                            จัดการห้องแชท
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={'/shortChats'}>
-                        <ListItemButton selected={pathname === '/shortChats'}>
-                            <ManageAccountsIcon/>
-                            จัดการข้อความส่งด่วน
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={'/customers'}>
-                        <ListItemButton selected={pathname === '/customers'}>
-                            <PeopleAltIcon/>
-                            จัดการลูกค้า
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={'/users'}>
-                        <ListItemButton selected={pathname === '/users'}>
-                            <ManageAccountsIcon/>
-                            จัดการผู้ใช้
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={'/accessToken'}>
-                        <ListItemButton selected={pathname === '/accessToken'}>
-                            <TokenIcon/>
-                            จัดการ token
-                        </ListItemButton>
-                    </ListItem>
-                </List>
+
+                {user.role === 'admin' && <SidebarAdmin pathname={pathname}/>}
+
             </Box>
             <Divider/>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>

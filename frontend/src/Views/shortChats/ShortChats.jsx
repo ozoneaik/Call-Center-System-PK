@@ -2,7 +2,7 @@ import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import {Box, Button, CircularProgress, Grid, Sheet, Table} from "@mui/joy";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import {useEffect, useState} from "react";
-import {shortChatApi, shortChatDeleteApi, storeOrUpdateChatCreateApi} from "../../Api/Messages.js";
+import {shortChatApi, shortChatDeleteApi, storeOrUpdateChatCreateApi} from "../../Api/ShortChat.js";
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {AlertDiaLog} from "../../Dialogs/Alert.js";

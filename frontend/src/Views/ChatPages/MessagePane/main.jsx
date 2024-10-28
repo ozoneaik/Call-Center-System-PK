@@ -6,12 +6,13 @@ import Box from "@mui/joy/Box";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
 import {useEffect, useState} from "react";
-import {chatRoomListApi, selectMessageApi} from "../../../Api/Messages.js";
+import {selectMessageApi} from "../../../Api/Messages.js";
 import ChatBubble from "./ChatBubble.jsx";
 import {useNotification} from "../../../context/NotiContext.jsx";
 import {AlertDiaLog} from "../../../Dialogs/Alert.js";
 import Info from "../Info/main.jsx";
 import {MessageInput} from "./MessageInput.jsx";
+import {chatRoomListApi} from "../../../Api/ChatRooms.js";
 
 export default function MessagePane() {
     const {notification} = useNotification();
@@ -37,7 +38,7 @@ export default function MessagePane() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const {data, status} = await selectMessageApi(rateId, activeId, custId);
+            const {data, status} = await selectMessageApi(rateId, activeId, custId,'S');
             console.log('selectedMessageApi >> ', data)
             if (status === 200) {
                 setMessages(data.list);

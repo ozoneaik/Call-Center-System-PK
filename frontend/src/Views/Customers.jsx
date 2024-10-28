@@ -2,7 +2,7 @@ import {ChatPageStyle} from "../styles/ChatPageStyle.js";
 import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import {useEffect, useState} from "react";
-import {customersListApi} from "../Api/Messages.js";
+import {customersListApi} from "../Api/Customer.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import Chip from "@mui/joy/Chip";

@@ -8,7 +8,8 @@ export const MessageStyle = {
         gridTemplateColumns: {
             xs: '1fr',
             sm: 'minmax(min-content, min(80%, 800px)) 1fr',
-            lg: 'minmax(min-content, min(80%, 1400px)) 1fr',
+            // sm: '1fr',
+            lg: 'minmax(min-content, min(70%, 1400px)) 1fr',
         },
     },
     Layout: {
@@ -144,7 +145,7 @@ export const MessageStyle = {
             bgcolor: 'background.body',
             height: '20%',
             // backgroundColor : 'red',
-            backgroundImage: 'url(https://static.vecteezy.com/system/resources/thumbnails/030/663/548/small/brown-texture-high-quality-free-photo.jpg)',
+            backgroundImage: 'url(https://www.pumpkintool.com/wp-content/uploads/2017/11/Company-1.png)',
             objectFit: 'cover',
         }
     }

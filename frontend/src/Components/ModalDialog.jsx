@@ -11,8 +11,9 @@ import Button from "@mui/joy/Button";
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import {useEffect, useState} from "react";
-import {customerUpdateApi, updateUserApi} from "../Api/Messages.js";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {updateUserApi} from "../Api/User.js";
+import {customerUpdateApi} from "../Api/Customer.js";
 
 export default function ModalDialog(props) {
 

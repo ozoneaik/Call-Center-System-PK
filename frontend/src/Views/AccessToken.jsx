@@ -4,7 +4,7 @@ import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import Button from "@mui/joy/Button";
 import {useEffect, useState} from "react";
-import {deleteTokenApi, storeTokenApi, tokenListApi, updateTokenApi} from "../Api/Messages.js";
+import {deleteTokenApi, storeTokenApi, tokenListApi, updateTokenApi} from "../Api/Token.js";
 import Chip from "@mui/joy/Chip";
 import {convertFullDate} from "../Components/Options.jsx";
 import DeleteIcon from '@mui/icons-material/Delete';

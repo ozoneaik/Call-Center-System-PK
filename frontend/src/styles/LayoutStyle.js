@@ -70,8 +70,7 @@ export const LayoutStyle = {
             mt: 'auto',
             flexGrow: 0,
             '--ListItem-radius': (theme) => theme.vars.radius.sm,
-            '--List-gap': '8px',
-            mb: 2,
+            '--List-gap': '8px'
         }
     },
     Navbar : {

@@ -1,10 +1,9 @@
 import Grid from "@mui/material/Grid2";
 import {useEffect, useState} from "react";
 import Button from "@mui/joy/Button";
-import {ListContentsApi, ListGroupsApi, ListModelsApi, ListProblemsApi} from "../Api/Messages.js";
+import {ListContentsApi, ListGroupsApi, ListModelsApi, ListProblemsApi} from "../Api/ShortChat.js";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
-import Tooltip from '@mui/joy/Tooltip';
 import {Autocomplete} from "@mui/joy";
 
 export const ShortChatContent = ({handle}) => {
@@ -79,7 +78,7 @@ export const ShortChatContent = ({handle}) => {
                             placeholder={'เลือกหมวดหมู่'}
                             isOptionEqualToValue={(option, value) => option.label === value.label}
                             onChange={(event, value, reason, details) => {
-                                selectM(value.label)
+                                selectM(value.label).then(()=>{})
                             }}
                         />
                     )}
@@ -92,7 +91,7 @@ export const ShortChatContent = ({handle}) => {
                             placeholder={'เลือกหมวดหมู่'}
                             isOptionEqualToValue={(option, value) => option.label === value.label}
                             onChange={(event, value, reason, details) => {
-                                selectP(value.label)
+                                selectP(value.label).then(()=>{})
                             }}
                         />
                     )}
@@ -109,27 +108,6 @@ export const ShortChatContent = ({handle}) => {
                                 setC(value.label)
                             }}
                         />
-                        // <Tooltip
-                        //     key={i} placement="right-start"
-                        //     title={content.content}
-                        //     variant="plain">
-                        //     <Button
-                        //         onClick={() => setC(content.content)}
-                        //         disabled={C === content.content}
-                        //         fullWidth sx={{
-                        //         my: .5,
-                        //         width: 200,
-                        //         overflow: "hidden",
-                        //         display: "-webkit-box",
-                        //         WebkitBoxOrient: "vertical",
-                        //         WebkitLineClamp: 3,
-                        //         textOverflow: "ellipsis",
-                        //         height: "auto",
-                        //     }}>
-                        //
-                        //         {content.content}
-                        //     </Button>
-                        // </Tooltip>
                     )}
                 </Grid>
                 <Grid size={12}>

@@ -6,7 +6,7 @@ import IconButton from "@mui/joy/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Chip from "@mui/joy/Chip";
-import {deleteNoteApi, storeNoteApi} from "../../../Api/Messages.js";
+import {deleteNoteApi, storeNoteApi} from "../../../Api/Note.js";
 import {AlertDiaLog, AlertWithForm} from "../../../Dialogs/Alert.js";
 
 export const Notes = (props) => {
@@ -59,8 +59,7 @@ export const Notes = (props) => {
 
     const updateNote = (text, id) => {
         AlertWithForm({
-            id,
-            text,
+            id, text,
             onPassed: ({confirm, textUpdate, id}) => {
                 if (confirm) {
                     const updatedNotes = notes.map(note =>
