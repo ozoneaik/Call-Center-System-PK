@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('custName')->comment('ชื่อลูกค้า');
             $table->string('description')->nullable()->default('ไม่มีคำอธิบาย')->comment('คำอธิบาย');
             $table->string('avatar')->comment('รูปโปรไฟล์')->nullable();
-            $table->string('platformRef')->comment('accessToken เพื่อจับกับ token');
+            $table->integer('platformRef')->comment('accessToken เพื่อจับกับ token');
             $table->timestamps();
         });
     }

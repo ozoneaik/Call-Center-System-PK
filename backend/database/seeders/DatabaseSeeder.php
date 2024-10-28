@@ -44,10 +44,10 @@ class DatabaseSeeder extends Seeder
 
         // BotMenu Seeder
         $botMenus = [
-            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง'],
-            ['roomId' => 'ROOM03', 'menuName' => 'ติดต่อฝ่ายประสานงาน'],
-            ['roomId' => 'ROOM04', 'menuName' => 'ติดต่อการขาย'],
-            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ']
+            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง','botTokenId'=> 1],
+            ['roomId' => 'ROOM03', 'menuName' => 'ติดต่อฝ่ายประสานงาน','botTokenId'=> 1],
+            ['roomId' => 'ROOM04', 'menuName' => 'ติดต่อการขาย','botTokenId'=> 1],
+            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ','botTokenId'=> 1]
         ];
         foreach ($botMenus as $botMenu) {
             BotMenu::create($botMenu);

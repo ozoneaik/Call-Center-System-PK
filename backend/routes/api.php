@@ -61,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ดึงข้อมูลเกี่ยวกับแชท
     Route::prefix('display')->group(function () {
         Route::get('/message/list/{roomId}', [DisplayController::class, 'displayMessageList']);
-        Route::post('/select/{custId}', [DisplayController::class, 'selectMessage']);
+        Route::post('/select/{custId}/{from}', [DisplayController::class, 'selectMessage']);
     });
 
     // จัดการข้อความส่งด่วน
@@ -105,7 +105,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการ BOT
     Route::prefix('bots')->group(function () {
-       Route::get('list',[BotMenuController::class,'botList']);
+       Route::get('list',[BotMenuController::class,'list']);
+       Route::post('store',[BotMenuController::class,'store']);
+       Route::put('update/{id}',[BotMenuController::class,'update']);
+       Route::delete('delete/{id}',[BotMenuController::class,'delete']);
     });
 });
 

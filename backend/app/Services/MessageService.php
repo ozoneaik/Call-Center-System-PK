@@ -48,7 +48,7 @@ class MessageService
                 default :
                     throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type');
             }
-            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.accessTokenId')
+            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.id')
                 ->where('custId', 'LIKE', $custId)
                 ->select('PAT.accessToken')
                 ->get();
@@ -80,7 +80,7 @@ class MessageService
         try {
             $URL = 'https://api.line.me/v2/bot/message/push';
             $URL_RATING = env('APP_WEBHOOK_URL') . "/$custId/$rateId";
-            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.accessTokenId')
+            $token = Customers::leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.id')
                 ->where('custId', 'LIKE', $custId)
                 ->select('PAT.accessToken')
                 ->get();

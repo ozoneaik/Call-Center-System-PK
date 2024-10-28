@@ -38,7 +38,7 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function selectMessage($custId,selectMessageRequest $request): JsonResponse
+    public function selectMessage($custId,$from,selectMessageRequest $request): JsonResponse
     {
         $detail = 'ไม่มีข้อผิดพลาด';
         try {
@@ -50,7 +50,12 @@ class DisplayController extends Controller
             $emp = $this->displayService->getEmpReply($request['activeId']);
             $room = ActiveConversations::where('id', $request['activeId'])->first();
             $room = ChatRooms::where('roomId', $room['roomId'])->first();
-            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+            if (!$emp){
+                if ($from === 'S'){
+                    $emp = 0000;
+                }else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+            };
+//            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
 
             $starList = Rates::select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();

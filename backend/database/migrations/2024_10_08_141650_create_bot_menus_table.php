@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('bot_menus', function (Blueprint $table) {
             $table->id();
+            $table->integer('botTokenId')->comment('ไอดี accessToken');
             $table->string('menuName')->comment('ชื่อรายการเมนู');
             $table->string('roomId')->nullable()->comment('ห้องแชท');
             $table->timestamps();

@@ -12,12 +12,18 @@ class ChatRoomsController extends Controller
 
     protected PusherService $pusherService;
 
-    public function __construct(PusherService $pusherService){
+    public function __construct(PusherService $pusherService)
+    {
         $this->pusherService = $pusherService;
     }
 
-    public function list() : JsonResponse{
-        $chatRooms = ChatRooms::all();
+    public function list(): JsonResponse
+    {
+        $user = auth()->user();
+        $role = $user['role'];
+        $roomId = $user['roomId'];
+        if ($role === 'admin') $chatRooms = ChatRooms::all();
+        else $chatRooms = ChatRooms::where('roomId', $roomId)->orWhere('roomId', 'ROOM01')->get();
         return response()->json([
             'message' => 'success',
             'chatRooms' => $chatRooms
