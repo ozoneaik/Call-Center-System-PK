@@ -93,7 +93,7 @@ export default function TagePage() {
                                 ) : (
                                     <>ไม่พบรายการ</>
                                 )
-                            ) : (<CircularProgress/>)}
+                            ) : (<CircularProgress color='warning'/>)}
 
                         </Grid>
                     </Sheet>

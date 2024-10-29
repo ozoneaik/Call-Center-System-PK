@@ -1,6 +1,6 @@
 import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
-import {Box, Card, CardActions, CardContent, Sheet} from "@mui/joy";
+import {Box, Card, CardActions, CardContent, CircularProgress, Sheet} from "@mui/joy";
 import Typography from "@mui/joy/Typography";
 import {useEffect, useState} from "react";
 import {botListApi} from "../../Api/BotMenu.js";
@@ -45,7 +45,7 @@ export default function BotPage() {
                 )}
                 <Sheet variant="outlined" sx={[ChatPageStyle.BoxSheet, {border: "none"}]}>
                     <Grid container spacing={2}>
-                        {bots.length > 0 && bots.map((bot, index) => (
+                        {!loading ? bots.length > 0 && bots.map((bot, index) => (
                             <Grid size={{md: 6, lg: 3, xs: 12}} key={index}>
                                 <Card variant="soft" invertedColors color='primary'>
                                     <CardContent orientation="horizontal">
@@ -73,7 +73,9 @@ export default function BotPage() {
                                     </CardActions>
                                 </Card>
                             </Grid>
-                        ))}
+                        )) : (
+                            <CircularProgress/>
+                        )}
                     </Grid>
                 </Sheet>
             </Box>
