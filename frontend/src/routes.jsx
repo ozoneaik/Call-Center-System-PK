@@ -16,6 +16,7 @@ import AccessToken from "./Views/AccessToken.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistory.jsx";
 import BotPage from "./Views/BotPages/main.jsx";
+import TagePage from "./Views/TagPages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -42,7 +43,8 @@ export const routes = createBrowserRouter([
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
                             {path: '/accessToken', element: <AccessToken/>},
-                            {path : '/botManage', element: <BotPage/>}
+                            {path : '/botManage', element: <BotPage/>},
+                            {path : '/tags', element: <TagePage/>},
                         ]
                     },
                     {path: '/chatHistory', element: <ChatHistory/>}

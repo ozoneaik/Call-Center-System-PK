@@ -3,6 +3,16 @@ import {ErrorResponse} from "./ErrorResponse.js";
 import axiosClient from "../Axios.js";
 
 const tokens = '/tokens';
+
+export const verifyTokenApi = async ({token}) => {
+    try {
+        const {data,status} = await axiosClient.post(`${tokens}/verify`, {token});
+        return {data, status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 export const tokenListApi = async () => {
     try {
         const {data,status} = await axiosClient.get(`${tokens}/list`);

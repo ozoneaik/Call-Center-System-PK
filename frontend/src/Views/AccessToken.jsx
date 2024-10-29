@@ -4,7 +4,7 @@ import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import Button from "@mui/joy/Button";
 import {useEffect, useState} from "react";
-import {deleteTokenApi, storeTokenApi, tokenListApi, updateTokenApi} from "../Api/Token.js";
+import {deleteTokenApi, storeTokenApi, tokenListApi, updateTokenApi, verifyTokenApi} from "../Api/Token.js";
 import Chip from "@mui/joy/Chip";
 import {convertFullDate} from "../Components/Options.jsx";
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -140,6 +140,16 @@ export default function AccessToken() {
         });
     }
 
+    const verifyToken = async () => {
+        const {data, status} = await verifyTokenApi({token : newToken.accessToken});
+        AlertDiaLog({
+            icon : status === 200 && 'success',
+            title : data.message,
+            text : data.detail,
+            onPassed: () => console.log('AlertDiaLog verifyToken')
+        });
+    }
+
 
     return (
         <Sheet sx={ChatPageStyle.Layout}>
@@ -174,12 +184,16 @@ export default function AccessToken() {
                             value={newToken.platform || ''} // ใช้ value เพื่อเคลียร์ค่าใน input
                             onChange={(e) => setNewToken({...newToken, platform: e.target.value})}
                         />
+
                         <button type="submit">
                             {newToken.id ? 'อัปเดต' : 'สร้าง'} {/* เปลี่ยนข้อความตามสถานะ */}
                         </button>
                         <button type="reset" onClick={() => setNewToken({})}>ล้าง</button>
                     </Box>
                 </form>
+                <button onClick={() => verifyToken()}>
+                    Verify
+                </button>
                 <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                     <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                         <thead>

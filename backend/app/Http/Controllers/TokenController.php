@@ -3,12 +3,43 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlatformAccessTokens;
+use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class TokenController extends Controller
 {
+
+    protected TokenService $tokenService;
+
+    public function __construct(TokenService $tokenService)
+    {
+        $this->tokenService = $tokenService;
+    }
+
+    public function verifyToken(Request $request) : JsonResponse
+    {
+        $request->validate(['token' => 'required'], ['token.required' => 'กรุณากรอก Token']);
+        $status = 400;
+        $message = 'เกิดข้อผิดพลาด';
+        $detail = 'ไม่พบข้อผิดพลาด';
+        try {
+            $checkToken = $this->tokenService->checkVerifyToken($request['token']);
+            if ($checkToken['status']) {
+                $message = 'ตรวจสอบสำเร็จ';
+                $status = 200;
+            } else throw new \Exception($checkToken['message']);
+        } catch (\Exception $e) {
+            $detail = $e->getMessage();
+        } finally {
+            return response()->json([
+                'message' => $message,
+                'detail' => $detail,
+            ], $status);
+        }
+    }
+
     public function list(): JsonResponse
     {
         $token = PlatformAccessTokens::all();
@@ -46,7 +77,8 @@ class TokenController extends Controller
         ]);
     }
 
-    public function delete($id) : JsonResponse{
+    public function delete($id): JsonResponse
+    {
         PlatformAccessTokens::findOrFail($id)->delete();
         return response()->json([
             'message' => 'ลบ token สำเร็จ'

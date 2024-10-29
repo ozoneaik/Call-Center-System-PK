@@ -4,89 +4,71 @@ namespace App\Services;
 
 use App\Models\BotMenu;
 use App\Models\ChatRooms;
+use App\Models\PlatformAccessTokens;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BotService
 {
-    public function list(): array
+    public function list() : array
     {
-        // ดึงข้อมูล botMenu พร้อม roomName และจัดกลุ่มโดยตรงในฐานข้อมูล
-        $botMenus = BotMenu::select('bot_menus.*', 'chat_rooms.roomName')
+        $botMenus = PlatformAccessTokens::select(
+            'platform_access_tokens.id AS botTokenId',
+            'bot_menus.id', // เพิ่ม id ของ bot_menus
+            'bot_menus.menuName',
+            'bot_menus.roomId',
+            'chat_rooms.roomName',
+            'platform_access_tokens.description'
+        )
+            ->leftJoin('bot_menus', 'platform_access_tokens.id', '=', 'bot_menus.botTokenId')
             ->leftJoin('chat_rooms', 'bot_menus.roomId', '=', 'chat_rooms.roomId')
+            ->orderBy('bot_menus.id', 'asc')
             ->get()
             ->groupBy('botTokenId');
-        // สร้างอาเรย์ผลลัพธ์
-        $result = $botMenus->map(function ($menus, $botTokenId) {
-            return [
-                'botTokenId' => $botTokenId,
-                'list' => $menus,
-            ];
-        })->values()->all(); // ใช้ values() เพื่อ reset key ของอาเรย์
-        // ดึงข้อมูล chatRooms โดยไม่รวม ROOM00
         $chatRooms = ChatRooms::where('roomId', '!=', 'ROOM00')->get();
-        // สร้างผลลัพธ์สุดท้าย
         return [
-            'botMenu' => $result,
+            'botMenu' => $botMenus,
             'chatRooms' => $chatRooms,
         ];
     }
 
-    public function store($req): array
+
+    public function storeOrUpdate($req): array
     {
         $data['status'] = false;
         try {
-            $store = new BotMenu();
-            $store['menuName'] = $req->input('menuName');
-            $store['roomId'] = $req->input('roomId');
-            if ($store->save()) {
-                $data['status'] = true;
-                $data['message'] = 'สร้างเมนู BOT สำเร็จ';
-                $data['botMenu'] = $store;
-            } else throw new \Exception('ไม่สามารถสร้าง botMenu ได้ ติดต่อฝ่ายไอที');
-        } catch (\Exception $e) {
+            DB::beginTransaction();
+            BotMenu::where('botTokenId',$req['botTokenId'])->delete();
+            $list = $req['list'];
+            $newList = [];
+            foreach ($list as $item) {
+                $store = new BotMenu();
+                $store['botTokenId'] = $req['botTokenId'];
+                $store['menuName'] = $item['menuName'];
+                $store['roomId'] = $item['roomId'];
+                $store->save();
+                $newList[] = $store;
+            }
+            $data['status'] = true;
+            $data['message'] = 'สร้างเมนู BOT สำเร็จ';
+            $data['botMenu'] = $newList;
+            DB::commit();
+        }catch (QueryException $e) {
+            DB::rollBack();
+            // จัดการกับ SQL Error
+            Log::info("เกิดข้อผิดพลาดจาก SQL ใน method store ของ BotService >>> {$e->getMessage()}");
+            return [
+                'status' => false,
+                'message' => 'ไม่สามารถสร้างหรือ botMenu ได้ ติดต่อฝ่ายไอที (QUERY_SQL_ERR)',
+            ];
+        }
+        catch (\Exception $e) {
+            DB::rollBack();
             Log::info("เกิดข้อผิดพลาด method store ใน BotService >>> {$e->getMessage()}");
             $data['message'] = $e->getMessage();
             $data['botMenu'] = [];
         } finally {
-            return $data;
-        }
-    }
-
-    public function update($id,$req) : array
-    {
-        $data['status'] = false;
-        try {
-            $update = BotMenu::findOrFail($id);
-            $update['menuName'] = $req->input('menuName');
-            $update['roomId'] = $req->input('roomId');
-            if ($update->save()) {
-                $data['status'] = true;
-                $data['message'] = 'อัพเดท BOT สำเร็จ';
-                $data['botMenu'] = $update;
-            }else throw new \Exception('ไม่สามารถอัพเดท botMenu ได้ ติดต่อฝ่ายไอที');
-        }catch (\Exception $e) {
-            Log::info("เกิดข้อผิดพลาด method update ใน BotService >>> {$e->getMessage()}");
-            $data['message'] = $e->getMessage();
-            $data['botMenu'] = [];
-        }finally {
-            return $data;
-        }
-    }
-
-    public function delete($id) : array{
-        $data['status'] = false;
-        try {
-            $delete = BotMenu::findOrFail($id);
-            if ($delete->delete()) {
-                $data['status'] = true;
-                $data['message'] = 'ลบ BOT สำเร็จ';
-                $data['botMenu'] = $delete;
-            }else throw new \Exception('ไม่สามารถลบ botMenu ได้ ติดต่อฝ่ายไอที');
-        }catch (\Exception $e) {
-            Log::info("เกิดข้อผิดพลาด method delete ใน BotService >>> {$e->getMessage()}");
-            $data['message'] = $e->getMessage();
-            $data['botMenu'] = [];
-        }finally {
             return $data;
         }
     }

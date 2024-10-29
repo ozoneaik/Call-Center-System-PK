@@ -7,6 +7,7 @@ use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ShortChatController;
+use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\UserAccess;
@@ -88,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการ token
     Route::prefix('tokens')->group(function () {
+        Route::post('/verify', [TokenController::class, 'verifyToken']);
         Route::get('list',[TokenController::class, 'list']);
         Route::post('store',[TokenController::class, 'store']);
         Route::put('update',[TokenController::class, 'update']);
@@ -106,9 +108,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการ BOT
     Route::prefix('bots')->group(function () {
        Route::get('list',[BotMenuController::class,'list']);
-       Route::post('store',[BotMenuController::class,'store']);
-       Route::put('update/{id}',[BotMenuController::class,'update']);
-       Route::delete('delete/{id}',[BotMenuController::class,'delete']);
+       Route::post('storeOrUpdate',[BotMenuController::class,'storeOrUpdate']);
+    });
+
+    Route::prefix('tags')->group(function () {
+        Route::get('list',[TagMenuController::class, 'list']);
+        Route::post('store',[TagMenuController::class,'store']);
+        Route::put('update',[TagMenuController::class,'update']);
+        Route::delete('delete/{id}',[TagMenuController::class,'delete']);
     });
 });
 

@@ -12,39 +12,9 @@ export const botListApi = async () => {
     }
 }
 
-export const addBotApi = async ({bot}) => {
+export const addOrUpdateBotApi = async ({bot}) => {
     try {
-        const {data,status} = await axiosClient.post(`${bots}/store`, {
-            menuName : bot.menuName,
-            roomId : bot.roomId
-        });
-        return {data,status};
-    }catch (error){
-        return ErrorResponse(error);
-    }
-}
-
-export const updateBotApi = async ({id, bot}) => {
-    try {
-        const {data,status} = await axiosClient.put(`${bots}/update/${id}`, {
-            menuName : bot.menuName,
-            roomId : bot.roomId
-        }, {
-            headers : {
-                'Content-Type': 'application/json',
-            }
-        });
-
-        return {data,status};
-    }catch (error){
-        return ErrorResponse(error);
-    }
-}
-
-
-export const deleteBotApi = async (id) => {
-    try {
-        const {data,status} = await axiosClient.delete(`${bots}/delete/${id}`);
+        const {data,status} = await axiosClient.post(`${bots}/storeOrUpdate`, {bot});
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

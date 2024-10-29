@@ -11,6 +11,7 @@ import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import TokenIcon from "@mui/icons-material/Token";
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
 export const SidebarAdmin = ({pathname}) => (
     <>
@@ -35,6 +36,12 @@ export const SidebarAdmin = ({pathname}) => (
                 <ListItemButton selected={pathname === '/shortChats'}>
                     <ManageAccountsIcon/>
                     จัดการข้อความส่งด่วน
+                </ListItemButton>
+            </ListItem>
+            <ListItem component={Link} to={`/tags`}>
+                <ListItemButton selected={pathname === '/tags'}>
+                    <LocalOfferIcon/>
+                    จัดการ tag การจบสนทนา
                 </ListItemButton>
             </ListItem>
             <ListItem component={Link} to={'/customers'}>

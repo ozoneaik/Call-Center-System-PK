@@ -1,96 +1,177 @@
-import Input from "@mui/joy/Input";
-import Grid from "@mui/material/Grid2";
 import Button from "@mui/joy/Button";
-import {Autocomplete} from "@mui/joy";
-import {addBotApi, updateBotApi} from "../../Api/BotMenu.js";
+import {Modal, ModalClose, Sheet, Table} from "@mui/joy";
+import Typography from "@mui/joy/Typography";
+import {TableContainer} from "@mui/material";
+import Box from "@mui/joy/Box";
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import Input from "@mui/joy/Input";
+import {useState} from "react";
+import Autocomplete from "@mui/joy/Autocomplete";
+import {addOrUpdateBotApi} from "../../Api/BotMenu.js";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 
 export const FormCreateOrUpdateBot = (props) => {
-    const {setBots, setSelected, selected, chatRooms} = props;
+    const {setBots, setSelected, selected, chatRooms, showForm, setShowForm} = props;
+    const [newMenuItem, setNewMenuItem] = useState({
+        menuName: "",
+        roomId: null,
+        roomName: "",
+    });
 
-    const handleChange = (field, value) => {
-        setSelected((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
+    const handleDelete = (index) => {
+        const updatedList = [...selected.list];
+        updatedList.splice(index, 1);
+        setSelected({...selected, list: updatedList});
     };
 
-    const handleAutocompleteChange = (event, newValue) => {
-        if (newValue) {
-            setSelected((prev) => ({
-                ...prev,
-                roomId: newValue.roomId,
-                roomName: newValue.roomName,
-            }));
-        }
-        console.log(newValue);
+    const handleAddMenuItem = () => {
+        setSelected({
+            ...selected,
+            list: [...selected.list, newMenuItem],
+        });
+        setNewMenuItem({
+            menuName: "",
+            roomId: null,
+            roomName: "",
+        });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleCancel = () => {
+        setShowForm(false);
+        setSelected(null);
+    };
+
+    const handleSave = async () => {
+        console.log(selected)
+        // handleSubmit(selected);
+        setShowForm(false);
+        const {data, status} = await addOrUpdateBotApi({bot : selected});
+        console.log('Data>> ' , data)
         AlertDiaLog({
-            icon: 'question',
-            title: 'ยืนยัน',
-            text: 'กดตกลงเพื่อยืนยันการสร้าง/อัพเดทข้อมูล',
-            onPassed: async (confirm) => {
-                if (confirm) {
-                    let data, status;
-                    if (selected.id) {
-                        ({data, status} = await updateBotApi({id: selected.id, bot: selected}));
-                        setBots((prevBots) =>
-                            prevBots.map((bot) =>
-                                bot.id === selected.id ? {...bot, ...data.botMenu, roomName: selected.roomName} : bot
-                            )
-                        );
-                        setSelected(null);
-                    } else {
-                        ({data, status} = await addBotApi({bot: selected}));
-                        if (status === 200) {
-                            setBots((prevBots) => [...prevBots, {...data.botMenu, roomName: selected.roomName}]);
-                        }
-                        setSelected(null);
-                    }
-                    AlertDiaLog({
-                        icon: status === 200 && 'success',
-                        title: data.message,
-                        text: data.detail,
-                        onPassed: () => console.log(data.message)
-                    })
-                } else console.log('ยกเลิกการสร้าง/อัพเดท')
+            icon : status === 200 && 'success',
+            title : data.message,
+            text : data.detail,
+            onPassed : (confirm) => {
+                if ((confirm && status ===  200) || (!confirm && status === 200)) {
+                    setBots(prevBots => {
+                        return prevBots.map(bot => {
+                            if (bot.botTokenId === selected.botTokenId) {
+                                // Return the updated bot
+                                return {
+                                    ...selected
+                                };
+                            }
+                            // Return unchanged bot
+                            return bot;
+                        });
+                    });
+                    setSelected(null);
+                }else console.log('ไม่ได้กด confirm');
             }
         })
+    };
 
-    }
+    const handleEditMenuItem = (index, newMenuName) => {
+        const updatedList = [...selected.list];
+        updatedList[index].menuName = newMenuName;
+        setSelected({...selected, list: updatedList});
+    };
 
     return (
         <>
-            <form onSubmit={(e) => handleSubmit(e)}>
-                <Grid container spacing={2}>
-                    <Grid size={{xs: 12, md: 4}}>
-                        <Input
-                            placeholder="ชื่อเมนู" value={selected?.menuName || ""}
-                            onChange={(e) => handleChange("menuName", e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{xs: 12, md: 4}}>
-                        <Autocomplete
-                            options={chatRooms}
-                            getOptionLabel={(option) => option.roomName}
-                            onChange={handleAutocompleteChange}
-                            value={chatRooms.find((room) => room.roomId === selected?.roomId) || null}
-                            renderInput={(params) => (
-                                <Input {...params} placeholder="เลือกห้อง"/>
-                            )}
-                        />
-                    </Grid>
-                    <Grid size={{xs: 12, md: 4}}>
-                        <Button type='submit' sx={{mr: 1}}>
-                            {selected ? selected.id ? "อัพเดท" : "สร้าง" : "สร้าง"}
-                        </Button>
-                        <Button color="warning" type="reset" onClick={() => setSelected(null)}>ล้าง</Button>
-                    </Grid>
-                </Grid>
-            </form>
+            <Modal
+                open={showForm}
+                onClose={handleCancel}
+                sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+            >
+                <Sheet variant="outlined" sx={{maxWidth: 700, borderRadius: 'md', p: 3, boxShadow: 'lg'}}>
+                    <ModalClose variant="plain" sx={{m: 1}}/>
+                    <Typography component="h2" level="h4" sx={{fontWeight: 'lg', mb: 1}}>
+                        {selected?.description}[{selected?.botTokenId}]
+                    </Typography>
+                    <div id="modal-desc">
+                        <TableContainer>
+                            <Table>
+                                <thead>
+                                <tr>
+                                    <th>Menu Name</th>
+                                    <th>Send to Room</th>
+                                    <th style={{textAlign: 'center'}}>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {selected.list.map((item, index) => (
+                                    <tr key={index}>
+                                        <td>
+                                            <Input
+                                                value={item.menuName}
+                                                onChange={(e) => handleEditMenuItem(index, e.target.value)}
+                                            />
+                                        </td>
+                                        <td>
+                                            <Autocomplete
+                                                value={item.roomName}
+                                                options={chatRooms.map((room) => room.roomName)}
+                                                onChange={(_, newValue) => {
+                                                    const updatedList = [...selected.list];
+                                                    updatedList[index].roomId = chatRooms.find((room) => room.roomName === newValue)?.roomId;
+                                                    updatedList[index].roomName = newValue;
+                                                    setSelected({...selected, list: updatedList});
+                                                }}
+                                            />
+                                        </td>
+                                        <td>
+                                            <Box sx={{display: 'flex', justifyContent: 'center', gap: 1}}>
+                                                <Button variant='outlined' size='sm' color='danger'
+                                                        onClick={() => handleDelete(index)}>
+                                                    <DeleteIcon/>
+                                                </Button>
+                                            </Box>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </Table>
+                        </TableContainer>
+                        <Box sx={{display: 'flex', alignItems: 'center', gap: 1, mt: 2}}>
+                            <Input
+                                sx={{width: '100%'}}
+                                value={newMenuItem.menuName}
+                                onChange={(e) =>
+                                    setNewMenuItem({...newMenuItem, menuName: e.target.value})
+                                }
+                                placeholder="Add new menu"
+                            />
+                            <Autocomplete
+                                sx={{width: '100%'}}
+                                value={newMenuItem.roomName}
+                                options={chatRooms.map((room) => room.roomName)}
+                                placeholder={'ส่งไปยังห้อง'}
+                                onChange={(_, newValue) => {
+                                    setNewMenuItem({
+                                        ...newMenuItem,
+                                        roomId: chatRooms.find((room) => room.roomName === newValue)?.roomId,
+                                        roomName: newValue,
+                                    });
+                                }}
+                            />
+                            <Button size='sm' onClick={handleAddMenuItem}
+                                    disabled={!newMenuItem.roomId || !newMenuItem.menuName}>
+                                <AddIcon/>&nbsp;เพิ่ม
+                            </Button>
+                        </Box>
+                        <Box sx={{mt: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1}}>
+                            <Button size='sm' onClick={handleSave}>
+                                Save
+                            </Button>
+                            <Button size='sm' color='neutral' onClick={handleCancel}>
+                                Cancel
+                            </Button>
+                        </Box>
+                    </div>
+                </Sheet>
+            </Modal>
         </>
     );
 };
