@@ -10,9 +10,11 @@ import {useState} from "react";
 import Autocomplete from "@mui/joy/Autocomplete";
 import {addOrUpdateBotApi} from "../../Api/BotMenu.js";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import {Warning} from "./Warning.jsx";
 
 export const FormCreateOrUpdateBot = (props) => {
     const {setBots, setSelected, selected, chatRooms, showForm, setShowForm} = props;
+    const [stringLength, setStringLength] = useState(0);
     const [newMenuItem, setNewMenuItem] = useState({
         menuName: "",
         roomId: null,
@@ -46,28 +48,24 @@ export const FormCreateOrUpdateBot = (props) => {
         console.log(selected)
         // handleSubmit(selected);
         setShowForm(false);
-        const {data, status} = await addOrUpdateBotApi({bot : selected});
-        console.log('Data>> ' , data)
+        const {data, status} = await addOrUpdateBotApi({bot: selected});
+        console.log('Data>> ', data)
         AlertDiaLog({
-            icon : status === 200 && 'success',
-            title : data.message,
-            text : data.detail,
-            onPassed : (confirm) => {
-                if ((confirm && status ===  200) || (!confirm && status === 200)) {
+            icon: status === 200 && 'success',
+            title: data.message,
+            text: data.detail,
+            onPassed: (confirm) => {
+                if ((confirm && status === 200) || (!confirm && status === 200)) {
                     setBots(prevBots => {
                         return prevBots.map(bot => {
                             if (bot.botTokenId === selected.botTokenId) {
-                                // Return the updated bot
-                                return {
-                                    ...selected
-                                };
+                                return {...selected};
                             }
-                            // Return unchanged bot
                             return bot;
                         });
                     });
                     setSelected(null);
-                }else console.log('ไม่ได้กด confirm');
+                } else console.log('ไม่ได้กด confirm');
             }
         })
     };
@@ -90,14 +88,16 @@ export const FormCreateOrUpdateBot = (props) => {
                     <Typography component="h2" level="h4" sx={{fontWeight: 'lg', mb: 1}}>
                         {selected?.description}[{selected?.botTokenId}]
                     </Typography>
+
                     <div id="modal-desc">
+                        <Warning/>
                         <TableContainer>
                             <Table>
                                 <thead>
                                 <tr>
-                                    <th>Menu Name</th>
-                                    <th>Send to Room</th>
-                                    <th style={{textAlign: 'center'}}>Actions</th>
+                                    <th>ชื่อเมนู</th>
+                                    <th>ส่งไปยังห้อง</th>
+                                    <th style={{textAlign: 'center'}}>จัดการ</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -136,13 +136,16 @@ export const FormCreateOrUpdateBot = (props) => {
                         </TableContainer>
                         <Box sx={{display: 'flex', alignItems: 'center', gap: 1, mt: 2}}>
                             <Input
+                                type="text"
                                 sx={{width: '100%'}}
                                 value={newMenuItem.menuName}
-                                onChange={(e) =>
-                                    setNewMenuItem({...newMenuItem, menuName: e.target.value})
-                                }
-                                placeholder="Add new menu"
+                                onChange={(e) => {
+                                    setNewMenuItem({...newMenuItem, menuName: e.target.value});
+                                    setStringLength(e.target.value.length);
+                                }}
+                                placeholder="เพื่มเมนู"
                             />
+                            {stringLength}
                             <Autocomplete
                                 sx={{width: '100%'}}
                                 value={newMenuItem.roomName}
@@ -157,16 +160,16 @@ export const FormCreateOrUpdateBot = (props) => {
                                 }}
                             />
                             <Button size='sm' onClick={handleAddMenuItem}
-                                    disabled={!newMenuItem.roomId || !newMenuItem.menuName}>
+                                    disabled={!newMenuItem.roomId || !newMenuItem.menuName || stringLength > 20}>
                                 <AddIcon/>&nbsp;เพิ่ม
                             </Button>
                         </Box>
                         <Box sx={{mt: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1}}>
                             <Button size='sm' onClick={handleSave}>
-                                Save
+                                บันทึก
                             </Button>
                             <Button size='sm' color='neutral' onClick={handleCancel}>
-                                Cancel
+                                ยกเลิก
                             </Button>
                         </Box>
                     </div>
