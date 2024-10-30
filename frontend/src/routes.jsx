@@ -12,7 +12,7 @@ import ShortChats from "./Views/shortChats/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
 import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
-import AccessToken from "./Views/AccessToken.jsx";
+import Main from "./Views/TokenPages/main.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistory.jsx";
 import BotPage from "./Views/BotPages/main.jsx";
@@ -42,7 +42,7 @@ export const routes = createBrowserRouter([
                             {path: '/shortChats', element: <ShortChats/>},
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
-                            {path: '/accessToken', element: <AccessToken/>},
+                            {path: '/accessToken', element: <Main/>},
                             {path : '/botManage', element: <BotPage/>},
                             {path : '/tags', element: <TagePage/>},
                         ]

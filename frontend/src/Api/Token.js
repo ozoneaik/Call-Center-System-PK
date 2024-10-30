@@ -33,7 +33,11 @@ export const storeTokenApi = async (token) => {
 
 export const updateTokenApi = async (token) => {
     try {
-        const {data,status} = await axiosClient.put(`${tokens}/update`,token);
+        const {data,status} = await axiosClient.put(`${tokens}/update`,token,{
+            headers : {
+                "Content-Type": "application/json"
+            }
+        });
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

@@ -1,16 +1,17 @@
-import {ChatPageStyle} from "../styles/ChatPageStyle.js";
+import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import {Box, Sheet, Table} from "@mui/joy";
-import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
 import Button from "@mui/joy/Button";
 import {useEffect, useState} from "react";
-import {deleteTokenApi, storeTokenApi, tokenListApi, updateTokenApi, verifyTokenApi} from "../Api/Token.js";
+import {deleteTokenApi, tokenListApi} from "../../Api/Token.js";
 import Chip from "@mui/joy/Chip";
-import {convertFullDate} from "../Components/Options.jsx";
+import {convertFullDate} from "../../Components/Options.jsx";
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import CircularProgress from '@mui/joy/CircularProgress';
-import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import {TokenForm} from "./TokenForm.jsx";
 
 
 const BreadcrumbsPath = [{name: 'จัดการ Token'}, {name: 'รายละเอียด'}];
@@ -46,30 +47,6 @@ export default function AccessToken() {
         getTokens().finally(() => setLoading(false));
     }, []);
 
-    const handleStore = async (e) => {
-        e.preventDefault();
-        const { data, status } = await storeTokenApi(newToken);
-        AlertDiaLog({
-            title: data.message,
-            text: data.detail,
-            icon: status === 200 && 'success',
-            onPassed: () => {
-                if (status === 200) {
-                    const updatedToken = {
-                        ...newToken,
-                        id: data.Id,
-                        created_at: new Date(),
-                        updated_at: new Date(),
-                    };
-                    setNewToken(updatedToken);
-                    setTokens((prevState) => [...prevState, updatedToken]);
-                    setNewToken({}); // รีเซ็ตฟอร์มหลังสร้างสำเร็จ
-                } else {
-                    console.log('status is not 200');
-                }
-            },
-        });
-    };
 
     const handleEdit = (token) => {
         setNewToken({
@@ -81,46 +58,10 @@ export default function AccessToken() {
         });
     };
 
-    const handleUpdate = async (e, id) => {
-        e.preventDefault();
-        const updatedData = {
-            ...newToken,
-            updated_at: new Date(),
-        };
-        const { data, status } = await updateTokenApi(updatedData);
-        AlertDiaLog({
-            title: data.message,
-            text: data.detail,
-            icon: status === 200 && 'success',
-            onPassed: () => {
-                if (status === 200) {
-                    setTokens((prevState) =>
-                        prevState.map((token) =>
-                            token.id === id ? { ...token, ...updatedData } : token
-                        )
-                    );
-                    setNewToken({}); // รีเซ็ตฟอร์มหลังอัปเดตสำเร็จ
-                    console.log('Updated token:', updatedData);
-                } else {
-                    console.log('Failed to update');
-                }
-            },
-        });
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (newToken.id) {
-            handleUpdate(e, newToken.id); // อัปเดตถ้ามี id
-        } else {
-            handleStore(e); // สร้างใหม่ถ้าไม่มี id
-        }
-    };
-
 
     const handleDelete = (id) => {
-
         AlertDiaLog({
+            icon: 'question',
             title: 'ยืนยันการลบ', text: 'กดตกลงเพื่อยืนยันการลบ', onPassed: async (confirm) => {
                 if (confirm) {
                     const {data, status} = await deleteTokenApi(id);
@@ -140,16 +81,6 @@ export default function AccessToken() {
         });
     }
 
-    const verifyToken = async () => {
-        const {data, status} = await verifyTokenApi({token : newToken.accessToken});
-        AlertDiaLog({
-            icon : status === 200 && 'success',
-            title : data.message,
-            text : data.detail,
-            onPassed: () => console.log('AlertDiaLog verifyToken')
-        });
-    }
-
 
     return (
         <Sheet sx={ChatPageStyle.Layout}>
@@ -159,41 +90,8 @@ export default function AccessToken() {
                 </Box>
                 <Box sx={ChatPageStyle.BoxTable}>
                     <Typography level="h2" component="h1">จัดการ Token</Typography>
-                    {/*<Button size='sm'>+ เพิ่ม token</Button>*/}
                 </Box>
-                <form onSubmit={handleSubmit}>
-                    <Box sx={{display: 'flex', gap: 1}}>
-                        <input
-                            placeholder={'token'}
-                            type="text"
-                            style={{height: 30, padding: 10}}
-                            value={newToken.accessToken || ''} // ใช้ value เพื่อเคลียร์ค่าใน input
-                            onChange={(e) => setNewToken({...newToken, accessToken: e.target.value})}
-                        />
-                        <input
-                            placeholder={'คำอธิบาย'}
-                            type="text"
-                            style={{height: 30, padding: 10}}
-                            value={newToken.description || ''} // ใช้ value เพื่อเคลียร์ค่าใน input
-                            onChange={(e) => setNewToken({...newToken, description: e.target.value})}
-                        />
-                        <input
-                            placeholder={'platform'}
-                            type="text"
-                            style={{height: 30, padding: 10}}
-                            value={newToken.platform || ''} // ใช้ value เพื่อเคลียร์ค่าใน input
-                            onChange={(e) => setNewToken({...newToken, platform: e.target.value})}
-                        />
-
-                        <button type="submit">
-                            {newToken.id ? 'อัปเดต' : 'สร้าง'} {/* เปลี่ยนข้อความตามสถานะ */}
-                        </button>
-                        <button type="reset" onClick={() => setNewToken({})}>ล้าง</button>
-                    </Box>
-                </form>
-                <button onClick={() => verifyToken()}>
-                    Verify
-                </button>
+                <TokenForm newToken={newToken} setNewToken={setNewToken} setTokens={setTokens}/>
                 <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                     <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                         <thead>

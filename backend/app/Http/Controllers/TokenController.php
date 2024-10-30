@@ -42,7 +42,7 @@ class TokenController extends Controller
 
     public function list(): JsonResponse
     {
-        $token = PlatformAccessTokens::all();
+        $token = PlatformAccessTokens::orderBy('id','asc')->get();
         return response()->json([
             'message' => 'success',
             'tokens' => $token
@@ -66,7 +66,7 @@ class TokenController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $update = PlatformAccessTokens::findOrFail(request('id'));
+        $update = PlatformAccessTokens::findOrFail($request['id']);
         $update['accessToken'] = $request->get('accessToken');
         $update['description'] = $request->get('description');
         $update['platform'] = $request->get('platform');
