@@ -1,5 +1,5 @@
 import {CustomerStyle} from "../styles/CustomerStyle.js";
-import {Box, Modal, Sheet, Textarea} from "@mui/joy";
+import {Box, Modal, Sheet, Textarea, Checkbox} from "@mui/joy";
 import Select from '@mui/joy/Select';
 import Option from '@mui/joy/Option';
 import Typography from "@mui/joy/Typography";
@@ -15,10 +15,24 @@ import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {updateUserApi} from "../Api/User.js";
 import {customerUpdateApi} from "../Api/Customer.js";
 
+
 export default function ModalDialog(props) {
 
     const {open, setOpen, event, chatRooms, Refresh} = props;
-    const [selected, setSelected] = useState({});
+    const [selected, setSelected] = useState({
+        list: []
+    });
+    const handleCheckboxChange = (roomId) => {
+        setSelected((prevSelected) => {
+            const newList = prevSelected.list.includes(roomId)
+                ? prevSelected.list.filter(id => id !== roomId) // เอา roomId ออกจาก list ถ้ามีอยู่แล้ว
+                : [...prevSelected.list, roomId]; // เพิ่ม roomId เข้าไปถ้ายังไม่มี
+
+            return { ...prevSelected, list: newList };
+        });
+    };
+
+
     useEffect(() => {
         setSelected(props.selected);
     }, [])
@@ -61,6 +75,7 @@ export default function ModalDialog(props) {
 
     return (
         <Modal open={open} onClose={() => setOpen(false)} sx={CustomerStyle.Modal}>
+
             <Sheet variant="outlined" sx={CustomerStyle.ModalSheet}>
                 <Typography level="h4" mb={2} textAlign="center" fontWeight="bold">
                     แก้ไขข้อมูลลูกค้า {event}
@@ -111,21 +126,32 @@ export default function ModalDialog(props) {
                                 <Option value="user">ผู้ใช้ทั่วไป</Option>
                             </Select>
                             <Typography level="body-sm" fontWeight="bold" mb={1}>ห้องแชท</Typography>
-                            <Select
-                                name={'roomId'}
-                                value={selected.roomId || ''}
-                                onChange={handleChangeRoomId}
-                                sx={{minWidth: '13rem', mb: 2}}
-                                slotProps={{listbox: {sx: {width: '100%'}}}}
-                            >
-                                {
-                                    chatRooms.map((room, index) => (
-                                        <Option key={index} value={room.roomId}>
-                                            {room.roomName}
-                                        </Option>
-                                    ))
-                                }
-                            </Select>
+                            {chatRooms.map((room, index) => (
+                                <Checkbox
+                                    key={index}
+                                    value={room.roomId}
+                                    label={room.roomName}
+                                    color="primary"
+                                    sx={{ mr: 2 }}
+                                    onChange={() => handleCheckboxChange(room.roomId)}
+                                    checked={selected.list.includes(room.roomId)} // ตรวจสอบว่า roomId นี้อยู่ใน selected.list หรือไม่
+                                />
+                            ))}
+                            {/*<Select*/}
+                            {/*    name={'roomId'}*/}
+                            {/*    value={selected.roomId || ''}*/}
+                            {/*    onChange={handleChangeRoomId}*/}
+                            {/*    sx={{minWidth: '13rem', mb: 2}}*/}
+                            {/*    slotProps={{listbox: {sx: {width: '100%'}}}}*/}
+                            {/*>*/}
+                            {/*    {*/}
+                            {/*        chatRooms.map((room, index) => (*/}
+                            {/*            <Option key={index} value={room.roomId}>*/}
+                            {/*                {room.roomName}*/}
+                            {/*            </Option>*/}
+                            {/*        ))*/}
+                            {/*    }*/}
+                            {/*</Select>*/}
                             <Typography level="body-sm" fontWeight="bold" mb={1}>รหัสผ่านใหม่</Typography>
                             <Input onChange={(e) => setSelected({...selected, password: e.target.value})}
                                    type='password' sx={{mb: 2}} fullWidth/>

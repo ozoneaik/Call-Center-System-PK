@@ -47,7 +47,7 @@ export const PendingTable = (props) => {
             Disable = index !== 0;
         } else {
             Disable = index !== 0;
-            Disable = user.roomId !== roomId;
+            // Disable = user.roomId !== roomId;
         }
         return (
             <Box sx={{display: 'flex'}}>

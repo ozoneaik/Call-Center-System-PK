@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChatRooms;
+use App\Models\UserRooms;
 use App\Services\PusherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,12 +22,17 @@ class ChatRoomsController extends Controller
     {
         $user = auth()->user();
         $role = $user['role'];
-        $roomId = $user['roomId'];
         if ($role === 'admin') $chatRooms = ChatRooms::all();
-        else $chatRooms = ChatRooms::where('roomId', $roomId)->orWhere('roomId', 'ROOM01')->get();
+        else {
+            $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
+                ->where('empCode', $user['empCode'])->get();
+        }
+
+        $listAll = ChatRooms::all();
         return response()->json([
             'message' => 'success',
-            'chatRooms' => $chatRooms
+            'chatRooms' => $chatRooms,
+            'listAll' => $listAll
         ]);
 
     }

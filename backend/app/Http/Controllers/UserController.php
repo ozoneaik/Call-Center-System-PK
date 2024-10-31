@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use App\Models\UserRooms;
 use App\Services\AuthService;
+use App\Services\UserRoomService;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,16 +17,34 @@ class UserController extends Controller
 {
     protected UserService $userService;
     protected AuthService $authService;
+    protected UserRoomService $userRoomService;
 
-    public function __construct(UserService $userService, AuthService $authService)
+    public function __construct(UserService $userService, AuthService $authService,UserRoomService $userRoomService)
     {
         $this->userService = $userService;
         $this->authService = $authService;
+        $this->userRoomService = $userRoomService;
     }
 
     public function UserList(): JsonResponse
     {
-        $users = $this->userService->getAllUsers();
+        // Retrieve all users and convert each user to an array for easy modification
+        $users = $this->userService->getAllUsers()->toArray();
+        $userRooms = UserRooms::all();
+
+        // Create an associative array to map employee codes to room IDs
+        $roomMapping = [];
+        foreach ($userRooms as $userRoom) {
+            $roomMapping[$userRoom['empCode']][] = $userRoom['roomId'];
+        }
+
+        // Iterate through each user and add room information
+        foreach ($users as &$user) {
+            // Add the list of room IDs to each user, if available
+            $user['list'] = $roomMapping[$user['empCode']] ?? [];
+        }
+
+        // Return the response as JSON
         return response()->json([
             'message' => 'success',
             'users' => $users
@@ -51,7 +71,7 @@ class UserController extends Controller
         }
     }
 
-    public function UserStore(RegisterRequest $request)
+    public function UserStore(RegisterRequest $request) : JsonResponse
     {
         $user = $this->authService->register($request);
         return response()->json([
@@ -67,16 +87,23 @@ class UserController extends Controller
         try {
             DB::beginTransaction();
             $user = User::where('empCode', $empCode)->first();
-            $user['name'] = $request->get('name');
-            $user['description'] = $request->get('description');
-            $user['role'] = $request->get('role');
-            $user['roomId'] = $request->get('roomId');
-            if (!empty($request->get('password'))) {
-                $user['password'] = Hash::make($request->get('password'));
+            $user['name'] = $request['name'];
+            $user['description'] = $request['description'];
+            $user['role'] = $request['role'];
+            $updateUserRoom = $this->userRoomService->store($user['empCode'],$request['list']);
+            if (!$updateUserRoom['status']){
+                throw new \Exception($updateUserRoom['message']);
             }
-            if ($user->update()) DB::commit();
+            $user['roomId'] = $request['roomId'];
+            if (!empty($request['password'])) {
+                $user['password'] = Hash::make($request['password']);
+            }
+            if ($user->update()){
+                $message = 'อัพเดทข้อมูลเสร็จสิ้น';
+            }
             else throw new \Exception('ไม่สามารถอัพเดทได้');
             $status = 200;
+            DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             $detail = $e->getMessage();

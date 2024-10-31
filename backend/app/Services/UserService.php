@@ -15,8 +15,10 @@ class UserService{
 
     public function delete($empCode) : array{
         $data['status'] = false;
+        $userAuth = auth()->user();
+
         try {
-            if ($empCode === auth()->user()->empCode){
+            if ($empCode === $userAuth['empCode']){
                 throw new \Exception("คุณไม่สามารถลบคุณเองได้");
             }else{
                 $delete = User::where('empCode', $empCode)->delete();

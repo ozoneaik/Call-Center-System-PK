@@ -37,7 +37,11 @@ export const deleteUserApi = async (empCode) => {
 // อัพเดทผู้ใช้
 export const updateUserApi = async ({empCode, user}) => {
     try {
-        const {data,status} = await axiosClient.put(`${users}/update/${empCode}`,user);
+        const {data,status} = await axiosClient.put(`${users}/update/${empCode}`,user,{
+            headers : {
+                'Content-Type': 'application/json'
+            }
+        });
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

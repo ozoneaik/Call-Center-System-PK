@@ -26,6 +26,7 @@ export default function MessagePane() {
     });
     const {rateId, activeId, custId, check} = useParams();
     const [chatRooms, setChatRooms] = useState([{chatRooms: []}]);
+    const [listAllChatRooms, setListAllChatRooms] = useState([])
     const [msg, setMsg] = useState({
         content: '',
         contentType: 'text',
@@ -48,6 +49,7 @@ export default function MessagePane() {
                 setStarList(data.starList);
                 setNotes(data.notes);
                 setTags(data.tags)
+
             } else {
                 AlertDiaLog({
                     title: data.message,
@@ -58,7 +60,11 @@ export default function MessagePane() {
         }
         const fetchChatRoom = async () => {
             const {data, status} = await chatRoomListApi();
-            status === 200 && setChatRooms(data.chatRooms);
+            if (status === 200) {
+                setChatRooms(data.chatRooms);
+                setListAllChatRooms(data.listAll);
+            }
+
         }
         fetchData().then(() => {
             fetchChatRoom().finally(() => console.log('fetchChatRoom🖼️'));
@@ -96,6 +102,7 @@ export default function MessagePane() {
                 <Sheet>
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
+                        <button onClick={()=>console.log(listAllChatRooms)}>click</button>
                         <MessagePaneHeader
                             rateId={rateId}
                             activeId={activeId}
@@ -106,6 +113,7 @@ export default function MessagePane() {
                             chatRooms={chatRooms}
                             roomSelect={roomSelect}
                             tags={tags}
+                            listAllChatRooms={listAllChatRooms}
                         />
                         {/*Message pane*/}
                         <Box sx={MessageStyle.PaneContent}>

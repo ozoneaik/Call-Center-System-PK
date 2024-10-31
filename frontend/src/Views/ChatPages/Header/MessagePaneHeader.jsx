@@ -14,7 +14,7 @@ import {ChangeRoom} from "./ChangeRoom.jsx";
 
 function MessagePaneHeader(props) {
     const {user} = useAuth();
-    const {sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags} = props;
+    const {sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags,listAllChatRooms} = props;
     const [shortCut, setShortcut] = useState(false);
     const Btn = ({title, color, icon, onClick, disable = true}) => (
         <Button color={color} disabled={disable} variant="outlined" size="sm" onClick={onClick}>
@@ -52,6 +52,7 @@ function MessagePaneHeader(props) {
                             disable={sender.emp !== user.empCode}
                             rateId={rateId} activeId={activeId}
                             chatRooms={chatRooms} roomSelect={roomSelect}
+                            listAllChatRooms={listAllChatRooms}
                         />
                         <Btn
                             title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
