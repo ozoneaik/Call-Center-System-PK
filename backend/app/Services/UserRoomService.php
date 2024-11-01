@@ -9,20 +9,22 @@ class UserRoomService
 {
     public function store($empCode, $listRoom) : array
     {
-        $data['status'] = false;
-        $data['message'] = 'เกิดข้อผิดพลาด';
+        $data = [
+            'status' => false,
+            'message' => 'เกิดข้อผิดพลาด',
+        ];
         try {
             // หา listRoom ของ empCode คนนี้ก่อน
             DB::beginTransaction();
             UserRooms::where('empCode', $empCode)->delete();
-            Log::info($listRoom);
+
             foreach ($listRoom as $room) {
                 $store = new UserRooms();
                 $store['empCode'] = $empCode;
                 $store['roomId'] = $room;
-                if ($store->save()) {
-
-                } else throw new \Exception('ไม่สามารถบันทึกข้อมูลได้');
+                if (!$store->save()) {
+                    throw new \Exception('ไม่สามารถบันทึกข้อมูลได้');
+                }
             }
             $data['status'] = true;
             $data['message'] = 'บันทึกข้อมูลเสร็จสิ้น';

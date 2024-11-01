@@ -102,7 +102,6 @@ export default function MessagePane() {
                 <Sheet>
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
-                        <button onClick={()=>console.log(listAllChatRooms)}>click</button>
                         <MessagePaneHeader
                             rateId={rateId}
                             activeId={activeId}

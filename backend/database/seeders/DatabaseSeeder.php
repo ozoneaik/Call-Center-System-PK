@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
                 'empCode' => 'BOT',
                 'name' => 'BOT',
                 'email' => 'BOT@mail.local',
-                'role' => 'admin',
+                'role' => 'BOT',
                 'roomId' => 'ROOM00',
                 'description' => 'ฉันคือ BOT',
                 'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',

@@ -10,13 +10,13 @@ import Home from "./Views/HomePages/Home.jsx";
 import ChatRooms from "./Views/ChatRooms.jsx";
 import ShortChats from "./Views/shortChats/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
-import Users from "./Views/Users.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
-import Main from "./Views/TokenPages/main.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistory.jsx";
 import BotPage from "./Views/BotPages/main.jsx";
 import TagePage from "./Views/TagPages/main.jsx";
+import Users from "./Views/UserPages/main.jsx";
+import AccessToken from "./Views/TokenPages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -42,7 +42,7 @@ export const routes = createBrowserRouter([
                             {path: '/shortChats', element: <ShortChats/>},
                             {path: '/customers', element: <Customers/>},
                             {path: '/users', element: <Users/>},
-                            {path: '/accessToken', element: <Main/>},
+                            {path: '/accessToken', element: <AccessToken/>},
                             {path : '/botManage', element: <BotPage/>},
                             {path : '/tags', element: <TagePage/>},
                         ]

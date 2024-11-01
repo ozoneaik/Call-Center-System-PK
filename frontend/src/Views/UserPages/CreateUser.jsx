@@ -1,18 +1,20 @@
 import FormLabel from "@mui/joy/FormLabel";
 import Input from "@mui/joy/Input";
-import {Sheet} from "@mui/joy";
+import {Checkbox, Sheet} from "@mui/joy";
 import Grid from '@mui/material/Grid2';
-import {ChatPageStyle} from "../styles/ChatPageStyle.js";
 import Select from "@mui/joy/Select";
 import Option from '@mui/joy/Option';
 import Button from "@mui/joy/Button";
 import Box from '@mui/material/Box';
-import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import {useState} from "react";
-import {storeUserApi} from "../Api/User.js";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
+import {storeUserApi} from "../../Api/User.js";
+import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
+import {useChatRooms} from "../../context/ChatRoomContext.jsx";
+import axiosClient from "../../Axios.js";
 
 export const CreateUser = (props) => {
+    const {Refresh} = props;
     const {chatRoomsContext} = useChatRooms();
     const [user, setUser] = useState({
         empCode: '',
@@ -25,27 +27,38 @@ export const CreateUser = (props) => {
         password_confirmation: ''
     });
 
+    const [selected, setSelected] = useState({
+        list: []
+    });
     const handleChangeRole = (event, newValue) => {
         console.log(newValue, 'Role');
         setUser({...user, role: newValue});
     }
 
-    const handleChangeRoomId = (event, newValue) => {
-        console.log(newValue, 'RoomId');
-        setUser({...user, roomId: newValue});
-    }
+    const handleCheckboxChange = (roomId) => {
+        setSelected((prevSelected) => {
+            const newList = prevSelected.list.includes(roomId)
+                ? prevSelected.list.filter(id => id !== roomId) // เอา roomId ออกจาก list ถ้ามีอยู่แล้ว
+                : [...prevSelected.list, roomId]; // เพิ่ม roomId เข้าไปถ้ายังไม่มี
+            setUser({
+                ...user,
+                list : newList
+            })
+            return { ...prevSelected, list: newList };
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('user >> ',user);
         if (user.password !== user.password_confirmation) {
             alert('รหัสผ่านไม่ตรงกัน');
             return;
         }
-
         const {data, status} = await storeUserApi(user);
         AlertDiaLog({
-            title: status === 200 && 'สร้างผู้ใช้สำเร็จ',
-            text: data.message,
+            title: data.message,
+            text: data.detail,
             icon: status === 200 && 'success',
             onPassed: () => {
                 status === 200 && Refresh()
@@ -89,13 +102,23 @@ export const CreateUser = (props) => {
                         </Grid>
                         <Grid size={{xs: 12, md: 3}}>
                             <FormLabel>ห้องแชท</FormLabel>
-                            <Select required value={user.roomId} onChange={handleChangeRoomId}>
-                                {chatRoomsContext.map((chatRoom, index) => (
-                                    <Option disabled={chatRoom.roomId === 'ROOM00'} key={index} value={chatRoom.roomId}>
-                                        {chatRoom.roomName}
-                                    </Option>
-                                ))}
-                            </Select>
+                            {/*<Select required value={user.roomId} onChange={handleChangeRoomId}>*/}
+                            {/*    {chatRoomsContext.map((chatRoom, index) => (*/}
+                            {/*        <Option disabled={chatRoom.roomId === 'ROOM00'} key={index} value={chatRoom.roomId}>*/}
+                            {/*            {chatRoom.roomName}*/}
+                            {/*        </Option>*/}
+                            {/*    ))}*/}
+                            {/*</Select>*/}
+                            {chatRoomsContext.map((room, index) => (
+                                <Checkbox
+                                    key={index}
+                                    value={room.roomId}
+                                    label={room.roomName}
+                                    color="primary"
+                                    onChange={() => handleCheckboxChange(room.roomId)}
+                                    sx={{ mr: 2 }}
+                                />
+                            ))}
                         </Grid>
                         <Grid size={{xs: 12, md: 3}}>
                             <FormLabel>รหัสผ่าน</FormLabel>

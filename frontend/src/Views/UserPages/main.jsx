@@ -1,19 +1,19 @@
-import {ChatPageStyle} from "../styles/ChatPageStyle.js";
+import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
-import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import {useEffect, useState} from "react";
-import {deleteUserApi, usersListApi} from "../Api/User.js";
-import {chatRoomListApi} from "../Api/ChatRooms.js";
+import {deleteUserApi, usersListApi} from "../../Api/User.js";
+import {chatRoomListApi} from "../../Api/ChatRooms.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
-import {convertFullDate, getRandomColor} from "../Components/Options.jsx";
+import {convertFullDate} from "../../Components/Options.jsx";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import Button from "@mui/joy/Button";
 import DeleteIcon from '@mui/icons-material/Delete';
 import Chip from "@mui/joy/Chip";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {useAuth} from "../context/AuthContext.jsx";
-import ModalDialog from "../Components/ModalDialog.jsx";
+import {AlertDiaLog} from "../../Dialogs/Alert.js";
+import {useAuth} from "../../context/AuthContext.jsx";
+import ModalDialog from "../../Components/ModalDialog.jsx";
 import {CreateUser} from "./CreateUser.jsx";
 
 
@@ -49,6 +49,9 @@ export default function Users() {
 
     const handleDelete = (name, empCode) => {
         AlertDiaLog({
+            icon: 'question',
+            title: `ลบผู้ใช้`,
+            text: `กด ตกลง เพื่อยันยันการลบผู้ใช้ ${name} ${empCode}`,
             onPassed: async (confirm) => {
                 if (!confirm) return;
                 const {data, status} = await deleteUserApi(empCode);
@@ -57,25 +60,18 @@ export default function Users() {
                     title: data.message,
                     text: data.detail,
                     onPassed: (confirm) => {
-                        confirm && getUsers().finally(() => {
-                            setLoading(false);
-                        });
+                        confirm && getUsers().finally(() => setLoading(false));
                     }
                 });
-            },
-            icon: 'question',
-            title: `ลบผู้ใช้`,
-            text: `กด ตกลง เพื่อยันยันการลบผู้ใช้ ${name} ${empCode}`,
-        })
-    }
+            }
+        });
+    };
 
     const refresh = () => {
         getUsers().finally(() => {
-            getChatRooms().finally(() => {
-                setLoading(false);
-            })
+            getChatRooms().finally(() => setLoading(false));
         });
-    }
+    };
 
     return (
         <>
@@ -83,8 +79,6 @@ export default function Users() {
                 open={open} setOpen={setOpen} event={'user'}
                 selected={selected} chatRooms={chatRooms} Refresh={refresh}
             />}
-
-
             <Sheet sx={ChatPageStyle.Layout}>
                 <Box component="main" sx={ChatPageStyle.MainContent}>
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
@@ -116,17 +110,21 @@ export default function Users() {
                                         <td>{item.empCode}</td>
                                         <td>
                                             <div style={{display: "flex", alignItems: "center"}}>
-                                                <Avatar size='sm' sx={{mr: 1}} src={item.avatar}/>
+                                                <Avatar
+                                                    size='sm' sx={{mr: 1}} src={item.avatar}
+                                                    color='primary' variant='solid'
+                                                />
                                                 <Typography>{item.name}</Typography>
                                             </div>
                                         </td>
                                         <td>
-                                            <Chip color={getRandomColor()}>{item.role}</Chip>
+                                            <Chip
+                                                color={item.role === 'admin' ? 'primary' : 'warning'}>{item.role}</Chip>
                                             &nbsp;
                                             ({item.roomName})
                                         </td>
                                         <td>
-                                            <Chip color={getRandomColor()}>
+                                            <Chip color='primary'>
                                                 {convertFullDate(item.created_at)}
                                             </Chip>
                                         </td>

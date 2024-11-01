@@ -103,9 +103,9 @@ export const TokenForm = (props) => {
                     <Button type="reset" color="neutral" onClick={() => setNewToken({})}>
                         ล้าง
                     </Button>
-                    <Button color="warning" onClick={() => verifyToken()}>
-                        ตรวจสอบความถูกต้อง Token
-                    </Button>
+                    {/*<Button color="warning" onClick={() => verifyToken()}>*/}
+                    {/*    ตรวจสอบความถูกต้อง Token*/}
+                    {/*</Button>*/}
                     <Button type="submit" color="primary">
                         {newToken.id ? 'อัปเดต' : 'สร้าง'}
                     </Button>
