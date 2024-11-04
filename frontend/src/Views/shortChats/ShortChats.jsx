@@ -104,9 +104,9 @@ export default function ShortChats() {
                     </Grid>
                     {/* Chat Room List Table */}
                     <Grid xs={12} sm={9}>
-                        <Filter Groups={groups}
-                                Models={models}
-                                Problems={problems}/>
+                        {/*<Filter Groups={groups}*/}
+                        {/*        Models={models}*/}
+                        {/*        Problems={problems}/>*/}
                         <Sheet sx={[ChatPageStyle.Layout]}>
                             <Box component="main" sx={{
                                 height: 'calc(100dvh - 190px)', flex: 1,

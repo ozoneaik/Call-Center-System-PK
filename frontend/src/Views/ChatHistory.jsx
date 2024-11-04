@@ -3,7 +3,7 @@ import Box from "@mui/joy/Box";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
-import {Table} from "@mui/joy";
+import {CircularProgress, Table} from "@mui/joy";
 import {useEffect, useState} from "react";
 import {chatHistoryApi} from "../Api/Messages.js";
 import {convertFullDate} from "../Components/Options.jsx";
@@ -51,7 +51,7 @@ export default function ChatHistory() {
                         </tr>
                         </thead>
                         <tbody>
-                        {list.length > 0 && list.map((item, index) => (
+                        {loading ? list.length > 0 && list.map((item, index) => (
                             <tr key={index}>
                                 <td>
                                     <div style={{display: "flex", alignItems: "center"}}>
@@ -67,7 +67,11 @@ export default function ChatHistory() {
                                     </Button>
                                 </td>
                             </tr>
-                        ))}
+                        )) : (
+                            <>
+                                <CircularProgress/>
+                            </>
+                        )}
                         </tbody>
                     </Table>
                 </Sheet>

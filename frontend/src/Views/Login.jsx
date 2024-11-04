@@ -22,8 +22,8 @@ import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {loginApi} from "../api/Auth.js";
 
 export default function Login() {
-    const [email, setEmail] = useState('70010');
-    const [password, setPassword] = useState('1111');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const {setUser, csrfToken} = useAuth();
 
@@ -33,7 +33,7 @@ export default function Login() {
         e.preventDefault();
         await csrfToken();
         try {
-            const Email = email+'@mail.local'
+            const Email = email + '@mail.local'
             const {data, status} = await loginApi(Email, password);
             if (status === 200) {
                 setUser(data.user);
@@ -110,7 +110,7 @@ export default function Login() {
             </Box>
             <Box
                 sx={[LoginStyle.ContentRight, (theme) => ({
-                    [theme.getColorSchemeSelector('dark')]: LoginStyle.ImageDark,
+                    [theme.getColorSchemeSelector('dark')]: LoginStyle.ImageDark
                 })]}>
             </Box>
         </CssVarsProvider>

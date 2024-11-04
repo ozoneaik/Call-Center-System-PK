@@ -11,7 +11,6 @@ import {storeUserApi} from "../../Api/User.js";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
 import {useChatRooms} from "../../context/ChatRoomContext.jsx";
-import axiosClient from "../../Axios.js";
 
 export const CreateUser = (props) => {
     const {Refresh} = props;
@@ -42,15 +41,15 @@ export const CreateUser = (props) => {
                 : [...prevSelected.list, roomId]; // เพิ่ม roomId เข้าไปถ้ายังไม่มี
             setUser({
                 ...user,
-                list : newList
+                list: newList
             })
-            return { ...prevSelected, list: newList };
+            return {...prevSelected, list: newList};
         });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('user >> ',user);
+        console.log('user >> ', user);
         if (user.password !== user.password_confirmation) {
             alert('รหัสผ่านไม่ตรงกัน');
             return;
@@ -102,13 +101,6 @@ export const CreateUser = (props) => {
                         </Grid>
                         <Grid size={{xs: 12, md: 3}}>
                             <FormLabel>ห้องแชท</FormLabel>
-                            {/*<Select required value={user.roomId} onChange={handleChangeRoomId}>*/}
-                            {/*    {chatRoomsContext.map((chatRoom, index) => (*/}
-                            {/*        <Option disabled={chatRoom.roomId === 'ROOM00'} key={index} value={chatRoom.roomId}>*/}
-                            {/*            {chatRoom.roomName}*/}
-                            {/*        </Option>*/}
-                            {/*    ))}*/}
-                            {/*</Select>*/}
                             {chatRoomsContext.map((room, index) => (
                                 <Checkbox
                                     key={index}
@@ -116,7 +108,7 @@ export const CreateUser = (props) => {
                                     label={room.roomName}
                                     color="primary"
                                     onChange={() => handleCheckboxChange(room.roomId)}
-                                    sx={{ mr: 2 }}
+                                    sx={{mr: 2}}
                                 />
                             ))}
                         </Grid>

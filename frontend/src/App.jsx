@@ -4,7 +4,6 @@ import {useNotification} from "./context/NotiContext.jsx";
 import Typography from "@mui/joy/Typography";
 import Avatar from "@mui/joy/Avatar";
 import Box from "@mui/joy/Box";
-import CancelIcon from '@mui/icons-material/Cancel';
 import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 
 function App() {
@@ -39,15 +38,11 @@ function App() {
     return (
         <>
             <Snackbar
-                variant='outlined'
-                color="success"
+                variant='outlined' color="success"
                 startDecorator={sender.contentType ? <Avatar src={sender.avatar}/> : <CircleNotificationsIcon/>}
                 endDecorator={<Typography color='danger' onClick={()=>handleClose()}>ปิด</Typography>}
-                size='lg'
-                anchorOrigin={{ vertical, horizontal }}
-                open={open}
-                onClose={handleClose}
-                key={vertical + horizontal}
+                size='lg' anchorOrigin={{ vertical, horizontal }}
+                open={open} onClose={handleClose} key={vertical + horizontal}
                 sx={{
                     boxShadow: 'md',
                     borderRadius: 'md',
@@ -63,7 +58,6 @@ function App() {
                         {sender.contentType ? sender.contentType === 'text' ? sender.content : 'ส่งรูปภาพ หรือ sicker' : ''}
                     </Typography>
                 </Box>
-
             </Snackbar>
         </>
     )
