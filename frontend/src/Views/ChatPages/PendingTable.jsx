@@ -40,6 +40,13 @@ export const PendingTable = (props) => {
         });
     };
 
+    const redirectChat = (select) => {
+        const params = `${select.rateRef}/${select.id}/${select.custId}/0`;
+        const path = `${window.location.origin}/select/message/${params}`;
+        const win = window.open(path, '_blank','width=900,height=800');
+        win && win.focus();
+    }
+
     const BtnComponent = ({rateRef, id, custId, roomId, index}) => {
         let Disable;
         if (user.role === 'admin') {
@@ -117,8 +124,8 @@ export const PendingTable = (props) => {
                                         index={index} rateRef={data.rateRef}
                                         id={data.id} custId={data.custId} roomId={data.roomId}
                                     />
-                                    <Button>
-
+                                    <Button onClick={()=>  redirectChat(data)}>
+                                        ดูข้อความ
                                     </Button>
                                 </td>
                             </tr>
