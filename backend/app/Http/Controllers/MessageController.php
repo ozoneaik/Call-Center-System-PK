@@ -63,7 +63,7 @@ class MessageController extends Controller
                 if ($storeChatHistory['contentType'] === 'image') {
                     $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
                     // ส่งไฟล์แบบ multipart โดยใช้ attach()
-                    $response = Http::attach('file', $m['content']
+                    $response = Http::timeout(30)->attach('file', $m['content']
                         ->get(), $m['content']->getClientOriginalName())->post($URL);
                     Log::info($m['content']);
                     if ($response->status() == 200) {
