@@ -98,7 +98,7 @@ export default function Users() {
                             <tr>
                                 <th style={{width: 200}}>รหัสผู้ใช้</th>
                                 <th style={{width: 200}}>ชื่อ</th>
-                                {/*<th style={{width: 200}}>สิทธิ์ (ประจำอยู่ห้อง)</th>*/}
+                                <th style={{width: 200}}>คำอธิบาย</th>
                                 <th style={{width: 200}}>สร้างเมื่อ</th>
                                 <th style={{width: 200}}>จัดการ</th>
                             </tr>
@@ -117,12 +117,9 @@ export default function Users() {
                                                 <Typography>{item.name}</Typography>
                                             </div>
                                         </td>
-                                        {/*<td>*/}
-                                        {/*    <Chip*/}
-                                        {/*        color={item.role === 'admin' ? 'primary' : 'warning'}>{item.role}</Chip>*/}
-                                        {/*    &nbsp;*/}
-                                        {/*    ({item.roomName})*/}
-                                        {/*</td>*/}
+                                        <td>
+                                            {item.description}
+                                        </td>
                                         <td>
                                             <Chip color='primary'>
                                                 {convertFullDate(item.created_at)}
