@@ -36,9 +36,11 @@ export const MessageInput = (props) => {
 
     const handleSend = async ({type = 'text', c}) => {
         const C = msg.content ? msg.content : c;
-        if (C === null || C === undefined || C === '') {
-            alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
-            return;
+        if (!selectedFile){
+            if (C === null || C === undefined || C === '') {
+                alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
+                return;
+            }
         }
         const {data, status} = await sendApi({
             msg: C,
@@ -50,6 +52,8 @@ export const MessageInput = (props) => {
         console.log(data, status)
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
+
+            // เช็คว่ามีรุปภาพหรือไม่
             if (selectedFile) {
                 setMessages((prevMessages) => {
                     const newId = prevMessages.length.toString();
@@ -66,20 +70,23 @@ export const MessageInput = (props) => {
                     ]
                 })
             }
-            setMessages((prevMessages) => {
-                const newId = prevMessages.length.toString();
-                return [
-                    ...prevMessages,
-                    {
-                        id: newId,
-                        content: C,
-                        contentType: type,
-                        sender: user,
-                        created_at: new Date().toString()
-                    },
+            // เช้คว่า มีการพิมข้อความมาหรือไม่
+            if (C) {
+                setMessages((prevMessages) => {
+                    const newId = prevMessages.length.toString();
+                    return [
+                        ...prevMessages,
+                        {
+                            id: newId,
+                            content: C,
+                            contentType: type,
+                            sender: user,
+                            created_at: new Date().toString()
+                        },
 
-                ]
-            })
+                    ]
+                })
+            }
         } else AlertDiaLog({title: data.message, text: data.detail, onPassed: () => console.log('')});
         handleRemoveImage();
     }

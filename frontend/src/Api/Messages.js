@@ -5,11 +5,14 @@ import {ErrorResponse} from "./ErrorResponse.js";
 const messages = '/messages';
 // ส่งแชท
 export const sendApi = async ({msg,contentType,custId,conversationId,selectedFile}) => {
-    let Messages = [{
-        content : msg,
-        contentType : contentType,
-        sender : 'sender'
-    }];
+    let Messages = [];
+    if (msg) {
+        Messages.push({
+            content : msg,
+            contentType : contentType,
+            sender : 'sender'
+        })
+    }
     if (selectedFile) {
         Messages.push({
             content: selectedFile,
