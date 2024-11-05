@@ -117,6 +117,9 @@ export const PendingTable = (props) => {
                                         index={index} rateRef={data.rateRef}
                                         id={data.id} custId={data.custId} roomId={data.roomId}
                                     />
+                                    <Button>
+
+                                    </Button>
                                 </td>
                             </tr>
                         )) : (
