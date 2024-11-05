@@ -51,7 +51,7 @@ export default function ChatHistory() {
                         </tr>
                         </thead>
                         <tbody>
-                        {loading ? list.length > 0 && list.map((item, index) => (
+                        {!loading ? list.length > 0 && list.map((item, index) => (
                             <tr key={index}>
                                 <td>
                                     <div style={{display: "flex", alignItems: "center"}}>
