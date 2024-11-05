@@ -16,6 +16,7 @@ export const MessageInput = (props) => {
     const {check, msg, setMsg,sender,setMessages,activeId} = props;
     const [imagePreview, setImagePreview] = useState();
     const [selectedFile, setSelectedFile] = useState();
+    const [disableBtn, setDisableBtn] = useState(false);
 
     const handleRemoveImage = () => {
         setImagePreview(null);
@@ -35,6 +36,7 @@ export const MessageInput = (props) => {
     };
 
     const handleSend = async ({type = 'text', c}) => {
+        setDisableBtn(true);
         const C = msg.content ? msg.content : c;
         if (!selectedFile){
             if (C === null || C === undefined || C === '') {
@@ -89,6 +91,7 @@ export const MessageInput = (props) => {
             }
         } else AlertDiaLog({title: data.message, text: data.detail, onPassed: () => console.log('')});
         handleRemoveImage();
+        setDisableBtn(false);
     }
     return (
         <>
@@ -117,7 +120,7 @@ export const MessageInput = (props) => {
                             endDecorator={
                                 <Stack direction="row" sx={MessageStyle.TextArea}>
                                     <Button
-                                        disabled={sender.emp !== user.empCode}
+                                        disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปรูป</Typography>
@@ -127,7 +130,7 @@ export const MessageInput = (props) => {
                                         <LocalSeeIcon/>
                                     </Button>
                                     <Button
-                                        disabled={sender.emp !== user.empCode}
+                                        disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
                                         onClick={() => handleSend({type: 'text'})}
                                     >
