@@ -27,7 +27,9 @@ export const sendApi = async ({msg,contentType,custId,conversationId,selectedFil
     };
     console.log(body,msg)
     try {
-        const {data,status} = await axiosClient.post(`${messages}/send`, {...body});
+        const {data,status} = await axiosClient.post(`${messages}/send`, {...body},{
+            headers: {'Content-Type': 'application/json'}
+        });
         return {data,status};
     }catch (error){
         return ErrorResponse(error);

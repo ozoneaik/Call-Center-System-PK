@@ -68,6 +68,7 @@ class MessageService
             }
             $data['message'] = $response->json();
         } catch (\Exception $e) {
+            Log::error($e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {
             return $data;
