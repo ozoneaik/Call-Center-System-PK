@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
 
     // csrf token generation for guest methods
     const csrfToken = async () => {
+        console.log('csrfToken');
         await axios.get(`${import.meta.env.VITE_BACKEND_URL}/sanctum/csrf-cookie`);
         return true;
     };
