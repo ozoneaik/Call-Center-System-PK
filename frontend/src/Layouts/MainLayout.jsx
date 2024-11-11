@@ -15,9 +15,10 @@ export default function MainLayout() {
         (async () => {
             const {data, status} = await profileApi();
             status === 200 && setUser(data.user)
+            console.log('hello');
             if (status === 401) {
                 localStorage.removeItem('user');
-                setUser(null);
+                // setUser(null);
                 window.location.href = '/';
             }
         })();
@@ -33,7 +34,7 @@ export default function MainLayout() {
             }
         })
     }, []);
-    if (!user) return <Navigate to="/login"/>;
+    if (!user) return <Navigate to="/"/>;
 
     return (<Outlet/>)
 }

@@ -13,16 +13,16 @@ const axiosClient = Axios.create({
     }
 });
 
-axiosClient.interceptors.response.use(response => {
-    return response;
-}, error => {
-    if (error.response && error.response.status === 401) {
-        // localStorage.removeItem('user')
-        localStorage.removeItem('notification');
-        window.location.reload();
-        return error;
-    }
-    throw error;
-})
+// axiosClient.interceptors.response.use(response => {
+//     return response;
+// }, error => {
+//     if (error.response && error.response.status === 401) {
+//         // localStorage.removeItem('user')
+//         localStorage.removeItem('notification');
+//         window.location.reload();
+//         return error;
+//     }
+//     throw error;
+// })
 
 export default axiosClient;

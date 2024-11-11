@@ -23,7 +23,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
         $cookie = cookie('token',$token,60*24);
         return response()->json([
-            'message' => 'Register successfully',
+            'message' => 'สร้างผู้ใช้สำเร็จ',
             'user' => $user,
             'token' => $token,
         ])->withCookie($cookie);
@@ -34,7 +34,7 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
         if(!$user || !Hash::check($data['password'], $user->password)){
             return response()->json([
-                'message' => 'Email or Password is Incorrect'
+                'message' => 'รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ (IT)'
             ],400);
         }
         $token = $user->createToken('auth_token')->plainTextToken;

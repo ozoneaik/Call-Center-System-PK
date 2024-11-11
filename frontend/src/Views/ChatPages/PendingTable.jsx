@@ -9,6 +9,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {receiveApi} from "../../Api/Messages.js";
 import {useAuth} from "../../context/AuthContext.jsx";
+import {Navigate, useNavigate} from "react-router-dom";
 
 const data = [{
     custName: '', userReply: '', updated_at: '',
@@ -16,6 +17,7 @@ const data = [{
     empCode: '', receiveAt: '', empName: ''
 }];
 export const PendingTable = (props) => {
+    const navigate = useNavigate();
     const {user} = useAuth();
     const {dataset = data} = props;
     const handleChat = (rateId, activeId, custId, roomId) => {
@@ -30,10 +32,11 @@ export const PendingTable = (props) => {
                 if (confirm) {
                     const {data, status} = await receiveApi(rateId, roomId);
                     if (status === 200) {
-                        const params = `${rateId}/${activeId}/${custId}`;
-                        const path = `${window.location.origin}/select/message/${params}/1`;
-                        const win = window.open(path, '_blank','width=900,height=800');
-                        win && win.focus();
+                        navigate(`/select/message/${params}/1`);
+                        // const params = `${rateId}/${activeId}/${custId}`;
+                        // const path = `${window.location.origin}/select/message/${params}/1`;
+                        // const win = window.open(path, '_blank','width=900,height=800');
+                        // win && win.focus();
                     } else AlertDiaLog({title: data.message, text: data.detail});
                 } else console.log('ไม่ได้ confirm');
             }
@@ -41,10 +44,11 @@ export const PendingTable = (props) => {
     };
 
     const redirectChat = (select) => {
-        const params = `${select.rateRef}/${select.id}/${select.custId}/0`;
-        const path = `${window.location.origin}/select/message/${params}`;
-        const win = window.open(path, '_blank','width=900,height=800');
-        win && win.focus();
+        const params = `${select.rateRef}/${select.id}/${select.custId}`;
+        navigate(`/select/message/${params}/1`);
+        // const path = `${window.location.origin}/select/message/${params}`;
+        // const win = window.open(path, '_blank','width=900,height=800');
+        // win && win.focus();
     }
 
     const BtnComponent = ({rateRef, id, custId, roomId, index}) => {
@@ -108,7 +112,7 @@ export const PendingTable = (props) => {
                                 <td>
                                     <Chip color="warning">
                                         <Typography sx={ChatPageStyle.TableText}>
-                                            {data.from_roomId || 'ไม่พบ'}
+                                            {data.roomName || 'ไม่พบ'}
                                         </Typography>
                                     </Chip>
                                 </td>

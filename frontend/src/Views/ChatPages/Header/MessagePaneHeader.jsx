@@ -11,8 +11,11 @@ import {openMessagesPane} from "../../../utils.js";
 import {ShortChatContent} from "../../../Components/ShortChatContent.jsx";
 import {EndTalk} from "./EndTalk.jsx";
 import {ChangeRoom} from "./ChangeRoom.jsx";
+import {useNavigate} from "react-router-dom";
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
 function MessagePaneHeader(props) {
+    const navigate = useNavigate();
     const {user} = useAuth();
     const {sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags,listAllChatRooms} = props;
     const [shortCut, setShortcut] = useState(false);
@@ -36,12 +39,15 @@ function MessagePaneHeader(props) {
         <>
             <Stack direction="row" sx={MessageStyle.PaneHeader.Stack}>
                 <Stack direction="row" spacing={{xs: 1, md: 2}} sx={{alignItems: 'center'}}>
+                    <Button onClick={()=>navigate(-1)} variant="outlined">
+                        <ArrowBackIosIcon/>
+                    </Button>
                     <Avatar size="lg" src={sender.avatar}/>
                     <div onClick={() => openMessagesPane()}>
                         <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
                             {sender.custName}
                         </Typography>
-                        <Chip size='sm' sx={{display: {xs: 'none'}}}>
+                        <Chip>
                             {sender.description}
                         </Chip>
                     </div>

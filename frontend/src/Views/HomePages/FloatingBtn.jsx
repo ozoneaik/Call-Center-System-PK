@@ -11,8 +11,10 @@ import ListItem from "@mui/joy/ListItem";
 import ListItemContent from "@mui/joy/ListItemContent";
 import Avatar from "@mui/joy/Avatar";
 import {useNotification} from "../../context/NotiContext.jsx";
+import {useNavigate} from "react-router-dom";
 
 export default function FloatingBtn() {
+    const navigate = useNavigate();
     const [chats, setChats] = useState([]);
     const [open, setOpen] = useState(false);
     const {user} = useAuth();
@@ -27,10 +29,11 @@ export default function FloatingBtn() {
 
     const handleRedirect = (selected) => {
         console.log('test')
-        const params = `${selected.rateId}/${selected.activeId}/${selected.custId}/1`;
-        const path = `${window.location.origin}/select/message/${params}`;
-        const win = window.open(path, '_blank', 'width=900,height=800');
-        win && win.focus();
+        const params = `${selected.rateId}/${selected.activeId}/${selected.custId}`;
+        navigate(`/select/message/${params}/1`);
+        // const path = `${window.location.origin}/select/message/${params}`;
+        // const win = window.open(path, '_blank', 'width=900,height=800');
+        // win && win.focus();
     }
 
     return (

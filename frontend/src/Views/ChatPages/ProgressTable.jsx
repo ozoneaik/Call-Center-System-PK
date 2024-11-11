@@ -8,14 +8,16 @@ import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import {useEffect, useState} from "react";
 import HistoryIcon from '@mui/icons-material/History';
-import {Link} from "react-router-dom";
+import {Link, Navigate, useNavigate} from "react-router-dom";
 
 export const ProgressTable = ({dataset}) => {
+    const navigate = useNavigate();
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
-        const path = `${window.location.origin}/select/message/${params}/1`;
-        const win = window.open(path, '_blank','width=900,height=800');
-        win && win.focus();
+        navigate(`/select/message/${params}/1`);
+        // const path = `${window.location.origin}/select/message/${params}/1`;
+        // const win = window.open(path, '_blank','width=900,height=800');
+        // win && win.focus();
     };
 
     const TimeDisplay = ({startTime}) => {
@@ -64,9 +66,13 @@ export const ProgressTable = ({dataset}) => {
                                 <td>
                                     <div style={{display: "flex", alignItems: "center"}}>
                                         {data.avatar && <Avatar size='sm' sx={{mr: 1}} src={data.avatar}/>}
-                                        <Typography>
-                                            {data.custName}
-                                        </Typography>
+                                        <Box>
+                                            <Typography>{data.custName}</Typography>
+                                            <Chip color="success" size="sm">{data.description}</Chip>
+                                        </Box>
+                                        {/*<Typography>*/}
+                                        {/*    {data.custName}*/}
+                                        {/*</Typography>*/}
                                     </div>
                                 </td>
                                 <td>

@@ -9,6 +9,7 @@ use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\Rates;
+use App\Models\User;
 use App\Services\MessageService;
 use App\Services\PusherService;
 use Carbon\Carbon;
@@ -113,6 +114,7 @@ class MessageController extends Controller
                 ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
+            $updateAC['startTime'] = Carbon::now();
             $updateAC['empCode'] = auth()->user()->empCode;
             if ($updateAC->save()) {
                 $updateRate = Rates::where('id', $rateId)->first();
@@ -169,6 +171,14 @@ class MessageController extends Controller
                     $storeAC['from_empCode'] = $updateAC['empCode'];
                     $storeAC['from_roomId'] = $from_roomId;
                     $storeAC['rateRef'] = $updateRate['id'];
+                    $bot = User::where('empCode','BOT')->first();
+                    $chatHistory = new ChatHistory();
+                    $chatHistory['custId'] = $storeAC['custId'];
+                    $chatHistory['content'] = 'มีการส่งต่อมาจากห้อง'.$updateAC['roomId'];
+                    $chatHistory['contentType'] = 'text';
+                    $chatHistory['sender'] = json_encode($bot);
+                    $chatHistory['conversationRef'] = $updateAC['id'];
+                    $chatHistory->save();
                     if ($storeAC->save()) {
                         $message = 'ส่งต่อสำเร็จ';
                         $detail = 'ไม่พบข้อผิดพลาด';
@@ -216,7 +226,19 @@ class MessageController extends Controller
                 if ($updateAC->save()) {
                     /* ส่งการ์ดประเมิน */
                     $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
-                    if (!$send['status']) throw new \Exception($send['message']);
+                    if (!$send['status']){
+                        throw new \Exception($send['message']);
+                    }
+                    else{
+                        $bot = User::where('empCode','BOT')->first();
+                        $chatHistory = new ChatHistory();
+                        $chatHistory['custId'] = $updateAC['custId'];
+                        $chatHistory['content'] = 'ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว';
+                        $chatHistory['contentType'] = 'text';
+                        $chatHistory['sender'] = json_encode($bot);
+                        $chatHistory['conversationRef'] = $updateAC['id'];
+                        $chatHistory->save();
+                    }
                     $message = 'คุณได้จบการสนทนาแล้ว';
                     $status = 200;
                 } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';

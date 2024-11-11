@@ -10,9 +10,11 @@ import {convertFullDate} from "../Components/Options.jsx";
 import Button from "@mui/joy/Button";
 import Avatar from "@mui/joy/Avatar";
 import HistoryIcon from "@mui/icons-material/History";
+import {useNavigate} from "react-router-dom";
 
 const BreadcrumbsPath = [{name: 'ห้องแชทล่าสุด'}];
 export default function ChatHistory() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [list, setList] = useState([])
     const fetchData = async () => {
@@ -26,10 +28,11 @@ export default function ChatHistory() {
     }, []);
 
     const redirectChat = (select) => {
-        const params = `${select.rateRef}/${select.id}/${select.custId}/0`;
-        const path = `${window.location.origin}/select/message/${params}`;
-        const win = window.open(path, '_blank','width=900,height=800');
-        win && win.focus();
+        const params = `${select.rateRef}/${select.id}/${select.custId}`;
+        navigate(`/select/message/${params}/0`);
+        // const path = `${window.location.origin}/select/message/${params}`;
+        // const win = window.open(path, '_blank','width=900,height=800');
+        // win && win.focus();
     }
     return (
         <Sheet sx={ChatPageStyle.Layout}>

@@ -20,10 +20,10 @@ class LoginRequest extends FormRequest
 
     public function messages() : array {
         return [
-            'email.required' => 'กรุณากรอกอีเมล',
-            'email.email' => 'รูปแบบอีเมลไม่ถูกต้อง',
-            'email.exists' => 'ไม่พบบัญชีที่ใช้อีเมลนี้',
-            'password.required' => 'กรุณากรอกรหัสผ่าน',
+            'email.required' => 'จำเป็นต้องกรอกรหัสพนักงาน',
+            'email.email' => 'รหัสพนักงานไม่ถูกต้อง',
+            'email.exists' => 'ไม่พบรหัสพนักงานนี้ในระบบ โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ (IT)',
+            'password.required' => 'จำเป็นต้องกรอกรหัสผ่าน',
             'password.string' => 'รูปแบบรหัสผ่านต้องเป็นตัวอักษร',
         ];
     }
