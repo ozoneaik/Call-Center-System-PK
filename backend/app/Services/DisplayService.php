@@ -15,6 +15,7 @@ class DisplayService{
                 ->where('active_conversations.endTime',null)
                 ->where('active_conversations.roomId', $roomId)
                 ->select('customers.custName','customers.avatar', 'active_conversations.*', 'rates.status','users.name as empName')
+                ->orderBy('created_at','asc')
                 ->get();
         }else{
             return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
@@ -25,6 +26,7 @@ class DisplayService{
                 ->where('active_conversations.receiveAt',null)
                 ->where('active_conversations.roomId', $roomId)
                 ->select('customers.custName','customers.avatar','customers.description', 'active_conversations.*', 'rates.status','users.name as empName')
+                ->orderBy('created_at','asc')
                 ->get();
         }
     }
