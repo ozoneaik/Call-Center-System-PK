@@ -33,14 +33,19 @@ export default function Login() {
         e.preventDefault();
         await csrfToken();
         try {
-            const Email = email + '@mail.local'
-            const {data, status} = await loginApi(Email, password);
-            if (status === 200) {
-                setUser(data.user);
-                return <Navigate to="/home"/>;
-            } else {
-                AlertDiaLog({text: data.message})
-            }
+            AlertDiaLog({
+                icon : 'error',
+                title : 'ขออภัย ',
+                text : 'อยู่ในช่วงทำการปรับปรุงระบบและอัพเดทข้อมูล ระบบจะเปิดให้ใช้งาน วันที่ 12/11/2024 เวลา 09:00 น.'
+            })
+            // const Email = email + '@mail.local'
+            // const {data, status} = await loginApi(Email, password);
+            // if (status === 200) {
+            //     setUser(data.user);
+            //     return <Navigate to="/home"/>;
+            // } else {
+            //     AlertDiaLog({text: data.message})
+            // }
         } finally {
             setLoading(false);
         }
