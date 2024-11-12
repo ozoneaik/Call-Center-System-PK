@@ -84,7 +84,7 @@ class MessageController extends Controller
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';
-                    } else throw new \Exception('ส่งข้อความไม่สำเร็จ error');
+                    } else throw new \Exception($sendMsgByLine['message']);
                 } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
             }
             DB::commit();
