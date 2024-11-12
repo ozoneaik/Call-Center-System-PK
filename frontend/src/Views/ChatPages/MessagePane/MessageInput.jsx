@@ -112,7 +112,7 @@ export const MessageInput = (props) => {
                                     </Box>
                                 )
                             }
-                            disabled={sender.emp !== user.empCode}
+                            disabled={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             placeholder="พิมพ์ข้อความที่นี่..."
                             minRows={imagePreview ? 1 : 3} maxRows={10}
                             value={msg.content}
@@ -120,7 +120,7 @@ export const MessageInput = (props) => {
                             endDecorator={
                                 <Stack direction="row" sx={MessageStyle.TextArea}>
                                     <Button
-                                        disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
+                                        // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปรูป</Typography>
@@ -130,12 +130,11 @@ export const MessageInput = (props) => {
                                         <LocalSeeIcon/>
                                     </Button>
                                     <Button
-                                        disabled={(sender.emp !== user.empCode) || disableBtn}
+                                        // disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
                                         onClick={() => handleSend({type: 'text'})}
                                     >
-                                        <Typography
-                                            sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
+                                        <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
                                             ส่ง ( ctrl+enter )
                                         </Typography>
                                         <SendRoundedIcon/>

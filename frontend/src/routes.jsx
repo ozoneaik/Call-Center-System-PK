@@ -12,7 +12,7 @@ import ShortChats from "./Views/shortChats/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
 import TestUi from "./TestUi.jsx";
-import ChatHistory from "./Views/ChatHistory.jsx";
+import ChatHistory from "./Views/ChathistoryPages/ChatHistory.jsx";
 import BotPage from "./Views/BotPages/main.jsx";
 import TagePage from "./Views/TagPages/main.jsx";
 import Users from "./Views/UserPages/main.jsx";

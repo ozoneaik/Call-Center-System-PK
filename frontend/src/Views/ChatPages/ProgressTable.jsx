@@ -1,16 +1,21 @@
 import Box from "@mui/joy/Box";
-import {ChatPageStyle} from "../../styles/ChatPageStyle.js";
+import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
-import {Button, Sheet, Table} from "@mui/joy";
+import { Button, Sheet, Table } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import {convertFullDate, differentDate, getRandomColor} from "../../Components/Options.jsx";
+import { convertFullDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import HistoryIcon from '@mui/icons-material/History';
-import {Link, Navigate, useNavigate} from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import SendIcon from '@mui/icons-material/Send';
+import { endTalkAllApi } from "../../Api/Messages.js";
+import { AlertDiaLog } from "../../Dialogs/Alert.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
-export const ProgressTable = ({dataset}) => {
+export const ProgressTable = ({ dataset }) => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
@@ -20,7 +25,7 @@ export const ProgressTable = ({dataset}) => {
         // win && win.focus();
     };
 
-    const TimeDisplay = ({startTime}) => {
+    const TimeDisplay = ({ startTime }) => {
         const [timeDiff, setTimeDiff] = useState(differentDate(startTime));
 
         useEffect(() => {
@@ -39,84 +44,106 @@ export const ProgressTable = ({dataset}) => {
         );
     };
 
+    const handleEndTalkAll = () => {
+        AlertDiaLog({
+            title: 'จบการสนทนาทั้งหมด',
+            text: 'คุณต้องการจบการสนทนาทั้งหมดที่กำลังดำเนินการอยู่หรือไม่ ?',
+            icon: 'question',
+            onPassed: async (confirm) => {
+                if (confirm) {
+                    const { data, status } = await endTalkAllApi();
+                    alert(status)
+                } else alert('ไม่ได้ confirm');
+            }
+        })
+
+    }
+
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
                 <Typography level="h2" component="h1">กำลังดำเนินการ</Typography>
-                <Button component={Link} to={'/chatHistory'}>
-                    <HistoryIcon/>&nbsp;ประวัติแชททั้งหมด
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                    {user.role === 'admin' && (
+                        <Button color='warning' variant="outlined" onClick={handleEndTalkAll}>
+                            <SendIcon />&nbsp;จบการสนทนาทั้งหมด
+                        </Button>
+                    )}
+                    <Button component={Link} to={'/chatHistory'}>
+                        <HistoryIcon />&nbsp;ประวัติแชททั้งหมด
+                    </Button>
+                </Box>
             </Box>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
-                    <tr>
-                        <th style={{width: 200}}>ชื่อลูกค้า</th>
-                        <th style={{width: 200}}>พนักงานรับเรื่อง</th>
-                        <th style={{width: 200}}>วันที่รับเรื่อง</th>
-                        <th style={{width: 200}}>เวลาเรื่ม</th>
-                        <th style={{width: 200}}>เวลาที่สนทนา</th>
-                        <th style={{width: 150}}>จัดการ</th>
-                    </tr>
+                        <tr>
+                            <th style={{ width: 200 }}>ชื่อลูกค้า</th>
+                            <th style={{ width: 200 }}>พนักงานรับเรื่อง</th>
+                            <th style={{ width: 200 }}>วันที่รับเรื่อง</th>
+                            <th style={{ width: 200 }}>เวลาเรื่ม</th>
+                            <th style={{ width: 200 }}>เวลาที่สนทนา</th>
+                            <th style={{ width: 150 }}>จัดการ</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    {
-                        dataset.length > 0 ? dataset.map((data, index) => (
-                            <tr key={index}>
-                                <td>
-                                    <div style={{display: "flex", alignItems: "center"}}>
-                                        {data.avatar && <Avatar size='sm' sx={{mr: 1}} src={data.avatar}/>}
-                                        <Box>
-                                            <Typography>{data.custName}</Typography>
-                                            <Chip color="success" size="sm">{data.description}</Chip>
-                                        </Box>
-                                        {/*<Typography>*/}
-                                        {/*    {data.custName}*/}
-                                        {/*</Typography>*/}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style={{display: "flex", alignItems: "center"}}>
-                                        {data.empCode && <Avatar color={getRandomColor()} size='sm' sx={{mr: 1}}/>}
-                                        <Typography>
-                                            {data.empName || '-'}
-                                        </Typography>
-                                    </div>
-                                </td>
-                                <td>
-                                    <Chip color={getRandomColor()}>
-                                        <Typography sx={ChatPageStyle.TableText}>
-                                            {data.receiveAt ? convertFullDate(data.receiveAt) : 'ยังไม่เริ่มสนทนา'}
-                                        </Typography>
-                                    </Chip>
-                                </td>
-                                <td>
-                                    <Chip color="warning">
-                                        <Typography sx={ChatPageStyle.TableText}>
-                                            {data.startTime ? convertFullDate(data.startTime) : 'ยังไม่เริ่มสนทนา'}
-                                        </Typography>
-                                    </Chip>
-                                </td>
-                                <td>
-                                    <TimeDisplay startTime={data.startTime}/>
-                                </td>
-                                <td>
-                                    <Button
-                                        onClick={() => handleChat(data.rateRef, data.id, data.custId)}
-                                        size='sm' variant='outlined'
-                                        sx={{mr: 1}} startDecorator={<ChatIcon/>}>
-                                        <Typography>ดูข้อความ</Typography>
-                                    </Button>
-                                </td>
-                            </tr>
-                        )) : (
-                            <tr>
-                                <td colSpan={6} style={{textAlign: 'center'}}>
-                                    <Chip color={getRandomColor()}>ไม่มีข้อมูล</Chip>
-                                </td>
-                            </tr>
-                        )
-                    }
+                        {
+                            dataset.length > 0 ? dataset.map((data, index) => (
+                                <tr key={index}>
+                                    <td>
+                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                            {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
+                                            <Box>
+                                                <Typography>{data.custName}</Typography>
+                                                <Chip color="success" size="sm">{data.description}</Chip>
+                                            </Box>
+                                            {/*<Typography>*/}
+                                            {/*    {data.custName}*/}
+                                            {/*</Typography>*/}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                            {data.empCode && <Avatar color={getRandomColor()} size='sm' sx={{ mr: 1 }} />}
+                                            <Typography>
+                                                {data.empName || '-'}
+                                            </Typography>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <Chip color={getRandomColor()}>
+                                            <Typography sx={ChatPageStyle.TableText}>
+                                                {data.receiveAt ? convertFullDate(data.receiveAt) : 'ยังไม่เริ่มสนทนา'}
+                                            </Typography>
+                                        </Chip>
+                                    </td>
+                                    <td>
+                                        <Chip color="warning">
+                                            <Typography sx={ChatPageStyle.TableText}>
+                                                {data.startTime ? convertFullDate(data.startTime) : 'ยังไม่เริ่มสนทนา'}
+                                            </Typography>
+                                        </Chip>
+                                    </td>
+                                    <td>
+                                        <TimeDisplay startTime={data.startTime} />
+                                    </td>
+                                    <td>
+                                        <Button
+                                            onClick={() => handleChat(data.rateRef, data.id, data.custId)}
+                                            size='sm' variant='outlined'
+                                            sx={{ mr: 1 }} startDecorator={<ChatIcon />}>
+                                            <Typography>ดูข้อความ</Typography>
+                                        </Button>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} style={{ textAlign: 'center' }}>
+                                        <Chip color={getRandomColor()}>ไม่มีข้อมูล</Chip>
+                                    </td>
+                                </tr>
+                            )
+                        }
                     </tbody>
                 </Table>
             </Sheet>

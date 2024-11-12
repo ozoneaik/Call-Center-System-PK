@@ -121,3 +121,12 @@ export const chatHistoryApi = async () => {
         return ErrorResponse(error);
     }
 }
+
+export const endTalkAllApi = async () => {
+    try{
+        const {data, status} = await axiosClient.post('/endTalkAll');
+        return {data, status};
+    }catch(error) {
+        return ErrorResponse(error);
+    }
+}

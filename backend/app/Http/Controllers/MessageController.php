@@ -148,7 +148,7 @@ class MessageController extends Controller
         $status = 400;
         try {
             DB::beginTransaction();
-            $updateRate = Rates::where('id', $request['rateId'])->first();
+            $updateRate = Rates::query()->where('id', $request['rateId'])->first();
             if (!$updateRate) throw new \Exception('ไม่พบ rate ที่ต้องการอัพเดท');
             $from_roomId = $updateRate['latestRoomId'];
             $updateRate['latestRoomId'] = $request['latestRoomId'];
