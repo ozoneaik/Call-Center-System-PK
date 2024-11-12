@@ -133,10 +133,10 @@ export default function Sidebar() {
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
                 <Avatar src={user.avatar} variant="outlined" size="sm"/>
                 <Box sx={{minWidth: 0, flex: 1}}>
-                    <Typography level="title-sm">{user.name}</Typography>
-                    <Typography level="body-xs">{user.email}</Typography>
+                    <Typography level="title-sm" mb={1}>{user.name}</Typography>
+                    <Typography level="body-xs">สิทธิ์&nbsp;{user.role}</Typography>
                 </Box>
-                <IconButton onClick={Logout} size="sm" variant="plain" color="neutral">
+                <IconButton onClick={Logout} size="sm" variant="soft" color="danger">
                     <LogoutRoundedIcon/>
                 </IconButton>
             </Box>

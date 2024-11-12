@@ -55,7 +55,7 @@ function MessagePaneHeader(props) {
                 {check === '1' && (
                     <Stack spacing={1} direction="row" sx={{alignItems: 'center'}}>
                         <ChangeRoom
-                            disable={sender.emp !== user.empCode}
+                            disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             rateId={rateId} activeId={activeId}
                             chatRooms={chatRooms} roomSelect={roomSelect}
                             listAllChatRooms={listAllChatRooms}
@@ -63,10 +63,10 @@ function MessagePaneHeader(props) {
                         <Btn
                             title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon/>}
                             onClick={() => setShortcut(true)}
-                            disable={sender.emp !== user.empCode}
+                            disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                         />
                         <EndTalk
-                            disable={sender.emp !== user.empCode}
+                            disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             rateId={rateId} activeId={activeId} tags={tags}
                         />
                     </Stack>
