@@ -64,7 +64,7 @@ class MessageService
                 $data['status'] = true;
             } else {
                 $data['status'] = false;
-                throw new \Exception($response->json());
+                throw new \Exception('ERROR METHOD MESSAGE SERVICE >>> sendMsgByLine');
             }
             $data['message'] = $response->json() ?? 'test';
             Log::info('ERROR METHOD MESSAGE SERVICE >>> sendMsgByLine');
