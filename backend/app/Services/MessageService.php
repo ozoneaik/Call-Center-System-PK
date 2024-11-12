@@ -66,7 +66,7 @@ class MessageService
                 $data['status'] = false;
                 throw new \Exception($response->json());
             }
-            $data['message'] = $response->json();
+            $data['message'] = $response->json() ?? 'test';
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             $data['message'] = $e->getMessage();
