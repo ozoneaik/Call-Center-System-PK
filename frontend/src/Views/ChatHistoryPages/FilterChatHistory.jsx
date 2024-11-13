@@ -45,11 +45,15 @@ export const FilterChatHistory = (props) => {
             </FormControl>
             <FormControl>
                 <FormLabel>ทักมาจาก</FormLabel>
-                <Autocomplete options={['ทักมาจากไลน์ PhuAongBot', 'ทักมาจากไลน์ message']} sx={{ width: 300 }} onChange={(event, value) => searchDirectFrom(event, value)} />
+                <Autocomplete options={[
+                    'ทักมาจากไลน์ pumpkintools',
+                    'ทักมาจากไลน์ ศูนย์ซ่อม Pumpkin',
+                    'ทักมาจากไลน์ ไลน์ dearler'
+                ]} sx={{ width: 300 }} onChange={(event, value) => searchDirectFrom(event, value)} />
             </FormControl>
             <FormControl>
                 <FormLabel>พนักงานที่คุยล่าสุด</FormLabel>
-                <Input options={['Option 1', 'Option 2']} sx={{ width: 300 }} onChange={(e)=>searchEmp(e)} />
+                <Input options={['Option 1', 'Option 2']} sx={{ width: 300 }} onChange={(e) => searchEmp(e)} />
             </FormControl>
             {/* <Button>ค้นหา</Button> */}
         </Box>
