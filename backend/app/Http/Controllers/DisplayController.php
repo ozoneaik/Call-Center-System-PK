@@ -125,12 +125,22 @@ class DisplayController extends Controller
     }
 
     public function ChatHistory() : JsonResponse{
-        $list = ActiveConversations::select('active_conversations.*', 'customers.custName', 'customers.avatar','customers.description')
-            ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
-            ->distinct('active_conversations.custId')
-            ->orderBy('active_conversations.custId')
-            ->orderBy('active_conversations.created_at', 'DESC')
-            ->get();
+        // $list = ActiveConversations::query()->select('active_conversations.*', 'customers.custName', 'customers.avatar','customers.description')
+        //     ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
+        //     ->distinct('active_conversations.custId')
+        //     ->orderBy('active_conversations.custId')
+        //     ->orderBy('active_conversations.created_at', 'DESC')
+        //     ->get();
+
+            $list = ActiveConversations::query()
+    ->select('active_conversations.*', 'customers.custName', 'customers.avatar', 'customers.description', 'users.name')
+    ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
+    ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
+    ->distinct('active_conversations.custId')
+    ->orderBy('active_conversations.custId')
+    ->orderByDesc('active_conversations.updated_at')
+    ->get();
+
 
         return response()->json([
            'list' => $list

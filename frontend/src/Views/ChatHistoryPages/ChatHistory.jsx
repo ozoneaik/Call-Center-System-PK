@@ -11,9 +11,6 @@ import Avatar from "@mui/joy/Avatar";
 import HistoryIcon from "@mui/icons-material/History";
 import { useNavigate } from "react-router-dom";
 import BreadcrumbsComponent from "../../components/Breadcrumbs.jsx";
-import IconButton, { iconButtonClasses } from '@mui/joy/IconButton';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import { FilterChatHistory } from "./FilterChatHistory.jsx";
 
 
@@ -21,12 +18,16 @@ const BreadcrumbsPath = [{ name: 'ห้องแชทล่าสุด' }];
 export default function ChatHistory() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [list, setList] = useState([])
+    const [list, setList] = useState([]);
+    const [filter, setFilter] = useState([]);
     const fetchData = async () => {
         setLoading(true);
         const { data, status } = await chatHistoryApi();
         console.log(data, status)
-        status === 200 && setList(data.list);
+        if(status === 200) {
+            setFilter(data.list);
+            setList(data.list);
+        }
     }
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
@@ -48,7 +49,7 @@ export default function ChatHistory() {
                 <Box sx={ChatPageStyle.BoxTable}>
                     <Typography level="h2" component="h1">ประวัติการสนทนาทั้งหมด</Typography>
                 </Box>
-                <FilterChatHistory/>
+                <FilterChatHistory setFilter={setFilter} Filter={filter} list={list}/>
                 <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                     <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                         <thead>
@@ -61,7 +62,7 @@ export default function ChatHistory() {
                             </tr>
                         </thead>
                         <tbody>
-                            {!loading ? list.length > 0 && list.map((item, index) => (
+                            {!loading ? filter.length > 0 && filter.map((item, index) => (
                                 <tr key={index}>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>
@@ -71,7 +72,7 @@ export default function ChatHistory() {
                                     </td>
                                     <td>{item.description}</td>
                                     <td>{convertFullDate(item.created_at)}</td>
-                                    <td>ระหว่างพัฒนา</td>
+                                    <td>{item.name}</td>
                                     <td>
                                         <Button size='sm' onClick={() => redirectChat(item)}>
                                             <HistoryIcon />
@@ -87,43 +88,7 @@ export default function ChatHistory() {
                             )}
                         </tbody>
                     </Table>
-
                 </Sheet>
-                <Box
-                    className="Pagination-laptopUp"
-                    sx={{
-                        pt: 2, gap: 1,
-                        [`& .${iconButtonClasses.root}`]: { borderRadius: '50%' },
-                        display: {
-                            xs: 'none', md: 'flex',
-                        }
-                    }}
-                >
-                    <Button size="sm" variant="outlined" color="neutral" startDecorator={<KeyboardArrowLeftIcon />}>
-                        ก่อนหน้า
-                    </Button>
-
-                    <Box sx={{ flex: 1 }} />
-                    {['1', '2', '3', '…', '8', '9', '10'].map((page) => (
-                        <IconButton
-                            key={page}
-                            size="sm"
-                            variant={Number(page) ? 'outlined' : 'plain'}
-                            color="neutral"
-                        >
-                            {page}
-                        </IconButton>
-                    ))}
-                    <Box sx={{ flex: 1 }} />
-                    <Button
-                        size="sm"
-                        variant="outlined"
-                        color="neutral"
-                        endDecorator={<KeyboardArrowRightIcon />}
-                    >
-                        ถัดไป
-                    </Button>
-                </Box>
             </Box>
         </Sheet>
     )

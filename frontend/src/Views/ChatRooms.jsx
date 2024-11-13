@@ -1,20 +1,20 @@
-import {ChatPageStyle} from "../styles/ChatPageStyle.js";
-import {Box, Button, CircularProgress, FormControl, FormLabel, Grid, Input, Sheet, Table} from "@mui/joy";
+import { ChatPageStyle } from "../styles/ChatPageStyle.js";
+import { Box, Button, CircularProgress, FormControl, FormLabel, Grid, Input, Sheet, Table } from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
 import Typography from "@mui/joy/Typography";
-import {useEffect, useState} from "react";
-import {chatRoomListApi, deleteChatRoomsApi, storeOrUpdateChatRoomsApi} from "../Api/ChatRooms.js";
+import { useEffect, useState } from "react";
+import { chatRoomListApi, deleteChatRoomsApi, storeOrUpdateChatRoomsApi } from "../Api/ChatRooms.js";
 import SaveIcon from '@mui/icons-material/Save';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import DeleteIcon from "@mui/icons-material/Delete";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {useChatRooms} from "../context/ChatRoomContext.jsx";
+import { AlertDiaLog } from "../Dialogs/Alert.js";
+import { useChatRooms } from "../context/ChatRoomContext.jsx";
 
 
-const BreadcrumbsPath = [{name: 'จัดการห้องแชท'}, {name: 'รายละเอียด'}];
+const BreadcrumbsPath = [{ name: 'จัดการห้องแชท' }, { name: 'รายละเอียด' }];
 
 export default function ChatRooms() {
-    const {setChatRoomsContext} = useChatRooms()
+    const { setChatRoomsContext } = useChatRooms()
     const [chatRooms, setChatRooms] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export default function ChatRooms() {
 
     const getChatRooms = async () => {
         setLoading(true);
-        const {data, status} = await chatRoomListApi();
+        const { data, status } = await chatRoomListApi();
         if (status === 200) {
             setChatRooms(data.chatRooms);
             setChatRoomsContext(data.chatRooms);
@@ -40,7 +40,7 @@ export default function ChatRooms() {
             text: 'กด ตกลง เพื่อยืนยัน',
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const {data, status} = await storeOrUpdateChatRoomsApi(selected);
+                    const { data, status } = await storeOrUpdateChatRoomsApi(selected);
                     AlertDiaLog({
                         icon: status === 200 && 'success',
                         title: data.message,
@@ -66,7 +66,7 @@ export default function ChatRooms() {
             text: 'กด ตกลง เพื่อยืนยัน',
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const {data, status} = await deleteChatRoomsApi(roomId);
+                    const { data, status } = await deleteChatRoomsApi(roomId);
                     AlertDiaLog({
                         icon: status === 200 && 'success',
                         title: data.message,
@@ -85,14 +85,14 @@ export default function ChatRooms() {
     return (
         <Sheet sx={ChatPageStyle.Layout}>
             <Box component="main" sx={ChatPageStyle.MainContent}>
-                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                    <BreadcrumbsComponent list={BreadcrumbsPath}/>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BreadcrumbsComponent list={BreadcrumbsPath} />
                 </Box>
                 <Grid container spacing={2}>
 
                     {/* Add/Edit Form */}
                     <Grid xs={12} sm={4}>
-                        <Box sx={{bgcolor: 'background.surface', borderRadius: 'sm'}}>
+                        <Box sx={{ bgcolor: 'background.surface', borderRadius: 'sm' }}>
                             <Box sx={ChatPageStyle.BoxTable}>
                                 <Typography level="h2" component="h1">เพิ่ม/แก้ไขห้องแชท</Typography>
                             </Box>
@@ -100,7 +100,7 @@ export default function ChatRooms() {
                                 {
                                     selected.roomId && (
                                         <>
-                                            <FormControl sx={{mb: 2}}>
+                                            <FormControl sx={{ mb: 2 }}>
                                                 <FormLabel>รหัสห้อง</FormLabel>
                                                 <Input
                                                     onChange={(e) => setSelected(prevState => ({
@@ -114,7 +114,7 @@ export default function ChatRooms() {
                                         </>
                                     )
                                 }
-                                <FormControl sx={{mb: 2}}>
+                                <FormControl sx={{ mb: 2 }}>
                                     <FormLabel>ชื่อห้อง</FormLabel>
                                     <Input
                                         onChange={(e) => setSelected(prevState => ({
@@ -125,7 +125,7 @@ export default function ChatRooms() {
                                         type="text" placeholder="ex.ห้องประสานงาน"
                                     />
                                 </FormControl>
-                                <Box sx={{display: 'flex', gap: 1}}>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
                                     <Button
                                         color='warning'
                                         disabled={!selected.roomName}
@@ -135,7 +135,7 @@ export default function ChatRooms() {
                                     </Button>
                                     <Button
                                         disabled={!selected.roomName}
-                                        type="submit" startDecorator={<SaveIcon/>}>
+                                        type="submit" startDecorator={<SaveIcon />}>
                                         {selected.roomId ? 'อัพเดท' : 'สร้าง'}
                                     </Button>
                                 </Box>
@@ -145,49 +145,51 @@ export default function ChatRooms() {
 
                     {/* Chat Room List Table */}
                     <Grid xs={12} sm={8}>
-                        <Box sx={{bgcolor: 'background.surface', borderRadius: 'sm'}}>
+                        <Box sx={{ bgcolor: 'background.surface', borderRadius: 'sm' }}>
                             <Box sx={ChatPageStyle.BoxTable}>
                                 <Typography level="h2" component="h1">รายการ</Typography>
                             </Box>
                             <Table aria-label="chat room list">
                                 <thead>
-                                <tr>
-                                    <th>ไอดีห้อง</th>
-                                    <th>ชื่อห้อง</th>
-                                    <th>จัดการ</th>
-                                </tr>
+                                    <tr>
+                                        <th>ไอดีห้อง</th>
+                                        <th>ชื่อห้อง</th>
+                                        <th>จัดการ</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                {!loading ? (
-                                    chatRooms.length > 0 && (
-                                        chatRooms.map((chatRoom, index) => (
-                                            <tr key={index}>
-                                                <td>{chatRoom.roomId}</td>
-                                                <td>{chatRoom.roomName}</td>
-                                                <td>
-                                                    <Box sx={{display: 'flex', gap: 1}}>
-                                                        <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                    {!loading ? (
+                                        chatRooms.length > 0 && (
+                                            chatRooms.map((chatRoom, index) => (
+                                                <tr key={index}>
+                                                    <td>{chatRoom.roomId}</td>
+                                                    <td>{chatRoom.roomName}</td>
+                                                    <td>
+                                                        <Box sx={{ display: 'flex', gap: 1 }}>
+                                                            <Button disabled={(chatRoom.roomId === 'ROOM00') || (chatRoom.roomId === 'ROOM02')}
+                                                                size='sm'
                                                                 onClick={() => setSelected(chatRoom)}>
-                                                            <EditNoteIcon/>
-                                                        </Button>
-                                                        <Button disabled={chatRoom.roomId === 'ROOM00'} size='sm'
+                                                                <EditNoteIcon />
+                                                            </Button>
+                                                            <Button disabled={(chatRoom.roomId === 'ROOM00') || (chatRoom.roomId === 'ROOM02')}
+                                                                size='sm'
                                                                 color='danger'
                                                                 onClick={() => handleDelete(chatRoom.roomId)}>
-                                                            <DeleteIcon/>
-                                                        </Button>
-                                                    </Box>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                                <DeleteIcon />
+                                                            </Button>
+                                                        </Box>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} style={{ textAlign: "center" }}>
+                                                <CircularProgress color="primary" size="md" />
+                                            </td>
+                                        </tr>
                                     )
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} style={{textAlign: "center"}}>
-                                            <CircularProgress color="primary" size="md"/>
-                                        </td>
-                                    </tr>
-                                )
-                                }
+                                    }
                                 </tbody>
                             </Table>
                         </Box>
