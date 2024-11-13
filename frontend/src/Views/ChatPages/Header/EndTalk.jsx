@@ -8,8 +8,10 @@ import {AlertDiaLog} from "../../../Dialogs/Alert.js";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
 import Box from "@mui/joy/Box";
+import { useNavigate } from "react-router-dom";
 
 const ModalEndTalk = (props) => {
+    const navigate = useNavigate();
     const {rateId, activeId, showModalEndTalk, setShowModalEndTalk, tags} = props;
     const [selectTag, setSelectTag] = useState();
     const endTalk = async () => {
@@ -21,7 +23,7 @@ const ModalEndTalk = (props) => {
             showConfirmButton: status === 200,
             icon: status === 200 && 'success',
             onPassed: (C) => {
-                C && status === 200 && window.close();
+                C && status === 200 && navigate(-1);
             }
         })
     }

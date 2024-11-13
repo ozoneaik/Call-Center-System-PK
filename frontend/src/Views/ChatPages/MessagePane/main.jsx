@@ -1,4 +1,4 @@
-import {useParams} from "react-router-dom";
+import {json, useParams} from "react-router-dom";
 import {Sheet} from "@mui/joy";
 import {MessageStyle} from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
@@ -73,8 +73,10 @@ export default function MessagePane() {
 
     // ตรวจจับข้อความใหม่จาก ลูกค้า
     useEffect(() => {
+        
         if (notification && notification.title === 'มีข้อความใหม่เข้ามา') {
             if (notification.custId === sender.custId) {
+                let pusher = JSON.parse(notification.sender);
                 setMessages((prevMessages) => {
                     const newId = prevMessages.length.toString();
                     return [
@@ -83,7 +85,7 @@ export default function MessagePane() {
                             id: newId,
                             content: notification.content,
                             contentType: notification.contentType,
-                            sender: sender,
+                            sender: pusher,
                             created_at: new Date().toString()
                         },
                     ];

@@ -28,7 +28,7 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
     console.log(body, msg)
     try {
         const { data, status } = await axiosClient.post(`${messages}/send`, { ...body }, {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'multipart/form-data' }
         });
         return { data, status };
     } catch (error) {

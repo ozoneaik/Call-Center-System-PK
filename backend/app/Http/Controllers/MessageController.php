@@ -64,7 +64,7 @@ class MessageController extends Controller
                 $storeChatHistory['contentType'] = $m['contentType'];
                 if ($storeChatHistory['contentType'] === 'image') {
                     Log::info('image message');
-                    Log::info($m['content']);
+                    Log::info($m);
                     $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
                     // ส่งไฟล์แบบ multipart โดยใช้ attach()
                     $response = Http::timeout(30)->attach('file', $m['content']
@@ -76,12 +76,18 @@ class MessageController extends Controller
                         $m['content'] = $responseJson['imagePath'];
                     } else {
                         $storeChatHistory['content'] = 'ส่งรูปภาพ';
+                        Log::info($URL);
                         Log::error('Error uploading file: ' . $response->status());
                     }
                 } else $storeChatHistory['content'] = $m['content'];
                 $storeChatHistory['sender'] = json_encode(auth()->user());
                 $storeChatHistory['conversationRef'] = $conversationId;
                 if ($storeChatHistory->save()) {
+                    // ส่ง pusher
+                    $notification = $this->pusherService->newMessage($storeChatHistory, false, 'มีข้อความใหม่เข้ามา');
+                    if (!$notification['status']) {
+                        throw new \Exception('การแจ้งเตือนผิดพลาด');
+                    }
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';

@@ -11,7 +11,7 @@ function ProtectedLayout() {
     return (
         <div>
             <App />
-            <AnnouncementBar />
+            {/* <AnnouncementBar /> */}
             <Box sx={LayoutStyle.MainLayout}>
                 <Sidebar />
                 <Navbar />

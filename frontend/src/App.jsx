@@ -21,7 +21,10 @@ function App() {
             console.log('notification => ',notification.title,notification)
             setSender(notification);
             if (notification.title === 'มีข้อความใหม่เข้ามา'){
-                handleClick({ vertical: 'top', horizontal: 'right' })();
+                let pusher = JSON.parse(notification.sender);
+                if (pusher.custId) {
+                    handleClick({ vertical: 'top', horizontal: 'right' })();
+                }
             }
         }
     },[notification])

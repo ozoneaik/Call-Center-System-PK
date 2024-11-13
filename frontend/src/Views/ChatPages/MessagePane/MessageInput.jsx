@@ -55,40 +55,41 @@ export const MessageInput = (props) => {
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
 
-            // เช็คว่ามีรุปภาพหรือไม่
-            if (selectedFile) {
-                setMessages((prevMessages) => {
-                    const newId = prevMessages.length.toString();
-                    return [
-                        ...prevMessages,
-                        {
-                            id: newId,
-                            content: imagePreview,
-                            contentType: 'image',
-                            sender: user,
-                            created_at: new Date().toString()
-                        },
-
-                    ]
-                })
-            }
+            
             // เช้คว่า มีการพิมข้อความมาหรือไม่
-            if (C) {
-                setMessages((prevMessages) => {
-                    const newId = prevMessages.length.toString();
-                    return [
-                        ...prevMessages,
-                        {
-                            id: newId,
-                            content: C,
-                            contentType: type,
-                            sender: user,
-                            created_at: new Date().toString()
-                        },
+            // if (C) {
+            //     setMessages((prevMessages) => {
+            //         const newId = prevMessages.length.toString();
+            //         return [
+            //             ...prevMessages,
+            //             {
+            //                 id: newId,
+            //                 content: C,
+            //                 contentType: type,
+            //                 sender: user,
+            //                 created_at: new Date().toString()
+            //             },
 
-                    ]
-                })
-            }
+            //         ]
+            //     })
+            // }
+            // เช็คว่ามีรุปภาพหรือไม่
+            // if (selectedFile) {
+            //     setMessages((prevMessages) => {
+            //         const newId = prevMessages.length.toString();
+            //         return [
+            //             ...prevMessages,
+            //             {
+            //                 id: newId,
+            //                 content: imagePreview,
+            //                 contentType: 'image',
+            //                 sender: user,
+            //                 created_at: new Date().toString()
+            //             },
+
+            //         ]
+            //     })
+            // }
         } else AlertDiaLog({title: data.message, text: data.detail, onPassed: () => console.log('')});
         handleRemoveImage();
         setDisableBtn(false);
