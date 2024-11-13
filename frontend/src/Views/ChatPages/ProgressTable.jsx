@@ -8,13 +8,13 @@ import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useEffect, useState } from "react";
 import HistoryIcon from '@mui/icons-material/History';
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
-import { endTalkAllApi } from "../../Api/Messages.js";
+import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-export const ProgressTable = ({ dataset }) => {
+export const ProgressTable = ({ dataset, roomId, roomName }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const handleChat = (rateId, activeId, custId) => {
@@ -51,8 +51,14 @@ export const ProgressTable = ({ dataset }) => {
             icon: 'question',
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const { data, status } = await endTalkAllApi();
-                    alert(status)
+                    const { data, status } = await endTalkAllProgressApi({ roomId, list: dataset });
+                    console.log(data);
+                    AlertDiaLog({
+                        title: data.message,
+                        text: data.detail,
+                        icon: status === 200 ? 'success' : 'error',
+                        onPassed: () => status === 200 && window.location.reload()
+                    });
                 } else alert('ไม่ได้ confirm');
             }
         })

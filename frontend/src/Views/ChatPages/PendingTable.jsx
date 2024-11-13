@@ -7,7 +7,7 @@ import { convertFullDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { receiveApi } from "../../Api/Messages.js";
+import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
@@ -76,17 +76,39 @@ export const PendingTable = (props) => {
             </Box>
         )
     }
+
+    const endTalkAllPending = () => {
+        AlertDiaLog({
+            icon: 'question',
+            title: 'จบการสนทนาตามช่วงเวลา',
+            text: `คุณต้องการจบการสนทนาตามช่วงเวลาตั้งแต่ ${startTime} ถึง ${endTime} ที่กำหนดหรือไม่ ?`,
+            onPassed: async (confirm) => {
+                if (confirm) {
+                    const { data, status } = await endTalkAllPendingApi({ roomId: 'ROOM00', list: dataset, startTime, endTime });
+                    AlertDiaLog({
+                        icon: status === 200 ? 'success' : 'error',
+                        title: data.message,
+                        text: data.detail,
+                        onPassed: () => {
+                            status === 200 && window.location.reload();
+                        }
+                    })
+                }
+            }
+        })
+    }
+
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
                 <Typography level="h2" component="h1">รอดำเนินการ</Typography>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 ,alignItems : 'center'}}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
                     {user.role === 'admin' && (
                         <>
-                            <Input type="date" onChange={(e)=>setStartTime(e.target.value)}/>
+                            <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
                             <Typography>ถึง</Typography>
-                            <Input type="date" onChange={(e) => setEndTime(e.target.value)}/>
-                            <Button onClick={()=>alert(startTime+endTime)}>
+                            <Input type="date" onChange={(e) => setEndTime(e.target.value)} />
+                            <Button onClick={() => endTalkAllPending()} disabled={!startTime || !endTime}>
                                 <SendIcon />&nbsp;จบการสนทนาตามช่วงเวลา
                             </Button>
                         </>

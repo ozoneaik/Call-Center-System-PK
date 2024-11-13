@@ -9,6 +9,7 @@ use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\Rates;
+use App\Models\TagMenu;
 use App\Models\User;
 use App\Services\MessageService;
 use App\Services\PusherService;
@@ -42,10 +43,10 @@ class MessageController extends Controller
             Log::info($m);
         }
         try {
-            $checkCustId = Customers::where('custId', $custId)->first();
+            $checkCustId = Customers::query()->where('custId', $custId)->first();
             if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
             DB::beginTransaction();
-            $checkConversation = ActiveConversations::where('id', $conversationId)->first();
+            $checkConversation = ActiveConversations::query()->where('id', $conversationId)->first();
             if ($checkConversation) {
                 if (!empty($checkConversation['receiveAt'])) {
                     if (empty($checkConversation['startTime'])) {
@@ -110,14 +111,14 @@ class MessageController extends Controller
         try {
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
-            $updateAC = ActiveConversations::where('rateRef', $rateId)
+            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)
                 ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['startTime'] = Carbon::now();
             $updateAC['empCode'] = auth()->user()->empCode;
             if ($updateAC->save()) {
-                $updateRate = Rates::where('id', $rateId)->first();
+                $updateRate = Rates::query()->where('id', $rateId)->first();
                 if (!$updateRate) throw new \Exception('ไม่พบ Rate ที่ต้องการรับเรื่อง');
                 $updateRate['status'] = 'progress';
                 if ($updateRate->save()) {
@@ -154,7 +155,7 @@ class MessageController extends Controller
             $updateRate['latestRoomId'] = $request['latestRoomId'];
             $updateRate['status'] = 'pending';
             if ($updateRate->save()) {
-                $updateAC = ActiveConversations::where('id', $request['activeConversationId'])->first();
+                $updateAC = ActiveConversations::query()->where('id', $request['activeConversationId'])->first();
                 if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');
                 if (!empty($updateAC['startTime'])) {
                     $updateAC['endTime'] = Carbon::now();
@@ -171,10 +172,10 @@ class MessageController extends Controller
                     $storeAC['from_empCode'] = $updateAC['empCode'];
                     $storeAC['from_roomId'] = $from_roomId;
                     $storeAC['rateRef'] = $updateRate['id'];
-                    $bot = User::where('empCode','BOT')->first();
+                    $bot = User::query()->where('empCode', 'BOT')->first();
                     $chatHistory = new ChatHistory();
                     $chatHistory['custId'] = $storeAC['custId'];
-                    $chatHistory['content'] = 'มีการส่งต่อมาจากห้อง'.$updateAC['roomId'];
+                    $chatHistory['content'] = 'มีการส่งต่อมาจากห้อง' . $updateAC['roomId'];
                     $chatHistory['contentType'] = 'text';
                     $chatHistory['sender'] = json_encode($bot);
                     $chatHistory['conversationRef'] = $updateAC['id'];
@@ -213,24 +214,23 @@ class MessageController extends Controller
         $activeId = $request['activeConversationId'];
         DB::beginTransaction();
         try {
-            $updateRate = Rates::where('id', $rateId)->first();
+            $updateRate = Rates::query()->where('id', $rateId)->first();
             if (!$updateRate) throw new \Exception('ไม่พบ Rates ที่ต้องการอัพเดท');
             if ($updateRate['status'] === 'success') throw new \Exception('Rates ที่ต้องการอัพเดท เคยอัพเดทแล้ว');
             $updateRate['status'] = 'success';
             $updateRate['tag'] = $request['tagId'];
             if ($updateRate->save()) {
-                $updateAC = ActiveConversations::where('id', $activeId)->first();
+                $updateAC = ActiveConversations::query()->where('id', $activeId)->first();
                 if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');
                 $updateAC['endTime'] = Carbon::now();
                 $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
                 if ($updateAC->save()) {
                     /* ส่งการ์ดประเมิน */
                     $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
-                    if (!$send['status']){
+                    if (!$send['status']) {
                         throw new \Exception($send['message']);
-                    }
-                    else{
-                        $bot = User::where('empCode','BOT')->first();
+                    } else {
+                        $bot = User::query()->where('empCode', 'BOT')->first();
                         $chatHistory = new ChatHistory();
                         $chatHistory['custId'] = $updateAC['custId'];
                         $chatHistory['content'] = 'ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว';
@@ -257,6 +257,102 @@ class MessageController extends Controller
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',
                 'detail' => $detail,
+            ], $status);
+        }
+    }
+
+    public function endTalkAllProgress(Request $request, $roomId)
+    {
+        $list = $request['list'];
+        $status = 400;
+        $message = 'เกิดข้อผิดพลาด';
+        $detail = 'ไม่พบข้อผิดพลาด';
+        $data = [];
+        try {
+            DB::beginTransaction();
+            if (count($list) > 0) {
+                $tag = TagMenu::query()->where('tagName', 'ปิดการสนทนา')->first();
+                if (!$tag) throw new \Exception('ไม่พบ Tag ที่ต้องการ');
+                foreach ($list as $key => $l) {
+                    // update endTime,totalTime as activeConversations
+                    $AC = ActiveConversations::query()->where('id', $l['id'])->first();
+                    $AC['endTime'] = Carbon::now();
+                    $AC['totalTime'] = $this->messageService->differentTime($AC['startTime'], $AC['endTime']);
+                    if ($AC->save()) {
+                        // update status, tag as rates
+                        $R = Rates::query()->where('id', $l['rateRef'])->first();
+                        $R['status'] = 'success';
+                        $R['tag'] = $tag['id'];
+                        if ($R->save()) {
+                            $status = 200;
+                            $message = 'สำเร็จ';
+                            $detail = 'ปืดการสนทนาที่กำลังดำเนินการทั้งหมดสำเร็จ';
+                            $data[$key]['AC'] = $AC;
+                            $data[$key]['R'] = $R;
+                        } else throw new \Exception('ไม่สามารถอัพเดท Rates');
+                    } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversations');
+                }
+            } else throw new \Exception('ไม่พบรายการที่ต้องการปิดการสนทนา');
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $status = 400;
+            $message = 'เกิดข้อผิดพลาด';
+            $detail = $e->getMessage();
+        } finally {
+            return response()->json([
+                'message' => $message,
+                'detail' => $detail,
+                'data' => $data
+            ], $status);
+        }
+    }
+
+    public function endTalkAllPending(Request $request, $roomId){
+        $status = 400;
+        $message = 'เกิดข้อผิดพลาด';
+        $detail = 'ไม่พบข้อผิดพลาด';
+        $user = auth()->user();
+        $data = [];
+        try{
+            $list = $request['list'] ?? [];
+            DB::beginTransaction();
+            $tag = TagMenu::query()->where('tagName', 'ปิดการสนทนา')->first();
+            if(!$tag) throw new \Exception('ไม่พบ Tag ที่ต้องการ');
+            if((count($list) > 0) && $request['list']){  
+                foreach ($list as $key => $l) {
+                    // update receiveAt , startTime, endTime, totalTime, empCode as activeConversations
+                    $AC = ActiveConversations::query()->where('id', $l['id'])->first();
+                    $AC['receiveAt'] = Carbon::now();
+                    $AC['startTime'] = Carbon::now();
+                    $AC['endTime'] = Carbon::now();
+                    $AC['totalTime'] = $this->messageService->differentTime($AC['startTime'], $AC['endTime']);
+                    $AC['empCode'] = $user['empCode'];
+                    if ($AC->save()) {
+                        // update status , tag as rates
+                        $R = Rates::query()->where('id', $l['rateRef'])->first();
+                        $R['status'] = 'success';
+                        $R['tag'] = $tag['id'];
+                        if ($R->save()) {
+                            $status = 200;
+                            $message = 'สำเร็จ';
+                            $detail = 'ปืดการสนทนาที่กำลังดำเนินการทั้งหมดสำเร็จ';
+                            $data[$key]['AC'] = $AC;
+                            $data[$key]['R'] = $R;
+                        }else throw new \Exception('ไม่สามารถอัพเดท Rates');
+                    }else throw new \Exception('ไม่สามารถอัพเดท ActiveConversations');
+                }
+            }else throw new \Exception('ไม่พบรายการที่ต้องการปิดการสนทนา');
+            DB::commit();
+        }catch(\Exception $e) {
+            DB::rollback();
+            $status = 400;
+            $detail = $e->getMessage();
+        }finally{
+            return response()->json([
+                'message' => $message,
+                'detail' => $detail,
+                'data' => $data
             ], $status);
         }
     }

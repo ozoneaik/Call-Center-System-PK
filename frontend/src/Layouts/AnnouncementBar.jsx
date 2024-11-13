@@ -4,6 +4,9 @@ export const AnnouncementBar = () => {
     return (
         <div
             style={{
+                position: 'sticky',
+                top : 0,
+                zIndex: 1000,
                 backgroundColor: '#f15721',
                 padding: '5px 24px',
                 textAlign: 'center',

@@ -41,8 +41,8 @@ export default function MainChat() {
 
     const ContentComponent = () => (
         <>
-            <ProgressTable dataset={progress}/>
-            <PendingTable disable={roomId === 'ROOM00'} dataset={pending}/>
+            <ProgressTable dataset={progress} roomId={roomId} roomName={roomName}/>
+            <PendingTable disable={roomId === 'ROOM00'} dataset={pending} roomId={roomId} roomName={roomName}/>
         </>
     )
     return (

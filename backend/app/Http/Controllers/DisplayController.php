@@ -45,11 +45,11 @@ class DisplayController extends Controller
             $list = $this->displayService->selectMessage($custId);
             if (!$list) throw new \Exception('เกิดปัญหาในการ query select');
             if ($list->isEmpty()) throw new \Exception('ไม่พบรายการ Chat');
-            $sender = Customers::where('custId',$custId)->first();
+            $sender = Customers::query()->where('custId',$custId)->first();
             if (!$sender) throw new \Exception('ไม่พบ sender');
             $emp = $this->displayService->getEmpReply($request['activeId']);
-            $room = ActiveConversations::where('id', $request['activeId'])->first();
-            $room = ChatRooms::where('roomId', $room['roomId'])->first();
+            $room = ActiveConversations::query()->where('id', $request['activeId'])->first();
+            $room = ChatRooms::query()->where('roomId', $room['roomId'])->first();
             if (!$emp){
                 if ($from === 'S'){
                     $emp = 0000;
@@ -58,9 +58,9 @@ class DisplayController extends Controller
 //            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
 
-            $starList = Rates::select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();
+            $starList = Rates::query()->select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();
 
-            $notes = Notes::where('custId', $custId)->orderBy('created_at','desc')->get();
+            $notes = Notes::query()->where('custId', $custId)->orderBy('created_at','desc')->get();
 
             $tags = TagMenu::all();
 
@@ -97,11 +97,11 @@ class DisplayController extends Controller
         $customers = $this->dashboardService->countCustomer($today);
         //ดึงจำนวนดาววันนี้
         $stars['rooms'] = $this->dashboardService->countStar($today);
-        $stars['total'] = Rates::whereDate('created_at',$today)->sum('rate');
+        $stars['total'] = Rates::query()->whereDate('created_at',$today)->sum('rate');
 
         //ดึงจำนวนแชทวันนี้
         $countChats['rooms'] = $this->dashboardService->countChat($today);
-        $countChats['total'] = ChatHistory::whereDate('created_at',$today)->count('id');
+        $countChats['total'] = ChatHistory::query()->whereDate('created_at',$today)->count('id');
 
         //ดึงจำนวนแชทที่ค้าง
         $pendingChats = $this->dashboardService->pendingChats($today);

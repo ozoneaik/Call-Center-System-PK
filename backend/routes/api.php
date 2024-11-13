@@ -11,6 +11,7 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\UserAccess;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -111,12 +112,17 @@ Route::middleware('auth:sanctum')->group(function () {
        Route::post('storeOrUpdate',[BotMenuController::class,'storeOrUpdate']);
     });
 
+    // จัดการ Tag
     Route::prefix('tags')->group(function () {
         Route::get('list',[TagMenuController::class, 'list']);
         Route::post('store',[TagMenuController::class,'store']);
         Route::put('update',[TagMenuController::class,'update']);
         Route::delete('delete/{id}',[TagMenuController::class,'delete']);
     });
+
+    //สำหรับจัดการแชทที่ค้างไว้ 
+    Route::post('/endTalkAllProgress/{roomId}',[MessageController::class, 'endTalkAllProgress']);
+    Route::post('/endTalkAllPending/{roomId}',[MessageController::class, 'endTalkAllPending']);
 });
 
 
