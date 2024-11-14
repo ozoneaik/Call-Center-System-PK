@@ -15,6 +15,7 @@ import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {useAuth} from "../../context/AuthContext.jsx";
 import ModalDialog from "../../Components/ModalDialog.jsx";
 import {CreateUser} from "./CreateUser.jsx";
+import { FilterUser } from "./FilterUser.jsx";
 
 
 const BreadcrumbsPath = [{name: 'จัดการผู้ใช้'}, {name: 'รายละเอียด'}]
@@ -22,6 +23,7 @@ const BreadcrumbsPath = [{name: 'จัดการผู้ใช้'}, {name: 
 export default function Users() {
     const {user} = useAuth();
     const [users, setUsers] = useState([]);
+    const [filter, setFilter] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
@@ -31,7 +33,10 @@ export default function Users() {
     const getUsers = async () => {
         setLoading(true);
         const {data, status} = await usersListApi();
-        status === 200 && setUsers(data.users);
+        if (status === 200) {
+            setUsers(data.users);
+            setFilter(data.users);
+        }
     };
 
     const getChatRooms = async () => {
@@ -92,6 +97,7 @@ export default function Users() {
                         </Button>
                     </Box>
                     {openCreate && <CreateUser open={openCreate} setOpen={setOpenCreate} Refresh={refresh}/>}
+                    <FilterUser setFilter={setFilter} users={users}/>
                     <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                         <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                             <thead>
@@ -105,7 +111,7 @@ export default function Users() {
                             </thead>
                             <tbody>
                             {!loading ? (
-                                users.length > 0 ? users.map((item, index) => (
+                                filter.length > 0 ? filter.map((item, index) => (
                                     <tr key={index}>
                                         <td>{item.empCode}</td>
                                         <td>

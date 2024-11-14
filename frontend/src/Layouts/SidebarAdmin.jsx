@@ -13,7 +13,7 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import TokenIcon from "@mui/icons-material/Token";
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
-export const SidebarAdmin = ({pathname}) => (
+export const SidebarAdmin = ({pathname,user}) => (
     <>
         <Typography startDecorator={<AdminPanelSettingsIcon/>} mt={2} mb={1} level='body-sm'>
             สำหรับผู้ดูแลระบบ
@@ -56,12 +56,16 @@ export const SidebarAdmin = ({pathname}) => (
                     จัดการผู้ใช้
                 </ListItemButton>
             </ListItem>
-            <ListItem component={Link} to={'/accessToken'}>
-                <ListItemButton selected={pathname === '/accessToken'}>
-                    <TokenIcon/>
-                    จัดการ token
-                </ListItemButton>
-            </ListItem>
+            {
+                user.name === 'adminIT' && (
+                    <ListItem component={Link} to={'/accessToken'}>
+                        <ListItemButton selected={pathname === '/accessToken'}>
+                            <TokenIcon/>
+                            จัดการ token
+                        </ListItemButton>
+                    </ListItem>
+                )
+            }
         </List>
     </>
 )

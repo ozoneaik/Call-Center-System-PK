@@ -126,7 +126,7 @@ export default function Sidebar() {
                     </ListItem>
                 </List>
 
-                {user.role === 'admin' && <SidebarAdmin pathname={pathname}/>}
+                {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user}/>}
 
             </Box>
             <Divider/>
