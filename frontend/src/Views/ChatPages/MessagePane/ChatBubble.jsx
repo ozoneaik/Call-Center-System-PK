@@ -23,7 +23,9 @@ export default function Bubble(props) {
                     isSent ? sender.empCode === user.empCode ? MessageStyle.Bubble.IsMySent : MessageStyle.Bubble.IsSent : MessageStyle.Bubble.IsNotSent}>
                     {
                         contentType === 'sticker' ? (
-                            <img src={content} alt=""/>
+                            <Sheet variant="outlined" sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                                    <img src={content} alt="" width={165}/>
+                                </Sheet>
                         ) : contentType === 'image' ? (
                             <Sheet
                                 variant="outlined"

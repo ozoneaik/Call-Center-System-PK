@@ -39,7 +39,10 @@ export default function Login() {
                 setUser(data.user);
                 return <Navigate to="/home"/>;
             } else {
-                AlertDiaLog({text: data.message})
+                AlertDiaLog({
+                    text: data.message,
+                    onPassed : () => window.location.reload()
+                });
             }
         } finally {
             setLoading(false);

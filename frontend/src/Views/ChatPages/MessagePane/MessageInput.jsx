@@ -10,6 +10,7 @@ import {useState} from "react";
 import {useAuth} from "../../../context/AuthContext.jsx";
 import {sendApi} from "../../../Api/Messages.js";
 import {AlertDiaLog} from "../../../Dialogs/Alert.js";
+import { StickerPK } from "./StickerPK.jsx";
 
 export const MessageInput = (props) => {
     const {user} = useAuth();
@@ -119,9 +120,13 @@ export const MessageInput = (props) => {
                             value={msg.content}
                             onChange={(e) => setMsg({...msg, content: e.target.value})}
                             endDecorator={
-                                <Stack direction="row" sx={MessageStyle.TextArea}>
+                                <Stack direction="row" gap={1} sx={MessageStyle.TextArea}>
+
+                                    <StickerPK sender={sender} activeId={activeId}/>
+
+
                                     <Button
-                                        // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
+                                        disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปรูป</Typography>
@@ -131,11 +136,11 @@ export const MessageInput = (props) => {
                                         <LocalSeeIcon/>
                                     </Button>
                                     <Button
-                                        // disabled={(sender.emp !== user.empCode) || disableBtn}
+                                        disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
                                         onClick={() => handleSend({type: 'text'})}
                                     >
-                                        <Typography sx={{color: 'white', display: {xs: 'none', sm: 'block'}}}>
+                                        <Typography sx={MessageStyle.InsertImage}>
                                             ส่ง ( ctrl+enter )
                                         </Typography>
                                         <SendRoundedIcon/>

@@ -1,0 +1,13 @@
+#stickerPK{
+    transition: padding 0.2s;
+}
+
+#stickerPK:hover{
+    border: solid 2px #db552f;
+    padding : 10px;
+}
+
+.sticker{
+    border: solid 2px #db552f;
+    padding : 10px;
+}
