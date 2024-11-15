@@ -17,6 +17,7 @@ import BotPage from "./Views/BotPages/main.jsx";
 import TagePage from "./Views/TagPages/main.jsx";
 import Users from "./Views/UserPages/main.jsx";
 import AccessToken from "./Views/TokenPages/main.jsx";
+import ReportPage from "./Views/ReportPages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -47,9 +48,10 @@ export const routes = createBrowserRouter([
                             {path : '/tags', element: <TagePage/>},
                         ]
                     },
-                    {path: '/chatHistory', element: <ChatHistory/>}
+                    {path: '/chatHistory', element: <ChatHistory/>},
                 ]
             },
+            {path: '/report' , element : <ReportPage/>},
             {
                 path: '/select', children: [
                     {path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane/>},

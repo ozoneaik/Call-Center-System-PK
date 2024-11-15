@@ -26,6 +26,12 @@ export const SidebarAdmin = ({pathname,user}) => (
                     จัดการเมนูของบอท
                 </ListItemButton>
             </ListItem>
+            <ListItem component={Link} to={`/report`}>
+                <ListItemButton selected={pathname === '/report'}>
+                    <SmartToyIcon/>
+                    หน้ารายงาน
+                </ListItemButton>
+            </ListItem>
             <ListItem component={Link} to={`/chatRooms`}>
                 <ListItemButton selected={pathname === '/chatRooms'}>
                     <MeetingRoomIcon/>
