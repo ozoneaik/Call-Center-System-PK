@@ -7,7 +7,7 @@ use App\Models\Rates;
 class DisplayService{
     public function MessageList($roomId,$status){
         if ($status === 'progress') {
-            return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
+            return  Rates::query()->leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
                 ->leftJoin('customers', 'rates.custId', 'customers.custId')
                 ->leftJoin('users','active_conversations.empCode','users.empCode')
                 ->leftJoin('chat_rooms','active_conversations.from_roomId','chat_rooms.roomId')
@@ -19,7 +19,7 @@ class DisplayService{
                 ->orderBy('created_at','asc')
                 ->get();
         }else{
-            return  Rates::leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
+            return  Rates::query()->leftJoin('active_conversations', 'active_conversations.rateRef','=', 'rates.id')
                 ->leftJoin('customers', 'rates.custId', 'customers.custId')
                 ->leftJoin('users','active_conversations.empCode','users.empCode')
                 ->leftJoin('chat_rooms','active_conversations.from_roomId','chat_rooms.roomId')
@@ -34,14 +34,14 @@ class DisplayService{
     }
 
     public function getEmpReply($activeId){
-        $empName = ActiveConversations::where('id', $activeId)->first();
+        $empName = ActiveConversations::query()->where('id', $activeId)->first();
         return $empName['empCode'];
     }
 
     public function selectMessage($custId)
     {
         // ดึง 100 รายการล่าสุด
-        $chatHistory = ChatHistory::where('custId', $custId)
+        $chatHistory = ChatHistory::query()->where('custId', $custId)
             ->orderBy('id', 'desc')
             ->take(100)->get()
             ->sortBy('id')->values();

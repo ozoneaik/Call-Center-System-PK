@@ -24,13 +24,15 @@ export const MessageInput = (props) => {
         setSelectedFile(null);
     };
 
-    const handleImageChange = (event) => {
+    const handleImageChange = (event) => {        
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImagePreview(reader.result);
+                // setImagePreview(reader.result);
+                setImagePreview({ type: file.type, data: reader.result });
+
             };
             reader.readAsDataURL(file);
         }
@@ -104,10 +106,20 @@ export const MessageInput = (props) => {
                             id='inputSend'
                             startDecorator={
                                 imagePreview && (
-                                    <Box sx={{position: 'relative', maxWidth: 300}}>
-                                        <img src={imagePreview} alt="Preview"
-                                             style={MessageStyle.imagePreview}
-                                        />
+                                    <Box sx={{ position: 'relative', maxWidth: 300 }}>
+                                        {imagePreview.type.startsWith('image/') ? (
+                                            <img 
+                                                src={imagePreview.data} 
+                                                alt="Preview" 
+                                                style={MessageStyle.imagePreview} 
+                                            />
+                                        ) : imagePreview.type.startsWith('video/') ? (
+                                            <video 
+                                                controls 
+                                                src={imagePreview.data} 
+                                                style={{height : 200}}
+                                            />
+                                        ) : null}
                                         <Button onClick={handleRemoveImage} sx={MessageStyle.BtnCloseImage}>
                                             x
                                         </Button>
@@ -129,8 +141,8 @@ export const MessageInput = (props) => {
                                         disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
-                                        <Typography sx={MessageStyle.InsertImage}>แนปรูป</Typography>
-                                        <input type="file" hidden accept="image/*"
+                                        <Typography sx={MessageStyle.InsertImage}>แนปรูป/วิดีโอ</Typography>
+                                        <input type="file" hidden accept="image/*,video/*"
                                                onChange={handleImageChange}
                                         />
                                         <LocalSeeIcon/>

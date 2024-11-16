@@ -45,8 +45,13 @@ class MessageService
                     $msg['originalContentUrl'] = $messages['content'];
                     $msg['previewImageUrl'] = $messages['content'];
                     break;
+                case 'video' : 
+                    $msg['type'] = 'video';
+                    $msg['originalContentUrl'] = $messages['content'];
+                    $msg['previewImageUrl'] = $messages['content'];
+                    break;
                 default :
-                    throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type');
+                    throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type [MessageSevice sendMsgByLine]');
             }
             $token = Customers::query()->leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.id')
                 ->where('custId', 'LIKE', $custId)

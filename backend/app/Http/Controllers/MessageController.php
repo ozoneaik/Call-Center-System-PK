@@ -62,7 +62,7 @@ class MessageController extends Controller
                 $storeChatHistory = new ChatHistory();
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
-                if ($storeChatHistory['contentType'] === 'image') {
+                if (($storeChatHistory['contentType'] === 'image') || ($storeChatHistory['contentType'] === 'video')) {
                     Log::info('image message');
                     Log::info($m);
                     $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
@@ -71,6 +71,8 @@ class MessageController extends Controller
                         ->get(), $m['content']->getClientOriginalName())->post($URL);
                     Log::info($m['content']);
                     if ($response->status() == 200) {
+                        Log::info('บรรทัดที่ 74 messageController');
+                        Log::info($storeChatHistory['contentType']);
                         $responseJson = $response->json();
                         $storeChatHistory['content'] = $responseJson['imagePath'];
                         $m['content'] = $responseJson['imagePath'];
@@ -97,6 +99,7 @@ class MessageController extends Controller
             DB::commit();
             $status = 200;
         } catch (\Exception $e) {
+            DB::rollBack();
             $detail = $e->getMessage();
             $status = 400;
         } finally {
