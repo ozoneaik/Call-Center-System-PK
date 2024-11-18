@@ -1,7 +1,7 @@
 import Box from "@mui/joy/Box";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
-import { Button, Sheet, Table } from "@mui/joy";
+import { Button, Input, Sheet, Stack, Table } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
 import { convertFullDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
@@ -14,15 +14,13 @@ import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-export const ProgressTable = ({ dataset, roomId, roomName }) => {
+export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgress, setFilterProgress}) => {
+    const [search, setSearch] = useState('');
     const { user } = useAuth();
     const navigate = useNavigate();
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
         navigate(`/select/message/${params}/1`);
-        // const path = `${window.location.origin}/select/message/${params}/1`;
-        // const win = window.open(path, '_blank','width=900,height=800');
-        // win && win.focus();
     };
 
     const TimeDisplay = ({ startTime }) => {
@@ -51,7 +49,7 @@ export const ProgressTable = ({ dataset, roomId, roomName }) => {
             icon: 'question',
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const { data, status } = await endTalkAllProgressApi({ roomId, list: dataset });
+                    const { data, status } = await endTalkAllProgressApi({ roomId, list: progress });
                     console.log(data);
                     AlertDiaLog({
                         title: data.message,
@@ -62,13 +60,27 @@ export const ProgressTable = ({ dataset, roomId, roomName }) => {
                 } else alert('ไม่ได้ confirm');
             }
         })
-
     }
+
+    const handleFilter = () => {      
+        if (!search) {
+            setFilterProgress(progress);
+            return;
+        }
+        const updateFilter = progress.filter((data) =>
+            data.custName.toLowerCase().includes(search.toLowerCase())
+        );
+        setFilterProgress(updateFilter);
+    };
 
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
-                <Typography level="h2" component="h1">กำลังดำเนินการ</Typography>
+                <Stack direction="row" spacing={1}>
+                    <Typography level="h2" component="h1">กำลังดำเนินการ</Typography>
+                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <Button onClick={() => handleFilter()}>ค้นหา</Button>
+                </Stack>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                     {user.role === 'admin' && (
                         <Button color='warning' variant="outlined" onClick={handleEndTalkAll}>
@@ -94,7 +106,7 @@ export const ProgressTable = ({ dataset, roomId, roomName }) => {
                     </thead>
                     <tbody>
                         {
-                            dataset.length > 0 ? dataset.map((data, index) => (
+                            filterProgress && filterProgress.length > 0 ? filterProgress.map((data, index) => (
                                 <tr key={index}>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>

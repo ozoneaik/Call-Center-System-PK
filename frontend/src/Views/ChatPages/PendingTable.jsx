@@ -1,7 +1,7 @@
 import Box from "@mui/joy/Box";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
-import { Button, Sheet, Table } from "@mui/joy";
+import { Button, Sheet, Table, Stack } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
 import { convertFullDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
@@ -22,9 +22,11 @@ const data = [{
 export const PendingTable = (props) => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { dataset = data } = props;
+    const { pending } = props;
+    const { setFilterPending, filterPending } = props;
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
+    const [search, setSearch] = useState('');
     const handleChat = (rateId, activeId, custId, roomId) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
@@ -50,7 +52,7 @@ export const PendingTable = (props) => {
 
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
-        navigate(`/select/message/${params}/1`);
+        navigate(`/select/message/${params}/0`);
         // const path = `${window.location.origin}/select/message/${params}`;
         // const win = window.open(path, '_blank','width=900,height=800');
         // win && win.focus();
@@ -84,7 +86,7 @@ export const PendingTable = (props) => {
             text: `คุณต้องการจบการสนทนาตามช่วงเวลาตั้งแต่ ${startTime} ถึง ${endTime} ที่กำหนดหรือไม่ ?`,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const { data, status } = await endTalkAllPendingApi({ roomId: 'ROOM00', list: dataset, startTime, endTime });
+                    const { data, status } = await endTalkAllPendingApi({ roomId: 'ROOM00', list: pending, startTime, endTime });
                     AlertDiaLog({
                         icon: status === 200 ? 'success' : 'error',
                         title: data.message,
@@ -98,10 +100,25 @@ export const PendingTable = (props) => {
         })
     }
 
+    const handleFilter = () => {
+        if (!search) {
+            setFilterPending(pending);
+            return;
+        }
+        const updateFilter = pending.filter((data) =>
+            data.custName.toLowerCase().includes(search.toLowerCase())
+        );
+        setFilterPending(updateFilter);
+    };
+
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
-                <Typography level="h2" component="h1">รอดำเนินการ</Typography>
+                <Stack direction="row" spacing={2}>
+                    <Typography level="h2" component="h1">รอดำเนินการ</Typography>
+                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)}/>
+                    <Button onClick={() => handleFilter()}>ค้นหา</Button>
+                </Stack>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
                     {user.role === 'admin' && (
                         <>
@@ -128,7 +145,7 @@ export const PendingTable = (props) => {
                     </thead>
                     <tbody>
                         {
-                            dataset.length > 0 ? dataset.map((data, index) => (
+                            filterPending.length > 0 ? filterPending.map((data, index) => (
                                 <tr key={index}>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>
