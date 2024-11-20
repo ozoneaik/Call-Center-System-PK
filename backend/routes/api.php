@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
@@ -123,6 +124,14 @@ Route::middleware('auth:sanctum')->group(function () {
     //สำหรับจัดการแชทที่ค้างไว้ 
     Route::post('/endTalkAllProgress/{roomId}',[MessageController::class, 'endTalkAllProgress']);
     Route::post('/endTalkAllPending/{roomId}',[MessageController::class, 'endTalkAllPending']);
+
+
+    //จัดการรายงาน
+    Route::prefix('reports')->group(function () {
+        Route::get('listLine', [ReportController::class, 'LineList']);
+        Route::get('rateList', [ReportController::class, 'RateList']);
+        Route::get('activeList', [ReportController::class, 'activeList']);
+    });
 });
 
 

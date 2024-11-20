@@ -1,32 +1,55 @@
-import { Box, Button, Card, Input, Sheet, Stack, Table, Typography } from "@mui/joy";
-export const RateList = () => {
+import { Button, Chip, Table } from "@mui/joy";
+import { activeListApi } from "../../../Api/Report";
+import { ChatPageStyle } from "../../../styles/ChatPageStyle";
+export const RateList = ({ rateList, setActiveList }) => {
+    const handleActiveList = async (rateId) => {
+        const { data, status } = await activeListApi({ rateId });
+        console.log('activeList', data, status);
+        if (status === 200) {
+            setActiveList({
+                custName: data.custName,
+                List: data.activeList,
+                totalTimeInSeconds: data.totalTimeInSeconds
+            })
+        }
+    }
     return (
-    
-            <Table stickyHeader borderAxis="both">
-                <thead>
-                    <tr>
-                        <th>ลูกค้า</th>
-                        <th>สถานะ</th>
-                        <th>แท็คการจบสนทนา</th>
-                        <th>ชั่วโมงรวม</th>
-                        <th>จำนวนดาว</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {[1, 2, 3, 4, 5, 67, 4, 2, 2, 3, 23, 23, 24, 2].map((item) => (
-                        <tr>
-                            <td>sldfls</td>
-                            <td>sldfls</td>
-                            <td>sldfls</td>
-                            <td>sldfls</td>
-                            <td>
-                                <Button size="sm">ดู</Button>
-                            </td>
-                        </tr>
-                    ))}
 
-                </tbody>
-            </Table>
-        
+        <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table}>
+            <thead>
+                <tr>
+                    <th>ลูกค้า</th>
+                    <th>สถานะ</th>
+                    <th>แท็คการจบสนทนา</th>
+                    <th>จำนวนดาว</th>
+                    <th>#</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rateList.length > 0 && rateList.map((item, index) => (
+                    <tr key={index}>
+                        <td>{item.custName}</td>
+                        <td>
+                            <Chip variant="solid" color={item.status === 'success' ? 'success' : item.status === 'progress' ? 'warning' : 'neutral'}>{item.status}</Chip>
+                        </td>
+                        <td>{item.t_menu}</td>
+                        <td>
+                            {
+                                item.rate === 1 ? '⭐' :
+                                    item.rate === 2 ? '⭐⭐' :
+                                        item.rate === 3 ? '⭐⭐⭐' :
+                                            item.rate === 4 ? '⭐⭐⭐⭐' :
+                                                item.rate === 5 ? '⭐⭐⭐⭐⭐' : 'ยังไม่ได้ให้คะแนน'
+                            }
+                        </td>
+                        <td>
+                            <Button size="sm" onClick={() => handleActiveList(item.id)} >ดู</Button>
+                        </td>
+                    </tr>
+                ))}
+
+            </tbody>
+        </Table>
+
     )
 }

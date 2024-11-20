@@ -1,8 +1,26 @@
-import {Button,  Table, } from "@mui/joy";
-export const TableFirst = () => {
+import { Button, Table, } from "@mui/joy";
+import { rateListApi } from "../../../Api/Report";
+import { AlertDiaLog } from "../../../Dialogs/Alert";
+import { ChatPageStyle } from "../../../styles/ChatPageStyle";
+export const TableFirst = ({ lineList, startTime, endTime ,setRateList,setActiveList}) => {
+    const handleRateList = async (lineDescription) => {
+        setRateList([]);
+        setActiveList([]);
+        const {data, status} = await rateListApi({startTime, endTime, lineDescription});
+        console.log('rateList', data, status);
+        if (status === 200) {
+            setRateList(data.rateList);
+        }else{
+            AlertDiaLog({
+                title : data.message,
+                text : data.detail,
+                onPassed : (confirm) => console.log(confirm)
+            });
+        }
+    }
     return (
         <>
-            <Table stickyHeader borderAxis="both">
+            <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table}>
                 <thead>
                     <tr>
                         <th>จากไลน์</th>
@@ -12,17 +30,16 @@ export const TableFirst = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {[1, 2, 3, 4, 5, 67, 4, 2, 2, 3, 23, 23, 24, 2].map((item) => (
-                        <tr>
-                            <td>sldfls</td>
-                            <td>sldfls</td>
-                            <td>sldfls</td>
+                    {lineList.length > 0 && lineList.map((item, index) => (
+                        <tr key={index}>
+                            <td>{item.description}</td>
+                            <td>{item.endcase}</td>
+                            <td>{item.pendingcase}</td>
                             <td>
-                                <Button size="sm">ดู</Button>
+                                <Button size="sm" onClick={()=>handleRateList(item.description)} >ดู</Button>
                             </td>
                         </tr>
                     ))}
-
                 </tbody>
             </Table>
         </>
