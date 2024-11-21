@@ -51,7 +51,10 @@ export default function ReportPage() {
                     </Stack>
                 </Box>
                 <Sheet variant="outlined" sx={[ChatPageStyle.BoxSheet, { border: "none" }]}>
-                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>ดูรายงานแบบเฉพาะเจาะจง</Typography>
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
+                        ดูรายงานแบบเฉพาะเจาะจง&nbsp;
+                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
+                    </Typography>
                     {lineList.length === 0 && (
                         <Typography sx={{ color: '#f95a1d' }}>
                             รายงานจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
@@ -84,7 +87,10 @@ export default function ReportPage() {
                         </Grid2>
                     </Grid2>
 
-                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>ดูรายงานแบบเต็ม</Typography>
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
+                        ดูรายงานแบบเต็ม&nbsp;
+                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
+                    </Typography>
                     {startTime && endTime ? (
                         <Grid2 container spacing={2}>
                             <Grid2 size={12}>
