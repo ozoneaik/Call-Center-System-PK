@@ -36,7 +36,7 @@ export const TableFirst = ({ lineList, startTime, endTime ,setRateList,setActive
                             <td>{item.endcase}</td>
                             <td>{item.pendingcase}</td>
                             <td>
-                                <Button size="sm" onClick={()=>handleRateList(item.description)} >ดู</Button>
+                                <Button size="sm" onClick={()=>handleRateList(item.description)} color="warning">ดูต่อ</Button>
                             </td>
                         </tr>
                     ))}

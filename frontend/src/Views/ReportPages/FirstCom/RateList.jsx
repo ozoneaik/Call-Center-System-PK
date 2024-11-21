@@ -9,7 +9,8 @@ export const RateList = ({ rateList, setActiveList }) => {
             setActiveList({
                 custName: data.custName,
                 List: data.activeList,
-                totalTimeInSeconds: data.totalTimeInSeconds
+                totalTimeInSeconds: data.totalTimeInSeconds,
+                totalChat: data.totalChat
             })
         }
     }
@@ -43,7 +44,7 @@ export const RateList = ({ rateList, setActiveList }) => {
                             }
                         </td>
                         <td>
-                            <Button size="sm" onClick={() => handleActiveList(item.id)} >ดู</Button>
+                            <Button size="sm" onClick={() => handleActiveList(item.id)} color="warning">ดูต่อ</Button>
                         </td>
                     </tr>
                 ))}

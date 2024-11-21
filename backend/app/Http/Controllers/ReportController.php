@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
+use App\Models\ChatRooms;
+use App\Models\Rates;
+use App\Models\TagMenu;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,6 +113,7 @@ class ReportController extends Controller
         $result = DB::table('rates')
             ->select([
                 'rates.id',
+                'active_conversations.id as activeId',
                 'customers.custName',
                 'chat_rooms.roomName',
                 'chat_rooms.roomId',
@@ -153,8 +159,11 @@ class ReportController extends Controller
 
         // คำนวณผลรวมของเวลา
         $totalSeconds = 0;
+        $totalChat = 0;
         foreach ($result as $row) {
             $totalSeconds += timeToSeconds($row->totalTime);
+            $row->amount_chat = count(ChatHistory::query()->where('conversationRef', $row->activeId)->get());
+            $totalChat += $row->amount_chat;
         }
         $totalTimeFormatted = secondsToTime($totalSeconds);
 
@@ -165,7 +174,100 @@ class ReportController extends Controller
             'totalTimeInSeconds' => $totalTimeFormatted,
             'activeList' => $result,
             'detail' => 'rateList',
+            'totalChat' => $totalChat,
             'request' => $request->all(),
+        ]);
+    }
+
+    public function reportDepartment(Request $request)
+    {
+        $startTime = $request['startTime'] . ' 00:00:00';
+        $endTime = $request['endTime'] . ' 23:59:59';
+        $tagMenus = TagMenu::select('id', 'tagName')->get();
+        $chatRooms = ChatRooms::query()->select('roomId', 'roomName')->get();
+        $rateList = Rates::query()->where('created_at', '>=', $startTime)
+            ->where('created_at', '<=', $endTime)
+            ->get();
+
+        $P =  DB::table('tag_menus')
+            ->select([
+                'tag_menus.tagName',
+                'tag_menus.id',
+                DB::raw('COUNT(rates.id) as count')
+            ])
+            ->leftJoin('rates', function ($join) {
+                $join->on('tag_menus.id', '=', 'rates.tag')
+                    ->whereBetween('rates.created_at', ['2024-11-14 00:00:00', '2024-11-14 23:59:59'])
+                    ->where('rates.status', '=', 'success')
+                    ->where('rates.latestRoomId', 'LIKE', 'ROOM01');
+            })
+            ->groupBy('tag_menus.tagName', 'tag_menus.id')
+            ->orderBy('tag_menus.tagName')
+            ->get();
+
+
+
+        foreach ($P as $key => $p) {
+            $halfHour = 0;
+            $oneHour = 0;
+            $overOneHour = 0;
+            $overTwoHour = 0;
+            $overDay = 0;
+            $p->R = Rates::query()->where('tag', $p->id)
+                ->whereBetween('rates.created_at', ['2024-11-14 00:00:00', '2024-11-14 23:59:59'])
+                ->where('rates.status', '=', 'success')
+                ->where('rates.latestRoomId', 'LIKE', 'ROOM01')
+                ->get();
+            foreach ($p->R as $rey => $r) {
+                $p->R[$rey]->A = ActiveConversations::query()->select('totalTime')->where('rateRef', $r->id)->get(); // [0: 'totalTime' => '1 ชั่วโมง 2 นาที 3 วินาที', 1: 'totalTime' => '1 ชั่วโมง 2 นาที 3 วินาที']
+                // หาผลรวมของเวลาทั้งหมด เก็บใส่ในตัวแปล $p->R[$ray]->totalTime
+
+                $totalSeconds = 0;
+                foreach ($p->R[$rey]->A as $active) {
+                    $time = $active->totalTime; // เช่น "1 ชั่วโมง 2 นาที 3 วินาที"
+
+                    // แยกข้อมูลเวลา
+                    $hours = (preg_match('/(\d+)\s*ชั่วโมง/', $time, $matches) ? $matches[1] : 0);
+                    $minutes = (preg_match('/(\d+)\s*นาที/', $time, $matches) ? $matches[1] : 0);
+                    $seconds = (preg_match('/(\d+)\s*วินาที/', $time, $matches) ? $matches[1] : 0);
+
+                    // คำนวณเวลารวมเป็นวินาที
+                    $totalSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
+                }
+
+                // แปลงเวลารวมจากวินาทีกลับไปเป็นรูปแบบที่ต้องการ
+                $hours = floor($totalSeconds / 3600);
+                $minutes = floor(($totalSeconds % 3600) / 60);
+                $seconds = $totalSeconds % 60;
+
+                $p->R[$rey]->totalTime = "{$hours} ชั่วโมง {$minutes} นาที {$seconds} วินาที";
+                if (($hours == 0) && ($minutes <= 30)) {
+                    $halfHour++;
+                } elseif (($hours == 1) && ($minutes <= 30)) {
+                    $oneHour++;
+                } elseif (($hours > 1) && ($hours < 2)) {
+                    $overOneHour++;
+                } elseif (($hours >= 2) && ($hours < 24)) {
+                    $overTwoHour++;
+                } else {
+                    $overDay++;
+                }
+            }
+            $p->halfHour = $halfHour;
+            $p->oneHour = $oneHour;
+            $p->overOneHour = $overOneHour;
+            $p->overTwoHour = $overTwoHour;
+            $p->overDay = $overDay;
+        }
+        return response()->json([
+            'message' => 'test',
+            'detail' => 'test',
+            'tagMenus' => $tagMenus,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'rateList' => $rateList,
+            'chatRooms' => $chatRooms,
+            'P' => $P
         ]);
     }
 }

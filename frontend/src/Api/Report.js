@@ -41,3 +41,16 @@ export const activeListApi = async ({rateId}) => {
         return ErrorResponse(err)
     }
 }
+
+export const reportDepartmentApi = async ({startTime, endTime}) => {
+    try{
+        const {data, status} = await axiosClient.get(`${prefix}/reportDepartment`,{
+            params : {
+                startTime,endTime
+            }
+        })
+        return {data, status}
+    }catch(err){
+        return ErrorResponse(err)
+    }
+}    

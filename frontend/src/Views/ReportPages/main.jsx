@@ -9,6 +9,7 @@ import { listLineApi } from "../../Api/Report";
 import { useState } from "react";
 import { AlertDiaLog } from "../../Dialogs/Alert";
 import { P } from "./ChartCom/P,";
+import FullReport from "./FullReport/FullReport";
 
 export default function ReportPage() {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function ReportPage() {
         }
     }
     return (
-        <Sheet>
+        <Sheet sx={[ChatPageStyle.Layout, { height: '100dvh' }]}>
             <Box component="main" mx={1}>
                 <Box sx={ChatPageStyle.BoxTable} mt={2}>
                     <Stack flexDirection='row' gap={1} alignItems='center'>
@@ -50,8 +51,14 @@ export default function ReportPage() {
                     </Stack>
                 </Box>
                 <Sheet variant="outlined" sx={[ChatPageStyle.BoxSheet, { border: "none" }]}>
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>ดูรายงานแบบเฉพาะเจาะจง</Typography>
+                    {lineList.length === 0 && (
+                        <Typography sx={{ color: '#f95a1d' }}>
+                            รายงานจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
+                        </Typography>
+                    )}
                     <Grid2 container spacing={2} mb={2}>
-                        <Grid2 size={4} maxHeight={400} sx={{ backgroundColor: 'white', overflow: 'auto' }}>
+                        <Grid2 size={4} maxHeight={400} sx={{ overflow: 'auto' }}>
                             {lineList.length > 0 && (
                                 <TableFirst
                                     lineList={lineList}
@@ -62,12 +69,12 @@ export default function ReportPage() {
                                 />
                             )}
                         </Grid2>
-                        <Grid2 size={8} maxHeight={400} sx={{ backgroundColor: 'white', overflow: 'auto' }}>
+                        <Grid2 size={8} maxHeight={400} sx={{ overflow: 'auto' }}>
                             {rateList.length > 0 && (
                                 <RateList rateList={rateList} setActiveList={setActiveList} />
                             )}
                         </Grid2>
-                        <Grid2 size={12} maxHeight={400} sx={{ backgroundColor: 'white', overflow: 'auto' }}>
+                        <Grid2 size={12} maxHeight={400} sx={{ overflow: 'auto' }}>
                             {activeList && activeList.List && activeList.List.length > 0 && (
                                 <ActiveList activeList={activeList} />
                             )}
@@ -76,11 +83,20 @@ export default function ReportPage() {
                             <Divider />
                         </Grid2>
                     </Grid2>
-                    <Grid2 container spacing={2}>
-                        <Grid2 size={12} height={200}>
-                            <P/>
+
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>ดูรายงานแบบเต็ม</Typography>
+                    {startTime && endTime ? (
+                        <Grid2 container spacing={2}>
+                            <Grid2 size={12}>
+                                <FullReport />
+                            </Grid2>
                         </Grid2>
-                    </Grid2>
+
+                    ) : (
+                        <Typography sx={{ color: '#f95a1d' }}>
+                            รายงานแบบเต็มจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
+                        </Typography>
+                    )}
                 </Sheet>
             </Box>
         </Sheet>
