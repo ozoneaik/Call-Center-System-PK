@@ -73,7 +73,7 @@ export default function FullReport() {
                     </tbody>
                 </Table>
             </Grid2>
-            <Grid2 size={6}>
+            {/* <Grid2 size={6}>
                 <Typography level="title-lg" mb={2}>
                     จำนวนข้อความ 💬💬💬
                 </Typography>
@@ -100,7 +100,7 @@ export default function FullReport() {
                     จำนวนดาว ⭐⭐⭐
                 </Typography>
                 <TabsReport />
-            </Grid2>
+            </Grid2> */}
         </Grid2>
     )
 }
