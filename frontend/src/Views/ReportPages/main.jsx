@@ -87,7 +87,7 @@ export default function ReportPage() {
                         </Grid2>
                     </Grid2>
 
-                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
+                    {/* <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
                         ดูรายงานแบบเต็ม&nbsp;
                         <Typography level="body-sm">({startTime} - {endTime})</Typography>
                     </Typography>
@@ -102,7 +102,7 @@ export default function ReportPage() {
                         <Typography sx={{ color: '#f95a1d' }}>
                             รายงานแบบเต็มจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
                         </Typography>
-                    )}
+                    )} */}
                 </Sheet>
             </Box>
         </Sheet>
