@@ -8,8 +8,9 @@ import { TableFirst } from "./FirstCom/TableFirst";
 import { listLineApi } from "../../Api/Report";
 import { useState } from "react";
 import { AlertDiaLog } from "../../Dialogs/Alert";
-import { P } from "./ChartCom/P,";
-import FullReport from "./FullReport/FullReport";
+import IndividualReport from "./FullReport/IndividualReport";
+import GraphCaseByUser from "./FullReport/GraphCaseByUser";
+import GraphStarByUser from "./FullReport/GraphStarByUser";
 
 export default function ReportPage() {
     const navigate = useNavigate();
@@ -18,13 +19,16 @@ export default function ReportPage() {
     const [lineList, setLineList] = useState([]);
     const [rateList, setRateList] = useState([]);
     const [activeList, setActiveList] = useState([]);
+    const [showFullReport, setShowFullReport] = useState(false);
     const handleSearch = async () => {
+        setShowFullReport(false);
         const { data, status } = await listLineApi({ startTime, endTime });
         console.log('liseLine', data, status);
         if (status === 200) {
             setLineList(data.lineList);
             setRateList([]);
             setActiveList([]);
+            setShowFullReport(true);
         } else {
             AlertDiaLog({
                 title: data.message,
@@ -32,6 +36,7 @@ export default function ReportPage() {
                 onPassed: (confirm) => console.log(confirm)
             });
         }
+        
     }
     return (
         <Sheet sx={[ChatPageStyle.Layout, { height: '100dvh' }]}>
@@ -87,22 +92,15 @@ export default function ReportPage() {
                         </Grid2>
                     </Grid2>
 
-                    {/* <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
-                        ดูรายงานแบบเต็ม&nbsp;
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
+                        ดูรายงานรายบุคคล&nbsp;
                         <Typography level="body-sm">({startTime} - {endTime})</Typography>
                     </Typography>
-                    {startTime && endTime ? (
+                    {showFullReport && (
                         <Grid2 container spacing={2}>
-                            <Grid2 size={12}>
-                                <FullReport />
-                            </Grid2>
+                            <IndividualReport startTime={startTime} endTime={endTime} />
                         </Grid2>
-
-                    ) : (
-                        <Typography sx={{ color: '#f95a1d' }}>
-                            รายงานแบบเต็มจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
-                        </Typography>
-                    )} */}
+                    )}
                 </Sheet>
             </Box>
         </Sheet>

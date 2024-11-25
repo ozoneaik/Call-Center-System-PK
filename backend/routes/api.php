@@ -131,7 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('listLine', [ReportController::class, 'LineList']);
         Route::get('rateList', [ReportController::class, 'RateList']);
         Route::get('activeList', [ReportController::class, 'activeList']);
-        Route::get('reportDepartment', [ReportController::class, 'reportDepartment']);
+        Route::get('fullReport', [ReportController::class, 'FullReport']);
     });
 });
 

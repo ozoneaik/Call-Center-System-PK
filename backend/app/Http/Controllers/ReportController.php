@@ -179,95 +179,91 @@ class ReportController extends Controller
         ]);
     }
 
-    public function reportDepartment(Request $request)
+    public function FullReport(Request $request)
     {
+        $request->validate([
+            'startTime' => 'required|date',
+            'endTime' => 'required|date'
+        ], [
+            'startTime.required' => 'จำเป็นต้องระบุวันเริ่มต้น',
+            'endTime.required' => 'จำเป็นต้องระบุวันสิ้นสุด'
+        ]);
+
         $startTime = $request['startTime'] . ' 00:00:00';
         $endTime = $request['endTime'] . ' 23:59:59';
-        $tagMenus = TagMenu::select('id', 'tagName')->get();
-        $chatRooms = ChatRooms::query()->select('roomId', 'roomName')->get();
-        $rateList = Rates::query()->where('created_at', '>=', $startTime)
-            ->where('created_at', '<=', $endTime)
-            ->get();
+        $results = DB::table('active_conversations')
+            ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
+            ->where('active_conversations.empCode', 'NOT LIKE', 'BOT')
+            ->whereBetween('active_conversations.created_at', [$startTime, $endTime])
+            ->groupBy('users.empCode')
+            ->pluck('users.empCode');
 
-        $P =  DB::table('tag_menus')
-            ->select([
-                'tag_menus.tagName',
-                'tag_menus.id',
-                DB::raw('COUNT(rates.id) as count')
-            ])
-            ->leftJoin('rates', function ($join) {
-                $join->on('tag_menus.id', '=', 'rates.tag')
-                    ->whereBetween('rates.created_at', ['2024-11-14 00:00:00', '2024-11-14 23:59:59'])
-                    ->where('rates.status', '=', 'success')
-                    ->where('rates.latestRoomId', 'LIKE', 'ROOM01');
-            })
-            ->groupBy('tag_menus.tagName', 'tag_menus.id')
-            ->orderBy('tag_menus.tagName')
-            ->get();
-
-
-
-        foreach ($P as $key => $p) {
+        $list = [];
+        $listFull = [];
+        foreach ($results as $key => $empCode) {
+            $listFull[$key]['empCode'] = $empCode;
             $halfHour = 0;
             $oneHour = 0;
             $overOneHour = 0;
             $overTwoHour = 0;
             $overDay = 0;
-            $p->R = Rates::query()->where('tag', $p->id)
-                ->whereBetween('rates.created_at', ['2024-11-14 00:00:00', '2024-11-14 23:59:59'])
-                ->where('rates.status', '=', 'success')
-                ->where('rates.latestRoomId', 'LIKE', 'ROOM01')
+            $list[$key] = DB::table('active_conversations')
+                ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
+                ->where('active_conversations.empCode', 'NOT LIKE', 'BOT')
+                ->whereBetween('active_conversations.created_at', [$startTime, $endTime])
+                ->where('active_conversations.empCode', 'LIKE', $empCode)
+                ->select('users.name', 'active_conversations.totalTime')
                 ->get();
-            foreach ($p->R as $rey => $r) {
-                $p->R[$rey]->A = ActiveConversations::query()->select('totalTime')->where('rateRef', $r->id)->get(); // [0: 'totalTime' => '1 ชั่วโมง 2 นาที 3 วินาที', 1: 'totalTime' => '1 ชั่วโมง 2 นาที 3 วินาที']
-                // หาผลรวมของเวลาทั้งหมด เก็บใส่ในตัวแปล $p->R[$ray]->totalTime
-
-                $totalSeconds = 0;
-                foreach ($p->R[$rey]->A as $active) {
-                    $time = $active->totalTime; // เช่น "1 ชั่วโมง 2 นาที 3 วินาที"
-
-                    // แยกข้อมูลเวลา
-                    $hours = (preg_match('/(\d+)\s*ชั่วโมง/', $time, $matches) ? $matches[1] : 0);
-                    $minutes = (preg_match('/(\d+)\s*นาที/', $time, $matches) ? $matches[1] : 0);
-                    $seconds = (preg_match('/(\d+)\s*วินาที/', $time, $matches) ? $matches[1] : 0);
-
-                    // คำนวณเวลารวมเป็นวินาที
-                    $totalSeconds += ($hours * 3600) + ($minutes * 60) + $seconds;
+                $listFull[$key]['totalCase'] = count($list[$key]);
+            foreach ($list[$key] as $item) {
+                if (empty($item->totalTime)) {
+                    $item->totalTime = '0 ชั่วโมง 0 นาที 0 วินาที';
                 }
+                $totalTime = $item->totalTime;
 
-                // แปลงเวลารวมจากวินาทีกลับไปเป็นรูปแบบที่ต้องการ
-                $hours = floor($totalSeconds / 3600);
-                $minutes = floor(($totalSeconds % 3600) / 60);
-                $seconds = $totalSeconds % 60;
+                $day = 0;
+                $hour = 0;
+                $minute = 0;
 
-                $p->R[$rey]->totalTime = "{$hours} ชั่วโมง {$minutes} นาที {$seconds} วินาที";
-                if (($hours == 0) && ($minutes <= 30)) {
+                preg_match('/(\d+)\s*วัน/', $totalTime, $dayMatch);
+                preg_match('/(\d+)\s*ชั่วโมง/', $totalTime, $hourMatch);
+                preg_match('/(\d+)\s*นาที/', $totalTime, $minuteMatch);
+
+                if (!empty($dayMatch)) {
+                    $day = (int)$dayMatch[1];
+                }
+                if (!empty($hourMatch)) {
+                    $hour = (int)$hourMatch[1];
+                }
+                if (!empty($minuteMatch)) {
+                    $minute = (int)$minuteMatch[1];
+                }
+                $totalMinutes = ($day * 24 * 60) + ($hour * 60) + $minute;
+                if ($totalMinutes <= 30) {
                     $halfHour++;
-                } elseif (($hours == 1) && ($minutes <= 30)) {
+                } elseif ($totalMinutes > 30 && $totalMinutes <= 60) {
                     $oneHour++;
-                } elseif (($hours > 1) && ($hours < 2)) {
+                } elseif ($totalMinutes > 60 && $totalMinutes <= 120) {
                     $overOneHour++;
-                } elseif (($hours >= 2) && ($hours < 24)) {
+                } elseif ($totalMinutes > 120 && $totalMinutes <= 1440) {
                     $overTwoHour++;
                 } else {
                     $overDay++;
                 }
             }
-            $p->halfHour = $halfHour;
-            $p->oneHour = $oneHour;
-            $p->overOneHour = $overOneHour;
-            $p->overTwoHour = $overTwoHour;
-            $p->overDay = $overDay;
+            $listFull[$key]['halfHour'] = $halfHour;
+            $listFull[$key]['oneHour'] = $oneHour;
+            $listFull[$key]['overOneHour'] = $overOneHour;
+            $listFull[$key]['overTwoHour'] = $overTwoHour;
+            $listFull[$key]['overDay'] = $overDay;
         }
+
         return response()->json([
-            'message' => 'test',
-            'detail' => 'test',
-            'tagMenus' => $tagMenus,
-            'startTime' => $startTime,
-            'endTime' => $endTime,
-            'rateList' => $rateList,
-            'chatRooms' => $chatRooms,
-            'P' => $P
+            'GraphReceive' => 'graphReceive',
+            'GraphStar' => 'graphStar',
+            'Individual' => 'individual',
+            'request' => $request->all(),
+            'results' => $listFull
         ]);
     }
 }
