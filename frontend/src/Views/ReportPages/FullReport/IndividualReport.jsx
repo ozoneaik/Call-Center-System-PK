@@ -32,7 +32,7 @@ export default function IndividualReport({ startTime, endTime }) {
     }
     return (
         <>
-            <Grid2 size={12} maxHeight={400}>
+            <Grid2 size={12} maxHeight={400} sx={{ overflow: 'auto' }}>
                 <Table borderAxis="both" sx={ChatPageStyle.Table}>
                     <thead>
                         <tr>
