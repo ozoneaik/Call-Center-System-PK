@@ -54,7 +54,8 @@ export const MessageInput = (props) => {
             conversationId: activeId,
             selectedFile
         });
-        console.log(data, status)
+        console.log('data, status, selectedFile')
+        console.log(data, status, selectedFile)
         if (status === 200) {
             setMsg({content: '', contentType: 'text', sender: ''});
 

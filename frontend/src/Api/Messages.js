@@ -16,8 +16,8 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
     if (selectedFile) {
         Messages.push({
             content: selectedFile,
-            contentType: selectedFile.type === 'image' ? 'image' : 'video',
-            sender: 'sender'
+            contentType: selectedFile.type === 'image/png' ? 'image' : selectedFile.type === 'image/jpeg' ? 'image' : 'video',
+            sender: 'sender'    
         })
     } else console.log('🙏')
     const body = {
