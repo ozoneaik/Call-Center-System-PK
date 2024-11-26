@@ -37,7 +37,7 @@ class ClearLogs extends Command
                         continue;
                     }
                     $logPath = storage_path("logs/$file");
-                    if (file_exists($logPath)) {
+                    if (file_exists($logPath) && $file !== '.gitignore') {
                         file_put_contents($logPath, '');
                         $this->info('Logs have been cleared! File: ' . $file);
                     } else {
