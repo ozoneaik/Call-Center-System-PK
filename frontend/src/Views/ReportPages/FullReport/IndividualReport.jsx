@@ -9,6 +9,7 @@ import GraphStarByUser from "./GraphStarByUser";
 
 export default function IndividualReport({ startTime, endTime }) {
     const [list, setList] = useState([]);
+    const [starRate, setStarRate] = useState([]);
     useEffect(() => {
         fetchData();
     }, []);
@@ -18,6 +19,7 @@ export default function IndividualReport({ startTime, endTime }) {
         if (status === 200) {
             console.log('data', data);
             setList(data.results);
+            setStarRate(data.starRate);
         }
     }
 
@@ -78,7 +80,7 @@ export default function IndividualReport({ startTime, endTime }) {
                 <GraphCaseByUser list={list}/>
             </Grid2>
             <Grid2 size={6} maxHeight={500} minHeight={400}>
-                <GraphStarByUser />
+                <GraphStarByUser starRate={starRate}/>
             </Grid2>
 
         </>

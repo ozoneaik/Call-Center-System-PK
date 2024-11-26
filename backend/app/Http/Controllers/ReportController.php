@@ -214,7 +214,7 @@ class ReportController extends Controller
                 ->where('active_conversations.empCode', 'LIKE', $empCode)
                 ->select('users.name', 'active_conversations.totalTime')
                 ->get();
-                $listFull[$key]['totalCase'] = count($list[$key]);
+            $listFull[$key]['totalCase'] = count($list[$key]);
             foreach ($list[$key] as $item) {
                 if (empty($item->totalTime)) {
                     $item->totalTime = '0 ชั่วโมง 0 นาที 0 วินาที';
@@ -258,12 +258,18 @@ class ReportController extends Controller
             $listFull[$key]['overDay'] = $overDay;
         }
 
+        $starRate = DB::table('rates')->selectRaw('COUNT(rates.id) as count, rates.rate as starRate')
+            ->whereBetween('rates.created_at', [$startTime, $endTime])
+            ->groupBy('rates.rate')
+            ->get();
+
         return response()->json([
             'GraphReceive' => 'graphReceive',
             'GraphStar' => 'graphStar',
             'Individual' => 'individual',
             'request' => $request->all(),
-            'results' => $listFull
+            'results' => $listFull,
+            'starRate' => $starRate
         ]);
     }
 }
