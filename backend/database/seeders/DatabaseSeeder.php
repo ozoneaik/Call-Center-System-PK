@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
                 'empCode' => '70010',
                 'name' => 'พนักงาน ภูวเดช',
                 'email' => '70010@mail.local',
-                'role' => 'admin',
+                'role' => 'user',
                 'roomId' => 'ROOM00',
                 'description' => 'อะไรเอ้่ย',
                 'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
@@ -34,6 +34,16 @@ class DatabaseSeeder extends Seeder
                 'roomId' => 'ROOM00',
                 'description' => 'ฉันคือ BOT',
                 'avatar' => 'https://upload.wikimedia.org/wikipedia/commons/9/99/Sample_User_Icon.png',
+                'password' => Hash::make('1111'),
+            ],
+            [
+                'empCode' => 'adminIT',
+                'name' => 'adminIT',
+                'email' => 'adminIT@mail.local',
+                'role' => 'admin',
+                'roomId' => 'ROOM00',
+                'description' => 'ฉันคือ adminIT',
+                'avatar' => 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRK-UmQwk2KEVeUvKCar5PAWslaHdpqqweFxQ&s',
                 'password' => Hash::make('1111'),
             ]
 
