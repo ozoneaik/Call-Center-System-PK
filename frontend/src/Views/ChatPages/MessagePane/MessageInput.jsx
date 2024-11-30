@@ -1,53 +1,75 @@
 import Box from "@mui/joy/Box";
 import FormControl from "@mui/joy/FormControl";
-import {Button, Textarea} from "@mui/joy";
-import {MessageStyle} from "../../../styles/MessageStyle.js";
+import { Button, Textarea } from "@mui/joy";
+import { MessageStyle } from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
 import LocalSeeIcon from "@mui/icons-material/LocalSee";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import {useState} from "react";
-import {useAuth} from "../../../context/AuthContext.jsx";
-import {sendApi} from "../../../Api/Messages.js";
-import {AlertDiaLog} from "../../../Dialogs/Alert.js";
+import { useState } from "react";
+import { useAuth } from "../../../context/AuthContext.jsx";
+import { sendApi } from "../../../Api/Messages.js";
+import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { StickerPK } from "./StickerPK.jsx";
 
 export const MessageInput = (props) => {
-    const {user} = useAuth();
-    const {check, msg, setMsg,sender,setMessages,activeId} = props;
-    const [imagePreview, setImagePreview] = useState();
+    const { user } = useAuth();
+    const { check, msg, setMsg, sender, setMessages, activeId } = props;
+    const [imagePreview, setImagePreview] = useState([]);
     const [selectedFile, setSelectedFile] = useState();
     const [disableBtn, setDisableBtn] = useState(false);
 
-    const handleRemoveImage = () => {
-        setImagePreview(null);
-        setSelectedFile(null);
-    };
+    const handleRemoveImage = (index) => {
+        if (index) {
+            setImagePreview((prev) => prev.filter((_, i) => i !== index));
+            setSelectedFile((prev) => prev.filter((_, i) => i !== index));
 
-    const handleImageChange = (event) => {        
-        const file = event.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                // setImagePreview(reader.result);
-                setImagePreview({ type: file.type, data: reader.result });
+        } else {
 
-            };
-            reader.readAsDataURL(file);
+            setImagePreview([]);
+            setSelectedFile(null);
         }
     };
 
-    const handleSend = async ({type = 'text', c}) => {
+    const handleImageChange = (event) => {
+        console.log('event upload file >>> ', event.target.files)
+        // const file = event.target.files;
+        const files = Array.from(event.target.files);
+        if (files) {
+            setSelectedFile(files);
+            // const reader = new FileReader();
+            // reader.onloadend = () => {
+            //     // setImagePreview(reader.result);
+            //     setImagePreview({ type: file.type, data: reader.result });
+            // };
+            // reader.readAsDataURL(file);
+
+            if (files.length > 0) {
+                setSelectedFile(files);
+
+                // ใช้ forEach แทนการ map เพื่ออัปเดต preview เมื่ออ่านไฟล์เสร็จ
+                files.forEach((file) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        // อัปเดต state โดยการใช้ฟังก์ชัน callback เพื่อแก้ปัญหา "prev is not iterable"
+                        setImagePreview((prev) => [...prev, { type: file.type, data: reader.result }]);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+    };
+
+    const handleSend = async ({ type = 'text', c }) => {
         setDisableBtn(true);
         const C = msg.content ? msg.content : c;
-        if (!selectedFile){
+        if (!selectedFile) {
             if (C === null || C === undefined || C === '') {
                 alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
                 return;
             }
         }
-        const {data, status} = await sendApi({
+        const { data, status } = await sendApi({
             msg: C,
             contentType: type,
             custId: sender.custId,
@@ -57,106 +79,75 @@ export const MessageInput = (props) => {
         console.log('data, status, selectedFile')
         console.log(data, status, selectedFile)
         if (status === 200) {
-            setMsg({content: '', contentType: 'text', sender: ''});
-
-            
-            // เช้คว่า มีการพิมข้อความมาหรือไม่
-            // if (C) {
-            //     setMessages((prevMessages) => {
-            //         const newId = prevMessages.length.toString();
-            //         return [
-            //             ...prevMessages,
-            //             {
-            //                 id: newId,
-            //                 content: C,
-            //                 contentType: type,
-            //                 sender: user,
-            //                 created_at: new Date().toString()
-            //             },
-
-            //         ]
-            //     })
-            // }
-            // เช็คว่ามีรุปภาพหรือไม่
-            // if (selectedFile) {
-            //     setMessages((prevMessages) => {
-            //         const newId = prevMessages.length.toString();
-            //         return [
-            //             ...prevMessages,
-            //             {
-            //                 id: newId,
-            //                 content: imagePreview,
-            //                 contentType: 'image',
-            //                 sender: user,
-            //                 created_at: new Date().toString()
-            //             },
-
-            //         ]
-            //     })
-            // }
-        } else AlertDiaLog({title: data.message, text: data.detail, onPassed: () => console.log('')});
+            setMsg({ content: '', contentType: 'text', sender: '' });
+        } else AlertDiaLog({ title: data.message, text: data.detail, onPassed: () => console.log('') });
         handleRemoveImage();
         setDisableBtn(false);
     }
+
     return (
         <>
             {check === '1' && (
-                <Box sx={{px: 2, pb: 3}}>
+                <Box sx={{ px: 2, pb: 3 }}>
                     <FormControl>
                         <Textarea
                             id='inputSend'
                             startDecorator={
                                 imagePreview && (
-                                    <Box sx={{ position: 'relative', maxWidth: 300 }}>
-                                        {imagePreview.type.startsWith('image/') ? (
-                                            <img 
-                                                src={imagePreview.data} 
-                                                alt="Preview" 
-                                                style={MessageStyle.imagePreview} 
-                                            />
-                                        ) : imagePreview.type.startsWith('video/') ? (
-                                            <video 
-                                                controls 
-                                                src={imagePreview.data} 
-                                                style={{height : 200}}
-                                            />
-                                        ) : null}
-                                        <Button onClick={handleRemoveImage} sx={MessageStyle.BtnCloseImage}>
-                                            x
-                                        </Button>
-                                    </Box>
+                                    imagePreview.length > 0 && imagePreview.map((image, index) => (
+                                        <Box sx={{ position: 'relative', maxWidth: 300 }} key={index}>
+                                            {image.type.startsWith('image/') ? (
+                                                <img
+                                                    src={image.data}
+                                                    alt="Preview"
+                                                    style={MessageStyle.imagePreview}
+                                                />
+                                            ) : image.type.startsWith('video/') ? (
+                                                <video
+                                                    controls
+                                                    src={image.data}
+                                                    style={{ height: 200 }}
+                                                />
+                                            ) : null}
+                                            <Button onClick={() => handleRemoveImage(index)} sx={MessageStyle.BtnCloseImage}>
+                                                x
+                                            </Button>
+                                        </Box>
+                                    ))
+
                                 )
                             }
                             disabled={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             placeholder="พิมพ์ข้อความที่นี่..."
                             minRows={imagePreview ? 1 : 3} maxRows={10}
                             value={msg.content}
-                            onChange={(e) => setMsg({...msg, content: e.target.value})}
+                            onChange={(e) => setMsg({ ...msg, content: e.target.value })}
                             endDecorator={
                                 <Stack direction="row" gap={1} sx={MessageStyle.TextArea}>
 
-                                    <StickerPK sender={sender} activeId={activeId}/>
+                                    <StickerPK sender={sender} activeId={activeId} />
+                                    {/* <StickerPK sender={sender} activeId={activeId} Disable={(sender.emp !== user.empCode) || disableBtn || selectedFile} /> */}
 
 
                                     <Button
-                                        disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
+                                        // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปรูป/วิดีโอ</Typography>
                                         <input type="file" hidden accept="image/*,video/*"
-                                               onChange={handleImageChange}
+                                            onChange={handleImageChange} multiple
                                         />
-                                        <LocalSeeIcon/>
+                                        <LocalSeeIcon />
                                     </Button>
                                     <Button
-                                        disabled={(sender.emp !== user.empCode) || disableBtn}
+                                        // disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
-                                        onClick={() => handleSend({type: 'text'})}
+                                        onClick={() => handleSend({ type: 'text' })}
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>
                                             ส่ง ( ctrl+enter )
                                         </Typography>
-                                        <SendRoundedIcon/>
+                                        <SendRoundedIcon />
                                     </Button>
                                 </Stack>
                             }

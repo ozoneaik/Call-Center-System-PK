@@ -105,6 +105,7 @@ export const MessageStyle = {
         },
         TextMySent: {
             color: '#ffffff',
+            
         },
         TextIsNotSent: {
             color: 'var(--joy-palette-text-primary)'

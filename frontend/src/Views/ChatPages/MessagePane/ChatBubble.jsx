@@ -70,8 +70,19 @@ export default function Bubble(props) {
                             </Sheet>
                         ) : (
                             <Typography
+                              component="pre"
                                 level="body-sm"
-                                sx={isSent ? sender.empCode === user.empCode ? MessageStyle.Bubble.TextMySent : MessageStyle.Bubble.TextIsSent : MessageStyle.Bubble.TextIsNotSent}>
+                                sx={{
+                                    whiteSpace: 'pre-wrap', // เพื่อให้รองรับการขึ้นบรรทัดใหม่ (\n)
+                                    wordBreak: 'break-word', // ให้ข้อความแสดงผลดีในกรณีข้อความยาว
+                                    ...(
+                                        isSent
+                                            ? (sender.empCode === user.empCode
+                                                ? MessageStyle.Bubble.TextMySent
+                                                : MessageStyle.Bubble.TextIsSent)
+                                            : MessageStyle.Bubble.TextIsNotSent
+                                    )
+                                }}>
                                 {content}
                             </Typography>
                         )

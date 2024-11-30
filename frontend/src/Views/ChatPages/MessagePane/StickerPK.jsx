@@ -25,7 +25,7 @@ const stickerList = [
 
 
 export const StickerPK = (props) => {
-    const {sender, activeId} = props;
+    const {sender, activeId,Disable} = props;
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState({
         id: 0
@@ -42,7 +42,7 @@ export const StickerPK = (props) => {
     }
     return (
         <>
-            <Button color="warning" onClick={() => setOpen(true)}>
+            <Button color="warning" onClick={() => setOpen(true)} disabled={Disable}>
                 <Typography sx={MessageStyle.InsertImage}>
                     ส่งสติกเกอร์
                 </Typography>

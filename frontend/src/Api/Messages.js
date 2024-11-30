@@ -14,11 +14,29 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
         })
     }
     if (selectedFile) {
-        Messages.push({
-            content: selectedFile,
-            contentType: selectedFile.type === 'image/png' ? 'image' : selectedFile.type === 'image/jpeg' ? 'image' : 'video',
-            sender: 'sender'    
-        })
+        console.log('select file >> ', selectedFile)
+        const files = Array.isArray(selectedFile) ? selectedFile : Array.from(selectedFile);
+        files.forEach((file) => {
+            const fileContentType = file.type === 'image/png' || file.type === 'image/jpeg' ? 'image' :
+                file.type.startsWith('video/') ? 'video' : 'unknown';
+            Messages.push({
+                content: file,
+                contentType: fileContentType,
+                sender: 'sender'
+            });
+        });
+        // selectedFile.map((file) => {
+        //     Messages.push({
+        //         content: file,
+        //         contentType: file.type === 'image/png' ? 'image' : file.type === 'image/jpeg' ? 'image' : 'video',
+        //         sender: 'sender'    
+        //     })
+        // })
+        // Messages.push({
+        //     content: selectedFile,
+        //     contentType: selectedFile.type === 'image/png' ? 'image' : selectedFile.type === 'image/jpeg' ? 'image' : 'video',
+        //     sender: 'sender'    
+        // })
     } else console.log('🙏')
     const body = {
         custId: custId,
@@ -141,10 +159,10 @@ export const endTalkAllPendingApi = async (props) => {
     startTime = new Date(startTime).toISOString();
     endTime = new Date(endTime).toISOString();
     const Filter = list.filter((item) => item.updated_at > startTime && item.updated_at < endTime);
-    console.log('Filter >> ',Filter);
+    console.log('Filter >> ', Filter);
     try {
         const { data, status } = await axiosClient.post(`/endTalkAllPending/${roomId}`, {
-            list: Filter, 
+            list: Filter,
             startTime,
             endTime
         });
