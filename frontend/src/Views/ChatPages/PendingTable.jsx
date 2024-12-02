@@ -3,7 +3,7 @@ import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
 import { Button, Sheet, Table, Stack } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import { convertFullDate, getRandomColor } from "../../Components/Options.jsx";
+import { convertFullDate, convertLocalDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
@@ -12,7 +12,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
 import Input from '@mui/joy/Input';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const data = [{
     custName: '', userReply: '', updated_at: '',
@@ -48,6 +48,25 @@ export const PendingTable = (props) => {
                 } else console.log('ไม่ได้ confirm');
             }
         });
+    };
+
+    const TimeDisplay = ({ startTime }) => {
+        const [timeDiff, setTimeDiff] = useState(differentDate(startTime));
+
+        useEffect(() => {
+            const interval = setInterval(() => {
+                setTimeDiff(differentDate(startTime));
+            }, 1000);
+            return () => clearInterval(interval);
+        }, [startTime]);
+
+        return (
+            <Chip color="primary">
+                <Typography sx={ChatPageStyle.TableText}>
+                    {startTime ? timeDiff : 'ยังไม่เริ่มสนทนา'}
+                </Typography>
+            </Chip>
+        );
     };
 
     const redirectChat = (select) => {
@@ -115,8 +134,13 @@ export const PendingTable = (props) => {
         <>
             <Box sx={ChatPageStyle.BoxTable}>
                 <Stack direction="row" spacing={2}>
-                    <Typography level="h2" component="h1">รอดำเนินการ</Typography>
-                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)}/>
+                    <Typography level="h2" component="h1">
+                        รอดำเนินการ&nbsp;
+                        <Typography level="body-sm" color="neutral">
+                            {pending.length} รายการ
+                        </Typography>
+                    </Typography>
+                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
                     <Button onClick={() => handleFilter()}>ค้นหา</Button>
                 </Stack>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
@@ -137,9 +161,10 @@ export const PendingTable = (props) => {
                     <thead>
                         <tr>
                             <th style={{ width: 200 }}>ชื่อลูกค้า</th>
-                            <th style={{ width: 200 }}>เมื่อ</th>
-                            <th style={{ width: 200 }}>จากห้องแชท</th>
-                            <th style={{ width: 200 }}>จากพนักงาน</th>
+                            <th style={{ width: 150 }}>เมื่อ</th>
+                            <th style={{ width: 150 }}>ผ่านมาแล้ว</th>
+                            <th style={{ width: 150 }}>จากห้องแชท</th>
+                            <th style={{ width: 150 }}>จากพนักงาน</th>
                             <th style={{ width: 150 }}>จัดการ</th>
                         </tr>
                     </thead>
@@ -155,6 +180,30 @@ export const PendingTable = (props) => {
                                                 <Chip color="success" size="sm">{data.description}</Chip>
                                             </Box>
                                         </div>
+                                        <Stack mt={1}>
+                                            <Chip color="primary" variant="soft">
+                                                <ChatIcon />&nbsp;
+                                                {
+                                                    data.latest_message.contentType === 'text' ? (
+                                                        <>
+                                                            {data.latest_message.content} (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                        </>
+                                                    ) : data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker' ? (
+                                                        <>
+                                                            ส่งสื่อหรือสติกเกอร์ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                        </>
+                                                    ) : data.latest_message.contentType === 'location' ? (
+                                                        <>
+                                                            ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                        </>
+                                                    ) : data.latest_message.contentType === 'audio' ? (
+                                                        <>
+                                                            ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                        </>
+                                                    ) : <></>
+                                                }
+                                            </Chip>
+                                        </Stack>
                                     </td>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>
@@ -164,6 +213,9 @@ export const PendingTable = (props) => {
                                                 {convertFullDate(data.updated_at)}
                                             </Typography>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <TimeDisplay startTime={data.created_at} />
                                     </td>
                                     <td>
                                         <Chip color="warning">

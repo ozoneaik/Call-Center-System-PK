@@ -221,6 +221,16 @@ class MessageController extends Controller
         $request->validated();
         $rateId = $request['rateId'];
         $activeId = $request['activeConversationId'];
+        $Assessment = $request['Assessment'];
+        // convert Assessment to boolean
+        if($Assessment === 'true'){
+            $Assessment = true;
+        }else{
+            $Assessment = false;
+        }
+        // Log::info("Ass ==> $Assessment");
+        // Log::info(gettype($Assessment));
+        // dd($Assessment);
         DB::beginTransaction();
         try {
             $updateRate = Rates::query()->where('id', $rateId)->first();
@@ -234,19 +244,21 @@ class MessageController extends Controller
                 $updateAC['endTime'] = Carbon::now();
                 $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
                 if ($updateAC->save()) {
-                    /* ส่งการ์ดประเมิน */
-                    $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
-                    if (!$send['status']) {
-                        throw new \Exception($send['message']);
-                    } else {
-                        $bot = User::query()->where('empCode', 'BOT')->first();
-                        $chatHistory = new ChatHistory();
-                        $chatHistory['custId'] = $updateAC['custId'];
-                        $chatHistory['content'] = 'ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว';
-                        $chatHistory['contentType'] = 'text';
-                        $chatHistory['sender'] = json_encode($bot);
-                        $chatHistory['conversationRef'] = $updateAC['id'];
-                        $chatHistory->save();
+                    if($Assessment){
+                        /* ส่งการ์ดประเมิน */
+                        $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
+                        if (!$send['status']) {
+                            throw new \Exception($send['message']);
+                        } else {
+                            $bot = User::query()->where('empCode', 'BOT')->first();
+                            $chatHistory = new ChatHistory();
+                            $chatHistory['custId'] = $updateAC['custId'];
+                            $chatHistory['content'] = 'ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว';
+                            $chatHistory['contentType'] = 'text';
+                            $chatHistory['sender'] = json_encode($bot);
+                            $chatHistory['conversationRef'] = $updateAC['id'];
+                            $chatHistory->save();
+                        }
                     }
                     $message = 'คุณได้จบการสนทนาแล้ว';
                     $status = 200;

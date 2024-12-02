@@ -1,6 +1,6 @@
 import Typography from "@mui/joy/Typography";
 import {MessageStyle} from "../../../styles/MessageStyle.js";
-import {Button, Modal, ModalClose, Sheet} from "@mui/joy";
+import {Button, Checkbox, Modal, ModalClose, Sheet} from "@mui/joy";
 import DoneIcon from '@mui/icons-material/Done';
 import {useState} from "react";
 import {endTalkApi} from "../../../Api/Messages.js";
@@ -14,8 +14,9 @@ const ModalEndTalk = (props) => {
     const navigate = useNavigate();
     const {rateId, activeId, showModalEndTalk, setShowModalEndTalk, tags} = props;
     const [selectTag, setSelectTag] = useState();
+    const [assessment, setAssessment] = useState(true);
     const endTalk = async () => {
-        const {data, status} = await endTalkApi({rateId, activeConversationId: activeId, tagId: selectTag});
+        const {data, status} = await endTalkApi({rateId, activeConversationId: activeId, tagId: selectTag,Assessment : assessment});
         setShowModalEndTalk(false);
         AlertDiaLog({
             title: data.message,
@@ -58,6 +59,10 @@ const ModalEndTalk = (props) => {
                             <Option value={tag.id} key={index}>{tag.tagName}</Option>
                         ))}
                     </Select>
+                    <Checkbox label='ส่งแบบประเมินไปหาลูกค้า' defaultChecked onChange={(e)=>{
+                        setAssessment(e.target.checked);
+                        console.log(e.target.checked);
+                    }}/>
                     <Typography>
                         กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)
                     </Typography>

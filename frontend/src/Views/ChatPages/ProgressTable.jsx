@@ -3,7 +3,7 @@ import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
 import { Button, Input, Sheet, Stack, Table } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import { convertFullDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
+import { convertFullDate, convertLocalDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useEffect, useState } from "react";
@@ -13,8 +13,9 @@ import SendIcon from '@mui/icons-material/Send';
 import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import CircleIcon from '@mui/icons-material/Circle';
 
-export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgress, setFilterProgress}) => {
+export const ProgressTable = ({ dataset, roomId, roomName, progress, filterProgress, setFilterProgress }) => {
     const [search, setSearch] = useState('');
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -62,7 +63,7 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgr
         })
     }
 
-    const handleFilter = () => {      
+    const handleFilter = () => {
         if (!search) {
             setFilterProgress(progress);
             return;
@@ -77,7 +78,12 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgr
         <>
             <Box sx={ChatPageStyle.BoxTable}>
                 <Stack direction="row" spacing={1}>
-                    <Typography level="h2" component="h1">กำลังดำเนินการ</Typography>
+                    <Typography level="h2" component="h1">
+                        กำลังดำเนินการ&nbsp;
+                        <Typography level="body-sm" color="neutral">
+                            {progress.length} รายการ
+                        </Typography>
+                    </Typography>
                     <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
                     <Button onClick={() => handleFilter()}>ค้นหา</Button>
                 </Stack>
@@ -96,7 +102,7 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgr
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
                         <tr>
-                            <th style={{ width: 200 }}>ชื่อลูกค้า</th>
+                            <th style={{ width: 400 }}>ชื่อลูกค้า</th>
                             <th style={{ width: 200 }}>พนักงานรับเรื่อง</th>
                             <th style={{ width: 200 }}>วันที่รับเรื่อง</th>
                             <th style={{ width: 200 }}>เวลาเรื่ม</th>
@@ -109,16 +115,48 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress ,filterProgr
                             filterProgress && filterProgress.length > 0 ? filterProgress.map((data, index) => (
                                 <tr key={index}>
                                     <td>
-                                        <div style={{ display: "flex", alignItems: "center" }}>
-                                            {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
-                                            <Box>
-                                                <Typography>{data.custName}</Typography>
-                                                <Chip color="success" size="sm">{data.description}</Chip>
-                                            </Box>
-                                            {/*<Typography>*/}
-                                            {/*    {data.custName}*/}
-                                            {/*</Typography>*/}
-                                        </div>
+                                        <Stack flexDirection='row' alignItems='center' gap={1}>
+                                            <div>
+                                                {!data.unread && <CircleIcon sx={{ color: 'green' }} />}
+                                            </div>
+                                            <div>
+                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                    {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
+                                                    <Box>
+                                                        <Typography>{data.custName}</Typography>
+                                                        <Chip color="success" size="sm">{data.description}</Chip>
+                                                    </Box>
+                                                    {/*<Typography>*/}
+                                                    {/*    {data.custName}*/}
+                                                    {/*</Typography>*/}
+                                                </div>
+                                                <Stack mt={1}>
+                                                    <Chip color="primary" variant="soft">
+                                                        <ChatIcon />&nbsp;
+                                                        {
+                                                            data.latest_message.contentType === 'text' ? (
+                                                                <>
+                                                                    {data.latest_message.content} (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                                </>
+                                                            ) : data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker' ? (
+                                                                <>
+                                                                    ส่งสื่อหรือสติกเกอร์ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                                </>
+                                                            ) : data.latest_message.contentType === 'location' ? (
+                                                                <>
+                                                                    ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                                </>
+                                                            ) : data.latest_message.contentType === 'audio' ? (
+                                                                <>
+                                                                    ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                                </>
+                                                            ) : <></>
+                                                        }
+                                                    </Chip>
+                                                </Stack>
+                                            </div>
+                                        </Stack>
+
                                     </td>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>
