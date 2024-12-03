@@ -5,11 +5,13 @@ import { profileApi } from "../api/Auth.js";
 import { newChatRooms, newMessage } from "../echo.js";
 import { Navigate, Outlet } from "react-router-dom";
 import { useChatRooms } from "../context/ChatRoomContext.jsx";
+import { useMessage } from "../context/MessageContext.jsx";
 
 export default function MainLayout() {
     const { user, setUser } = useAuth();
     const { setNotification, setUnRead } = useNotification();
     const { setChatRoomsContext } = useChatRooms();
+    const {setMessage} = useMessage();
 
     useEffect(() => {
         (async () => {
@@ -25,6 +27,7 @@ export default function MainLayout() {
         newMessage({
             onPassed: (status, event) => {
                 setNotification(event);
+                setMessage(event);
                 setUnRead(event.countCustomer)
             }
         });

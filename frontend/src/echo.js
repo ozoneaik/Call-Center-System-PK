@@ -20,6 +20,18 @@ export const newMessage = ({onPassed}) => {
     };
 }
 
+export const messageByCust = ({onPassed}) => {
+    const channel = echo.channel('messageByCust');
+    channel.listen('.message', (event) => {
+        onPassed(true, event);
+    })
+
+    return () => {
+        channel.stopListening('.message');
+        echo.leaveChannel('messageByCust');
+    }
+}
+
 export const newChatRooms = ({onPassed}) => {
     const channel = echo.channel(`newChatRooms`);
     channel.listen('.my-event', (event) => {

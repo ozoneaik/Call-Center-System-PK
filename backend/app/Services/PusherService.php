@@ -20,7 +20,7 @@ class PusherService
             $AppID = env('PUSHER_APP_ID');
 
             if (!empty($message)) {
-                $customer = Customers::where('custId', $message['custId'])->first();
+                $customer = Customers::query()->where('custId', $message['custId'])->first();
                 $message['custName'] = $customer['custName'];
                 $message['avatar'] = $customer['avatar'];
                 $message['empSend'] = $emp;

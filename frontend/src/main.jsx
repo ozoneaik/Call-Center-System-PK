@@ -6,6 +6,7 @@ import {AuthProvider} from "./context/AuthContext.jsx";
 import {NotificationProvider} from "./context/NotiContext.jsx";
 import {CssVarsProvider} from '@mui/joy/styles';
 import {ChatRoomsProvider} from "./context/ChatRoomContext.jsx";
+import { MessageProvider } from './context/MessageContext.jsx';
 
 
 createRoot(document.getElementById('root')).render(
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
         <AuthProvider>
             <ChatRoomsProvider>
                 <NotificationProvider>
-                    <RouterProvider router={routes}/>
+                    <MessageProvider>
+                        <RouterProvider router={routes}/>
+                    </MessageProvider>
                 </NotificationProvider>
             </ChatRoomsProvider>
         </AuthProvider>
