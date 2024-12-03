@@ -1,7 +1,7 @@
 import Box from "@mui/joy/Box";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
-import { Button, Input, Sheet, Stack, Table } from "@mui/joy";
+import { Button, Divider, Input, Sheet, Stack, Table } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
 import { convertFullDate, convertLocalDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import HistoryIcon from '@mui/icons-material/History';
 import { Link, useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
-import { endTalkAllProgressApi } from "../../Api/Messages.js";
+import { endTalkAllProgressApi } from "../../api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import CircleIcon from '@mui/icons-material/Circle';
@@ -74,6 +74,22 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress, filterProgr
         setFilterProgress(updateFilter);
     };
 
+
+    const MessageDetail = ({ data }) => {
+        if (data.latest_message.contentType === 'text') {
+            return <>{data.latest_message.content}</>
+        } else if (data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker') {
+            return <>ส่งสื่อหรือสติกเกอร์ </>
+        } else if (data.latest_message.contentType === 'location') {
+            return <>ส่งที่อยู่ </>
+        } else if (data.latest_message.contentType === 'audio') {
+            return <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
+        } else {
+            return <></>
+        }
+    }
+
+
     return (
         <>
             <Box sx={ChatPageStyle.BoxTable}>
@@ -119,42 +135,26 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress, filterProgr
                                             <div>
                                                 {!data.unread && <CircleIcon sx={{ color: 'green' }} />}
                                             </div>
-                                            <div>
-                                                <div style={{ display: "flex", alignItems: "center" }}>
-                                                    {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
-                                                    <Box>
-                                                        <Typography>{data.custName}</Typography>
-                                                        <Chip color="success" size="sm">{data.description}</Chip>
-                                                    </Box>
-                                                    {/*<Typography>*/}
-                                                    {/*    {data.custName}*/}
-                                                    {/*</Typography>*/}
-                                                </div>
-                                                <Stack mt={1}>
+
+                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
+                                                <Box>
+                                                    <Typography fontWeight='bold'>
+                                                        {data.custName}
+                                                        &nbsp;
+                                                        <Typography fontSize={10} color="neutral">
+                                                            (รหัสอ้างอิง&nbsp;{data.id})
+                                                        </Typography>
+                                                    </Typography>
+                                                    <Chip color="success" size="sm">{data.description}</Chip>
+                                                    <Divider sx={{ my: 1 }} />
                                                     <Chip color="primary" variant="soft">
-                                                        <ChatIcon />&nbsp;
-                                                        {
-                                                            data.latest_message.contentType === 'text' ? (
-                                                                <>
-                                                                    {data.latest_message.content} (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                                </>
-                                                            ) : data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker' ? (
-                                                                <>
-                                                                    ส่งสื่อหรือสติกเกอร์ (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                                </>
-                                                            ) : data.latest_message.contentType === 'location' ? (
-                                                                <>
-                                                                    ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                                </>
-                                                            ) : data.latest_message.contentType === 'audio' ? (
-                                                                <>
-                                                                    ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                                </>
-                                                            ) : <></>
-                                                        }
+                                                        <ChatIcon fontSize="large" />&nbsp;
+                                                        <MessageDetail data={data} />
                                                     </Chip>
-                                                </Stack>
+                                                </Box>
                                             </div>
+
                                         </Stack>
 
                                     </td>

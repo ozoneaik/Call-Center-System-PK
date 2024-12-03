@@ -41,7 +41,11 @@ export default function MainChat() {
             }
         }
         fetchChats().then();
-    }, [roomId, notification]);
+    }, [roomId]);
+
+    useEffect(() => {
+        console.log('notification:', notification)
+    },[notification])
 
     const ContentComponent = () => (
         <>

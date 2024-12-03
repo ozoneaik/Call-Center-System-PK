@@ -7,7 +7,7 @@ import { convertFullDate, convertLocalDate, differentDate, getRandomColor } from
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
+import { endTalkAllPendingApi, receiveApi } from "../../api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
@@ -40,10 +40,6 @@ export const PendingTable = (props) => {
                     const { data, status } = await receiveApi(rateId, roomId);
                     if (status === 200) {
                         navigate(`/select/message/${params}/1`);
-                        // const params = `${rateId}/${activeId}/${custId}`;
-                        // const path = `${window.location.origin}/select/message/${params}/1`;
-                        // const win = window.open(path, '_blank','width=900,height=800');
-                        // win && win.focus();
                     } else AlertDiaLog({ title: data.message, text: data.detail });
                 } else console.log('ไม่ได้ confirm');
             }
@@ -72,19 +68,14 @@ export const PendingTable = (props) => {
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
         navigate(`/select/message/${params}/0`);
-        // const path = `${window.location.origin}/select/message/${params}`;
-        // const win = window.open(path, '_blank','width=900,height=800');
-        // win && win.focus();
     }
 
     const BtnComponent = ({ rateRef, id, custId, roomId, index }) => {
         let Disable;
         if (user.role === 'admin') {
             Disable = false;
-            // Disable = index !== 0;
         } else {
             Disable = index !== 0;
-            // Disable = user.roomId !== roomId;
         }
         return (
             <Box sx={{ display: 'flex' }}>
@@ -197,9 +188,7 @@ export const PendingTable = (props) => {
                                                             ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
                                                         </>
                                                     ) : data.latest_message.contentType === 'audio' ? (
-                                                        <>
-                                                            ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                        </>
+                                                        <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
                                                     ) : <></>
                                                 }
                                             </Chip>
