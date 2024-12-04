@@ -130,9 +130,9 @@ export default function Sidebar() {
 
             </Box>
             <Divider/>
-            <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
+            <Box sx={{display: 'flex', gap: 1, alignItems: 'center',cursor : 'pointer'}} component={Link} to={'/profile'}>
                 <Avatar src={user.avatar} variant="outlined" size="sm"/>
-                <Box sx={{minWidth: 0, flex: 1}}>
+                <Box sx={{minWidth: 0, flex: 1}} >
                     <Typography level="title-sm" mb={1}>{user.name}</Typography>
                     <Typography level="body-xs">สิทธิ์&nbsp;{user.role}</Typography>
                 </Box>

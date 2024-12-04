@@ -1,0 +1,21 @@
+.Card{
+    width: 100%;
+    border-radius: 10px;
+    background-color: #ffe0bf;
+    overflow: hidden;
+    text-align: center;
+    
+}
+
+.Background{
+    
+}
+
+.Cover{
+    width: 100%;
+    /* height: 500px; */
+    padding: 20px 10px;
+    background-color: #f5f5f5;
+    object-fit: cover;
+    background-image: url('https://t4.ftcdn.net/jpg/06/36/69/51/360_F_636695110_K8ROQPhfXi54itLEhcJu7VapO7GvLM1R.jpg');
+}

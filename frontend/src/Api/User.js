@@ -48,4 +48,14 @@ export const updateUserApi = async ({empCode, user}) => {
     }
 }
 
+
+export const profileApi = async () => {
+    try {
+        const {data,status} = await axiosClient.put(`${users}/profile`);
+        return {data,status};
+    }catch (error){
+        return ErrorResponse(error);
+    }
+}
+
 // ------------------------------------------------------------------------------------------------------------

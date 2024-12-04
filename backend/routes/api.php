@@ -132,4 +132,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('activeList', [ReportController::class, 'activeList']);
         Route::get('fullReport', [ReportController::class, 'FullReport']);
     });
+
+    // จัดการข้อมูลส่วนตัว
+    Route::prefix('users')->group(function(){
+        Route::get('profile', [UserController::class, 'profile']);
+    });
 });

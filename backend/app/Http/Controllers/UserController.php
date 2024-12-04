@@ -127,4 +127,12 @@ class UserController extends Controller
             ], $status);
         }
     }
+
+
+    public function profile(){
+        $user = auth()->user();
+        return response()->json([
+            'profile' => $user
+        ]);
+    }
 }
