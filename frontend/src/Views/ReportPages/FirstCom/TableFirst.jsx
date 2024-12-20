@@ -20,7 +20,7 @@ export const TableFirst = ({ lineList, startTime, endTime ,setRateList,setActive
     }
     return (
         <>
-            <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table}>
+            <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table} hoverRow>
                 <thead>
                     <tr>
                         <th>จากไลน์</th>

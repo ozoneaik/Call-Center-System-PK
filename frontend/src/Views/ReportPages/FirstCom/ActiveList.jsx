@@ -13,7 +13,7 @@ export const ActiveList = ({ activeList }) => {
             <ActiveModal showModal={showModal} setShowModal={setShowModal} selected={selected} totalChat={activeList.totalChat} />
             <Grid2 container>
                 <Grid2 size={12}>
-                    <Table stickyHeader borderAxis="both" stickyFooter sx={ChatPageStyle.Table}>
+                    <Table stickyHeader borderAxis="both" stickyFooter sx={ChatPageStyle.Table} hoverRow>
                         <thead>
                             <tr>
                                 <th colSpan={9}>ชื่อลูกค้า : {activeList.custName} {activeList.totalChat}</th>

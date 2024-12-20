@@ -7,6 +7,7 @@ use App\Models\ChatHistory;
 use App\Models\ChatRooms;
 use App\Models\Rates;
 use App\Models\TagMenu;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -270,6 +271,53 @@ class ReportController extends Controller
             'request' => $request->all(),
             'results' => $listFull,
             'starRate' => $starRate
+        ]);
+    }
+
+    public function TagReport(Request $request){
+        $request->validate([
+            'startTime' => 'required|date',
+            'endTime' => 'required|date'
+        ], [
+            'startTime.required' => 'จำเป็นต้องระบุวันเริ่มต้น',
+            'endTime.required' => 'จำเป็นต้องระบุวันสิ้นสุด'
+        ]);
+        $startTime = $request['startTime'] . ' 00:00:00';
+        $endTime = $request['endTime'] . ' 23:59:59';
+        $results = DB::table('rates')
+            ->leftJoin('tag_menus', 'tag_menus.id', '=', 'rates.tag')
+            ->select(
+                'tag_menus.id as tagId',
+                'tag_menus.tagName',
+                DB::raw('COUNT(rates.id) as count'),
+            )
+            ->whereBetween('rates.created_at', [
+                $startTime,
+                $endTime
+            ])
+            ->where('rates.status', 'success')
+            ->groupBy(['tag_menus.id', 'tag_menus.tagName']) // เพิ่ม tagName ในการ group
+            ->orderBy('tag_menus.id', 'asc')
+            ->get();
+
+        foreach ($results as $result) {
+            $d = DB::table('rates')
+                ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
+                ->select(
+                    'rates.latestRoomId',
+                    'chat_rooms.roomName',
+                    DB::raw('COUNT(rates.id) AS count')
+                )
+                ->whereBetween('rates.created_at', [$startTime, $endTime])
+                ->where('rates.tag', $result->tagId)
+                ->groupBy('rates.latestRoomId', 'chat_rooms.roomName')
+                ->get();
+            $result->detail = $d;
+        }
+        return response()->json([
+            'tagReports' => $results,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
         ]);
     }
 }

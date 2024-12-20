@@ -120,7 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('delete/{id}',[TagMenuController::class,'delete']);
     });
 
-    //สำหรับจัดการแชทที่ค้างไว้ 
+    //สำหรับจัดการแชทที่ค้างไว้
     Route::post('/endTalkAllProgress/{roomId}',[MessageController::class, 'endTalkAllProgress']);
     Route::post('/endTalkAllPending/{roomId}',[MessageController::class, 'endTalkAllPending']);
 
@@ -131,6 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('rateList', [ReportController::class, 'RateList']);
         Route::get('activeList', [ReportController::class, 'activeList']);
         Route::get('fullReport', [ReportController::class, 'FullReport']);
+        Route::get('tagReports',[ReportController::class, 'TagReport']);
     });
 
     // จัดการข้อมูลส่วนตัว

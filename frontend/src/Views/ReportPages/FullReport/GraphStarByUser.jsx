@@ -14,7 +14,13 @@ ChartJS.register(LinearScale, CategoryScale, BarElement, Tooltip, PointElement, 
 const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {},
+    plugins: {
+        tooltip: {
+            bodyFont: {
+                size : 20
+            }
+        }
+    },
 };
 
 const labels = ['1 ดาว', '2 ดาว', '3 ดาว', '4 ดาว', '5 ดาว', 'ยังไม่ได้ประเมิน'];

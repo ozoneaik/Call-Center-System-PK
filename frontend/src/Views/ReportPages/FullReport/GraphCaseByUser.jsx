@@ -15,6 +15,11 @@ const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+        tooltip: {
+            bodyFont: {
+                size : 20
+            }
+        }
     },
 };
 

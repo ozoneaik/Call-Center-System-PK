@@ -16,7 +16,7 @@ export const RateList = ({ rateList, setActiveList }) => {
     }
     return (
 
-        <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table}>
+        <Table stickyHeader borderAxis="both" sx={ChatPageStyle.Table} hoverRow>
             <thead>
                 <tr>
                     <th>ลูกค้า</th>

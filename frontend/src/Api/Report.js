@@ -55,3 +55,17 @@ export const fullReportApi = async ({startTime,endTime}) => {
         return ErrorResponse(err)
     }
 }
+
+export const tagReportsApi = async ({startTime, endTime}) => {
+    try {
+        const {data, status} = await axiosClient.get(`${prefix}/tagReports`,{
+            params : {
+                startTime, endTime
+            }
+        })
+
+        return {data, status}
+    }catch (error) {
+        return ErrorResponse(error)
+    }
+}
