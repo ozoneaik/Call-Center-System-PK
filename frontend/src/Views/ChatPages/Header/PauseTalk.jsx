@@ -31,7 +31,7 @@ export const PauseTalk = () => {
     return (
         <>
 
-            <Tooltip title="หากต้องการคุยลูกค้าในครั้งถัดไป" color='primary' variant="solid" size='lg'>
+            <Tooltip title="ขณะนี้อยู่ในขั้นตอนพัฒนา" color='primary' variant="solid" size='lg'>
                 <Button
                     onClick={() => setOpen(true)}
                     variant="outlined" size="sm"
@@ -68,7 +68,7 @@ export const PauseTalk = () => {
                         <br/>เพื่อให้คุณสามารถกลับมาจัดการได้ในวันถัดไปหรือภายหลัง
                     </Alert>
                     <Stack spacing={2} mt={2}>
-                        <Button onClick={()=>pauseTalkHandler()}>ตกลง</Button>
+                        <Button disabled={true} onClick={()=>pauseTalkHandler()}>ขณะนี้อยู่ในขั้นตอนพัฒนา</Button>
                     </Stack>
                 </Sheet>
             </Modal>

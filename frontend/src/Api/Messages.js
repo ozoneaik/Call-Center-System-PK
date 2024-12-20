@@ -73,6 +73,16 @@ export const senToApi = async ({ rateId, activeConversationId, latestRoomId }) =
     }
 }
 
+// พักการสนทนา
+export const pauseTalkApi = async (activeConversationId) => {
+    try {
+        const { data, status } = await axiosClient.post(`${messages}/endTalk`, {activeConversationId});
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}
+
 // จบการสนทนา
 export const endTalkApi = async ({ rateId, activeConversationId, tagId ,Assessment}) => {
     try {

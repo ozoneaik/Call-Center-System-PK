@@ -13,6 +13,7 @@ import {EndTalk} from "./EndTalk.jsx";
 import {ChangeRoom} from "./ChangeRoom.jsx";
 import {useNavigate} from "react-router-dom";
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import {PauseTalk} from "./PauseTalk.jsx";
 
 function MessagePaneHeader(props) {
     const navigate = useNavigate();
@@ -65,6 +66,7 @@ function MessagePaneHeader(props) {
                             onClick={() => setShortcut(true)}
                             disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                         />
+                        <PauseTalk/>
                         <EndTalk
                             disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             rateId={rateId} activeId={activeId} tags={tags}
