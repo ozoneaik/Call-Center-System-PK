@@ -8,15 +8,22 @@ import {AlertDiaLog} from "../../../Dialogs/Alert.js";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
 import Box from "@mui/joy/Box";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "react-router-dom";
+import {useAuth} from "../../../context/AuthContext.jsx";
 
 const ModalEndTalk = (props) => {
+    const {user} = useAuth();
     const navigate = useNavigate();
     const {rateId, activeId, showModalEndTalk, setShowModalEndTalk, tags} = props;
     const [selectTag, setSelectTag] = useState();
     const [assessment, setAssessment] = useState(true);
     const endTalk = async () => {
-        const {data, status} = await endTalkApi({rateId, activeConversationId: activeId, tagId: selectTag,Assessment : assessment});
+        const {data, status} = await endTalkApi({
+            rateId,
+            activeConversationId: activeId,
+            tagId: selectTag,
+            Assessment: assessment
+        });
         setShowModalEndTalk(false);
         AlertDiaLog({
             title: data.message,
@@ -59,10 +66,13 @@ const ModalEndTalk = (props) => {
                             <Option value={tag.id} key={index}>{tag.tagName}</Option>
                         ))}
                     </Select>
-                    <Checkbox label='ส่งแบบประเมินไปหาลูกค้า' defaultChecked onChange={(e)=>{
+
+                    <Checkbox disabled={user.role !== 'admin'} label='ส่งแบบประเมินไปหาลูกค้า (เฉพาะผู้ดูแลระบบ)'
+                              defaultChecked onChange={(e) => {
                         setAssessment(e.target.checked);
                         console.log(e.target.checked);
                     }}/>
+
                     <Typography>
                         กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)
                     </Typography>

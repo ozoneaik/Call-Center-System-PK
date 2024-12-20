@@ -1,4 +1,4 @@
-import { Box, Button, Card, Divider, Grid, Input, Sheet, Stack, Table, Typography } from "@mui/joy";
+import { Box, Button, Card, Divider, Input, Sheet, Stack, Table, Typography } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import { Grid2 } from "@mui/material";
 import { RateList } from "./FirstCom/RateList";
@@ -11,6 +11,7 @@ import { AlertDiaLog } from "../../Dialogs/Alert";
 import IndividualReport from "./FullReport/IndividualReport";
 import GraphCaseByUser from "./FullReport/GraphCaseByUser";
 import GraphStarByUser from "./FullReport/GraphStarByUser";
+import TagsReport from "./Tags/TagsReport.jsx";
 
 export default function ReportPage() {
     const navigate = useNavigate();
@@ -101,6 +102,13 @@ export default function ReportPage() {
                             <IndividualReport startTime={startTime} endTime={endTime} />
                         </Grid2>
                     )}
+                    <Typography level="h3" mb={2} sx={{ color: '#f95a1d' }}>
+                        จำนวนเคสในแต่ละแท็คการจบสนทนา&nbsp;
+                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
+                    </Typography>
+                    <Grid2 container spacing={2}>
+                        <TagsReport/>
+                    </Grid2>
                 </Sheet>
             </Box>
         </Sheet>
