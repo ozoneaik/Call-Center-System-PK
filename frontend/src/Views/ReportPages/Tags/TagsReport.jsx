@@ -1,4 +1,4 @@
-import {Grid2} from "@mui/material";
+import {Grid2, TableBody, TableHead} from "@mui/material";
 import {Table} from "@mui/joy";
 import {useEffect, useState} from "react";
 import {tagReportsApi} from "../../../Api/Report.js";
@@ -6,14 +6,15 @@ import Button from "@mui/joy/Button";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 
 
-import {Bar, Doughnut} from "react-chartjs-2";
-import {BarElement, CategoryScale, Chart as ChartJS, LinearScale, LineElement, PointElement, Tooltip} from "chart.js";
-ChartJS.register(LinearScale, CategoryScale, BarElement, Tooltip, PointElement, LineElement);
+import {Doughnut} from "react-chartjs-2";
+import {CategoryScale, Chart as ChartJS, LinearScale, LineElement, PointElement, Tooltip} from "chart.js";
+ChartJS.register(LinearScale, CategoryScale, Tooltip, PointElement, LineElement);
 
 export default function TagsReport({startTime, endTime}) {
     const [tagsReport, setTagsReport] = useState([]);
     const [show, setShow] = useState(false);
     const [detail, setDetail] = useState([]);
+    const [selected, setSelected] = useState({});
     useEffect(() => {
         fetchData();
     }, [])
@@ -41,17 +42,17 @@ export default function TagsReport({startTime, endTime}) {
         <>
             <Grid2 size={8} mb={3}>
                 <Table borderAxis="both" hoverRow>
-                    <thead>
+                    <TableHead>
                     <tr>
                         <th>เลขอ้างอิง</th>
                         <th>แท็คการจบสนทนา</th>
                         <th>จำนวนเคส</th>
                         <th>#</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                    </TableHead>
+                    <TableBody>
                     {tagsReport.length > 0 && tagsReport.map((item, index) => (
-                        <tr key={index}>
+                        <tr key={index} style={{backgroundColor : selected.tagId === item.tagId ? '#ffede5' : null}}>
                             <td>{item.tagId}</td>
                             <td>{item.tagName}</td>
                             <td>{item.count}</td>
@@ -59,13 +60,14 @@ export default function TagsReport({startTime, endTime}) {
                                 <Button size='sm' onClick={() => {
                                     setShow(true);
                                     setDetail(item.detail)
+                                    setSelected(item)
                                 }}>
                                     <RemoveRedEyeIcon/>
                                 </Button>
                             </td>
                         </tr>
                     ))}
-                    </tbody>
+                    </TableBody>
                 </Table>
             </Grid2>
             {show && (
