@@ -20,7 +20,7 @@ class DisplayService
                 ->where('active_conversations.endTime', null)
                 ->where('active_conversations.roomId', $roomId)
                 ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
-                ->orderBy('created_at', 'asc')
+                ->orderBy('updated_at', 'asc')
                 ->get();
 
             foreach ($data as $key => $value) {
@@ -40,7 +40,7 @@ class DisplayService
                 ->where('active_conversations.receiveAt', null)
                 ->where('active_conversations.roomId', $roomId)
                 ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
-                ->orderBy('created_at', 'asc')
+                ->orderBy('updated_at', 'asc')
                 ->get();
 
 

@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Redis;
 
 class MessageController extends Controller
 {
@@ -280,6 +280,28 @@ class MessageController extends Controller
                 'detail' => $detail,
             ], $status);
         }
+    }
+
+    public function pauseTalk(Request $request): JsonResponse{
+        $validated = $request->validate([
+            'activeConversationId' => 'required',
+            'rateId' => 'required',
+        ],[
+            'activeConversationId.required' => 'จำเป็นต้องระบุ ไอดีเคส',
+            'rateId.required' => 'จำเป็นต้องระบุ ไอดีเรท'
+        ]);
+        $rate = Rates::query()->where('id',$request['rateId'])->first();
+        $rate->status = 'pending';
+        $activeConversation = ActiveConversations::query()->where('id',$request['activeConversationId'])->first();
+        $activeConversation->receiveAt = null;
+        $activeConversation->startTime = null;
+        $activeConversation->empCode = null;
+        $activeConversation->save();
+        $rate->save();
+        return response()->json([
+            'message' => 'พักการสนทนาแล้ว',
+            'detail' => $request['activeConversationId'].$request['rateId']
+        ]);
     }
 
     public function endTalkAllProgress(Request $request, $roomId)

@@ -66,7 +66,7 @@ function MessagePaneHeader(props) {
                             onClick={() => setShortcut(true)}
                             disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                         />
-                        <PauseTalk/>
+                        <PauseTalk activeId={activeId} rateId={rateId}/>
                         <EndTalk
                             disable={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             rateId={rateId} activeId={activeId} tags={tags}

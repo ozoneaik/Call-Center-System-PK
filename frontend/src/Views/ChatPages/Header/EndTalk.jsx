@@ -10,6 +10,7 @@ import Option from "@mui/joy/Option";
 import Box from "@mui/joy/Box";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../../context/AuthContext.jsx";
+import {Alert} from '@mui/joy';
 
 const ModalEndTalk = (props) => {
     const {user} = useAuth();
@@ -73,6 +74,10 @@ const ModalEndTalk = (props) => {
                         console.log(e.target.checked);
                     }}/>
 
+                    <Alert color='warning'>                            
+                        หายังคุยกับลูกค้ายังดำเนินการต่อ เพื่อการสนทนาที่ต่อเนื่องแนะนำให้กดปุ่ม
+                        <br/>พักการสนทนาชั่วคราว แทน
+                    </Alert>
                     <Typography>
                         กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)
                     </Typography>

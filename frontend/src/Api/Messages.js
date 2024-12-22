@@ -25,18 +25,6 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
                 sender: 'sender'
             });
         });
-        // selectedFile.map((file) => {
-        //     Messages.push({
-        //         content: file,
-        //         contentType: file.type === 'image/png' ? 'image' : file.type === 'image/jpeg' ? 'image' : 'video',
-        //         sender: 'sender'    
-        //     })
-        // })
-        // Messages.push({
-        //     content: selectedFile,
-        //     contentType: selectedFile.type === 'image/png' ? 'image' : selectedFile.type === 'image/jpeg' ? 'image' : 'video',
-        //     sender: 'sender'    
-        // })
     } else console.log('🙏')
     const body = {
         custId: custId,
@@ -74,9 +62,9 @@ export const senToApi = async ({ rateId, activeConversationId, latestRoomId }) =
 }
 
 // พักการสนทนา
-export const pauseTalkApi = async (activeConversationId) => {
+export const pauseTalkApi = async ({activeConversationId, rateId}) => {
     try {
-        const { data, status } = await axiosClient.post(`${messages}/endTalk`, {activeConversationId});
+        const { data, status } = await axiosClient.post(`${messages}/pauseTalk`, {activeConversationId,rateId});
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);

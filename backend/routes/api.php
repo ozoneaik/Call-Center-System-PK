@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/receive', [MessageController::class, 'receive']);
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
+        Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
     });
 
     // ดึงข้อมูลเกี่ยวกับแชท
