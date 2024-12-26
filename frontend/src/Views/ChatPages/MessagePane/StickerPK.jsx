@@ -21,6 +21,22 @@ const stickerList = [
     { id: 9, content: 'https://images.pumpkin.tools/sitcker/20241108-152706.gif', contentType: 'sticker' },
     { id: 10, content: 'https://images.pumpkin.tools/sitcker/20241108-152710.gif', contentType: 'sticker' },
     { id: 11, content: 'https://images.pumpkin.tools/sitcker/20241108-152714.gif', contentType: 'sticker' },
+
+    { id: 12, content: 'https://images.pumpkin.tools/sitcker/01.png', contentType: 'sticker' },
+    { id: 13, content: 'https://images.pumpkin.tools/sitcker/02.png', contentType: 'sticker' },
+    { id: 14, content: 'https://images.pumpkin.tools/sitcker/03.png', contentType: 'sticker' },
+    { id: 15, content: 'https://images.pumpkin.tools/sitcker/04.png', contentType: 'sticker' },
+    { id: 16, content: 'https://images.pumpkin.tools/sitcker/05.png', contentType: 'sticker' },
+    { id: 17, content: 'https://images.pumpkin.tools/sitcker/06.png', contentType: 'sticker' },
+    { id: 18, content: 'https://images.pumpkin.tools/sitcker/08.png', contentType: 'sticker' },
+    { id: 19, content: 'https://images.pumpkin.tools/sitcker/09.png', contentType: 'sticker' },
+    { id: 20, content: 'https://images.pumpkin.tools/sitcker/10.png', contentType: 'sticker' },
+    { id: 21, content: 'https://images.pumpkin.tools/sitcker/11.png', contentType: 'sticker' },
+    { id: 22, content: 'https://images.pumpkin.tools/sitcker/12.png', contentType: 'sticker' },
+    { id: 23, content: 'https://images.pumpkin.tools/sitcker/15.png', contentType: 'sticker' },
+    { id: 24, content: 'https://images.pumpkin.tools/sitcker/18.png', contentType: 'sticker' },
+    { id: 25, content: 'https://images.pumpkin.tools/sitcker/21.png', contentType: 'sticker' },
+    { id: 26, content: 'https://images.pumpkin.tools/sitcker/main.png', contentType: 'sticker' },
 ];
 
 
