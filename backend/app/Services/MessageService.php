@@ -35,22 +35,42 @@ class MessageService
                     $msg['type'] = 'text';
                     $msg['text'] = $messages['content'];
                     break;
-                case 'image' :
+                case 'image':
                     $msg['type'] = 'image';
                     $msg['originalContentUrl'] = $messages['content'];
                     $msg['previewImageUrl'] = $messages['content'];
                     break;
-                case 'sticker' :
+                case 'sticker':
                     $msg['type'] = 'image';
                     $msg['originalContentUrl'] = $messages['content'];
                     $msg['previewImageUrl'] = $messages['content'];
                     break;
-                case 'video' : 
+                case 'video':
                     $msg['type'] = 'video';
                     $msg['originalContentUrl'] = $messages['content'];
                     $msg['previewImageUrl'] = $messages['content'];
                     break;
-                default :
+                case 'file':
+                    $msg = [
+                        'type' => 'template',
+                        'altText' => 'This is a buttons template',
+                        'template' => [
+                            'type' => 'buttons', // กำหนด type ให้เป็น 'buttons' ตรงนี้จำเป็นสำหรับ LINE API
+                            'thumbnailImageUrl' => "https://images.pumpkin.tools/icon/pdf_icon.png",
+                            'imageAspectRatio' => "rectangle",
+                            'imageSize' => "cover",
+                            'text' => "ไฟล์.pdf", // title ไม่จำเป็นต้องใช้ใน template buttons
+                            'actions' => [
+                                [
+                                    'type' => "uri",
+                                    'label' => "ดูไฟล์",
+                                    'uri' => $messages['content'] ?? 'https://example.com/default.pdf' // แก้ให้รองรับกรณี $messages['content'] ไม่มีค่า
+                                ]
+                            ]
+                        ]
+                    ];
+                    break;
+                default:
                     throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type [MessageSevice sendMsgByLine]');
             }
             $token = Customers::query()->leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.id')
@@ -69,6 +89,7 @@ class MessageService
                 $data['status'] = true;
             } else {
                 $data['status'] = false;
+                Log::info($response->json());
                 throw new \Exception('ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API');
             }
             $data['message'] = $response->json() ?? 'test';
@@ -163,7 +184,7 @@ class MessageService
             } else {
                 $message = $response->json();
                 $message = $message['details'][0]['message'];
-                throw new \Exception('Line API รายละเอียด >>> '.$message);
+                throw new \Exception('Line API รายละเอียด >>> ' . $message);
             }
         } catch (\Exception $e) {
             $data['status'] = false;
@@ -172,5 +193,4 @@ class MessageService
             return $data;
         }
     }
-
 }

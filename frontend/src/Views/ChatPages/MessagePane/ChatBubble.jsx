@@ -5,6 +5,9 @@ import { Sheet } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
+import {Avatar} from "@mui/joy";
+import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
+
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -68,24 +71,49 @@ export default function Bubble(props) {
                                     </Link>
                                 </Stack>
                             </Sheet>
-                        ) : (
-                            <Typography
-                              component="pre"
-                                level="body-sm"
-                                sx={{
-                                    whiteSpace: 'pre-wrap', // เพื่อให้รองรับการขึ้นบรรทัดใหม่ (\n)
-                                    wordBreak: 'break-word', // ให้ข้อความแสดงผลดีในกรณีข้อความยาว
-                                    ...(
-                                        isSent
-                                            ? (sender.empCode === user.empCode
-                                                ? MessageStyle.Bubble.TextMySent
-                                                : MessageStyle.Bubble.TextIsSent)
-                                            : MessageStyle.Bubble.TextIsNotSent
-                                    )
-                                }}>
-                                {content}
-                            </Typography>
-                        )
+                        ) :
+                            contentType === 'file' ? (
+                                <Sheet
+                                    variant="outlined"
+                                    sx={[
+                                        {
+                                            px: 1.75,
+                                            py: 1.25,
+                                            borderRadius: 'lg',
+                                        },
+                                        isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
+                                        isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
+                                    ]}
+                                >
+                                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                                        <Avatar color="primary" size="lg">
+                                            <InsertDriveFileRoundedIcon />
+                                        </Avatar>
+                                        <div>
+                                            <Typography sx={{ fontSize: 'sm' }}>ไฟล์ PDF</Typography>
+                                            <Link to={content} target="_blank" level="body-sm">ดู</Link>
+                                        </div>
+                                    </Stack>
+                                </Sheet>
+                            ) :
+                                (
+                                    <Typography
+                                        component="pre"
+                                        level="body-sm"
+                                        sx={{
+                                            whiteSpace: 'pre-wrap', // เพื่อให้รองรับการขึ้นบรรทัดใหม่ (\n)
+                                            wordBreak: 'break-word', // ให้ข้อความแสดงผลดีในกรณีข้อความยาว
+                                            ...(
+                                                isSent
+                                                    ? (sender.empCode === user.empCode
+                                                        ? MessageStyle.Bubble.TextMySent
+                                                        : MessageStyle.Bubble.TextIsSent)
+                                                    : MessageStyle.Bubble.TextIsNotSent
+                                            )
+                                        }}>
+                                        {content}
+                                    </Typography>
+                                )
                     }
                 </Sheet>
             </Box>

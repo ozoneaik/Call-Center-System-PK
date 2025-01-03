@@ -18,7 +18,7 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
         const files = Array.isArray(selectedFile) ? selectedFile : Array.from(selectedFile);
         files.forEach((file) => {
             const fileContentType = file.type === 'image/png' || file.type === 'image/jpeg' ? 'image' :
-                file.type.startsWith('video/') ? 'video' : 'unknown';
+                file.type.startsWith('video/') ? 'video' : file.type.startsWith('application/pdf') ? 'file' : 'unknown';
             Messages.push({
                 content: file,
                 contentType: fileContentType,

@@ -4,13 +4,14 @@ import { Button, Textarea } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
-import LocalSeeIcon from "@mui/icons-material/LocalSee";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { sendApi } from "../../../Api/Messages.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { StickerPK } from "./StickerPK.jsx";
+import FilePresentIcon from '@mui/icons-material/FilePresent';
 
 export const MessageInput = (props) => {
     const { user } = useAuth();
@@ -49,10 +50,11 @@ export const MessageInput = (props) => {
 
                 // ใช้ forEach แทนการ map เพื่ออัปเดต preview เมื่ออ่านไฟล์เสร็จ
                 files.forEach((file) => {
+
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         // อัปเดต state โดยการใช้ฟังก์ชัน callback เพื่อแก้ปัญหา "prev is not iterable"
-                        setImagePreview((prev) => [...prev, { type: file.type, data: reader.result }]);
+                        setImagePreview((prev) => [...prev, { type: file.type, data: reader.result, fileName: file.name }]);
                     };
                     reader.readAsDataURL(file);
                 });
@@ -108,7 +110,14 @@ export const MessageInput = (props) => {
                                                     src={image.data}
                                                     style={{ height: 200 }}
                                                 />
-                                            ) : null}
+                                            ) : (
+                                                <Box sx={{ mx: 1, p: 1, minWidth: 100, minHeight: 100, backgroundColor: '#d1dcf5', borderRadius: 4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                    <div>
+                                                        <PictureAsPdfIcon fontSize="50px" />
+                                                        <Typography>{image.fileName}</Typography>
+                                                    </div>
+                                                </Box>
+                                            )}
                                             <Button onClick={() => handleRemoveImage(index)} sx={MessageStyle.BtnCloseImage}>
                                                 x
                                             </Button>
@@ -128,17 +137,17 @@ export const MessageInput = (props) => {
                                     <StickerPK sender={sender} activeId={activeId} />
                                     {/* <StickerPK sender={sender} activeId={activeId} Disable={(sender.emp !== user.empCode) || disableBtn || selectedFile} /> */}
 
-
                                     <Button
                                         // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
-                                        <Typography sx={MessageStyle.InsertImage}>แนปรูป/วิดีโอ</Typography>
-                                        <input type="file" hidden accept="image/*,video/*"
+                                        <Typography sx={MessageStyle.InsertImage}>แนปไฟล์</Typography>
+                                        <input type="file" hidden accept="image/*,video/*,application/pdf"
                                             onChange={handleImageChange} multiple
                                         />
-                                        <LocalSeeIcon />
+                                        <FilePresentIcon />
                                     </Button>
+
                                     <Button
                                         // disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"

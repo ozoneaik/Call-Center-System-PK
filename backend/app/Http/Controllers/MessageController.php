@@ -62,7 +62,7 @@ class MessageController extends Controller
                 $storeChatHistory = new ChatHistory();
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
-                if (($storeChatHistory['contentType'] === 'image') || ($storeChatHistory['contentType'] === 'video')) {
+                if (($storeChatHistory['contentType'] === 'image') || ($storeChatHistory['contentType'] === 'video') || ($storeChatHistory['contentType'] === 'file')) {
                     Log::info('image message');
                     Log::info($m);
                     $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
