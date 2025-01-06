@@ -174,23 +174,21 @@ export const PendingTable = (props) => {
                                         <Stack mt={1}>
                                             <Chip color="primary" variant="soft">
                                                 <ChatIcon />&nbsp;
-                                                {
-                                                    data.latest_message.contentType === 'text' ? (
-                                                        <>
-                                                            {data.latest_message.content} (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                        </>
-                                                    ) : data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker' ? (
-                                                        <>
-                                                            ส่งสื่อหรือสติกเกอร์ (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                        </>
-                                                    ) : data.latest_message.contentType === 'location' ? (
-                                                        <>
-                                                            ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
-                                                        </>
-                                                    ) : data.latest_message.contentType === 'audio' ? (
-                                                        <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
-                                                    ) : <></>
-                                                }
+                                                {data.latest_message.contentType && data.latest_message.contentType === 'text' ? (
+                                                    <>
+                                                        {data.latest_message.content} (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                    </>
+                                                ) : data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker' ? (
+                                                    <>
+                                                        ส่งสื่อหรือสติกเกอร์ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                    </>
+                                                ) : data.latest_message.contentType === 'location' ? (
+                                                    <>
+                                                        ส่งที่อยู่ (เวลา {convertLocalDate(data.latest_message.created_at)})
+                                                    </>
+                                                ) : data.latest_message.contentType === 'audio' ? (
+                                                    <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
+                                                ) : <></>}
                                             </Chip>
                                         </Stack>
                                     </td>
