@@ -11,9 +11,9 @@ function ProtectedLayout() {
     return (
         <div>
             <App />
-            <div style={{backgroundColor : 'red',color  : 'white',textAlign : 'center',padding : '5px'}}>
+            {/* <div style={{backgroundColor : 'red',color  : 'white',textAlign : 'center',padding : '5px'}}>
                 ขณะนี้ไลน์ pumpkintools หมดโควต้าในการส่งข้อความ ทำให้ไม่สามารถส่งข้อความได้🙇‍♂️🙇‍♂️
-            </div>
+            </div> */}
             {/* <AnnouncementBar /> */}
             <Box sx={LayoutStyle.MainLayout}>
                 <Sidebar />
