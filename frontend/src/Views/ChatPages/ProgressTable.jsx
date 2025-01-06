@@ -76,15 +76,19 @@ export const ProgressTable = ({ dataset, roomId, roomName, progress, filterProgr
 
 
     const MessageDetail = ({ data }) => {
-        if (data.latest_message.contentType === 'text') {
-            return <>{data.latest_message.content}</>
-        } else if (data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker') {
-            return <>ส่งสื่อหรือสติกเกอร์ </>
-        } else if (data.latest_message.contentType === 'location') {
-            return <>ส่งที่อยู่ </>
-        } else if (data.latest_message.contentType === 'audio') {
-            return <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
-        } else {
+        if(data.latest_message.contentType){
+            if (data.latest_message.contentType === 'text') {
+                return <>{data.latest_message.content}</>
+            } else if (data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker') {
+                return <>ส่งสื่อหรือสติกเกอร์ </>
+            } else if (data.latest_message.contentType === 'location') {
+                return <>ส่งที่อยู่ </>
+            } else if (data.latest_message.contentType === 'audio') {
+                return <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
+            } else {
+                return <></>
+            }
+        }else{
             return <></>
         }
     }
