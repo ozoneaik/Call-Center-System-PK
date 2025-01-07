@@ -4,6 +4,7 @@ use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ReportController;
@@ -119,6 +120,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('store',[TagMenuController::class,'store']);
         Route::put('update',[TagMenuController::class,'update']);
         Route::delete('delete/{id}',[TagMenuController::class,'delete']);
+    });
+
+    //จัดการ keyword
+    Route::prefix('keywords')->group(function () {
+        Route::get('list',[KeywordController::class, 'list']);
+        Route::post('store',[KeywordController::class, 'store']);
+        Route::put('update/{id}',[KeywordController::class, 'update']);
+        Route::delete('delete/{id}',[KeywordController::class, 'delete']);
     });
 
     //สำหรับจัดการแชทที่ค้างไว้

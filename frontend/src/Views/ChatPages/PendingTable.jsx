@@ -3,7 +3,7 @@ import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import Typography from "@mui/joy/Typography";
 import { Button, Sheet, Table, Stack } from "@mui/joy";
 import Avatar from "@mui/joy/Avatar";
-import { convertFullDate, convertLocalDate, differentDate, getRandomColor } from "../../Components/Options.jsx";
+import { convertFullDate, convertLocalDate, differentDate } from "../../Components/Options.jsx";
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
@@ -27,7 +27,7 @@ export const PendingTable = (props) => {
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const [search, setSearch] = useState('');
-    const handleChat = (rateId, activeId, custId, roomId) => {
+    const handleChat = ({rateId, roomId}) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
             text: 'กด "ตกลง" เพื่อยืนยันรับเรื่อง',
@@ -81,7 +81,7 @@ export const PendingTable = (props) => {
             <Box sx={{ display: 'flex' }}>
                 <Button size='sm' variant='outlined' sx={{ mr: 1 }}
                     disabled={Disable} startDecorator={<ChatIcon />}
-                    onClick={() => handleChat(rateRef, id, custId, roomId)}
+                    onClick={() => handleChat({rateId : rateRef, id, custId, roomId})}
                 >
                     <Typography>รับเรื่อง</Typography>
                 </Button>
@@ -188,14 +188,14 @@ export const PendingTable = (props) => {
                                                     </>
                                                 ) : data.latest_message.contentType === 'audio' ? (
                                                     <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>
-                                                ) : <></>}
+                                                ) : data.latest_message.contentType === 'file' ? (<>แนปไฟล์ pdf</>) : <></>}
                                             </Chip>
                                         </Stack>
                                     </td>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center" }}>
                                             {data.userReply &&
-                                                <Avatar color={getRandomColor()} size='sm' sx={{ mr: 1 }} />}
+                                                <Avatar color='primary' size='sm' sx={{ mr: 1 }} />}
                                             <Typography>
                                                 {convertFullDate(data.updated_at)}
                                             </Typography>
@@ -231,7 +231,7 @@ export const PendingTable = (props) => {
                             )) : (
                                 <tr>
                                     <td colSpan={5} style={{ textAlign: 'center' }}>
-                                        <Chip color={getRandomColor()}>ไม่มีข้อมูล</Chip>
+                                        <Chip color='danger'>ไม่มีข้อมูล</Chip>
                                     </td>
                                 </tr>
                             )

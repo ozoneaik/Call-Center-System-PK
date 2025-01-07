@@ -19,6 +19,7 @@ import Users from "./Views/UserPages/main.jsx";
 import AccessToken from "./Views/TokenPages/main.jsx";
 import ReportPage from "./Views/ReportPages/main.jsx";
 import AuthPages from "./Views/AuthPages/main.jsx";
+import KeyWordPage from "./Views/KeyWordPages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -40,6 +41,7 @@ export const routes = createBrowserRouter([
                     },
                     {
                         path: '/', element: <CheckAdmin/>, children: [
+                            {path: '/keywords', element: <KeyWordPage/>},
                             {path: '/chatRooms', element: <ChatRooms/>},
                             {path: '/shortChats', element: <ShortChats/>},
                             {path: '/customers', element: <Customers/>},

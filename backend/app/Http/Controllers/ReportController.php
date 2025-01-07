@@ -203,6 +203,7 @@ class ReportController extends Controller
         $listFull = [];
         foreach ($results as $key => $empCode) {
             $listFull[$key]['empCode'] = $empCode;
+            $fiveMinutes = 0;
             $halfHour = 0;
             $oneHour = 0;
             $overOneHour = 0;
@@ -240,7 +241,9 @@ class ReportController extends Controller
                     $minute = (int)$minuteMatch[1];
                 }
                 $totalMinutes = ($day * 24 * 60) + ($hour * 60) + $minute;
-                if ($totalMinutes <= 30) {
+                if ($totalMinutes <= 5) {
+                    $fiveMinutes++;
+                }elseif ($totalMinutes <= 30) {
                     $halfHour++;
                 } elseif ($totalMinutes > 30 && $totalMinutes <= 60) {
                     $oneHour++;
@@ -252,11 +255,14 @@ class ReportController extends Controller
                     $overDay++;
                 }
             }
+            $listFull[$key]['empName'] = $item->name;
+            $listFull[$key]['fiveMinutes'] = $fiveMinutes;
             $listFull[$key]['halfHour'] = $halfHour;
             $listFull[$key]['oneHour'] = $oneHour;
             $listFull[$key]['overOneHour'] = $overOneHour;
             $listFull[$key]['overTwoHour'] = $overTwoHour;
             $listFull[$key]['overDay'] = $overDay;
+            $listFull[$key]['total'] = $fiveMinutes + $halfHour + $oneHour + $overOneHour + $overTwoHour + $overDay;
         }
 
         $starRate = DB::table('rates')->selectRaw('COUNT(rates.id) as count, rates.rate as starRate')

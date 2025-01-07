@@ -37,13 +37,12 @@ export default function IndividualReport({ startTime, endTime }) {
                     <thead>
                         <tr>
                             <th colSpan={2} style={{ textAlign: 'center' }}>พนักงาน</th>
-                            <th colSpan={5} style={{ textAlign: 'center' }}>จำนวนเคส</th>
+                            <th colSpan={6} style={{ textAlign: 'center' }}>จำนวนเคส</th>
                         </tr>
                         <tr>
                             <th>ชื่อ</th>
-                            <th>
-                                <Autocomplete placeholder="แผนก" size='sm' options={['Option 1', 'Option 2']} />
-                            </th>
+                            <th>เคสทั้งหมด</th>
+                            <th>ภายใน 5 นาที</th>
                             <th>ภายใน 30 นาที</th>
                             <th>ภายใน 1 ชั่วโมง</th>
                             <th>เกิน 1 ชั่วโมง</th>
@@ -54,8 +53,11 @@ export default function IndividualReport({ startTime, endTime }) {
                     <tbody>
                         {list && list.length > 0 && list.map((item, index) => (
                             <tr key={index}>
-                                <td>{item.empCode}</td>
-                                <td></td>
+                                <td>({item.empCode}) {item.empName}</td>
+                                <td>{item.total}</td>
+                                <td>
+                                <Show value={item.fiveMinutes} />
+                                </td>
                                 <td>
                                     <Show value={item.halfHour} />
                                 </td>
@@ -82,7 +84,6 @@ export default function IndividualReport({ startTime, endTime }) {
             <Grid2 size={6} maxHeight={500} minHeight={400}>
                 <GraphStarByUser starRate={starRate}/>
             </Grid2>
-
         </>
     )
 }

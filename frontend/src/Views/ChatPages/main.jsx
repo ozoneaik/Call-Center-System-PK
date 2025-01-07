@@ -31,6 +31,8 @@ export default function MainChat() {
                     setFilterPending(data.pending);
                     const count = data.progress.filter((item) => item.empCode === user.empCode);
                     console.log("Count:", count);
+                    console.log(data);
+                    
                     setUnRead(count ? count.length : 0);
                 } else console.log('ไม่มีรายการ MessageList')
             } catch (error) {
@@ -42,10 +44,6 @@ export default function MainChat() {
         }
         fetchChats().then();
     }, [roomId,notification]);
-
-    // useEffect(() => {
-    //     console.log('notification:', notification)
-    // },[notification])
 
     const ContentComponent = () => (
         <>

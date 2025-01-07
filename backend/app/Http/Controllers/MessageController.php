@@ -7,6 +7,7 @@ use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Models\Rates;
 use App\Models\TagMenu;
@@ -165,6 +166,7 @@ class MessageController extends Controller
             $updateRate['status'] = 'pending';
             if ($updateRate->save()) {
                 $updateAC = ActiveConversations::query()->where('id', $request['activeConversationId'])->first();
+                $room = ChatRooms::query()->where('roomId', $updateAC['roomId'])->first();
                 if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');
                 if (!empty($updateAC['startTime'])) {
                     $updateAC['endTime'] = Carbon::now();
@@ -184,7 +186,7 @@ class MessageController extends Controller
                     $bot = User::query()->where('empCode', 'BOT')->first();
                     $chatHistory = new ChatHistory();
                     $chatHistory['custId'] = $storeAC['custId'];
-                    $chatHistory['content'] = 'มีการส่งต่อมาจากห้อง' . $updateAC['roomId'];
+                    $chatHistory['content'] = 'มีการส่งต่อมาจาก' . $room['roomName'].' โดย 👤' . auth()->user()->name;
                     $chatHistory['contentType'] = 'text';
                     $chatHistory['sender'] = json_encode($bot);
                     $chatHistory['conversationRef'] = $updateAC['id'];
@@ -253,7 +255,7 @@ class MessageController extends Controller
                             $bot = User::query()->where('empCode', 'BOT')->first();
                             $chatHistory = new ChatHistory();
                             $chatHistory['custId'] = $updateAC['custId'];
-                            $chatHistory['content'] = 'ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว';
+                            $chatHistory['content'] = '🤖ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว🤖';
                             $chatHistory['contentType'] = 'text';
                             $chatHistory['sender'] = json_encode($bot);
                             $chatHistory['conversationRef'] = $updateAC['id'];

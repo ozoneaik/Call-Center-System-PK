@@ -12,6 +12,7 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import TokenIcon from "@mui/icons-material/Token";
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
 
 export const SidebarAdmin = ({pathname,user}) => (
     <>
@@ -20,6 +21,12 @@ export const SidebarAdmin = ({pathname,user}) => (
         </Typography>
         <Divider/>
         <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
+            <ListItem component={Link} to={'/keywords'}>
+                <ListItemButton selected={pathname === '/keywords'}>
+                    <KeyboardIcon/>
+                    จัดการคีย์เวิร์ด
+                </ListItemButton>
+            </ListItem>
             <ListItem component={Link} to={`/botManage`}>
                 <ListItemButton selected={pathname === '/botManage'}>
                     <SmartToyIcon/>
