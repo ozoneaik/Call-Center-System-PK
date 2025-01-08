@@ -26,6 +26,7 @@ import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import PersonIcon from '@mui/icons-material/Person';
 import {chatRoomListApi} from "../Api/ChatRooms.js";
 import {SidebarAdmin} from "./SidebarAdmin.jsx";
+import ThreePIcon from '@mui/icons-material/ThreeP';
 
 export default function Sidebar() {
     const {setChatRoomsContext} = useChatRooms()
@@ -96,6 +97,14 @@ export default function Sidebar() {
                             <HomeIcon/>
                             <ListItemContent>
                                 <Typography level="title-sm">หน้าหลัก</Typography>
+                            </ListItemContent>
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem component={Link} to={`/chat/myCase`}>
+                        <ListItemButton selected={pathname === `/chat/myCase`}>
+                            <ThreePIcon/>
+                            <ListItemContent>
+                                <Typography level="title-sm">เคสของฉัน</Typography>
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>

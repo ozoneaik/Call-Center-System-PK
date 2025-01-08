@@ -13,7 +13,7 @@ export const KeywordListApi = async () => {
 
 export const createKeywordApi = async ({keyword}) => {
     try {
-        const {data, status} = await axiosClient.post(`${prefix}/create`, {keyword});
+        const {data, status} = await axiosClient.post(`${prefix}/store`, keyword);
         return {data, status}
     } catch (error) {
         return ErrorResponse(error)
@@ -22,7 +22,11 @@ export const createKeywordApi = async ({keyword}) => {
 
 export const updateKeywordApi = async ({keywordId, keyword}) => {
     try {
-        const {data, status} = await axiosClient.put(`${prefix}/update/${keywordId}`, {keyword});
+        const {data, status} = await axiosClient.put(`${prefix}/update/${keywordId}`, keyword,{
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
         return {data, status}
     } catch (error) {
         return ErrorResponse(error)

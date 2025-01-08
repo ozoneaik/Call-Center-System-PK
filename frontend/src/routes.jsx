@@ -20,6 +20,7 @@ import AccessToken from "./Views/TokenPages/main.jsx";
 import ReportPage from "./Views/ReportPages/main.jsx";
 import AuthPages from "./Views/AuthPages/main.jsx";
 import KeyWordPage from "./Views/KeyWordPages/main.jsx";
+import MyCasePage from "./Views/MyCasePages/main.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -37,6 +38,7 @@ export const routes = createBrowserRouter([
                     {
                         path: '/chat', children: [
                             {path: 'room/:roomId/:roomName', element: <MainChat/>,},
+                            {path: 'myCase', element: <MyCasePage/>,},
                         ]
                     },
                     {
