@@ -15,6 +15,7 @@ use App\Services\DisplayService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DisplayController extends Controller
 {
@@ -38,29 +39,29 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function selectMessage($custId,$from,selectMessageRequest $request): JsonResponse
+    public function selectMessage($custId, $from, selectMessageRequest $request): JsonResponse
     {
         $detail = 'ไม่มีข้อผิดพลาด';
         try {
             $list = $this->displayService->selectMessage($custId);
             if (!$list) throw new \Exception('เกิดปัญหาในการ query select');
             if ($list->isEmpty()) throw new \Exception('ไม่พบรายการ Chat');
-            $sender = Customers::query()->where('custId',$custId)->first();
+            $sender = Customers::query()->where('custId', $custId)->first();
             if (!$sender) throw new \Exception('ไม่พบ sender');
             $emp = $this->displayService->getEmpReply($request['activeId']);
             $room = ActiveConversations::query()->where('id', $request['activeId'])->first();
             $room = ChatRooms::query()->where('roomId', $room['roomId'])->first();
-            if (!$emp){
-                if ($from === 'S'){
+            if (!$emp) {
+                if ($from === 'S') {
                     $emp = 0000;
-                }else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+                } else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             };
-//            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+            //            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
 
-            $starList = Rates::query()->select('rate','updated_at')->where('custId',$custId)->orderBy('updated_at','desc')->get();
+            $starList = Rates::query()->select('rate', 'updated_at')->where('custId', $custId)->orderBy('updated_at', 'desc')->get();
 
-            $notes = Notes::query()->where('custId', $custId)->orderBy('created_at','desc')->get();
+            $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 
             $tags = TagMenu::all();
 
@@ -97,11 +98,11 @@ class DisplayController extends Controller
         $customers = $this->dashboardService->countCustomer($today);
         //ดึงจำนวนดาววันนี้
         $stars['rooms'] = $this->dashboardService->countStar($today);
-        $stars['total'] = Rates::query()->whereDate('created_at',$today)->sum('rate');
+        $stars['total'] = Rates::query()->whereDate('created_at', $today)->sum('rate');
 
         //ดึงจำนวนแชทวันนี้
         $countChats['rooms'] = $this->dashboardService->countChat($today);
-        $countChats['total'] = ChatHistory::query()->whereDate('created_at',$today)->count('id');
+        $countChats['total'] = ChatHistory::query()->whereDate('created_at', $today)->count('id');
 
         //ดึงจำนวนแชทที่ค้าง
         $pendingChats = $this->dashboardService->pendingChats($today);
@@ -116,7 +117,8 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function MyMessages($empCode) : JsonResponse{
+    public function MyMessages($empCode): JsonResponse
+    {
         $myMessages = $this->dashboardService->myMessages($empCode);
         return response()->json([
             'message' => "success $empCode",
@@ -124,27 +126,56 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function ChatHistory() : JsonResponse{
-        // $list = ActiveConversations::query()->select('active_conversations.*', 'customers.custName', 'customers.avatar','customers.description')
-        //     ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
-        //     ->distinct('active_conversations.custId')
-        //     ->orderBy('active_conversations.custId')
-        //     ->orderBy('active_conversations.created_at', 'DESC')
-        //     ->get();
+    public function ChatHistory(): JsonResponse
+    {
 
-            $list = ActiveConversations::query()
-    ->select('active_conversations.*', 'customers.custName', 'customers.avatar', 'customers.description', 'users.name')
-    ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
-    ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
-    ->distinct('active_conversations.custId')
-    ->orderBy('active_conversations.custId')
-    ->orderByDesc('active_conversations.updated_at')
-    ->get();
+        $list = ActiveConversations::query()
+            ->select('active_conversations.*', 'customers.custName', 'customers.avatar', 'customers.description', 'users.name')
+            ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
+            ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
+            ->distinct('active_conversations.custId')
+            ->orderBy('active_conversations.custId')
+            ->orderByDesc('active_conversations.updated_at')
+            ->get();
 
 
         return response()->json([
-           'list' => $list
+            'list' => $list
         ]);
     }
 
+
+    public function myCase()
+    {
+        $result = Rates::query()->leftJoin('active_conversations', 'active_conversations.rateRef', '=', 'rates.id')
+            ->leftJoin('customers', 'rates.custId', 'customers.custId')
+            ->leftJoin('users', 'active_conversations.empCode', 'users.empCode')
+            ->leftJoin('chat_rooms', 'active_conversations.from_roomId', 'chat_rooms.roomId')
+            ->where('rates.status', 'progress')
+            ->where('active_conversations.endTime', null)
+            ->select(
+                'chat_rooms.roomName',
+                'customers.custName',
+                'customers.avatar',
+                'customers.description',
+                'active_conversations.*',
+                'rates.status',
+                'users.name as empName',
+                'rates.created_at as rate_created_at',
+                'rates.updated_at as rate_updated_at'
+            )
+            ->orderBy('updated_at', 'asc')
+            ->get();
+
+            foreach ($result as $key => $value) {
+                $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
+                    ->orderBy('id', 'desc')
+                    ->first();
+                $value->latest_message = $latest_message;
+            }
+        return response()->json([
+            'message' => 'myCase',
+            'result' => $result
+        ]);
+    }
 }

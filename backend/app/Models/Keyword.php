@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class Keyword extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'redirectTo'];
+    protected $fillable = ['name', 'redirectTo','event'];
 }

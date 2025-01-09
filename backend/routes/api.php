@@ -53,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/delete/{roomId}', [ChatRoomsController::class, 'delete']);
     });
 
+    Route::get('/myCase',[DisplayController::class,'myCase']);
+
     // จัดการเกี่ยวกับแชท
     Route::prefix('messages')->group(function () {
         Route::post('/send', [MessageController::class, 'send']);

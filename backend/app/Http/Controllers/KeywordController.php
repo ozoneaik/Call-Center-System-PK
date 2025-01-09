@@ -27,7 +27,8 @@ class KeywordController extends Controller
         try {
             $keyword = new Keyword();
             $keyword->name = $request->name;
-            $keyword->redirectTo = $request->redirectTo;
+            $keyword->redirectTo = $request->redirectTo ?? null;
+            $keyword->event = $request->event;
             $keyword->save();
             return response()->json([
                 'message' => 'สร้าง Keyword สำเร็จ',

@@ -1,58 +1,81 @@
-import { Box, Button, Card, Input, Select, Sheet, Option, Typography, Stack, Avatar, Divider } from "@mui/joy";
+import { Box, Button, Card, Sheet, Typography, Stack, Avatar, Divider, Chip } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import BreadcrumbsComponent from "../../components/Breadcrumbs";
 import { Grid2 } from "@mui/material";
-import Chip from '@mui/joy/Chip';
-import { useState } from "react";
+import ChatIcon from '@mui/icons-material/Chat';
+import { useEffect, useState } from "react";
+import { myCaseApi } from "../../Api/Messages";
+import { convertFullDate } from "../../Components/Options";
+import { Link } from "react-router-dom";
 const BreadcrumbsPath = [{ name: 'เคสของฉัน' }, { name: 'รายละเอียด' }];
 
-const Detail = ({ title, result = 'ไม่มี' }) => (
+const TitleComponent = ({ title, result, color = 'primary', type = 'text' }) => (
+    <Stack direction='row' spacing={1} alignItems='center'>
+        <Typography level="body-sm">{title} : </Typography>
+        <Chip color={color} variant="outlined">
+            <Typography maxWidth={300} noWrap color={color} level="body-sm">
+                {
+                    type === 'date' ? convertFullDate(result) :
+                        type === 'file' ? 'ส่งไฟล์แนบ' :
+                            type === 'image' ? 'ส่งรูปภาพ' :
+                                type === 'video' ? 'ส่งวิดีโอ' : type === 'sticker' ? 'ส่งสติ๊กเกอร์' :
+                                    type === 'audio' ? 'ส่งไฟล์เสียง' : result
+                }
+            </Typography>
+        </Chip>
+    </Stack>
+)
+
+const Detail = ({ data }) => (
     <Stack spacing={1}>
         <Stack direction='row' spacing={1} alignItems='center'>
-            <Avatar color="primary" variant="solid" />
-            <Typography level="body-md" color="primary" fontWeight='bold'>ชื่อลูกค้า</Typography>
+            <Avatar color="primary" variant="solid" src={data.avatar || ''} />
+            <Typography level="body-md" color="primary" fontWeight='bold'>{data.custName}</Typography>
         </Stack>
-        <Typography level="body-md" fontWeight='bold'>รายละเอียด</Typography>
-        <Typography level="body-sm">
-            วันที่รับเรื่อง : <Chip color="neutral" variant="outlined">{result}</Chip>
+        <Typography level="body-md" fontWeight='bold'>
+            รายละเอียด&nbsp;
+            <Typography level="body-xs">
+                (รหัสอ้างอิง&nbsp;A{data.id}R{data.rateRef})
+            </Typography>
+            
         </Typography>
-        <Stack spacing={1} direction='row'>
-            <Typography level="body-sm">
-                เวลาเริ่ม : <Chip color="primary" variant="outlined">{result}</Chip>
-            </Typography>
-            <Typography level="body-sm">
-                เวลาที่สนทนา : <Chip color="danger" variant="outlined">{result}</Chip>
-            </Typography>
-        </Stack>
+        <TitleComponent
+            title={'วันที่รับเรื่อง'} result={data.created_at}
+            color="neutral" type="date"
+        />
         <Divider />
         <Typography level="body-md" fontWeight='bold'>ข้อความ</Typography>
-        <Stack spacing={1} direction='row'>
-            <Typography level="body-sm">
-                เมื่อ : <Chip color="neutral" variant="outlined">{result}</Chip>
-            </Typography>
-            <Typography level="body-sm">
-                ประเภทข้อความ : <Chip color="warning" variant="outlined">{result}</Chip>
-            </Typography>
-        </Stack>
-        <Typography level="body-sm" >
-            เนื้อหา : <Chip color="primary" variant="outlined">
-                hello my name is phuwadech panichaysap sdfsdfssdfsdfsdfsdfd
-            </Chip>
-        </Typography>
+        <TitleComponent
+            title={'เมื่อ'} result={data.latest_message.created_at}
+            color="neutral" type="date"
+        />
+        <TitleComponent
+            title={'ประเภทข้อความ'} result={data.latest_message.contentType}
+            color="warning"
+        />
+        <TitleComponent title={'เนื้อหา'} result={data.latest_message.content}
+            color="primary" type={data.latest_message.contentType}
+        />
         <Stack direction='row' spacing={2} alignItems='center' marginTop={2}>
-            <Button color="primary" fullWidth size='sm'>สนทนา</Button>
+            <Link style={{width : '100%'}} to={`/select/message/${data.rateRef}/${data.id}/${data.custId}/1`}>
+                <Button color="primary" fullWidth size='sm'>
+                    <ChatIcon />
+                </Button>
+            </Link>
         </Stack>
     </Stack>
 )
 export default function MyCasePage() {
-    let time = new Date().toLocaleTimeString()
+    const [list, setList] = useState([]);
 
-    const [ctime, setTime] = useState(time)
-    const UpdateTime = () => {
-        time = new Date().toLocaleTimeString()
-        setTime(time)
+    useEffect(() => {
+        fetchData();
+    }, []);
+    const fetchData = async () => {
+        const { data, status } = await myCaseApi();
+        console.log(data);
+        status === 200 && setList(data.result);
     }
-    setInterval(UpdateTime)
     return (
         <Sheet sx={ChatPageStyle.Layout}>
             <Box sx={ChatPageStyle.MainContent}>
@@ -60,28 +83,18 @@ export default function MyCasePage() {
                     <BreadcrumbsComponent list={BreadcrumbsPath} />
                 </Box>
                 <Grid2 container spacing={2} sx={{ overflow: 'auto' }}>
-                    <Grid2 size={{ xs: 12, md: 6, lg: 4 }}>
-                        <Card variant="soft">
-                            <Stack spacing={1}>
-                                <Detail title="วันที่รับเรื่อง" result="2021-09-01" />
-                            </Stack>
-                        </Card>
+                    <Grid2 size={12}>
+                        <Button onClick={fetchData}>refresh</Button>
                     </Grid2>
-                    <Grid2 size={{ xs: 12, md: 6, lg: 4 }}>
-                        <Card variant="soft">
-                            <Stack spacing={1}>
-                                <Detail title="วันที่รับเรื่อง" result="2021-09-01" />
-                            </Stack>
-                        </Card>
-                    </Grid2>
-                    <Grid2 size={{ xs: 12, md: 6, lg: 4 }}>
-                        <Card variant="soft">
-                            <Stack spacing={1}>
-                                <h1>{ctime}</h1>
-                                <Detail title="วันที่รับเรื่อง" result="2021-09-01" />
-                            </Stack>
-                        </Card>
-                    </Grid2>
+                    {list.map((item, index) => (
+                        <Grid2 size={{ xs: 12, md: 12, lg: 4 }} key={index}>
+                            <Card variant="soft">
+                                <Stack spacing={1}>
+                                    <Detail title="วันที่รับเรื่อง" result="2021-09-01" data={item} />
+                                </Stack>
+                            </Card>
+                        </Grid2>
+                    ))}
                 </Grid2>
             </Box>
         </Sheet>

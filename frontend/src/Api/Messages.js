@@ -103,6 +103,15 @@ export const selectMessageApi = async (rateId, activeId, custId, from) => {
         return ErrorResponse(error);
     }
 }
+
+export const myCaseApi = async () => {
+    try {
+        const { data, status } = await axiosClient.get(`/myCase`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}
 // ------------------------------------------------------------------------------------------------------------
 
 

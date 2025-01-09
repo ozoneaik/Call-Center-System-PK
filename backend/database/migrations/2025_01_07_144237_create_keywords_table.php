@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('keywords', function (Blueprint $table) {
             $table->id();
             $table->string('name')->comment('ชื่อคีย์เวิร์ด');
-            $table->string('redirectTo')->comment('ไปที่หน้าไหน');
+            $table->string('redirectTo')->nullable()->comment('ไปที่หน้าไหน');
+            $table->boolean('event')->comment('เหตุการณ์');
             $table->timestamps();
         });
     }
