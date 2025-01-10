@@ -1,8 +1,11 @@
 import { Box, Button, FormControl, FormLabel, Input } from "@mui/joy"
 import Autocomplete from '@mui/joy/Autocomplete';
+import { useState } from "react";
 
 export const FilterChatHistory = (props) => {
     const { setFilter, list } = props;
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
 
     const searchName = (e) => {
         const value = e.target.value;
@@ -37,6 +40,13 @@ export const FilterChatHistory = (props) => {
         }
     }
 
+    const searchDate = (e) => {
+        const filterUpdate = list.filter((item) => item.created_at >= startTime && item.created_at <= endTime);
+        setFilter(filterUpdate);
+        console.log(filterUpdate);
+        console.log('Filtered by Date:', startTime, endTime);
+    }
+
     return (
         <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl>
@@ -55,7 +65,15 @@ export const FilterChatHistory = (props) => {
                 <FormLabel>พนักงานที่คุยล่าสุด</FormLabel>
                 <Input options={['Option 1', 'Option 2']} sx={{ width: 300 }} onChange={(e) => searchEmp(e)} />
             </FormControl>
-            {/* <Button>ค้นหา</Button> */}
+            <FormControl>
+                <FormLabel>ทักครั้งแรกเมื่อ	</FormLabel>
+                <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
+            </FormControl>
+            <FormControl>
+                <FormLabel sx={{visibility: 'hidden'}}>ทักครั้งแรกเมื่อ</FormLabel>
+                <Input type="date" onChange={(e) => setEndTime(e.target.value)}/>
+            </FormControl>
+            <Button onClick={()=>searchDate()} disabled={!startTime || !endTime}>ค้นหา(สำหรับวันที่)</Button>
         </Box>
     )
 }
