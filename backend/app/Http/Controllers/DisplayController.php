@@ -152,6 +152,7 @@ class DisplayController extends Controller
             ->leftJoin('users', 'active_conversations.empCode', 'users.empCode')
             ->leftJoin('chat_rooms', 'active_conversations.from_roomId', 'chat_rooms.roomId')
             ->where('rates.status', 'progress')
+            ->where('active_conversations.empCode', auth()->user()->empCode)
             ->where('active_conversations.endTime', null)
             ->select(
                 'chat_rooms.roomName',
