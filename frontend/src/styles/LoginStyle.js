@@ -1,3 +1,4 @@
+import Background from '../assets/CoverLogin.png'
 export const LoginStyle = {
     Layout: {
         width: {
@@ -59,10 +60,10 @@ export const LoginStyle = {
         backgroundColor: 'background.level1', backgroundSize: 'cover', backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundImage:
-            'url(https://www.pumpkintool.com/wp-content/uploads/2017/11/Company-1.png)',
+            `url(${Background})`,
     },
     ImageDark : {
         backgroundImage:
-            'url(https://unforgettabletravel.com/wp-content/uploads/2021/07/Asiatique-the-Riverfront-market-Bangkok.jpg)',
+            `url(${Background})`,
     }
 }
