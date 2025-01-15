@@ -113,7 +113,7 @@ export default function Sidebar() {
                         <ListItemButton selected={pathname === '/search-notes'}>
                             <SearchIcon/>
                             <ListItemContent>
-                                <Typography level="title-sm">ค้นหาแท็ก</Typography>
+                                <Typography level="title-sm">ค้นหา note</Typography>
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>
