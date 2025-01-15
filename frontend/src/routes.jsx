@@ -21,6 +21,7 @@ import ReportPage from "./Views/ReportPages/main.jsx";
 import AuthPages from "./Views/AuthPages/main.jsx";
 import KeyWordPage from "./Views/KeyWordPages/main.jsx";
 import MyCasePage from "./Views/MyCasePages/main.jsx";
+import SearchNote from "./Views/SearchNotePages/SearchNote.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -37,10 +38,11 @@ export const routes = createBrowserRouter([
                     {path: 'home', element: <Home/>},
                     {
                         path: '/chat', children: [
-                            {path: 'room/:roomId/:roomName', element: <MainChat/>,},
-                            {path: 'myCase', element: <MyCasePage/>,},
+                            {path: 'room/:roomId/:roomName', element: <MainChat/>},
+                            {path: 'myCase', element: <MyCasePage/>}
                         ]
                     },
+                    {path : 'search-notes', element : <SearchNote/>},
                     {
                         path: '/', element: <CheckAdmin/>, children: [
                             {path: '/keywords', element: <KeyWordPage/>},

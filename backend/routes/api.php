@@ -86,6 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการ note
     Route::prefix('notes')->group(function () {
+        Route::get('/list', [NotesController::class,'listAll']);
+        Route::get('/selectNote/{custId}', [NotesController::class, 'selectNote']);
        Route::get('/list/{custId}', [NotesController::class, 'list']);
        Route::post('/store', [NotesController::class, 'store']);
        Route::put('/update', [NotesController::class, 'update']);
