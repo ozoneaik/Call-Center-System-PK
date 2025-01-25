@@ -12,7 +12,6 @@ export const ChatRoomsProvider = ({ children }) => {
 
     // set user to local storage
     const setChatRoomsContext = (chatRooms) => {
-        console.log('setChatRoomContext')
         if (chatRooms) {
             localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
         } else {

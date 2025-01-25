@@ -2,9 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
 use App\Models\Customers;
+use App\Models\Rates;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Log;
 use Pusher\Pusher;
+use Pusher\PusherException;
 
 class PusherService
 {
@@ -44,26 +49,33 @@ class PusherService
         }
     }
 
-    public function newChatRooms($chatRooms): array
+    public function sendNotification ($custId): void
     {
+        $Rate = Rates::query()->where('custId', $custId)->orderBy('id','desc')->first();
+        $activeConversation = ActiveConversations::query()->where('rateRef',$Rate->id)->orderBy('id','desc')->first();
+        $customer = Customers::query()->where('custId',$custId)->first();
+        $message = ChatHistory::query()->where('custId',$custId)->orderBy('id','desc')->first();
+        $message->sender = json_decode($message->sender);
+        $Json['Rate'] = $Rate;
+        $Json['activeConversation'] = $activeConversation;
+        $Json['message'] = $message;
+        $Json['customer'] = $customer;
+        $AppCluster = env('PUSHER_APP_CLUSTER');
+        $AppKey = env('PUSHER_APP_KEY');
+        $AppSecret = env('PUSHER_APP_SECRET');
+        $AppID = env('PUSHER_APP_ID');
+        $options = ['cluster' => $AppCluster, 'useTLS' => true];
         try {
-            $AppCluster = env('PUSHER_APP_CLUSTER');
-            $AppKey = env('PUSHER_APP_KEY');
-            $AppSecret = env('PUSHER_APP_SECRET');
-            $AppID = env('PUSHER_APP_ID');
-
-            $options = ['cluster' => $AppCluster, 'useTLS' => true];
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
-            $pusher->trigger('newChatRooms', 'my-event', $chatRooms);
-            $data['status'] = true;
-            $data['message'] = 'อัพเดทรายการห้อง';
-            $data['detail'] = 'ไม่พบข้อผิดพลาด';
-        } catch (\Exception|GuzzleException $e) {
-            $data['status'] = false;
-            $data['message'] = 'การแจ้งเตือนผิดพลาด';
-            $data['detail'] = $e->getMessage();
-        } finally {
-            return $data;
+            $pusher->trigger('notifications', 'my-event', $Json);
+        } catch (PusherException|GuzzleException $e) {
+            Log::error('Pusher Error');
+            Log::channel('lineEvent')->error(sprintf(
+                'Error: %s in %s on line %d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
         }
     }
 

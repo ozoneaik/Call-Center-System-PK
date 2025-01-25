@@ -17,7 +17,6 @@ export default function MainLayout() {
         (async () => {
             const { data, status } = await profileApi();
             status === 200 && setUser(data.user)
-            console.log('hello');
             if (status === 401) {
                 localStorage.removeItem('user');
                 // setUser(null);

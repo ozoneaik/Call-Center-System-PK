@@ -18,7 +18,6 @@ function App() {
 
     useEffect(() => {
         if (notification) {
-            console.log('notification => ',notification.title,notification)
             setSender(notification);
             if (notification.title === 'มีข้อความใหม่เข้ามา'){
                 let pusher = JSON.parse(notification.sender);
@@ -53,13 +52,13 @@ function App() {
             >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography fontWeight="bold" color='success'>
-                            {sender.message} {sender.custName}
-                        </Typography>
+                        {/*<Typography fontWeight="bold" color='success'>*/}
+                        {/*    {sender.message} {sender.custName}*/}
+                        {/*</Typography>*/}
                     </Box>
-                    <Typography level="body-sm">
-                        {sender.contentType ? sender.contentType === 'text' ? sender.content : 'ส่งรูปภาพ หรือ sicker' : ''}
-                    </Typography>
+                    {/*<Typography level="body-sm">*/}
+                    {/*    {sender.contentType ? sender.contentType === 'text' ? sender.content : 'ส่งรูปภาพ หรือ sicker' : ''}*/}
+                    {/*</Typography>*/}
                 </Box>
             </Snackbar>
         </>

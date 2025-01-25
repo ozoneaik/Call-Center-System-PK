@@ -1,4 +1,4 @@
-import {json, useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {Sheet} from "@mui/joy";
 import {MessageStyle} from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
@@ -36,16 +36,16 @@ export default function MessagePane() {
     const [notes, setNotes] = useState({});
     const [roomSelect, setRoomSelect] = useState({});
     const [tags, setTags] = useState([]);
+    const [firstRender, setFirstRender] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const {data, status} = await selectMessageApi(rateId, activeId, custId,'S');
-            console.log('selectedMessageApi >> ', data)
+            const {data, status} = await selectMessageApi(rateId, activeId, custId, 'S');
             if (status === 200) {
                 setMessages(data.list);
                 setRoomSelect(data.room);
                 setSender(data.sender);
-                document.title = 'สนทนากับ '+data.sender.custName;
+                document.title = 'สนทนากับ ' + data.sender.custName;
                 setStarList(data.starList);
                 setNotes(data.notes);
                 setTags(data.tags)
@@ -67,31 +67,54 @@ export default function MessagePane() {
 
         }
         fetchData().then(() => {
-            fetchChatRoom().finally(() => console.log('fetchChatRoom🖼️'));
+            fetchChatRoom().finally(() => {
+            });
         });
     }, []);
 
     // ตรวจจับข้อความใหม่จาก ลูกค้า
     useEffect(() => {
-        
-        if (notification && notification.title === 'มีข้อความใหม่เข้ามา') {
-            if (notification.custId === sender.custId) {
-                let pusher = JSON.parse(notification.sender);
-                setMessages((prevMessages) => {
-                    const newId = prevMessages.length.toString();
-                    return [
-                        ...prevMessages,
-                        {
-                            id: newId,
-                            content: notification.content,
-                            contentType: notification.contentType,
-                            sender: pusher,
-                            created_at: new Date().toString()
-                        },
-                    ];
-                });
-            } else console.log('ตรวจพบการแจ้งเตือนที่เกี่ยวข้อง')
-        } else console.log('การแจ้งเตือนที่ไม่เกี่ยวข้อง')
+        if (firstRender) {
+            setFirstRender(false);
+            return;
+        }
+        if (notification.message.sender) {
+            if (notification.message.sender.custId) {
+                if (notification.message.sender.custId === sender.custId) {
+                    setMessages((prevMessages) => {
+                        return [
+                            ...prevMessages,
+                            {
+                                id: notification.message.id,
+                                content: notification.message.content,
+                                contentType: notification.message.contentType,
+                                sender: notification.message.sender,
+                                created_at: notification.message.created_at,
+                            }
+                        ]
+                    })
+                }else{}
+            }else{}
+        }else{}
+
+        // if (notification && notification.title === 'มีข้อความใหม่เข้ามา') {
+        //     if (notification.custId === sender.custId) {
+        //         let pusher = JSON.parse(notification.sender);
+        //         setMessages((prevMessages) => {
+        //             const newId = prevMessages.length.toString();
+        //             return [
+        //                 ...prevMessages,
+        //                 {
+        //                     id: newId,
+        //                     content: notification.content,
+        //                     contentType: notification.contentType,
+        //                     sender: pusher,
+        //                     created_at: new Date().toString()
+        //                 },
+        //             ];
+        //         });
+        //     } else {}
+        // } else {}
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
@@ -140,6 +163,7 @@ export default function MessagePane() {
                             setMsg={setMsg}
                             sender={sender}
                             setMessages={setMessages}
+                            messages={messages}
                             activeId={activeId}>
                         </MessageInput>
                     </Sheet>

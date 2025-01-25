@@ -20,18 +20,18 @@ export default function MainChat() {
     const [filterProgress, setFilterProgress] = useState([]);
     const [pending, setPending] = useState([]);
     const [filterPending, setFilterPending] = useState([]);
+    const [firstRender, setFirstRender] = useState(true);
     useEffect(() => {
         const fetchChats = async () => {
             try {
                 const { data, status } = await MessageListApi(roomId);
+                console.log(data);
                 if (status === 200) {
                     setProgress(data.progress);
                     setFilterProgress(data.progress);
                     setPending(data.pending);
                     setFilterPending(data.pending);
                     const count = data.progress.filter((item) => item.empCode === user.empCode);
-                    console.log("Count:", count);
-                    console.log(data);
                     
                     setUnRead(count ? count.length : 0);
                 } else console.log('ไม่มีรายการ MessageList')
@@ -43,7 +43,37 @@ export default function MainChat() {
             }
         }
         fetchChats().then();
-    }, [roomId,notification]);
+    }, [roomId]);
+
+    useEffect(() => {
+        if (firstRender) {
+            console.log('firstRender');
+            setFirstRender(false);
+            return ;
+        }
+        if(notification.activeConversation.roomId === roomId) {
+            console.log('notification.activeConversation.roomId');
+            if (notification.Rate.status === 'progress') {
+                const updatedProgress = filterProgress.map((item) => {
+                    if (item.id === notification.activeConversation.id) {
+                        return {
+                            ...item,
+                            latest_message : {
+                                ...item.latest_message,
+                                contentType: notification.message.contentType,
+                                content: notification.message.content,
+                            }
+                        };
+                    }
+                    return item;
+                });
+                setFilterProgress(updatedProgress); // อัปเดตสถานะใหม่
+            }else{
+
+            }
+        }
+        console.log(notification);
+    },[notification])
 
     const ContentComponent = () => (
         <>

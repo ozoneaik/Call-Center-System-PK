@@ -45,7 +45,7 @@ export default function Sidebar() {
         }
     }
     useEffect(() => {
-        fetchChatRooms().then(() => console.log('fetch 👏'));
+        fetchChatRooms().then(() => {});
     }, [])
 
     const Logout = () => {
@@ -62,10 +62,10 @@ export default function Sidebar() {
                             if (confirm) {
                                 localStorage.removeItem('notification');
                                 navigate('/')
-                            } else console.log('confirm is False')
+                            } else {}
                         }
                     });
-                } else console.log('confirm is False')
+                } else {}
             }
         });
     }

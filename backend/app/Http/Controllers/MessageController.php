@@ -87,10 +87,11 @@ class MessageController extends Controller
                 $storeChatHistory['conversationRef'] = $conversationId;
                 if ($storeChatHistory->save()) {
                     // ส่ง pusher
-                    $notification = $this->pusherService->newMessage($storeChatHistory, false, 'มีข้อความใหม่เข้ามา');
-                    if (!$notification['status']) {
-                        throw new \Exception('การแจ้งเตือนผิดพลาด');
-                    }
+                    $this->pusherService->sendNotification($custId);
+//                    $notification = $this->pusherService->newMessage($storeChatHistory, false, 'มีข้อความใหม่เข้ามา');
+//                    if (!$notification['status']) {
+//                        throw new \Exception('การแจ้งเตือนผิดพลาด');
+//                    }
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';
@@ -364,7 +365,7 @@ class MessageController extends Controller
             DB::beginTransaction();
             $tag = TagMenu::query()->where('tagName', 'ปิดการสนทนา')->first();
             if(!$tag) throw new \Exception('ไม่พบ Tag ที่ต้องการ');
-            if((count($list) > 0) && $request['list']){  
+            if((count($list) > 0) && $request['list']){
                 foreach ($list as $key => $l) {
                     // update receiveAt , startTime, endTime, totalTime, empCode as activeConversations
                     $AC = ActiveConversations::query()->where('id', $l['id'])->first();

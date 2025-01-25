@@ -15,7 +15,7 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 
 export const MessageInput = (props) => {
     const { user } = useAuth();
-    const { check, msg, setMsg, sender, setMessages, activeId } = props;
+    const { check, msg, setMsg, sender, setMessages, activeId,messages } = props;
     const [imagePreview, setImagePreview] = useState([]);
     const [selectedFile, setSelectedFile] = useState();
     const [disableBtn, setDisableBtn] = useState(false);
@@ -78,10 +78,38 @@ export const MessageInput = (props) => {
             conversationId: activeId,
             selectedFile
         });
-        console.log('data, status, selectedFile')
         console.log(data, status, selectedFile)
         if (status === 200) {
             setMsg({ content: '', contentType: 'text', sender: '' });
+            console.log(selectedFile,C)
+            if(selectedFile){
+                selectedFile.map((file) => {
+                    setMessages((prevMessages) => {
+                        return [
+                            ...prevMessages,
+                            {
+                                content : URL.createObjectURL(file),
+                                contentType : file.type === 'application/pdf' ? 'file' : 'image',
+                                sender : user,
+                                created_at: new Date().toISOString(),
+                            }
+                        ]
+                    })
+                })
+            }
+            if(C) {
+                setMessages((prevMessages) => {
+                    return [
+                        ...prevMessages,
+                        {
+                            content : C,
+                            contentType : 'text',
+                            sender : user,
+                            created_at: new Date().toISOString(),
+                        }
+                    ]
+                })
+            }
         } else AlertDiaLog({ title: data.message, text: data.detail, onPassed: () => console.log('') });
         handleRemoveImage();
         setDisableBtn(false);

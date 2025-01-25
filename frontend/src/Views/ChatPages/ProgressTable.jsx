@@ -148,7 +148,7 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
                                                     {data.custName}
                                                     &nbsp;
                                                     <Typography fontSize={10} color="neutral">
-                                                        (รหัสอ้างอิง&nbsp;{data.id})
+                                                        (รหัสอ้างอิง &nbsp;A{data.id}R{data.rateRef})
                                                     </Typography>
                                                 </Typography>
                                                 <Chip color="success" size="sm">{data.description}</Chip>

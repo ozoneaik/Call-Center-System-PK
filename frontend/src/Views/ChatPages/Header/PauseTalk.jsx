@@ -10,9 +10,10 @@ import Stack from "@mui/joy/Stack";
 import {pauseTalkApi} from "../../../Api/Messages.js";
 import {AlertDiaLog} from "../../../Dialogs/Alert.js";
 import { useNavigate } from "react-router-dom";
+import {MessageStyle} from "../../../styles/MessageStyle.js";
 
 
-export const PauseTalk = ({activeId,rateId}) => {
+export const PauseTalk = ({activeId,rateId,disable}) => {
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const pauseTalkHandler = async () => {
@@ -40,7 +41,9 @@ export const PauseTalk = ({activeId,rateId}) => {
                     color='neutral'
                 >
                     <PauseCircleIcon/>
-                    พักการสนทนาชั่วคราว
+                    <Typography color={disable ? '' : 'neutral'} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
+                        พักการสนทนาชั่วคราว
+                    </Typography>
                 </Button>
             </Tooltip>
             <Modal
