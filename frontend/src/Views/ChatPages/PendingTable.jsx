@@ -9,7 +9,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { endTalkAllPendingApi, receiveApi } from "../../api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useNavigate } from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
 import Input from '@mui/joy/Input';
 import { useState, useEffect } from "react";
@@ -20,6 +20,7 @@ const data = [{
     empCode: '', receiveAt: '', empName: ''
 }];
 export const PendingTable = (props) => {
+    const {params} = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { pending } = props;
@@ -39,7 +40,7 @@ export const PendingTable = (props) => {
                 if (confirm) {
                     const { data, status } = await receiveApi(rateId, roomId);
                     if (status === 200) {
-                        navigate(`/select/message/${params}/1`);
+                        // navigate(`/select/message/${params}/1`);
                     } else AlertDiaLog({ title: data.message, text: data.detail });
                 } else console.log('ไม่ได้ confirm');
             }

@@ -122,8 +122,9 @@ class MessageController extends Controller
         try {
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
-            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)
-                ->where('roomId', $roomId)->where('receiveAt', null)->first();
+            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id','desc')->first();
+//            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)
+//                ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['startTime'] = Carbon::now();
@@ -137,11 +138,12 @@ class MessageController extends Controller
                     $status = 200;
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
             } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
-            $notification = $this->pusherService->newMessage(null, false, 'มีการรับเรื่อง');
-            if (!$notification['status']) {
-                $status = 400;
-                throw new \Exception('การแจ้งเตือนผิดพลาด');
-            }
+            $this->pusherService->sendNotification($updateAC['custId'],'มีการรับเรื่อง');
+//            $notification = $this->pusherService->newMessage(null, false, 'มีการรับเรื่อง');
+//            if (!$notification['status']) {
+//                $status = 400;
+//                throw new \Exception('การแจ้งเตือนผิดพลาด');
+//            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -199,11 +201,12 @@ class MessageController extends Controller
                     } else throw new \Exception('ไม่สามารถส่งต่อได้ (storeAC error)');
                 } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversation ได้');
             } else throw new \Exception('ไม่สามารถอัพเดท Rate ได้');
-            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
-            if (!$notification['status']) {
-                $status = 400;
-                throw new \Exception('การแจ้งเตือนผิดพลาด');
-            }
+            $this->pusherService->sendNotification($updateRate['custId']);
+//            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
+//            if (!$notification['status']) {
+//                $status = 400;
+//                throw new \Exception('การแจ้งเตือนผิดพลาด');
+//            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -268,11 +271,12 @@ class MessageController extends Controller
                 } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
 
-            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
-            if (!$notification['status']) {
-                $status = 400;
-                throw new \Exception('การแจ้งเตือนผิดพลาด');
-            }
+            $this->pusherService->sendNotification($updateRate['custId']);
+//            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
+//            if (!$notification['status']) {
+//                $status = 400;
+//                throw new \Exception('การแจ้งเตือนผิดพลาด');
+//            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();

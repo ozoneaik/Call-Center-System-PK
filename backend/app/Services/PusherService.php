@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Models\Rates;
+use App\Models\User;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Pusher\Pusher;
 use Pusher\PusherException;
@@ -49,10 +52,15 @@ class PusherService
         }
     }
 
-    public function sendNotification ($custId): void
+    public function sendNotification ($custId,$title=''): void
     {
         $Rate = Rates::query()->where('custId', $custId)->orderBy('id','desc')->first();
         $activeConversation = ActiveConversations::query()->where('rateRef',$Rate->id)->orderBy('id','desc')->first();
+        $from_roomId = ChatRooms::query()->where('roomId',$activeConversation->from_roomId)->select('roomName')->first();
+        $activeConversation->roomName = $from_roomId->roomName ?? ' ';
+        if ($title === 'มีการรับเรื่อง'){
+            $activeConversation->empName = Auth::user()->name;
+        }
         $customer = Customers::query()->where('custId',$custId)->first();
         $message = ChatHistory::query()->where('custId',$custId)->orderBy('id','desc')->first();
         $message->sender = json_decode($message->sender);

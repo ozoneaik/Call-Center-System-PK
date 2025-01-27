@@ -5,8 +5,10 @@ import {Button, Modal, ModalClose, ModalDialog} from "@mui/joy";
 import {useState} from "react";
 import {senToApi} from "../../../Api/Messages.js";
 import {AlertDiaLog} from "../../../Dialogs/Alert.js";
+import {useNavigate} from "react-router-dom";
 
 const ModalChangRoom = (props) => {
+    const navigate = useNavigate()
     const {showModalChangeRoom, setShowModalChangeRoom, chatRooms,rateId,activeId,roomSelect,listAllChatRooms} = props;
     const handleChangeRoom = async (roomId) => {
         console.log(roomId)
@@ -16,7 +18,9 @@ const ModalChangRoom = (props) => {
             title: data.message,
             text: data.detail,
             onPassed: (confirm) => {
-                confirm && window.close();
+                status === 200 && navigate(-1)
+                // confirm && window.close();
+
             }
         });
         setShowModalChangeRoom(false);

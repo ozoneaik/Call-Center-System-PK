@@ -46,34 +46,109 @@ export default function MainChat() {
     }, [roomId]);
 
     useEffect(() => {
+        console.log(notification)
         if (firstRender) {
-            console.log('firstRender');
             setFirstRender(false);
             return ;
         }
         if(notification.activeConversation.roomId === roomId) {
-            console.log('notification.activeConversation.roomId');
             if (notification.Rate.status === 'progress') {
-                const updatedProgress = filterProgress.map((item) => {
-                    if (item.id === notification.activeConversation.id) {
-                        return {
-                            ...item,
-                            latest_message : {
-                                ...item.latest_message,
-                                contentType: notification.message.contentType,
-                                content: notification.message.content,
-                            }
-                        };
-                    }
-                    return item;
-                });
-                setFilterProgress(updatedProgress); // อัปเดตสถานะใหม่
-            }else{
-
-            }
-        }
-        console.log(notification);
+                const find = filterProgress.find((item) => item.custId === notification.Rate.custId);
+                if(find){
+                    const updatedProgress = filterProgress.map((item) => {
+                        if (item.id === notification.activeConversation.id) {
+                            return {
+                                ...item,
+                                latest_message : {
+                                    ...item.latest_message,
+                                    contentType: notification.message.contentType,
+                                    content: notification.message.content,
+                                }
+                            };
+                        }
+                        return item;
+                    });
+                    setFilterProgress(updatedProgress);
+                }else{
+                    // เพิ่มรายการใหม่
+                    const newProgress = filterProgress.concat({
+                        id: notification.activeConversation.id,
+                        custId: notification.customer.custId,
+                        custName: notification.customer.custName,
+                        avatar: notification.customer.avatar,
+                        description: notification.customer.description,
+                        empCode : notification.activeConversation.empCode,
+                        empName : notification.activeConversation.empName,
+                        latest_message: {
+                            contentType: notification.message.contentType,
+                            content: notification.message.content,
+                            created_at : notification.message.created_at,
+                        },
+                        rateRef : notification.Rate.id,
+                        receiveAt : notification.activeConversation.receiveAt,
+                        startTime : notification.activeConversation.startTime,
+                        updated_at : notification.activeConversation.updated_at,
+                    })
+                    setFilterProgress(newProgress);
+                }
+                const deletePending = filterPending.filter((item) => item.custId !== notification.Rate.custId);
+                setFilterPending(deletePending);
+            }else if(notification.Rate.status === 'pending'){
+                const find = filterPending.find((item) => item.custId === notification.Rate.custId);
+                if(find){
+                    const updatedPending = filterPending.map((item) => {
+                        if (item.id === notification.activeConversation.id) {
+                            return {
+                                ...item,
+                                latest_message : {
+                                    ...item.latest_message,
+                                    contentType: notification.message.contentType,
+                                    content: notification.message.content,
+                                }
+                            };
+                        }
+                        return item;
+                    });
+                    setFilterPending(updatedPending);
+                }else{
+                    // เพิ่มรายการใหม่
+                    const newProgress = filterPending.concat({
+                        id: notification.activeConversation.id,
+                        custId: notification.customer.custId,
+                        custName: notification.customer.custName,
+                        avatar: notification.customer.avatar,
+                        description: notification.customer.description,
+                        empCode : null,
+                        empName : null,
+                        from_empCode : notification.activeConversation.from_empCode,
+                        from_roomId : notification.activeConversation.from_roomId,
+                        roomName : notification.activeConversation.roomName,
+                        latest_message: {
+                            contentType: notification.message.contentType,
+                            content: notification.message.content,
+                            created_at : notification.message.created_at,
+                        },
+                        rateRef : notification.Rate.id,
+                        receiveAt : null,
+                        startTime : null,
+                        created_at : notification.activeConversation.created_at,
+                        updated_at : notification.activeConversation.updated_at,
+                    })
+                    setFilterPending(newProgress);
+                    console.log(newProgress)
+                }
+                const deleteProgress = filterProgress.filter((item) => item.custId !== notification.Rate.custId);
+                setFilterProgress(deleteProgress);
+            }else removeCase();
+        }else removeCase();
     },[notification])
+
+    const removeCase = () => {
+        const deleteProgress = filterProgress.filter((item) => item.custId !== notification.Rate.custId);
+        setFilterProgress(deleteProgress);
+        const deletePending = filterPending.filter((item) => item.custId !== notification.Rate.custId);
+        setFilterPending(deletePending);
+    }
 
     const ContentComponent = () => (
         <>
