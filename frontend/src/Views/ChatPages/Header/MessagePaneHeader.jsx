@@ -38,7 +38,7 @@ function MessagePaneHeader(props) {
     }
     return (
         <>
-            <Stack direction="row" sx={MessageStyle.PaneHeader.Stack}>
+            <Stack direction={{sm : 'column' , md : 'row'}} sx={MessageStyle.PaneHeader.Stack}>
                 <Stack direction="row" spacing={{xs: 1, md: 2}} sx={{alignItems: 'center'}}>
                     <Button onClick={()=>navigate(-1)} variant="outlined">
                         <ArrowBackIosIcon/>

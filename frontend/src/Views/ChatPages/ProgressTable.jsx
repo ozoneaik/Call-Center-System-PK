@@ -80,8 +80,11 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
             if (data.latest_message.contentType === 'text') {
                 return <>{data.latest_message.content}</>
             } else if (data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker') {
-                return <>ส่งสื่อหรือสติกเกอร์ </>
-            } else if (data.latest_message.contentType === 'location') {
+                return <>ส่งรูปภาพหรือสติกเกอร์ </>
+            }else if (data.latest_message.contentType === 'video'){
+                return <>ส่งวิดีโอ</>
+            }
+            else if (data.latest_message.contentType === 'location') {
                 return <>ส่งที่อยู่ </>
             } else if (data.latest_message.contentType === 'audio') {
                 return <>ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})</>

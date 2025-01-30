@@ -7,8 +7,8 @@ export const MessageStyle = {
         display: 'grid',
         gridTemplateColumns: {
             xs: '1fr',
-            sm: 'minmax(min-content, min(80%, 800px)) 1fr',
-            // sm: '1fr',
+            // sm: 'minmax(min-content, min(80%, 800px)) 1fr',
+            sm: '1fr',
             lg: 'minmax(min-content, min(70%, 1400px)) 1fr',
         },
     },

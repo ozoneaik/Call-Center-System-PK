@@ -305,6 +305,7 @@ class MessageController extends Controller
         $activeConversation->empCode = null;
         $activeConversation->save();
         $rate->save();
+        $this->pusherService->sendNotification($rate['custId']);
         return response()->json([
             'message' => 'พักการสนทนาแล้ว',
             'detail' => $request['activeConversationId'].$request['rateId']
