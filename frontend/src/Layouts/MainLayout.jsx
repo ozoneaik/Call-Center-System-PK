@@ -1,7 +1,7 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNotification } from "../context/NotiContext.jsx";
 import { useEffect } from "react";
-import { profileApi } from "../api/Auth.js";
+import {profileApi} from "../Api/Auth.js";
 import { newChatRooms, newMessage } from "../echo.js";
 import { Navigate, Outlet } from "react-router-dom";
 import { useChatRooms } from "../context/ChatRoomContext.jsx";
