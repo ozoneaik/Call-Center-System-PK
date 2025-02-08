@@ -2,7 +2,7 @@ import { Avatar, Box, Card, Chip, Sheet, Typography } from "@mui/joy";
 import { useAuth } from "../../context/AuthContext"
 import { Grid2 } from "@mui/material";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
-import BreadcrumbsComponent from "../../components/Breadcrumbs";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import authStyle from './authStyle.module.css';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 
