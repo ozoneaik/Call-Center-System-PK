@@ -19,7 +19,7 @@ import ColorSchemeToggle from "../ColorSchemeToggle.jsx";
 import {LoginStyle} from "../styles/LoginStyle.js";
 import Logo from "../assets/logo.png";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {loginApi} from "../api/Auth.js";
+import {loginApi} from "../Api/Auth.js";
 
 export default function Login() {
     const [email, setEmail] = useState('');
