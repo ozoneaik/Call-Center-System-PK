@@ -10,7 +10,7 @@ import Button from "@mui/joy/Button";
 import Avatar from "@mui/joy/Avatar";
 import HistoryIcon from "@mui/icons-material/History";
 import { useNavigate } from "react-router-dom";
-import BreadcrumbsComponent from "../../components/Breadcrumbs.jsx";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { FilterChatHistory } from "./FilterChatHistory.jsx";
 
 
