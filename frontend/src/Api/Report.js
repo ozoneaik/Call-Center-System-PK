@@ -1,4 +1,4 @@
-import axiosClient from "../axios"
+import axiosClient from "../Axios.js";
 import { ErrorResponse } from "./ErrorResponse"
 
 const prefix = '/reports'

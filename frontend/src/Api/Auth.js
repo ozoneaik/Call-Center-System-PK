@@ -1,4 +1,4 @@
-import axiosClient from "../axios.js";
+import axiosClient from "../Axios.js";
 import {ErrorResponse} from "./ErrorResponse.js";
 
 
