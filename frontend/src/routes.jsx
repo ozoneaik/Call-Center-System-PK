@@ -3,7 +3,7 @@ import ProtectedLayout from "./Layouts/ProtectedLayout.jsx";
 import MainChat from "./Views/ChatPages/main.jsx";
 import GuestLayout from "./Layouts/GuestLayout.jsx";
 import Login from "./Views/Login.jsx";
-import NotFoundPage from "./views/NotFound.jsx";
+import NotFoundPage from "./Views/NotFound.jsx";
 import MainLayout from "./Layouts/MainLayout.jsx";
 import MessagePane from "./Views/ChatPages/MessagePane/main.jsx";
 import Home from "./Views/HomePages/Home.jsx";
