@@ -20,7 +20,7 @@ import {closeSidebar} from '../utils';
 import {LayoutStyle} from "../styles/LayoutStyle.js";
 import {useAuth} from "../context/AuthContext.jsx";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {logoutApi} from "../api/Auth.js";
+import {logoutApi} from "../Api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import PersonIcon from '@mui/icons-material/Person';
