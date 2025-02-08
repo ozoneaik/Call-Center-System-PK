@@ -20,6 +20,8 @@ import {LoginStyle} from "../styles/LoginStyle.js";
 import Logo from "../assets/logo.png";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {loginApi} from "../Api/Auth.js";
+import {chatRoomListApi} from "../Api/ChatRooms.js";
+import {useChatRooms} from "../context/ChatRoomContext.jsx";
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -37,6 +39,7 @@ export default function Login() {
             const {data, status} = await loginApi(Email, password);
             if (status === 200) {
                 setUser(data.user);
+                console.log('login success')
                 return <Navigate to="/home"/>;
             } else {
                 AlertDiaLog({

@@ -33,7 +33,7 @@ export const ChatRoomsProvider = ({ children }) => {
         } else {
             localStorage.removeItem('myChatRooms');
         }
-        _setChatRoomsContext(myChatRooms);
+        _setMyRoomContext(myChatRooms);
     }
 
     return (

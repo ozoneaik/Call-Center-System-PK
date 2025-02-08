@@ -61,6 +61,8 @@ export default function Sidebar() {
                         onPassed: (confirm) => {
                             if (confirm) {
                                 localStorage.removeItem('notification');
+                                localStorage.removeItem('myChatRooms');
+                                localStorage.removeItem('chatRooms');
                                 navigate('/')
                             } else {}
                         }
