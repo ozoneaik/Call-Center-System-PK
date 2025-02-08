@@ -1,7 +1,7 @@
 import { ChatPageStyle } from "../../styles/ChatPageStyle"
 import BreadcrumbsComponent from "../../components/Breadcrumbs"
-import { Grid2, Stack } from "@mui/material";
-import { Box, Button, Card, Chip, Input, Sheet, Typography } from "@mui/joy";
+import {Grid2, Stack } from "@mui/material";
+import { Box, Button, Card, Chip, CircularProgress, Input, Sheet, Typography } from "@mui/joy";
 import { useEffect, useState } from "react";
 import SearchIcon from '@mui/icons-material/Search';
 import { listNotesApi, selectNoteApi } from "../../Api/Note";
@@ -34,6 +34,7 @@ export default function SearchNote() {
     const [notes, setNotes] = useState([{ name: 'note1' }, { name: 'note2' }, { name: 'note3' }]);
     const [filter, setFilter] = useState([]);
     const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
     useEffect(() => {
         fetchData();
     }, [])
@@ -44,6 +45,7 @@ export default function SearchNote() {
             setNotes(data.notes);
             setFilter(data.notes);
         }
+        setLoading(false);
     }
 
     const searchFilter = () => {
@@ -71,18 +73,23 @@ export default function SearchNote() {
                             <Button color="neutral" onClick={() => setFilter(notes)}>ล้าง</Button>
                         </Stack>
                     </Grid2>
-                    {filter.map((item, index) => (
-                        <Grid2 size={{ lg: 4, md: 4, sm: 6, xs: 12 }} key={index}>
-                            <Card variant="soft" color="neutral">
-                                <Stack direction={'column'} spacing={2}>
-                                    <Detail title={'รหัสอ้างอิง'} value={item.id}/>
-                                    <Detail title={'โน็ต'} value={item.text} type="status" />
-                                    <Detail title={'ชื่อลูกค้า'} value={item.custName} />
-                                    <Button onClick={()=>redirectTo(item.custId)} fullWidth>ดูข้อความ</Button>
-                                </Stack>
-                            </Card>
-                        </Grid2>
-                    ))}
+                
+                    {!loading ? (
+                        filter.length > 0 ? (
+                            filter.map((item, index) => (
+                                <Grid2 size={{ lg: 4, md: 4, sm: 6, xs: 12 }} key={index}>
+                                    <Card variant="soft" color="neutral">
+                                        <Stack direction={'column'} spacing={2}>
+                                            <Detail title={'รหัสอ้างอิง'} value={item.id}/>
+                                            <Detail title={'โน็ต'} value={item.text} type="status" />
+                                            <Detail title={'ชื่อลูกค้า'} value={item.custName} />
+                                            <Button onClick={()=>redirectTo(item.custId)} fullWidth>ดูข้อความ</Button>
+                                        </Stack>
+                                    </Card>
+                                </Grid2>
+                            ))
+                        ) : 'ไม่พบข้อมูล'
+                    ) : <CircularProgress/> }
                 </Grid2>
             </Box>
         </Sheet>

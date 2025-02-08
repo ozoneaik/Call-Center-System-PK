@@ -6,6 +6,7 @@ import { newChatRooms, newMessage } from "../echo.js";
 import { Navigate, Outlet } from "react-router-dom";
 import { useChatRooms } from "../context/ChatRoomContext.jsx";
 import { useMessage } from "../context/MessageContext.jsx";
+import { chatRoomListApi } from "../Api/ChatRooms.js";
 
 export default function MainLayout() {
     const { user, setUser } = useAuth();
@@ -21,6 +22,14 @@ export default function MainLayout() {
                 localStorage.removeItem('user');
                 // setUser(null);
                 window.location.href = '/';
+            }
+        })();
+        (async () => {
+            const {data, status} = await chatRoomListApi();
+            if (status === 200) {
+                console.log('chatRoom');
+                
+                setChatRoomsContext(data.chatRooms)
             }
         })();
         newMessage({

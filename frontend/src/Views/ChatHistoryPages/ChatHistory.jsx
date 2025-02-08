@@ -24,7 +24,7 @@ export default function ChatHistory() {
         setLoading(true);
         const { data, status } = await chatHistoryApi();
         console.log(data, status)
-        if(status === 200) {
+        if (status === 200) {
             setFilter(data.list);
             setList(data.list);
         }
@@ -49,46 +49,50 @@ export default function ChatHistory() {
                 <Box sx={ChatPageStyle.BoxTable}>
                     <Typography level="h2" component="h1">ประวัติการสนทนาทั้งหมด</Typography>
                 </Box>
-                <FilterChatHistory setFilter={setFilter} Filter={filter} list={list}/>
-                <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
-                    <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
-                        <thead>
-                            <tr>
-                                <th>ชื่อลูกค้า</th>
-                                <th>คำอธิบาย</th>
-                                <th>ทักครั้งแรกเมื่อ</th>
-                                <th>พนักงานที่คุยล่าสุด</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {!loading ? filter.length > 0 && filter.map((item, index) => (
-                                <tr key={index}>
-                                    <td>
-                                        <div style={{ display: "flex", alignItems: "center" }}>
-                                            <Avatar src={item.avatar} sx={{ mr: 1 }} />
-                                            {item.custName}
-                                        </div>
-                                    </td>
-                                    <td>{item.description}</td>
-                                    <td>{convertFullDate(item.created_at)}</td>
-                                    <td>{item.name}</td>
-                                    <td>
-                                        <Button size='sm' onClick={() => redirectChat(item)}>
-                                            <HistoryIcon />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={4}>
-                                        <CircularProgress />
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </Table>
-                </Sheet>
+                {!loading ? (
+                    <>
+                        <FilterChatHistory setFilter={setFilter} Filter={filter} list={list} />
+                        <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
+                            <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
+                                <thead>
+                                    <tr>
+                                        <th>ชื่อลูกค้า</th>
+                                        <th>คำอธิบาย</th>
+                                        <th>ทักครั้งแรกเมื่อ</th>
+                                        <th>พนักงานที่คุยล่าสุด</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {!loading ? filter.length > 0 && filter.map((item, index) => (
+                                        <tr key={index}>
+                                            <td>
+                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                    <Avatar src={item.avatar} sx={{ mr: 1 }} />
+                                                    {item.custName}
+                                                </div>
+                                            </td>
+                                            <td>{item.description}</td>
+                                            <td>{convertFullDate(item.created_at)}</td>
+                                            <td>{item.name}</td>
+                                            <td>
+                                                <Button size='sm' onClick={() => redirectChat(item)}>
+                                                    <HistoryIcon />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4}>
+                                                <CircularProgress />
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </Table>
+                        </Sheet>
+                    </>
+                ) : <CircularProgress />}
             </Box>
         </Sheet>
     )

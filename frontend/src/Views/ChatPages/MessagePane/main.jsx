@@ -1,22 +1,24 @@
-import {useParams} from "react-router-dom";
-import {Sheet} from "@mui/joy";
-import {MessageStyle} from "../../../styles/MessageStyle.js";
+import { useParams } from "react-router-dom";
+import { CircularProgress, Sheet } from "@mui/joy";
+import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
 import Box from "@mui/joy/Box";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
-import {useEffect, useState} from "react";
-import {selectMessageApi} from "../../../Api/Messages.js";
+import { useEffect, useState } from "react";
+import { selectMessageApi } from "../../../Api/Messages.js";
 import ChatBubble from "./ChatBubble.jsx";
-import {useNotification} from "../../../context/NotiContext.jsx";
-import {AlertDiaLog} from "../../../Dialogs/Alert.js";
+import { useNotification } from "../../../context/NotiContext.jsx";
+import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import Info from "../Info/main.jsx";
-import {MessageInput} from "./MessageInput.jsx";
-import {chatRoomListApi} from "../../../Api/ChatRooms.js";
+import { MessageInput } from "./MessageInput.jsx";
+import { chatRoomListApi } from "../../../Api/ChatRooms.js";
+import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
 
 export default function MessagePane() {
-    const {notification} = useNotification();
+    const { notification } = useNotification();
     const [messages, setMessages] = useState({});
+    const { chatRoomsContext, setChatRoomsContext } = useChatRooms();
     const [sender, setSender] = useState({
         custId: 'id ของลูกค้า',
         avatar: 'รูปประจำตัว',
@@ -24,9 +26,10 @@ export default function MessagePane() {
         description: 'ไม่พบ description',
         emp: ''
     });
-    const {rateId, activeId, custId, check} = useParams();
-    const [chatRooms, setChatRooms] = useState([{chatRooms: []}]);
-    const [listAllChatRooms, setListAllChatRooms] = useState([])
+    const { rateId, activeId, custId, check } = useParams();
+    const [chatRooms, setChatRooms] = useState(chatRoomsContext);
+
+    const [listAllChatRooms, setListAllChatRooms] = useState(chatRoomsContext)
     const [msg, setMsg] = useState({
         content: '',
         contentType: 'text',
@@ -37,10 +40,12 @@ export default function MessagePane() {
     const [roomSelect, setRoomSelect] = useState({});
     const [tags, setTags] = useState([]);
     const [firstRender, setFirstRender] = useState(true);
+    const [disable, setDisable] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const {data, status} = await selectMessageApi(rateId, activeId, custId, 'S');
+            const { data, status } = await selectMessageApi(rateId, activeId, custId, 'S');
             if (status === 200) {
                 setMessages(data.list);
                 setRoomSelect(data.room);
@@ -58,17 +63,23 @@ export default function MessagePane() {
                 });
             }
         }
-        const fetchChatRoom = async () => {
-            const {data, status} = await chatRoomListApi();
-            if (status === 200) {
-                setChatRooms(data.chatRooms);
-                setListAllChatRooms(data.listAll);
-            }
+        // const fetchChatRoom = async () => {
+        //     const {data, status} = await chatRoomListApi();
+        //     if (status === 200) {
+        //         console.log(data.chatRooms,chatRoomsContext);
 
-        }
+        //         // setChatRooms(data.chatRooms);
+        //         // setListAllChatRooms(data.listAll);
+
+        //     }
+        //     console.log('chat');
+        // }
         fetchData().then(() => {
-            fetchChatRoom().finally(() => {
-            });
+            // fetchChatRoom().finally(() => {
+            // });
+        }).finally(() => {
+            setDisable(false);
+            setLoading(false);
         });
     }, []);
 
@@ -93,9 +104,9 @@ export default function MessagePane() {
                             }
                         ]
                     })
-                }else{}
-            }else{}
-        }else{}
+                } else { }
+            } else { }
+        } else { }
 
         // if (notification && notification.title === 'มีข้อความใหม่เข้ามา') {
         //     if (notification.custId === sender.custId) {
@@ -128,6 +139,7 @@ export default function MessagePane() {
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader
+                            disable={disable}
                             rateId={rateId}
                             activeId={activeId}
                             check={check}
@@ -141,35 +153,43 @@ export default function MessagePane() {
                         />
                         {/*Message pane*/}
                         <Box sx={MessageStyle.PaneContent}>
-                            <Stack spacing={2} sx={{justifyContent: 'flex-end'}}>
-                                {messages.length > 0 && messages.map((message, index) => {
-                                    const isYou = message.sender.empCode;
-                                    return (
-                                        <Stack
-                                            key={index} direction="row" spacing={2}
-                                            sx={{flexDirection: isYou ? 'row-reverse' : 'row'}}
-                                        >
-                                            <Avatar src={message.sender.avatar}/>
-                                            <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
-                                        </Stack>
-                                    );
-                                })}
-                            </Stack>
+                            {loading && <CircularProgress />}
+                            {!loading && (
+                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
+                                    {messages.length > 0 && messages.map((message, index) => {
+                                        const isYou = message.sender.empCode;
+                                        return (
+                                            <Stack
+                                                key={index} direction="row" spacing={2}
+                                                sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
+                                            >
+                                                <Avatar src={message.sender.avatar} />
+                                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                                            </Stack>
+                                        );
+                                    })}
+                                </Stack>
+                            )}
                         </Box>
                         {/* Message Input */}
-                        <MessageInput
-                            check={check}
-                            msg={msg}
-                            setMsg={setMsg}
-                            sender={sender}
-                            setMessages={setMessages}
-                            messages={messages}
-                            activeId={activeId}>
-                        </MessageInput>
+                        {!loading && (
+                            <MessageInput
+                                setDisable={setDisable}
+                                disable={disable}
+                                check={check}
+                                msg={msg}
+                                setMsg={setMsg}
+                                sender={sender}
+                                setMessages={setMessages}
+                                messages={messages}
+                                activeId={activeId}>
+                            </MessageInput>
+
+                        )}
                     </Sheet>
                 </Sheet>
                 {/* Info */}
-                <Info sender={sender} starList={starList} notes={notes} check={check}/>
+                <Info sender={sender} starList={starList} notes={notes} check={check} />
             </Sheet>
         </>
     )

@@ -15,6 +15,7 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 
 export const MessageInput = (props) => {
     const { user } = useAuth();
+    const {disable,setDisable} = props
     const { check, msg, setMsg, sender, setMessages, activeId,messages } = props;
     const [imagePreview, setImagePreview] = useState([]);
     const [selectedFile, setSelectedFile] = useState();
@@ -64,10 +65,12 @@ export const MessageInput = (props) => {
 
     const handleSend = async ({ type = 'text', c }) => {
         setDisableBtn(true);
+        setDisable(true);
         const C = msg.content ? msg.content : c;
         if (!selectedFile) {
             if (C === null || C === undefined || C === '') {
                 alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
+                setDisable(false)
                 return;
             }
         }
@@ -113,6 +116,7 @@ export const MessageInput = (props) => {
         } else AlertDiaLog({ title: data.message, text: data.detail, onPassed: () => console.log('') });
         handleRemoveImage();
         setDisableBtn(false);
+        setDisable(false);
     }
 
     return (
@@ -162,10 +166,11 @@ export const MessageInput = (props) => {
                             endDecorator={
                                 <Stack direction="row" gap={1} sx={MessageStyle.TextArea}>
 
-                                    <StickerPK sender={sender} activeId={activeId} />
+                                    <StickerPK disable={disable} sender={sender} activeId={activeId} />
                                     {/* <StickerPK sender={sender} activeId={activeId} Disable={(sender.emp !== user.empCode) || disableBtn || selectedFile} /> */}
 
                                     <Button
+                                    disabled={disable}
                                         // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
                                         color="danger" component="label"
                                     >
@@ -177,6 +182,7 @@ export const MessageInput = (props) => {
                                     </Button>
 
                                     <Button
+                                        disabled={disable}
                                         // disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
                                         onClick={() => handleSend({ type: 'text' })}

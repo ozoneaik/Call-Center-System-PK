@@ -10,6 +10,7 @@ import { PendingTable } from "./PendingTable.jsx";
 import { ProgressTable } from "./ProgressTable.jsx";
 import Sheet from "@mui/joy/Sheet";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { CircularProgress } from "@mui/joy";
 
 export default function MainChat() {
     const { user } = useAuth()
@@ -21,7 +22,9 @@ export default function MainChat() {
     const [pending, setPending] = useState([]);
     const [filterPending, setFilterPending] = useState([]);
     const [firstRender, setFirstRender] = useState(true);
+    const [loading, setLoading] = useState(false);
     useEffect(() => {
+        
         const fetchChats = async () => {
             try {
                 const { data, status } = await MessageListApi(roomId);
@@ -38,11 +41,12 @@ export default function MainChat() {
             } catch (error) {
                 AlertDiaLog({ title: 'เกิดข้อผิดพลาด' })
             } finally {
-                setTimeout(() => {
-                }, 500)
+                setLoading(false);
             }
         }
+        setLoading(true);
         fetchChats().then();
+       
     }, [roomId]);
 
     useEffect(() => {
@@ -177,7 +181,7 @@ export default function MainChat() {
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <BreadcrumbsComponent list={BreadcrumbsPath} />
                     </Box>
-                    <ContentComponent />
+                    {loading ? <CircularProgress/> : <ContentComponent />}
                 </Box>
             </Sheet>
         </>

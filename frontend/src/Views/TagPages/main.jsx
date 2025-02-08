@@ -13,14 +13,13 @@ const BreadcrumbsPath = [{name: 'จัดการ tag การจบสทน
 
 export default function TagePage() {
     const [tags, setTags] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
     const [selected, setSelected] = useState({});
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
     },[]);
     const fetchData = async () => {
-        setLoading(true);
         const {data, status} = await listTagsApi();
         status === 200 && setTags(data.list);
     }

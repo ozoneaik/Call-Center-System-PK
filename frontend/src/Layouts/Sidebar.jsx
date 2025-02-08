@@ -30,23 +30,23 @@ import ThreePIcon from '@mui/icons-material/ThreeP';
 import SearchIcon from '@mui/icons-material/Search';
 
 export default function Sidebar() {
-    const {setChatRoomsContext} = useChatRooms()
+    const {setChatRoomsContext, chatRoomsContext} = useChatRooms()
     const {user, setUser} = useAuth();
     const navigate = useNavigate();
     const [chatRooms, setChatRooms] = useState([{roomName: '', roomId: ''}]);
     const {pathname} = useLocation();
     const currentRoomId = pathname.split('/')[3];
 
-    const fetchChatRooms = async () => {
-        const {data, status} = await chatRoomListApi();
-        if (status === 200) {
-            setChatRooms(data.chatRooms);
-            setChatRoomsContext(data.chatRooms)
-        }
-    }
-    useEffect(() => {
-        fetchChatRooms().then(() => {});
-    }, [])
+    // const fetchChatRooms = async () => {
+    //     const {data, status} = await chatRoomListApi();
+    //     if (status === 200) {
+    //         setChatRooms(data.chatRooms);
+    //         setChatRoomsContext(data.chatRooms)
+    //     }
+    // }
+    // useEffect(() => {
+    //     fetchChatRooms().then(() => {});
+    // }, [])
 
     const Logout = () => {
         AlertDiaLog({
@@ -117,8 +117,8 @@ export default function Sidebar() {
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>
-                    {chatRooms && chatRooms.length > 0 && (
-                        chatRooms.map((chatRoom, index) => (
+                    {chatRoomsContext && chatRoomsContext.length > 0 && (
+                        chatRoomsContext.map((chatRoom, index) => (
                             <ListItem key={index} component={Link}
                                       to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
                                 <ListItemButton selected={currentRoomId === chatRoom.roomId}>

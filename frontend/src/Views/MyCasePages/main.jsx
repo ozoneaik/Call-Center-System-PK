@@ -1,4 +1,4 @@
-import { Box, Button, Card, Sheet, Typography, Stack, Avatar, Divider, Chip } from "@mui/joy";
+import { Box, Button, Card, Sheet, Typography, Stack, Avatar, Divider, Chip, CircularProgress } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import BreadcrumbsComponent from "../../components/Breadcrumbs";
 import { Grid2 } from "@mui/material";
@@ -37,7 +37,7 @@ const Detail = ({ data }) => (
             <Typography level="body-xs">
                 (รหัสอ้างอิง&nbsp;A{data.id}R{data.rateRef})
             </Typography>
-            
+
         </Typography>
         <TitleComponent
             title={'วันที่รับเรื่อง'} result={data.created_at}
@@ -57,7 +57,7 @@ const Detail = ({ data }) => (
             color="primary" type={data.latest_message.contentType}
         />
         <Stack direction='row' spacing={2} alignItems='center' marginTop={2}>
-            <Link style={{width : '100%'}} to={`/select/message/${data.rateRef}/${data.id}/${data.custId}/1`}>
+            <Link style={{ width: '100%' }} to={`/select/message/${data.rateRef}/${data.id}/${data.custId}/1`}>
                 <Button color="primary" fullWidth size='sm'>
                     <ChatIcon />
                 </Button>
@@ -67,14 +67,17 @@ const Detail = ({ data }) => (
 )
 export default function MyCasePage() {
     const [list, setList] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchData();
+        fetchData().finally(() => setLoading(false));
     }, []);
     const fetchData = async () => {
+        setLoading(true);
         const { data, status } = await myCaseApi();
         console.log(data);
         status === 200 && setList(data.result);
+        setLoading(false);
     }
     return (
         <Sheet sx={ChatPageStyle.Layout}>
@@ -86,15 +89,19 @@ export default function MyCasePage() {
                     <Grid2 size={12}>
                         <Button onClick={fetchData}>refresh</Button>
                     </Grid2>
-                    {list.map((item, index) => (
-                        <Grid2 size={{ xs: 12, md: 12, lg: 4 }} key={index}>
-                            <Card variant="soft">
-                                <Stack spacing={1}>
-                                    <Detail title="วันที่รับเรื่อง" result="2021-09-01" data={item} />
-                                </Stack>
-                            </Card>
-                        </Grid2>
-                    ))}
+                    {!loading ? (
+                        list.length > 0 ? (
+                            list.map((item, index) => (
+                                <Grid2 size={{ xs: 12, md: 12, lg: 4 }} key={index}>
+                                    <Card variant="soft">
+                                        <Stack spacing={1}>
+                                            <Detail data={item} />
+                                        </Stack>
+                                    </Card>
+                                </Grid2>
+                            ))
+                        ) : 'ไม่พบข้อมูล'
+                    ) : <CircularProgress />}
                 </Grid2>
             </Box>
         </Sheet>
