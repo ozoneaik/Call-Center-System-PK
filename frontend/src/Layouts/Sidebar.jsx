@@ -30,7 +30,7 @@ import ThreePIcon from '@mui/icons-material/ThreeP';
 import SearchIcon from '@mui/icons-material/Search';
 
 export default function Sidebar() {
-    const {setChatRoomsContext, chatRoomsContext} = useChatRooms()
+    const {setChatRoomsContext, chatRoomsContext,myRoomContext} = useChatRooms()
     const {user, setUser} = useAuth();
     const navigate = useNavigate();
     const [chatRooms, setChatRooms] = useState([{roomName: '', roomId: ''}]);
@@ -117,8 +117,8 @@ export default function Sidebar() {
                             </ListItemContent>
                         </ListItemButton>
                     </ListItem>
-                    {chatRoomsContext && chatRoomsContext.length > 0 && (
-                        chatRoomsContext.map((chatRoom, index) => (
+                    {myRoomContext && myRoomContext.length > 0 && (
+                        myRoomContext.map((chatRoom, index) => (
                             <ListItem key={index} component={Link}
                                       to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
                                 <ListItemButton selected={currentRoomId === chatRoom.roomId}>

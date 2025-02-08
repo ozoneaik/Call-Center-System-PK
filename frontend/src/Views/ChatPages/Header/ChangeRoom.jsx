@@ -6,9 +6,11 @@ import {useState} from "react";
 import {senToApi} from "../../../Api/Messages.js";
 import {AlertDiaLog} from "../../../Dialogs/Alert.js";
 import {useNavigate} from "react-router-dom";
+import {useChatRooms} from "../../../context/ChatRoomContext.jsx";
 
 const ModalChangRoom = (props) => {
     const navigate = useNavigate()
+    const {chatRoomsContext,myRoomContext} = useChatRooms();
     const {showModalChangeRoom, setShowModalChangeRoom, chatRooms,rateId,activeId,roomSelect,listAllChatRooms} = props;
     const handleChangeRoom = async (roomId) => {
         console.log(roomId)
@@ -32,13 +34,13 @@ const ModalChangRoom = (props) => {
                 <ModalClose/>
                 <Typography component="h2">ส่งต่อไปยัง</Typography>
                 <Typography>ห้องแชท</Typography>
-                {listAllChatRooms.length > 0 && (
-                    listAllChatRooms.map((room, index) => (
+                {chatRoomsContext.length > 0 && (
+                    chatRoomsContext.map((room, index) => (
                         <Button
                             onClick={() => handleChangeRoom(room.roomId)} key={index}
                             disabled={(room.id === roomSelect.id) || (room.roomId === 'ROOM00')}
                         >
-                            {room.roomName}
+                            {room.roomName}f
                         </Button>
                     ))
                 )}

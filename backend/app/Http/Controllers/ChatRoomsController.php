@@ -24,6 +24,7 @@ class ChatRoomsController extends Controller
         $role = $user['role'];
         if ($role === 'admin') $chatRooms = ChatRooms::all();
         else {
+            // $chatRooms = ChatRooms::all();
             $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
                 ->where('empCode', $user['empCode'])->get();
         }

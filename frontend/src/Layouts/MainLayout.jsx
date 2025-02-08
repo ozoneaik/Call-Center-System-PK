@@ -11,7 +11,7 @@ import { chatRoomListApi } from "../Api/ChatRooms.js";
 export default function MainLayout() {
     const { user, setUser } = useAuth();
     const { setNotification, setUnRead } = useNotification();
-    const { setChatRoomsContext } = useChatRooms();
+    const { setChatRoomsContext,setMyRoomContext } = useChatRooms();
     const {setMessage} = useMessage();
 
     useEffect(() => {
@@ -28,8 +28,8 @@ export default function MainLayout() {
             const {data, status} = await chatRoomListApi();
             if (status === 200) {
                 console.log('chatRoom');
-                
-                setChatRoomsContext(data.chatRooms)
+                setMyRoomContext(data.chatRooms)
+                setChatRoomsContext(data.listAll)
             }
         })();
         newMessage({
