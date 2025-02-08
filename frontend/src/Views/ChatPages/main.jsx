@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import { useEffect, useState } from "react";
-import { MessageListApi } from "../../api/Messages.js";
+import {MessageListApi} from "../../Api/Messages.js";
 import Box from "@mui/joy/Box";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import BreadcrumbsComponent from "../../components/Breadcrumbs.jsx";
