@@ -1,6 +1,6 @@
 import { Box, Button, Card, Sheet, Typography, Stack, Avatar, Divider, Chip, CircularProgress } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
-import BreadcrumbsComponent from "../../components/Breadcrumbs";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs";
 import { Grid2 } from "@mui/material";
 import ChatIcon from '@mui/icons-material/Chat';
 import { useEffect, useState } from "react";

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { createKeywordApi, deleteKeywordApi, KeywordListApi, updateKeywordApi } from "../../Api/Keyword";
 import { Box, Button, Card, Input, Select, Sheet, Option, Typography, Stack, Checkbox } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
-import BreadcrumbsComponent from "../../components/Breadcrumbs";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs";
 import { Grid2 } from "@mui/material";
 import { AlertDiaLog } from "../../Dialogs/Alert";
 import DeleteIcon from '@mui/icons-material/Delete';

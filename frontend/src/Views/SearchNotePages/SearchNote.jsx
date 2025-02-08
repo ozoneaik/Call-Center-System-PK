@@ -1,5 +1,5 @@
 import { ChatPageStyle } from "../../styles/ChatPageStyle"
-import BreadcrumbsComponent from "../../components/Breadcrumbs"
+import BreadcrumbsComponent from "../../Components/Breadcrumbs"
 import {Grid2, Stack } from "@mui/material";
 import { Box, Button, Card, Chip, CircularProgress, Input, Sheet, Typography } from "@mui/joy";
 import { useEffect, useState } from "react";
