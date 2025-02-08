@@ -7,7 +7,7 @@ import { convertFullDate, convertLocalDate, differentDate } from "../../Componen
 import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { endTalkAllPendingApi, receiveApi } from "../../api/Messages.js";
+import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {useNavigate, useParams} from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';

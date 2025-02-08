@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import HistoryIcon from '@mui/icons-material/History';
 import { Link, useNavigate } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
-import { endTalkAllProgressApi } from "../../api/Messages.js";
+import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import CircleIcon from '@mui/icons-material/Circle';
