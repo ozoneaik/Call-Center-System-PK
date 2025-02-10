@@ -11,9 +11,9 @@ function ProtectedLayout() {
     return (
         <div>
             <App />
-            <div style={{backgroundColor : 'red',color  : 'white',textAlign : 'center',padding : '5px'}}>
+            {/* <div style={{backgroundColor : 'red',color  : 'white',textAlign : 'center',padding : '5px'}}>
                 วันที่ 10/02/2568 จะมีการย้าย Server และเปลี่ยนที่อยู่เว็บไซต์ไปที่ http://www.callcenter-pk.pumpkin-th.com ช่วงเวลานี้อาจทำให้ข้อความลูกค้าล่าสุดหายไป ต้องขอภัยด้วยครับ/ค่ะ
-            </div>
+            </div> */}
              {/*<AnnouncementBar /> */}
             <Box sx={LayoutStyle.MainLayout}>
                 <Sidebar />
