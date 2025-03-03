@@ -39,13 +39,6 @@ export const MessageInput = (props) => {
         const files = Array.from(event.target.files);
         if (files) {
             setSelectedFile(files);
-            // const reader = new FileReader();
-            // reader.onloadend = () => {
-            //     // setImagePreview(reader.result);
-            //     setImagePreview({ type: file.type, data: reader.result });
-            // };
-            // reader.readAsDataURL(file);
-
             if (files.length > 0) {
                 setSelectedFile(files);
 
@@ -82,37 +75,24 @@ export const MessageInput = (props) => {
             selectedFile
         });
         console.log(data, status, selectedFile)
+        const contents = data.content ? data.content : [];
+
         if (status === 200) {
             setMsg({ content: '', contentType: 'text', sender: '' });
             console.log(selectedFile,C)
-            if(selectedFile){
-                selectedFile.map((file) => {
-                    setMessages((prevMessages) => {
-                        return [
-                            ...prevMessages,
-                            {
-                                content : URL.createObjectURL(file),
-                                contentType : file.type === 'application/pdf' ? 'file' : 'image',
-                                sender : user,
-                                created_at: new Date().toISOString(),
-                            }
-                        ]
-                    })
-                })
-            }
-            if(C) {
-                setMessages((prevMessages) => {
+            contents.map((item) => {
+                setMessages((prev) => {
                     return [
-                        ...prevMessages,
+                        ...prev,
                         {
-                            content : C,
-                            contentType : 'text',
+                            content : item.content,
+                            contentType : item.contentType,
                             sender : user,
                             created_at: new Date().toISOString(),
                         }
                     ]
                 })
-            }
+            })
         } else AlertDiaLog({ title: data.message, text: data.detail, onPassed: () => console.log('') });
         handleRemoveImage();
         setDisableBtn(false);
@@ -185,8 +165,10 @@ export const MessageInput = (props) => {
                                         disabled={disable}
                                         // disabled={(sender.emp !== user.empCode) || disableBtn}
                                         color="primary"
+                                        // onClick={()=>console.log(messages)}
                                         onClick={() => handleSend({ type: 'text' })}
                                     >
+
                                         <Typography sx={MessageStyle.InsertImage}>
                                             ส่ง ( ctrl+enter )
                                         </Typography>

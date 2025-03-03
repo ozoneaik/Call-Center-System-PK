@@ -59,45 +59,49 @@ class MessageController extends Controller
                     else throw new \Exception('เจอปัญหา startTime ไม่ได้');
                 }
             } else throw new \Exception('ไม่พบ active Id');
-            foreach ($messages as $m) {
+            foreach ($messages as $key=>$m) {
                 $storeChatHistory = new ChatHistory();
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
                 if (($storeChatHistory['contentType'] === 'image') || ($storeChatHistory['contentType'] === 'video') || ($storeChatHistory['contentType'] === 'file')) {
-                    Log::info('image message');
-                    Log::info($m);
                     $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
                     // ส่งไฟล์แบบ multipart โดยใช้ attach()
-                    $response = Http::timeout(30)->attach('file', $m['content']
-                        ->get(), $m['content']->getClientOriginalName())->post($URL);
-                    Log::info($m['content']);
+//                    $response = Http::timeout(30)->attach('file', $m['content']
+//                        ->get(), $m['content']->getClientOriginalName())->post($URL);
+                    $response = Http::timeout(30)
+                        ->attach('file', fopen($m['content']->getRealPath(), 'r'), $m['content']->getClientOriginalName())
+                        ->post($URL);
+
+
                     if ($response->status() == 200) {
                         Log::info('บรรทัดที่ 74 messageController');
                         Log::info($storeChatHistory['contentType']);
                         $responseJson = $response->json();
+
+
+
                         $storeChatHistory['content'] = $responseJson['imagePath'];
                         $m['content'] = $responseJson['imagePath'];
                     } else {
-                        $storeChatHistory['content'] = 'ส่งรูปภาพ';
-                        Log::info($URL);
-                        Log::error('Error uploading file: ' . $response->status());
+                        throw new \Exception('ไม่สามารถส่งไฟล์ได้');
+//                        $storeChatHistory['content'] = 'ส่งรูปภาพ';
+//                        Log::error('Error uploading file: ' . $response->status());
                     }
                 } else $storeChatHistory['content'] = $m['content'];
                 $storeChatHistory['sender'] = json_encode(auth()->user());
                 $storeChatHistory['conversationRef'] = $conversationId;
                 if ($storeChatHistory->save()) {
-                    // ส่ง pusher
                     $this->pusherService->sendNotification($custId);
-//                    $notification = $this->pusherService->newMessage($storeChatHistory, false, 'มีข้อความใหม่เข้ามา');
-//                    if (!$notification['status']) {
-//                        throw new \Exception('การแจ้งเตือนผิดพลาด');
-//                    }
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';
                     } else throw new \Exception($sendMsgByLine['message']);
                 } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
+                $messages[$key]['content'] = $m['content'];
             }
+
+            Log::info('Foreach Messages ==> ');
+            Log::info($messages);
             DB::commit();
             $status = 200;
         } catch (\Exception $e) {
@@ -108,6 +112,7 @@ class MessageController extends Controller
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',
                 'detail' => $detail,
+                'content' => $messages ?? [],
             ], $status);
         }
     }
