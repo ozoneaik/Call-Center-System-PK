@@ -12,6 +12,7 @@ use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\webhooks\LineController;
 use App\Http\Middleware\UserAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -152,4 +153,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('users')->group(function(){
         Route::get('profile', [UserController::class, 'profile']);
     });
+});
+
+
+Route::prefix('webhooks')->group(function () {
+   Route::post('/line',[LineController::class, 'webhook']);
 });

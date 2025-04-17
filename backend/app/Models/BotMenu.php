@@ -14,5 +14,5 @@ class BotMenu extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['menuName','roomId'];
+    protected $fillable = ['menuName','roomId','botTokenId'];
 }

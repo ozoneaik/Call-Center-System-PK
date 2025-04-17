@@ -13,5 +13,5 @@ use Illuminate\Database\Eloquent\Model;
 class ChatHistory extends Model
 {
     use HasFactory;
-    protected $fillable = ['custId','content','contentType','sender','conversationRef'];
+    protected $fillable = ['custId','content','contentType','sender','conversationRef','line_quoteToken'];
 }
