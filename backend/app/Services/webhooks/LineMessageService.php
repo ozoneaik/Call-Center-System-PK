@@ -57,7 +57,9 @@ class LineMessageService
             'contentType' => $message['type'],
             'sender' => json_encode($sender),
             'conversationRef' => $acId,
-            'line_quoteToken' => $message['quoteToken'] ?? null
+            'line_message_id' => $message['id'],
+            'line_quote_token' => $message['quoteToken'] ?? null,
+            'line_quoted_message_id' => $message['quotedMessageId'] ?? null,
         ]);
     }
 

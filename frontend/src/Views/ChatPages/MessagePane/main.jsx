@@ -155,7 +155,7 @@ export default function MessagePane() {
                         <Box sx={MessageStyle.PaneContent}>
                             {loading && <CircularProgress />}
                             {!loading && (
-                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
+                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }} onClick={()=>console.log(messages)}>
                                     {messages.length > 0 && messages.map((message, index) => {
                                         const isYou = message.sender.empCode;
                                         return (
@@ -164,7 +164,7 @@ export default function MessagePane() {
                                                 sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
                                             >
                                                 <Avatar src={message.sender.avatar} />
-                                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} />
+                                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} {...{messages}} />
                                             </Stack>
                                         );
                                     })}

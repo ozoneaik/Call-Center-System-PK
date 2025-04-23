@@ -18,7 +18,9 @@ return new class extends Migration
             $table->string('contentType')->comment('ประเภทข้อความ');
             $table->json('sender')->comment('ผู้ส่ง');
             $table->integer('conversationRef')->comment('รหัสอ้างอิงในตาราง ActiveConversations');
-            $table->text('line_quoteToken')->nullable()->comment('token สไหรับการตอบกลับ');
+            $table->text('line_message_id')->nullable()->comment('id ของข้อความไลน์');
+            $table->text('line_quote_token')->nullable()->comment('token สำหรับการตอบกลับ');
+            $table->text('line_quoted_message_id')->nullable()->comment('ว่าเป็นข้อความที่ตอบกลับหรือไม่');
             $table->timestamps();
         });
     }

@@ -28,7 +28,6 @@ Route::post('/test',function (\Illuminate\Http\Request $request) {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-
     // จัดการพนักงาน
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'user']);
@@ -159,3 +158,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('webhooks')->group(function () {
    Route::post('/line',[LineController::class, 'webhook']);
 });
+
+
+Route::get('/hello', function (){
+    return response()->json([
+        'message' => 'hello world',
+        'Hashed' => \Illuminate\Support\Facades\Hash::make('1111')
+    ]);
+});
+
+//$2y$12$xdY0UjNiCGuzMN86sMp.OuEhcVog5BYwigheoHZbMgSkqpX..9AR6

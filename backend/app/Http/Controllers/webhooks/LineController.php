@@ -180,7 +180,7 @@ class LineController extends Controller
                                         'roomId' => 'ROOM00',
                                         'receiveAt' => $now,
                                         'startTime' => $now,
-                                        'empCode' => $BOT->toJson(),
+                                        'empCode' => 'BOT',
                                         'rateRef' => $newRate->id,
                                     ]);
                                     $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
