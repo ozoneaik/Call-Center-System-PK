@@ -13,6 +13,7 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\LineController;
+use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการเกี่ยวกับแชท
     Route::prefix('messages')->group(function () {
         Route::post('/send', [MessageController::class, 'send']);
+        Route::post('/reply',[MessageController::class,'reply']);
         Route::post('/receive', [MessageController::class, 'receive']);
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
@@ -156,7 +158,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 Route::prefix('webhooks')->group(function () {
-   Route::post('/line',[LineController::class, 'webhook']);
+   Route::post('/line',[LineUATController::class, 'webhook']);
 });
 
 

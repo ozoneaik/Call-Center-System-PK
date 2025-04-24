@@ -34,6 +34,9 @@ class MessageService
                 case 'text':
                     $msg['type'] = 'text';
                     $msg['text'] = $messages['content'];
+                    if (isset($messages['line_quote_token'])){
+                        $msg['quoteToken'] = $messages['line_quote_token'];
+                    }
                     break;
                 case 'image':
                     $msg['type'] = 'image';
@@ -71,7 +74,7 @@ class MessageService
                     ];
                     break;
                 default:
-                    throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type [MessageSevice sendMsgByLine]');
+                    throw new \Exception('ไม่สามารถส่งข้อความได้เนื่องจากไม่รู้จัก type [MessageService sendMsgByLine]');
             }
             $token = Customers::query()->leftJoin('platform_access_tokens as PAT', 'customers.platformRef', '=', 'PAT.id')
                 ->where('custId', 'LIKE', $custId)
@@ -87,6 +90,9 @@ class MessageService
             ]);
             if ($response->status() == 200) {
                 $data['status'] = true;
+                $responseJson = $response->json();
+                $responseJson = $responseJson['sentMessages'][0];
+                $data['responseJson'] = $responseJson;
             } else {
                 $data['status'] = false;
                 Log::info($response->json());
@@ -96,6 +102,7 @@ class MessageService
             Log::info('ERROR METHOD MESSAGE SERVICE >>> sendMsgByLine');
             Log::info($response->json());
         } catch (\Exception $e) {
+            $data['status'] = false;
             Log::error($e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {

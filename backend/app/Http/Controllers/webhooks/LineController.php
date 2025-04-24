@@ -12,6 +12,7 @@ use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\User;
 use App\Services\MessageService;
+use App\Services\PusherService;
 use App\Services\webhooks\LineMessageService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -24,11 +25,17 @@ class LineController extends Controller
 {
     protected LineMessageService $lineMessageService;
     protected MessageService $messageService;
+    protected PusherService $pusherService;
 
-    public function __construct(LineMessageService $LineMessageService, MessageService $messageService)
+    public function __construct(
+        LineMessageService $LineMessageService,
+        MessageService     $messageService,
+        PusherService      $pusherService,
+    )
     {
         $this->lineMessageService = $LineMessageService;
         $this->messageService = $messageService;
+        $this->pusherService = $pusherService;
     }
 
     public function webhook(Request $request): JsonResponse
@@ -43,8 +50,6 @@ class LineController extends Controller
                 Log::channel('line_webhook_log')->info($event);
                 // เช็คก่อนว่า event มี type เป็น message หรือไม่
                 if ($event['type'] === 'message') {
-
-
 //------------------------------ เช็คต่อว่า เคยสร้าง ข้อมูลลูกค้ารายนี้หรือไม่ --------------------------------------------------------
                     $userId = $event['source']['userId'];
                     $customer = Customers::query()->where('custId', $userId)->first();
@@ -80,7 +85,8 @@ class LineController extends Controller
                         ->first();
 
 
-                    if ($current_rate && $current_rate->status === 'success') {
+                    if ($current_rate && $current_rate->status === 'success')
+                    {
                         $AcRef = ActiveConversations::query()
                             ->where('rateRef', $current_rate->id)
                             ->orderBy('id', 'desc')
@@ -134,27 +140,52 @@ class LineController extends Controller
                                             'conversationRef' => $newAc['id'],
                                             'line_quoteToken' => $message['quoteToken']
                                         ]);
+                                        $this->pusherService->sendNotification($CUSTOMER['custId']);
                                     }
-                                } else {
-                                    $newRate = Rates::query()->create([
-                                        'custId' => $CUSTOMER['custId'],
-                                        'rate' => 0,
-                                        'latestRoomId' => $current_rate->latestRoomId,
-                                        'status' => 'pending',
-                                    ]);
-                                    $newAc = ActiveConversations::query()->create([
-                                        'custId' => $customer->custId,
-                                        'roomId' => $current_rate->latestRoomId,
-                                        'rateRef' => $newRate->id
-                                    ]);
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                                }
+                                else {
+                                    $now = Carbon::now();
+                                    if ($now->diffInHours($current_rate->created_at) <= 12) {
+                                        $newRate = Rates::query()->create([
+                                            'custId' => $CUSTOMER['custId'],
+                                            'rate' => 0,
+                                            'latestRoomId' => $current_rate->latestRoomId,
+                                            'status' => 'pending',
+                                        ]);
+                                        $newAc = ActiveConversations::query()->create([
+                                            'custId' => $customer->custId,
+                                            'roomId' => $current_rate->latestRoomId,
+                                            'rateRef' => $newRate->id
+                                        ]);
+                                        $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
+                                        $this->pusherService->sendNotification($CUSTOMER['custId']);
+                                    } else {
+                                        $newRate = Rates::query()->create([
+                                            'custId' => $CUSTOMER['custId'],
+                                            'rate' => 0,
+                                            'latestRoomId' => 'ROOM00',
+                                            'status' => 'progress',
+                                        ]);
+                                        $newAc = ActiveConversations::query()->create([
+                                            'custId' => $CUSTOMER['custId'],
+                                            'roomId' => 'ROOM00',
+                                            'receiveAt' => $now,
+                                            'startTime' => $now,
+                                            'empCode' => 'BOT',
+                                            'rateRef' => $newRate->id,
+                                        ]);
+                                        $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
+                                        $message_menu['type'] = 'text';
+                                        $message_menu['text'] = "สวัสดีคุณ " . $CUSTOMER['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
+                                        $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
+                                        $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
+                                    }
 
                                 }
                             } else if ($message['type'] === 'image' || $message['type'] === 'audio' || $message['type'] === 'video' || $message['type'] === 'file' || $message['type'] === 'location') {
                                 // เช็คก่อนว่า เกิน 12 ชัวโมงหรือไม่
                                 $now = Carbon::now();
-                                $current_rate->created_at = $now;
-                                if ($now->diffInHours($current_rate->created_at) >= 12) {
+                                if ($now->diffInHours($current_rate->created_at) <= 12) {
                                     $newRate = Rates::query()->create([
                                         'custId' => $CUSTOMER['custId'],
                                         'rate' => 0,
@@ -166,7 +197,7 @@ class LineController extends Controller
                                         'roomId' => $newRate->latestRoomId,
                                         'rateRef' => $newRate->id
                                     ]);
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
                                 } else {
                                     // สร้าง Rate ใหม่ พร้อมส่งเมนูบอท
                                     $newRate = Rates::query()->create([
@@ -183,10 +214,10 @@ class LineController extends Controller
                                         'empCode' => 'BOT',
                                         'rateRef' => $newRate->id,
                                     ]);
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
                                     $message_menu['type'] = 'text';
                                     $message_menu['text'] = "สวัสดีคุณ " . $CUSTOMER['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_menu, $newAc->id, $TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
                                     $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
                                 }
                             } else {
@@ -207,15 +238,16 @@ class LineController extends Controller
                                 ]);
                                 $message_m['type'] = 'text';
                                 $message_m['text'] = "ไม่สามารถระบุได้ว่าลูกค้าส่งอะไรเข้ามา";
-                                $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message_m, $newAc->id, $TOKEN);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message_m, $newAc->id, $TOKEN);
                                 $message_menu['type'] = 'text';
                                 $message_menu['text'] = "สวัสดีคุณ " . $CUSTOMER['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                                $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_menu, $newAc->id, $TOKEN);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
                                 $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
                             }
                         } // สิ้นสุด rate status == success
                     }
-                    else if ($current_rate && $current_rate->status === 'progress') {
+                    else if ($current_rate && $current_rate->status === 'progress')
+                    {
                         $acRef = ActiveConversations::query()
                             ->where('custId', $CUSTOMER['custId'])
                             ->orderBy('id', 'desc')->first();
@@ -252,12 +284,12 @@ class LineController extends Controller
                                             'rateRef' => $old_rate->id,
                                         ]);
 
-                                        $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $new_ac->id, $TOKEN);
+                                        $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $new_ac->id, $TOKEN);
                                         $message_send['text'] = 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ที่รับผิดชอบเพื่อเร่งดำเนินการเข้ามาสนทนา กรุณารอสักครู่';
                                         $message_send['type'] = 'text';
                                         $body_send = ['to' => $CUSTOMER['custId'], 'messages' => [$message_send]];
-                                        $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_send, $new_ac->id, $TOKEN);
-                                        $this->lineMessageService->pushMessage($body_send,$TOKEN);
+                                        $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_send, $new_ac->id, $TOKEN);
+                                        $this->lineMessageService->pushMessage($body_send, $TOKEN);
                                         break;
 
                                     } else {
@@ -294,11 +326,11 @@ class LineController extends Controller
                                         'from_roomId' => $old_ac->roomId,
                                         'rateRef' => $old_rate->id,
                                     ]);
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $new_ac->id, $TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $new_ac->id, $TOKEN);
                                     $message_send['text'] = 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ที่รับผิดชอบเพื่อเร่งดำเนินการเข้ามาสนทนา กรุณารอสักครู่';
                                     $message_send['type'] = 'text';
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_send, $new_ac->id, $TOKEN);
-                                    $this->lineMessageService->pushMessage($message_send,$TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_send, $new_ac->id, $TOKEN);
+                                    $this->lineMessageService->pushMessage($message_send, $TOKEN);
                                 }
                             } else {
                                 $descriptions = PlatformAccessTokens::query()
@@ -330,32 +362,31 @@ class LineController extends Controller
                                     'from_roomId' => $old_ac->roomId,
                                     'rateRef' => $old_rate->id,
                                 ]);
-                                $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $new_ac->id, $TOKEN);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $new_ac->id, $TOKEN);
                                 $message_send['text'] = 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ที่รับผิดชอบเพื่อเร่งดำเนินการเข้ามาสนทนา กรุณารอสักครู่';
                                 $message_send['type'] = 'text';
-                                $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_send, $new_ac->id, $TOKEN);
-                                $this->lineMessageService->pushMessage($message_send,$TOKEN);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_send, $new_ac->id, $TOKEN);
+                                $this->lineMessageService->pushMessage($message_send, $TOKEN);
                             }
                         } else {
-                            $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $acRef->id, $TOKEN);
+                            $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $acRef->id, $TOKEN);
+                            $this->pusherService->sendNotification($CUSTOMER['custId']);
                         }// สิ้นสุด rate status == progress
                     }
-                    else if ($current_rate && $current_rate->status === 'pending') {
+                    else if ($current_rate && $current_rate->status === 'pending')
+                    {
                         $queueChat = ActiveConversations::query()
                             ->leftJoin('rates', 'active_conversations.rateRef', '=', 'rates.id')
                             ->where('active_conversations.roomId', $current_rate['latestRoomId'])
                             ->where('rates.status', '=', 'pending') // เงื่อนไข where สำหรับ rates.status
                             ->orderBy('active_conversations.created_at', 'asc')
                             ->get();
-                        $countProgress = Rates::query()
-                            ->where('status', 'progress')
-                            ->where('latestRoomId', $current_rate['latestRoomId'])
-                            ->select('id')
-                            ->count();
-                        $count = $countProgress + 1;
-                        foreach ($queueChat as $key => $value) {
-                            if ($value->custId === $CUSTOMER['custId']) break;
-                            else $count++;
+                        $count = 1;
+                        if (count($queueChat) > 0) {
+                            foreach ($queueChat as $key => $value) {
+                                if ($value->custId === $CUSTOMER['custId']) break;
+                                else $count++;
+                            }
                         }
                         $body = [
                             'to' => $CUSTOMER['custId'],
@@ -369,8 +400,14 @@ class LineController extends Controller
                         $acId = ActiveConversations::query()
                             ->where('rateRef', $current_rate['id'])
                             ->orderBy('id', 'desc')->first();
-                        $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message_count, $acId->id, $TOKEN);
-                        $this->lineMessageService->pushMessage($body, $TOKEN);
+                        Log::channel('line_webhook_log')->info('line_webhook_log คิว กรุณารอสักครู่');
+                        $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $acId->id, $TOKEN);
+                        $this->pusherService->sendNotification($CUSTOMER['custId']);
+                        $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_count, $acId->id, $TOKEN);
+                        $sendMshByLine = $this->lineMessageService->pushMessage($body, $TOKEN);
+                        if ($sendMshByLine['status']) $this->pusherService->sendNotification($CUSTOMER['custId']);
+
+
                     }
                     else {
                         Log::channel('line_webhook_log')->info('ทำงานที่นี่');
@@ -390,7 +427,8 @@ class LineController extends Controller
                                         'roomId' => $keyword->redirectTo,
                                         'rateRef' => $newRate->id,
                                     ]);
-                                    $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                                    $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
+                                    $this->pusherService->sendNotification($CUSTOMER['custId']);
                                 }
                             } else {
                                 Log::channel('line_webhook_log')->info('ไม่เจอ keyword');
@@ -407,11 +445,13 @@ class LineController extends Controller
                                     'receiveAt' => Carbon::now(),
                                     'startTime' => Carbon::now(),
                                 ]);
-                                $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
                                 $message_menu['type'] = 'text';
                                 $message_menu['text'] = "สวัสดีคุณ " . $CUSTOMER['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                                $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_menu, $newAc->id, $TOKEN);
+                                $this->pusherService->sendNotification($CUSTOMER['custId']);
+                                $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
                                 $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
+                                $this->pusherService->sendNotification($CUSTOMER['custId']);
                             }
                         } else {
                             $newRate = Rates::query()->create([
@@ -427,25 +467,50 @@ class LineController extends Controller
                                 'startTime' => Carbon::now(),
                                 'rateRef' => $newRate->id,
                             ]);
-                            $this->lineMessageService->storeMessage($CUSTOMER,$CUSTOMER, $message, $newAc->id, $TOKEN);
+                            $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
+                            $this->pusherService->sendNotification($CUSTOMER['custId']);
                             $message_menu['type'] = 'text';
                             $message_menu['text'] = "สวัสดีคุณ " . $CUSTOMER['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                            $this->lineMessageService->storeMessage($CUSTOMER,$BOT, $message_menu, $newAc->id, $TOKEN);
+                            $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
                             $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
+                            $this->pusherService->sendNotification($CUSTOMER['custId']);
                         }
                     }
 
 //---------------------------------------------------------------------------------------------------------------------
+                } elseif ($event['type'] === 'postback') {
+                    $postback = $this->postback($event);
+                    if (!$postback) {
+                        throw new \Exception('แบบประเมินตอบกลับมีปัญหา postback');
+                    }
                 } else throw new \Exception('type event ไม่ใช่ message');
             }
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::channel('line_webhook_log')->error($e->getMessage() . 'บรรทัดที่ ' . $e->getLine());
+            Log::channel('line_webhook_log')->error($e->getMessage() . 'บรรทัดที่ ' . $e->getLine() . $e->getFile());
             Log::channel('line_webhook_log')->error($e->getTraceAsString());
         }
         return response()->json([
             'message' => 'webhook received',
         ]);
+    }
+
+    private function postback($event): bool
+    {
+        try {
+            $postBackData = $event['postback']['data'];
+            $dataParts = explode(',', $postBackData);
+            $feedback = $dataParts[0] ?? null;
+            $rateIdPostback = $dataParts[1] ?? null;
+            $rate = Rates::query()->where('id', $rateIdPostback)->first();
+            $rate->rate = $feedback === 'like' ? 5 : 1;
+            $rate->save();
+            return true;
+        } catch (\Exception $e) {
+            $message = $e->getMessage() . $e->getLine() . $e->getFile();
+            Log::channel('line_webhook_log')->error($message);
+            return false;
+        }
     }
 }

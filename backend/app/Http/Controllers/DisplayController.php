@@ -59,7 +59,12 @@ class DisplayController extends Controller
             //            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             $sender['emp'] = $emp;
 
-            $starList = Rates::query()->select('rate', 'updated_at')->where('custId', $custId)->orderBy('updated_at', 'desc')->get();
+            $starList = Rates::query()
+                ->leftJoin('tag_menus','rates.tag','=','tag_menus.id')
+                ->select('rates.rate','rates.tag', 'rates.updated_at','tag_menus.tagName')
+                ->where('rates.custId', $custId)
+                ->orderBy('rates.updated_at', 'desc')
+                ->get();
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 

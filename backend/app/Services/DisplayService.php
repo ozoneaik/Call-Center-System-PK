@@ -63,10 +63,10 @@ class DisplayService
 
     public function selectMessage($custId)
     {
-        // ดึง 100 รายการล่าสุด
+        // ดึง 200 รายการล่าสุด
         $chatHistory = ChatHistory::query()->where('custId', $custId)
             ->orderBy('id', 'desc')
-            ->take(100)->get()
+            ->take(200)->get()
             ->sortBy('id')->values();
 
         // แปลง sender จาก JSON string เป็น array

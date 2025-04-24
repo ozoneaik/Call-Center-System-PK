@@ -20,7 +20,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
 
 class MessageController extends Controller
 {
@@ -59,7 +58,7 @@ class MessageController extends Controller
                     else throw new \Exception('เจอปัญหา startTime ไม่ได้');
                 }
             } else throw new \Exception('ไม่พบ active Id');
-            foreach ($messages as $key=>$m) {
+            foreach ($messages as $key => $m) {
                 $storeChatHistory = new ChatHistory();
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
@@ -79,13 +78,10 @@ class MessageController extends Controller
                         $responseJson = $response->json();
 
 
-
                         $storeChatHistory['content'] = $responseJson['imagePath'];
                         $m['content'] = $responseJson['imagePath'];
                     } else {
                         throw new \Exception('ไม่สามารถส่งไฟล์ได้');
-//                        $storeChatHistory['content'] = 'ส่งรูปภาพ';
-//                        Log::error('Error uploading file: ' . $response->status());
                     }
                 } else $storeChatHistory['content'] = $m['content'];
                 $storeChatHistory['sender'] = json_encode(auth()->user());
@@ -95,6 +91,13 @@ class MessageController extends Controller
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';
+                        $storeChatHistory['line_message_id'] = $sendMsgByLine['responseJson']['id'];
+                        $storeChatHistory['line_quote_token'] = $sendMsgByLine['responseJson']['quoteToken'];
+                        Log::info('----------------------------------------');
+                        Log::info($sendMsgByLine['responseJson']['id']);
+                        Log::info($sendMsgByLine['responseJson']['quoteToken']);
+                        Log::info('----------------------------------------');
+                        $storeChatHistory->save();
                     } else throw new \Exception($sendMsgByLine['message']);
                 } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
                 $messages[$key]['content'] = $m['content'];
@@ -117,6 +120,55 @@ class MessageController extends Controller
         }
     }
 
+    public function reply(Request $request): JsonResponse
+    {
+        try {
+            $message = 'ส่งข้อความไม่สำเร็จ';
+            DB::beginTransaction();
+            $replyContent = $request['replyContent'];
+            $replyContent['contentType'] = $replyContent['type'];
+            $replyContent['content'] = $replyContent['text'];
+            $replyContent['line_quote_token'] = $request['line_quote_token'];
+            $storeChatHistory = new ChatHistory();
+            $storeChatHistory['custId'] = $request['custId'];
+            $storeChatHistory['contentType'] = $replyContent['type'];
+            $storeChatHistory['content'] = $replyContent['text'];
+            $storeChatHistory['sender'] = json_encode(auth()->user());
+            $storeChatHistory['conversationRef'] = $request['activeId'];
+            $storeChatHistory['line_quoted_message_id'] = $request['line_message_id'];
+//            throw new \Exception('joker');
+            if ($storeChatHistory->save()) {
+                $sendMsgByLine = $this->messageService->sendMsgByLine($request['custId'], $replyContent);
+                if ($sendMsgByLine['status']) {
+                    $message = 'ส่งข้อความสำเร็จ';
+                    $storeChatHistory['line_message_id'] = $sendMsgByLine['responseJson']['id'];
+                    $storeChatHistory['line_quote_token'] = $sendMsgByLine['responseJson']['quoteToken'];
+                    Log::info('----------------------------------------');
+                    Log::info($sendMsgByLine['responseJson']['id']);
+                    Log::info($sendMsgByLine['responseJson']['quoteToken']);
+                    Log::info('----------------------------------------');
+                    $storeChatHistory->save();
+                    $this->pusherService->sendNotification($request['custId']);
+                }else {
+                    throw new \Exception('ไม่สามารถส่ง ข้อความไปยังไลน์ลูกค้าได้');
+                }
+            }else throw new \Exception('บันทึกลงฐานข้อมูลไม่สำเร็จ');
+            DB::commit();
+            return response()->json([
+                'message' => $message,
+                'response' => $storeChatHistory,
+                'request' => $request->all(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => $e->getMessage(),
+                'response' => [],
+                'request' => $request->all(),
+            ], $status ?? 400);
+        }
+    }
+
     // ฟังก์ชั่นการรับเรื่อง
     public function receive(Request $request): JsonResponse
     {
@@ -127,7 +179,7 @@ class MessageController extends Controller
         try {
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
-            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id','desc')->first();
+            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id', 'desc')->first();
 //            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)
 //                ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
@@ -143,7 +195,7 @@ class MessageController extends Controller
                     $status = 200;
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
             } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
-            $this->pusherService->sendNotification($updateAC['custId'],'มีการรับเรื่อง');
+            $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
 //            $notification = $this->pusherService->newMessage(null, false, 'มีการรับเรื่อง');
 //            if (!$notification['status']) {
 //                $status = 400;
@@ -194,7 +246,7 @@ class MessageController extends Controller
                     $bot = User::query()->where('empCode', 'BOT')->first();
                     $chatHistory = new ChatHistory();
                     $chatHistory['custId'] = $storeAC['custId'];
-                    $chatHistory['content'] = 'มีการส่งต่อมาจาก' . $room['roomName'].' โดย 👤' . auth()->user()->name;
+                    $chatHistory['content'] = 'มีการส่งต่อมาจาก' . $room['roomName'] . ' โดย 👤' . auth()->user()->name;
                     $chatHistory['contentType'] = 'text';
                     $chatHistory['sender'] = json_encode($bot);
                     $chatHistory['conversationRef'] = $updateAC['id'];
@@ -234,9 +286,9 @@ class MessageController extends Controller
         $activeId = $request['activeConversationId'];
         $Assessment = $request['Assessment'];
         // convert Assessment to boolean
-        if($Assessment === 'true'){
+        if ($Assessment === 'true') {
             $Assessment = true;
-        }else{
+        } else {
             $Assessment = false;
         }
         // Log::info("Ass ==> $Assessment");
@@ -255,7 +307,7 @@ class MessageController extends Controller
                 $updateAC['endTime'] = Carbon::now();
                 $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
                 if ($updateAC->save()) {
-                    if($Assessment){
+                    if ($Assessment) {
                         /* ส่งการ์ดประเมิน */
                         $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
                         if (!$send['status']) {
@@ -294,17 +346,18 @@ class MessageController extends Controller
         }
     }
 
-    public function pauseTalk(Request $request): JsonResponse{
+    public function pauseTalk(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'activeConversationId' => 'required',
             'rateId' => 'required',
-        ],[
+        ], [
             'activeConversationId.required' => 'จำเป็นต้องระบุ ไอดีเคส',
             'rateId.required' => 'จำเป็นต้องระบุ ไอดีเรท'
         ]);
-        $rate = Rates::query()->where('id',$request['rateId'])->first();
+        $rate = Rates::query()->where('id', $request['rateId'])->first();
         $rate->status = 'pending';
-        $activeConversation = ActiveConversations::query()->where('id',$request['activeConversationId'])->first();
+        $activeConversation = ActiveConversations::query()->where('id', $request['activeConversationId'])->first();
         $activeConversation->receiveAt = null;
         $activeConversation->startTime = null;
         $activeConversation->empCode = null;
@@ -313,11 +366,11 @@ class MessageController extends Controller
         $this->pusherService->sendNotification($rate['custId']);
         return response()->json([
             'message' => 'พักการสนทนาแล้ว',
-            'detail' => $request['activeConversationId'].$request['rateId']
+            'detail' => $request['activeConversationId'] . $request['rateId']
         ]);
     }
 
-    public function endTalkAllProgress(Request $request, $roomId)
+    public function endTalkAllProgress(Request $request, $roomId): JsonResponse
     {
         $list = $request['list'];
         $status = 400;
@@ -364,18 +417,19 @@ class MessageController extends Controller
         }
     }
 
-    public function endTalkAllPending(Request $request, $roomId){
+    public function endTalkAllPending(Request $request, $roomId): JsonResponse
+    {
         $status = 400;
         $message = 'เกิดข้อผิดพลาด';
         $detail = 'ไม่พบข้อผิดพลาด';
         $user = auth()->user();
         $data = [];
-        try{
+        try {
             $list = $request['list'] ?? [];
             DB::beginTransaction();
             $tag = TagMenu::query()->where('tagName', 'ปิดการสนทนา')->first();
-            if(!$tag) throw new \Exception('ไม่พบ Tag ที่ต้องการ');
-            if((count($list) > 0) && $request['list']){
+            if (!$tag) throw new \Exception('ไม่พบ Tag ที่ต้องการ');
+            if ((count($list) > 0) && $request['list']) {
                 foreach ($list as $key => $l) {
                     // update receiveAt , startTime, endTime, totalTime, empCode as activeConversations
                     $AC = ActiveConversations::query()->where('id', $l['id'])->first();
@@ -395,16 +449,16 @@ class MessageController extends Controller
                             $detail = 'ปืดการสนทนาที่กำลังดำเนินการทั้งหมดสำเร็จ';
                             $data[$key]['AC'] = $AC;
                             $data[$key]['R'] = $R;
-                        }else throw new \Exception('ไม่สามารถอัพเดท Rates');
-                    }else throw new \Exception('ไม่สามารถอัพเดท ActiveConversations');
+                        } else throw new \Exception('ไม่สามารถอัพเดท Rates');
+                    } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversations');
                 }
-            }else throw new \Exception('ไม่พบรายการที่ต้องการปิดการสนทนา');
+            } else throw new \Exception('ไม่พบรายการที่ต้องการปิดการสนทนา');
             DB::commit();
-        }catch(\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollback();
             $status = 400;
             $detail = $e->getMessage();
-        }finally{
+        } finally {
             return response()->json([
                 'message' => $message,
                 'detail' => $detail,
