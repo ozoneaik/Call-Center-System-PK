@@ -161,6 +161,8 @@ Route::prefix('webhooks')->group(function () {
    Route::post('/line',[LineUATController::class, 'webhook']);
 });
 
+Route::post('/upload-file',[MessageController::class, 'uploadFile']);
+
 
 Route::get('/hello', function (){
     return response()->json([

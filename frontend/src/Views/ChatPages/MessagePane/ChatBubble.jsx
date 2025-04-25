@@ -1,25 +1,26 @@
 import Stack from "@mui/joy/Stack";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
-import {Avatar, Sheet} from "@mui/joy";
-import {MessageStyle} from "../../../styles/MessageStyle.js";
-import {Link} from "react-router-dom";
-import {useAuth} from "../../../context/AuthContext.jsx";
+import { Avatar, Button, Sheet } from "@mui/joy";
+import { MessageStyle } from "../../../styles/MessageStyle.js";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import Divider from "@mui/joy/Divider";
 import ContextMenuButton from "./ContextMenuButton.jsx";
+import ImageIcon from '@mui/icons-material/Image';
 
 export default function Bubble(props) {
-    const {user} = useAuth();
-    const {sender, variant, content, created_at, contentType} = props;
-    const {line_message_id, line_quote_token, line_quoted_message_id} = props;
-    const {messages, onReply,setMessages} = props;
+    const { user } = useAuth();
+    const { sender, variant, content, created_at, contentType } = props;
+    const { line_message_id, line_quote_token, line_quoted_message_id } = props;
+    const { messages, onReply, setMessages } = props;
     const isSent = variant === 'sent';
 
     return (
-        <Box sx={{maxWidth: '60%', minWidth: 'auto'}}>
+        <Box sx={{ maxWidth: '60%', minWidth: 'auto' }}>
             <Stack direction="row" spacing={2} sx={MessageStyle.Bubble.Main} onClick={() => {
                 console.log(line_message_id, line_quote_token, line_quoted_message_id)
             }}>
@@ -37,12 +38,12 @@ export default function Bubble(props) {
                 }}
             >
                 {/* เมนู hover ต้องการ ตอบกลับ */}
-                {line_message_id && <ContextMenuButton onReply={(value) => alert(value)} {...{...props}}/>}
+                {line_message_id && <ContextMenuButton onReply={(value) => alert(value)} {...{ ...props }} />}
 
                 <Sheet sx={
                     isSent ? sender.empCode === user.empCode ?
-                            MessageStyle.Bubble.IsMySent :
-                            MessageStyle.Bubble.IsSent :
+                        MessageStyle.Bubble.IsMySent :
+                        MessageStyle.Bubble.IsSent :
                         MessageStyle.Bubble.IsNotSent
                 }>
                     {
@@ -61,14 +62,14 @@ export default function Bubble(props) {
                                                             <Typography level='body-sm'>
                                                                 {quotedMessage.content}
                                                             </Typography>
-                                                            <Divider/>
+                                                            <Divider />
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Typography level='body-sm' sx={{color : 'white'}}>
+                                                            <Typography level='body-sm' sx={{ color: 'white' }}>
                                                                 {quotedMessage.content}
                                                             </Typography>
-                                                            <Divider sx={{bgcolor : 'white'}}/>
+                                                            <Divider sx={{ bgcolor: 'white' }} />
                                                         </>
                                                     )}
                                                 </Stack>
@@ -84,46 +85,50 @@ export default function Bubble(props) {
 
                         contentType === 'sticker' ? (
                             <Sheet variant="outlined"
-                                   sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
-                                <img src={content} alt="" width={165}/>
+                                sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                                <img src={content} alt="" width={165} />
                             </Sheet>
-                        ) : contentType === 'image' ? (
+                        ) :
+                            // contentType === 'image' ? (
+                            //     <Sheet
+                            //         variant="outlined"
+                            //         sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                            //         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                            //             <Link to={content} target={'_blank'}>
+                            //                 <img loading="lazy" src={content} width={165} alt={content} />
+                            //             </Link>
+                            //         </Stack>
+                            //     </Sheet>
+                            // )
+                            //     :
+                            (contentType === 'file') || (contentType === 'video') || (contentType === 'audio') || (contentType === 'image') ? (
                                 <Sheet
                                     variant="outlined"
-                                    sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
-                                    <Stack direction="row" spacing={1.5} sx={{alignItems: 'center'}}>
-                                        <Link to={content} target={'_blank'}>
-                                            <img src={content} width={165} alt={content}/>
-                                        </Link>
+                                    sx={[
+                                        { px: 1.75, py: 1.25, borderRadius: 'lg', },
+                                        isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
+                                        isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
+                                    ]}
+                                >
+                                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                                        <Avatar color="primary" size="lg">
+                                            {contentType === 'file' ?
+                                                <InsertDriveFileRoundedIcon />
+                                                : contentType === 'video' ? <PlayCircleIcon />
+                                                    : contentType === 'image' ? <ImageIcon /> : <VolumeUpIcon />
+                                            }
+                                        </Avatar>
+                                        <Stack direction='column' spacing={2} width='100%'>
+                                            <Typography sx={{ fontSize: 'sm' }}>
+                                                {contentType === 'file' ? 'ไฟล์ PDF' :
+                                                    contentType === 'video' ? 'ไฟล์ Video' :
+                                                        contentType === 'image' ? 'ไฟล์รูปภาพ' : 'ไฟล์เสียง'}
+                                            </Typography>
+                                            <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button>
+                                        </Stack>
                                     </Stack>
                                 </Sheet>
                             ) :
-                            (contentType === 'file') || (contentType === 'video') || (contentType === 'audio') ? (
-                                    <Sheet
-                                        variant="outlined"
-                                        sx={[
-                                            {px: 1.75, py: 1.25, borderRadius: 'lg',},
-                                            isSent ? {borderTopRightRadius: 0} : {borderTopRightRadius: 'lg'},
-                                            isSent ? {borderTopLeftRadius: 'lg'} : {borderTopLeftRadius: 0},
-                                        ]}
-                                    >
-                                        <Stack direction="row" spacing={1.5} sx={{alignItems: 'center'}}>
-                                            <Avatar color="primary" size="lg">
-                                                {contentType === 'file' ?
-                                                    <InsertDriveFileRoundedIcon/>
-                                                    : contentType === 'video' ? <PlayCircleIcon/>
-                                                        : <VolumeUpIcon/>
-                                                }
-                                            </Avatar>
-                                            <div>
-                                                <Typography sx={{fontSize: 'sm'}}>
-                                                    {contentType === 'file' ? 'ไฟล์ PDF' : contentType === 'video' ? 'ไฟล์ Video' : 'ไฟล์เสียง'}
-                                                </Typography>
-                                                <Link to={content} target="_blank" level="body-sm">ดู</Link>
-                                            </div>
-                                        </Stack>
-                                    </Sheet>
-                                ) :
                                 (
                                     <Typography
                                         component="pre" level="body-sm"

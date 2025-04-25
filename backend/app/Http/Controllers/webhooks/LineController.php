@@ -92,7 +92,11 @@ class LineController extends Controller
                             ->orderBy('id', 'desc')
                             ->first();
                         if ($message['type'] === 'sticker') {
-                            $content = "https://stickershop.line-scdn.net/stickershop/v1/sticker/" . $message['stickerId'] . "/iPhone/sticker.png";
+                            // $content = "https://stickershop.line-scdn.net/stickershop/v1/sticker/" . $message['stickerId'] . "/iPhone/sticker.png";
+                            $start_url = "https://stickershop.line-scdn.net/stickershop/v1/sticker/";
+                            $sticker_id = $message['stickerId'];
+                            $end_url = "/iPhone/sticker.png";
+                            $content = $start_url.$sticker_id.$end_url;
                             ChatHistory::query()->create([
                                 'custId' => $CUSTOMER['custId'],
                                 'content' => $content,

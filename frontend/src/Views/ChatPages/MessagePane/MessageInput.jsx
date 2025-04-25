@@ -15,11 +15,12 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 
 export const MessageInput = (props) => {
     const { user } = useAuth();
-    const {disable,setDisable} = props
-    const { check, msg, setMsg, sender, setMessages, activeId,messages } = props;
+    const { disable, setDisable } = props
+    const { check, msg, setMsg, sender, setMessages, activeId, messages } = props;
     const [imagePreview, setImagePreview] = useState([]);
     const [selectedFile, setSelectedFile] = useState();
     const [disableBtn, setDisableBtn] = useState(false);
+    const [msgInput, setMsgInput] = useState(msg);
 
     const handleRemoveImage = (index) => {
         if (index) {
@@ -59,7 +60,8 @@ export const MessageInput = (props) => {
     const handleSend = async ({ type = 'text', c }) => {
         setDisableBtn(true);
         setDisable(true);
-        const C = msg.content ? msg.content : c;
+        // const C = msg.content ? msg.content : c;
+        const C = msgInput.content ? msgInput.content : c;
         if (!selectedFile) {
             if (C === null || C === undefined || C === '') {
                 alert('กรุณากรอกข้อความที่ต้องส่งก่อน')
@@ -78,16 +80,17 @@ export const MessageInput = (props) => {
         const contents = data.content ? data.content : [];
 
         if (status === 200) {
-            setMsg({ content: '', contentType: 'text', sender: '' });
-            console.log(selectedFile,C)
+            // setMsg({ content: '', contentType: 'text', sender: '' });
+            setMsgInput({ content: '', contentType: 'text', sender: '' });
+            console.log(selectedFile, C)
             contents.map((item) => {
                 setMessages((prev) => {
                     return [
                         ...prev,
                         {
-                            content : item.content,
-                            contentType : item.contentType,
-                            sender : user,
+                            content: item.content,
+                            contentType: item.contentType,
+                            sender: user,
                             created_at: new Date().toISOString(),
                         }
                     ]
@@ -141,38 +144,29 @@ export const MessageInput = (props) => {
                             disabled={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             placeholder="พิมพ์ข้อความที่นี่..."
                             minRows={imagePreview ? 1 : 3} maxRows={10}
-                            value={msg.content}
-                            onChange={(e) => setMsg({ ...msg, content: e.target.value })}
+                            value={msgInput.content}
+                            onChange={(e) => setMsgInput({ ...msg, content: e.target.value })}
                             endDecorator={
                                 <Stack direction="row" gap={1} sx={MessageStyle.TextArea}>
-
                                     <StickerPK disable={disable} sender={sender} activeId={activeId} />
-                                    {/* <StickerPK sender={sender} activeId={activeId} Disable={(sender.emp !== user.empCode) || disableBtn || selectedFile} /> */}
-
                                     <Button
-                                    disabled={disable}
-                                        // disabled={(sender.emp !== user.empCode) || disableBtn || selectedFile}
-                                        color="danger" component="label"
+                                        component='label' loading={disable} color="danger"
+                                        startDecorator={<FilePresentIcon />} disabled={disable}
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปไฟล์</Typography>
-                                        <input type="file" hidden accept="image/*,video/*,application/pdf"
+                                        <input
+                                            type="file" hidden
+                                            accept="image/*,video/*,application/pdf"
                                             onChange={handleImageChange} multiple
                                         />
-                                        <FilePresentIcon />
                                     </Button>
 
                                     <Button
-                                        disabled={disable}
-                                        // disabled={(sender.emp !== user.empCode) || disableBtn}
-                                        color="primary"
-                                        // onClick={()=>console.log(messages)}
+                                        startDecorator={<SendRoundedIcon />}
+                                        loading={disable} color="primary" disabled={disable}
                                         onClick={() => handleSend({ type: 'text' })}
                                     >
-
-                                        <Typography sx={MessageStyle.InsertImage}>
-                                            ส่ง ( ctrl+enter )
-                                        </Typography>
-                                        <SendRoundedIcon />
+                                        ส่ง ( ctrl+enter )
                                     </Button>
                                 </Stack>
                             }

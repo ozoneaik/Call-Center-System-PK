@@ -16,19 +16,25 @@ import {MessageStyle} from "../../../styles/MessageStyle.js";
 export const PauseTalk = ({activeId,rateId,disable}) => {
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
     const pauseTalkHandler = async () => {
-        const {data, status} = await pauseTalkApi({activeConversationId : activeId, rateId});
-        console.log(data,status);
-        AlertDiaLog({
-            icon: status === 200 ? 'success' : 'error',
-            title: data.message,
-            text: data.detail,
-            onPassed: (confirm) => {
-                console.log(confirm);
-                status === 200 && navigate(-1);
-            }
-        })
-        setOpen(false);
+        try{
+            setLoading(true);
+            const {data, status} = await pauseTalkApi({activeConversationId : activeId, rateId});
+            console.log(data,status);
+            AlertDiaLog({
+                icon: status === 200 ? 'success' : 'error',
+                title: data.message,
+                text: data.detail,
+                onPassed: (confirm) => {
+                    console.log(confirm);
+                    status === 200 && navigate(-1);
+                }
+            })
+        }finally{
+            setLoading(false);
+            setOpen(false);
+        }
     }
 
     return (
@@ -73,7 +79,7 @@ export const PauseTalk = ({activeId,rateId,disable}) => {
                         <br/>เพื่อให้คุณสามารถกลับมาจัดการได้ในวันถัดไปหรือภายหลัง
                     </Alert>
                     <Stack spacing={2} mt={2}>
-                        <Button onClick={()=>pauseTalkHandler()}>ยืนยันที่จะพักการสนทนา</Button>
+                        <Button loading={loading} onClick={()=>pauseTalkHandler()}>ยืนยันที่จะพักการสนทนา</Button>
                     </Stack>
                 </Sheet>
             </Modal>

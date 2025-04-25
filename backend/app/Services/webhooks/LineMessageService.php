@@ -7,13 +7,14 @@ use App\Models\ChatHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class LineMessageService
 {
     public function storeMessage($customer, $sender, $message, $acId, $token)
     {
 
-        Log::channel('line_webhook_log')->info('acId ==> '.$acId);
+        Log::channel('line_webhook_log')->info('acId ==> ' . $acId);
         Log::channel('line_webhook_log')->info(gettype($sender));
         switch ($message['type']) {
             case 'text':
@@ -23,14 +24,14 @@ class LineMessageService
                 $imageId = $message['id'];
                 $content = $this->storeMedia($imageId, $token);
                 break;
-            case 'sticker' :
+            case 'sticker':
                 $stickerId = $message['stickerId'];
                 $pathStart = 'https://stickershop.line-scdn.net/stickershop/v1/sticker/';
                 $pathEnd = '/iPhone/sticker.png';
                 $newPath = $pathStart . $stickerId . $pathEnd;
                 $content = $newPath;
                 break;
-            case 'video' :
+            case 'video':
                 $videoId = $message['id'];
                 $content = $this->storeMedia($videoId, $token);
                 break;
@@ -48,7 +49,7 @@ class LineMessageService
                 $fileId = $message['id'];
                 $content = $this->storeMedia($fileId, $token);
                 break;
-            default :
+            default:
                 $content = 'ไม่สามารถตรวจสอบได้ว่าลูกค้าส่งอะไรเข้ามา';
         }
         return ChatHistory::query()->create([
@@ -67,13 +68,34 @@ class LineMessageService
     {
         try {
             $url = "https://api-data.line.me/v2/bot/message/$mediaId/content";
+            Log::channel('line_webhook_log')->info('URL STORE MEDIA ==> ' . $url);
+            Log::channel('line_webhook_log')->info('TOKEN FOR GET URL MEDIA ==> ' . $token);
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
+                'Authorization' => 'Bearer ' . $token['accessToken'],
             ])->get($url);
             if ($response->status() == 200) {
-                return 'ส่งรูปภาพ ไฟล์ วิดีโอ เสียง หรือ อื่นๆ';
-            } else throw new \Exception("Error Processing Request");
+                $mediaContent = $response->body();
+                $contentType = $response->header('Content-Type');
+                $extension = match ($contentType) {
+                    'image/jpeg' => '.jpg',
+                    'image/png' => '.png',
+                    'image/gif' => '.gif',
+                    'video/mp4' => '.mp4',
+                    'video/webm' => '.webm',
+                    'video/ogg' => '.ogg',
+                    'video/avi' => '.avi',
+                    'video/mov' => '.mov',
+                    'audio/x-m4a' => '.m4a',
+                    default => '.bin',
+                };
+                $mediaPath = 'line-images/' . $mediaId . $extension;
+                Storage::disk('public')->put($mediaPath, $mediaContent);
+                $fullPath = $fullPath = asset('storage/' . $mediaPath);
+                return $fullPath;
+            } else throw new \Exception("Error Processing Request Url ==> ".$url);
         } catch (\Exception $e) {
+            Log::channel('line_webhook_log')->error($e->getMessage() . $e->getFile() . $e->getLine());
+            
             return 'ตรวจสอบไม่ได้ว่าเป็นรูปภาพ ไฟล์ วิดีโอ เสียง หรือ อื่นๆ';
         }
     }
@@ -123,11 +145,9 @@ class LineMessageService
                 ]
             ];
             $this->pushMessage($body, $token);
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::channel('line_webhook_log')->error($e->getMessage());
         }
-
-
     }
 
     public function pushMessage($body, $token): array

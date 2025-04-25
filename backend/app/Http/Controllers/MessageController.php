@@ -15,11 +15,13 @@ use App\Models\User;
 use App\Services\MessageService;
 use App\Services\PusherService;
 use Carbon\Carbon;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class MessageController extends Controller
 {
@@ -39,9 +41,6 @@ class MessageController extends Controller
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
         $messages = $request['messages'];
-        foreach ($messages as $m) {
-            Log::info($m);
-        }
         try {
             $checkCustId = Customers::query()->where('custId', $custId)->first();
             if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
@@ -63,23 +62,32 @@ class MessageController extends Controller
                 $storeChatHistory['custId'] = $custId;
                 $storeChatHistory['contentType'] = $m['contentType'];
                 if (($storeChatHistory['contentType'] === 'image') || ($storeChatHistory['contentType'] === 'video') || ($storeChatHistory['contentType'] === 'file')) {
-                    $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
-                    // ส่งไฟล์แบบ multipart โดยใช้ attach()
-//                    $response = Http::timeout(30)->attach('file', $m['content']
-//                        ->get(), $m['content']->getClientOriginalName())->post($URL);
-                    $response = Http::timeout(30)
-                        ->attach('file', fopen($m['content']->getRealPath(), 'r'), $m['content']->getClientOriginalName())
-                        ->post($URL);
-
-
-                    if ($response->status() == 200) {
-                        Log::info('บรรทัดที่ 74 messageController');
-                        Log::info($storeChatHistory['contentType']);
-                        $responseJson = $response->json();
-
-
-                        $storeChatHistory['content'] = $responseJson['imagePath'];
-                        $m['content'] = $responseJson['imagePath'];
+                    if (true) {
+                        Log::info('ส่งไฟล์มา-------------------------------------------------------');
+                        $file = $m['content'];
+                        $fileName = rand(0, 9999) . time() . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('public/line-images', $fileName);
+                        // สร้าง URL ให้ frontend ใช้งาน
+                        $fullUrl = asset(Storage::url(str_replace('public/', '', $path)));
+                        Log::info('URL เต็ม = ' . $fullUrl);
+                        $m['content'] = $fullUrl;
+                        $storeChatHistory['content'] = $m['content'];
+                        
+                        
+                        throw new \Exception('รับ content สำเร็จ');
+                        
+                        
+                        // อันเก่า
+                        // $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
+                        // $response = Http::timeout(30)
+                        //     ->attach('file', fopen($m['content']->getRealPath(), 'r'), $m['content']->getClientOriginalName())
+                        //     ->post($URL);
+                        // if ($response->status() == 200) {
+                        //     Log::info('บรรทัดที่ 74 messageController');
+                        //     Log::info($storeChatHistory['contentType']);
+                        //     $responseJson = $response->json();
+                        //     $storeChatHistory['content'] = $responseJson['imagePath'];
+                        //     $m['content'] = $responseJson['imagePath'];
                     } else {
                         throw new \Exception('ไม่สามารถส่งไฟล์ได้');
                     }
@@ -87,7 +95,7 @@ class MessageController extends Controller
                 $storeChatHistory['sender'] = json_encode(auth()->user());
                 $storeChatHistory['conversationRef'] = $conversationId;
                 if ($storeChatHistory->save()) {
-                    $this->pusherService->sendNotification($custId);
+                    // $this->pusherService->sendNotification($custId);
                     $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $m);
                     if ($sendMsgByLine['status']) {
                         $message = 'ส่งข้อความสำเร็จ';
@@ -98,6 +106,7 @@ class MessageController extends Controller
                         Log::info($sendMsgByLine['responseJson']['quoteToken']);
                         Log::info('----------------------------------------');
                         $storeChatHistory->save();
+                        $this->pusherService->sendNotification($custId);
                     } else throw new \Exception($sendMsgByLine['message']);
                 } else throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
                 $messages[$key]['content'] = $m['content'];
@@ -136,7 +145,7 @@ class MessageController extends Controller
             $storeChatHistory['sender'] = json_encode(auth()->user());
             $storeChatHistory['conversationRef'] = $request['activeId'];
             $storeChatHistory['line_quoted_message_id'] = $request['line_message_id'];
-//            throw new \Exception('joker');
+            //            throw new \Exception('joker');
             if ($storeChatHistory->save()) {
                 $sendMsgByLine = $this->messageService->sendMsgByLine($request['custId'], $replyContent);
                 if ($sendMsgByLine['status']) {
@@ -149,10 +158,10 @@ class MessageController extends Controller
                     Log::info('----------------------------------------');
                     $storeChatHistory->save();
                     $this->pusherService->sendNotification($request['custId']);
-                }else {
+                } else {
                     throw new \Exception('ไม่สามารถส่ง ข้อความไปยังไลน์ลูกค้าได้');
                 }
-            }else throw new \Exception('บันทึกลงฐานข้อมูลไม่สำเร็จ');
+            } else throw new \Exception('บันทึกลงฐานข้อมูลไม่สำเร็จ');
             DB::commit();
             return response()->json([
                 'message' => $message,
@@ -180,8 +189,6 @@ class MessageController extends Controller
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
             $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id', 'desc')->first();
-//            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)
-//                ->where('roomId', $roomId)->where('receiveAt', null)->first();
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['startTime'] = Carbon::now();
@@ -196,11 +203,6 @@ class MessageController extends Controller
                 } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
             } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
             $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
-//            $notification = $this->pusherService->newMessage(null, false, 'มีการรับเรื่อง');
-//            if (!$notification['status']) {
-//                $status = 400;
-//                throw new \Exception('การแจ้งเตือนผิดพลาด');
-//            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -259,11 +261,11 @@ class MessageController extends Controller
                 } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversation ได้');
             } else throw new \Exception('ไม่สามารถอัพเดท Rate ได้');
             $this->pusherService->sendNotification($updateRate['custId']);
-//            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
-//            if (!$notification['status']) {
-//                $status = 400;
-//                throw new \Exception('การแจ้งเตือนผิดพลาด');
-//            }
+            //            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
+            //            if (!$notification['status']) {
+            //                $status = 400;
+            //                throw new \Exception('การแจ้งเตือนผิดพลาด');
+            //            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -291,9 +293,6 @@ class MessageController extends Controller
         } else {
             $Assessment = false;
         }
-        // Log::info("Ass ==> $Assessment");
-        // Log::info(gettype($Assessment));
-        // dd($Assessment);
         DB::beginTransaction();
         try {
             $updateRate = Rates::query()->where('id', $rateId)->first();
@@ -329,11 +328,11 @@ class MessageController extends Controller
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
 
             $this->pusherService->sendNotification($updateRate['custId']);
-//            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
-//            if (!$notification['status']) {
-//                $status = 400;
-//                throw new \Exception('การแจ้งเตือนผิดพลาด');
-//            }
+            //            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
+            //            if (!$notification['status']) {
+            //                $status = 400;
+            //                throw new \Exception('การแจ้งเตือนผิดพลาด');
+            //            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -464,6 +463,20 @@ class MessageController extends Controller
                 'detail' => $detail,
                 'data' => $data
             ], $status);
+        }
+    }
+
+    public function uploadFile(Request $request)
+    {
+        try {
+            return response()->json([
+                'message' => 'upload file api connected',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'upload file api error',
+                'body' => $request->all(),
+            ],400);
         }
     }
 }

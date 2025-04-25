@@ -1,9 +1,9 @@
-import {useState} from 'react';
-import {Navigate} from 'react-router-dom';
-import {useAuth} from '../context/AuthContext';
+import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
-import {CssVarsProvider} from '@mui/joy/styles';
+import { CssVarsProvider } from '@mui/joy/styles';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import CssBaseline from '@mui/joy/CssBaseline';
 import Button from '@mui/joy/Button';
@@ -14,20 +14,20 @@ import IconButton from '@mui/joy/IconButton';
 import Input from '@mui/joy/Input';
 import Stack from '@mui/joy/Stack';
 import LoginIcon from '@mui/icons-material/Login';
-import {CircularProgress} from "@mui/joy";
+import { CircularProgress } from "@mui/joy";
 import ColorSchemeToggle from "../ColorSchemeToggle.jsx";
-import {LoginStyle} from "../styles/LoginStyle.js";
+import { LoginStyle } from "../styles/LoginStyle.js";
 import Logo from "../assets/logo.png";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {loginApi} from "../Api/Auth.js";
-import {chatRoomListApi} from "../Api/ChatRooms.js";
-import {useChatRooms} from "../context/ChatRoomContext.jsx";
+import { AlertDiaLog } from "../Dialogs/Alert.js";
+import { loginApi } from "../Api/Auth.js";
+import { chatRoomListApi } from "../Api/ChatRooms.js";
+import { useChatRooms } from "../context/ChatRoomContext.jsx";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const {setUser, csrfToken} = useAuth();
+    const { setUser, csrfToken } = useAuth();
 
     // login user
     const handleSubmit = async (e) => {
@@ -36,15 +36,15 @@ export default function Login() {
         await csrfToken();
         try {
             const Email = email + '@mail.local'
-            const {data, status} = await loginApi(Email, password);
+            const { data, status } = await loginApi(Email, password);
             if (status === 200) {
                 setUser(data.user);
                 console.log('login success')
-                return <Navigate to="/home"/>;
+                return <Navigate to="/home" />;
             } else {
                 AlertDiaLog({
                     text: data.message,
-                    onPassed : () => window.location.reload()
+                    onPassed: () => window.location.reload()
                 });
             }
         } finally {
@@ -54,60 +54,64 @@ export default function Login() {
 
     return (
         <CssVarsProvider defaultMode="dark" disableTransitionOnChange>
-            <CssBaseline/>
-            <GlobalStyles styles={{':root': {'--Form-maxWidth': '800px', '--Transition-duration': '0.4s',},}}/>
+            <CssBaseline />
+            <GlobalStyles styles={{ ':root': { '--Form-maxWidth': '800px', '--Transition-duration': '0.4s', }, }} />
             <Box
                 sx={[LoginStyle.Layout, (theme) => ({
-                    [theme.getColorSchemeSelector('dark')]: {backgroundColor: 'rgba(19 19 24 / 0.4)',},
+                    [theme.getColorSchemeSelector('dark')]: { backgroundColor: 'rgba(19 19 24 / 0.4)', },
                 })]}
             >
                 <Box sx={LoginStyle.ContentLeft}>
                     <Box component="header" sx={LoginStyle.Header}>
                         <Box sx={LoginStyle.Title}>
                             <IconButton variant="soft" size="sm" color='danger'>
-                                <img src={Logo || ''} alt="" width={25}/>
+                                <img src={Logo || ''} alt="" width={25} />
                             </IconButton>
                             <Typography level="title-lg">PUMPKIN ครบทุกเรื่อง เครื่องมือช่าง</Typography>
                         </Box>
-                        <ColorSchemeToggle/>
+                        <ColorSchemeToggle />
                     </Box>
                     <Box sx={LoginStyle.ContentLeftMain}>
-                        <Stack gap={4} sx={{mb: 2}}>
+                        <Stack gap={4} sx={{ mb: 2 }}>
                             <Stack gap={1}>
                                 <Typography component="h1" level="h3">
                                     Call Center System
-                                    <br/>
+                                    <br />
                                     ระบบแชทบริการลูกค้า
                                 </Typography>
                             </Stack>
                         </Stack>
-                        <Divider sx={(theme) => ({[theme.getColorSchemeSelector('light')]: LoginStyle.ThemeLight})}>
+                        <Divider sx={(theme) => ({ [theme.getColorSchemeSelector('light')]: LoginStyle.ThemeLight })}>
                             เข้าสู่ระบบ
                         </Divider>
-                        <Stack gap={4} sx={{mt: 2}}>
+                        <Stack gap={4} sx={{ mt: 2 }}>
                             <form onSubmit={handleSubmit} method={'POST'}>
                                 <FormControl required>
                                     <FormLabel>รหัสพนักงาน</FormLabel>
-                                    <Input defaultValue={email} onChange={(e) => setEmail(e.target.value)} type={'text'}
-                                           name="email"/>
+                                    <Input
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        type={'text'} name="email" autoFocus
+                                    />
                                 </FormControl>
                                 <FormControl required>
                                     <FormLabel>รหัสผ่าน</FormLabel>
-                                    <Input defaultValue={password} onChange={(e) => setPassword(e.target.value)}
-                                           type="password" name="password"/>
+                                    <Input
+                                        defaultValue={password} type="password" name="password"
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
                                 </FormControl>
-                                <Stack gap={4} sx={{mt: 2}}>
+                                <Stack gap={4} sx={{ mt: 2 }}>
                                     <Button
-                                        sx={{backgroundColor: '#f15739', '&:hover': {backgroundColor: 'darkorange'}}}
+                                        sx={{ backgroundColor: '#f15739', '&:hover': { backgroundColor: 'darkorange' } }}
                                         disabled={loading} type="submit" fullWidth>
-                                        {!loading ? <span><LoginIcon/></span> : <CircularProgress/>}
+                                        {!loading ? <span><LoginIcon /></span> : <CircularProgress />}
                                     </Button>
                                 </Stack>
 
                             </form>
                         </Stack>
                     </Box>
-                    <Box component="footer" sx={{py: 3}}>
+                    <Box component="footer" sx={{ py: 3 }}>
                         <Typography level="body-xs" textAlign="center">
                             © Pumpkin Corporation Company Limited | Bangkok {new Date().getFullYear()}
                         </Typography>

@@ -31,8 +31,7 @@ class LineUATController extends Controller
         LineMessageService $LineMessageService,
         MessageService     $messageService,
         PusherService      $pusherService,
-    )
-    {
+    ) {
         $this->lineMessageService = $LineMessageService;
         $this->messageService = $messageService;
         $this->pusherService = $pusherService;
@@ -47,7 +46,7 @@ class LineUATController extends Controller
 
             foreach ($events as $event) {
                 Log::channel('line_webhook_log')->info($event);
-
+                // ถ้าส่งข้อความธรรมดามา
                 if ($event['type'] === 'message') {
                     $userId = $event['source']['userId'];
                     $CUSTOMER = $this->getOrCreateCustomer($userId);
@@ -55,19 +54,15 @@ class LineUATController extends Controller
                     $message = $event['message'];
                     $this->handleMessage($CUSTOMER, $message, $BOT, $TOKEN);
                 }
-                elseif ($event['type'] === 'postback') {
-                    $this->handlePostback($event);
-                }
-                else {
-                    throw new \Exception('type event ไม่ใช่ message');
-                }
+                // ถ้าเป็นการกด like , unlike
+                elseif ($event['type'] === 'postback') $this->handlePostback($event);
+                // ลูกค้า ทำอย่างอื่นที่ไม่ใช่ข้อความ
+                else throw new \Exception('type event ไม่ใช่ message');
             }
-
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::channel('line_webhook_log')->error($e->getMessage() . 'บรรทัดที่ ' . $e->getLine() . $e->getFile());
-            Log::channel('line_webhook_log')->error($e->getTraceAsString());
         }
 
         return response()->json(['message' => 'webhook received']);
@@ -104,31 +99,19 @@ class LineUATController extends Controller
 
     private function handleMessage($CUSTOMER, $message, $BOT, $TOKEN): void
     {
-        $current_rate = Rates::query()
-            ->where('custId', $CUSTOMER['custId'])
-            ->orderBy('id', 'desc')
-            ->first();
-
+        $current_rate = Rates::query()->where('custId', $CUSTOMER['custId'])->orderBy('id', 'desc')->first();
         if ($current_rate && $current_rate->status === 'success') {
             $this->handleSuccessRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN);
-        }
-        elseif ($current_rate && $current_rate->status === 'progress') {
+        } elseif ($current_rate && $current_rate->status === 'progress') {
             $this->handleProgressRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN);
-        }
-        elseif ($current_rate && $current_rate->status === 'pending') {
+        } elseif ($current_rate && $current_rate->status === 'pending') {
             $this->handlePendingRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN);
-        }
-        else {
-            $this->handleNewMessage($CUSTOMER, $message, $BOT, $TOKEN);
-        }
+        } else $this->handleNewMessage($CUSTOMER, $message, $BOT, $TOKEN);
     }
 
     private function handleSuccessRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
-        $AcRef = ActiveConversations::query()
-            ->where('rateRef', $current_rate->id)
-            ->orderBy('id', 'desc')
-            ->first();
+        $AcRef = ActiveConversations::query()->where('rateRef', $current_rate->id)->orderBy('id', 'desc')->first();
 
         if ($message['type'] === 'sticker') {
             $content = "https://stickershop.line-scdn.net/stickershop/v1/sticker/" . $message['stickerId'] . "/iPhone/sticker.png";
@@ -179,9 +162,9 @@ class LineUATController extends Controller
             }
         } else {
             $now = Carbon::now();
-            if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) {
+            if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) { // ทักมาภายใน 12 ชั่วโมง
                 $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
-            } else {
+            } else { // ทักมามากกว่า 12 ชั่วโมง
                 $this->createBotConversation($CUSTOMER, $message, $BOT, $TOKEN);
             }
         }
@@ -190,9 +173,9 @@ class LineUATController extends Controller
     private function handleMediaMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
         $now = Carbon::now();
-        if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) {
+        if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) { // ทักมาภายใน 12 ชั่วโมง
             $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
-        } else {
+        } else { // ทักมามากกว่า 12 ชั่วโมง
             $this->createBotConversation($CUSTOMER, $message, $BOT, $TOKEN);
         }
     }
@@ -263,31 +246,29 @@ class LineUATController extends Controller
 
     private function handleProgressRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
-        $acRef = ActiveConversations::query()
-            ->where('custId', $CUSTOMER['custId'])
-            ->orderBy('id', 'desc')->first();
+        $acRef = ActiveConversations::query()->where('custId', $CUSTOMER['custId'])->orderBy('id', 'desc')->first();
 
         if ($current_rate->latestRoomId === 'ROOM00') {
             if ($message['type'] === 'text') {
+                // ส่งเมนูบอทไป
                 $this->handleBotMenuSelection($CUSTOMER, $message, $current_rate, $acRef, $BOT, $TOKEN);
             } else {
+                // ส่งไปยังห้องอื่นๆ
                 $this->forwardToServiceRoom($CUSTOMER, $message, $current_rate, $acRef, $BOT, $TOKEN);
             }
         } else {
             $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $acRef->id, $TOKEN);
-            $this->pusherService->sendNotification($CUSTOMER['custId']);
         }
+        $this->pusherService->sendNotification($CUSTOMER['custId']);
     }
 
     private function handleBotMenuSelection($CUSTOMER, $message, $current_rate, $acRef, $BOT, $TOKEN): void
     {
-        $menus = BotMenu::query()
-            ->where('botTokenId', $CUSTOMER['platformRef'])
-            ->get();
+        $menus = BotMenu::query()->where('botTokenId', $CUSTOMER['platformRef'])->get();
 
         $findMenu = false;
         foreach ($menus as $menu) {
-            if ($menu->menuName === $message['text']) {
+            if ($menu->menuName === $message['text']) { // เมนูตรงกับข้อความ
                 $this->updateRateAndForwardToRoom($CUSTOMER, $message, $current_rate, $acRef, $menu->roomId, $BOT, $TOKEN);
                 $findMenu = true;
                 break;
@@ -335,17 +316,16 @@ class LineUATController extends Controller
 
     private function forwardToDefaultRoom($CUSTOMER, $message, $current_rate, $acRef, $BOT, $TOKEN): void
     {
-        $descriptions = PlatformAccessTokens::query()
-            ->where('id', $CUSTOMER['platformRef'])
-            ->first();
+        $descriptions = PlatformAccessTokens::query()->where('id', $CUSTOMER['platformRef'])->first();
 
         $roomId = 'ROOM01'; // Default room
 
-        if ($descriptions->descriptions === 'ศูนย์ซ่อม Pumpkin') {
+        if ($descriptions->description === 'ศูนย์ซ่อม Pumpkin') {
             $roomId = 'ROOM02';
-        } else if ($descriptions->descriptions === 'pumpkintools') {
+        } else if ($descriptions->description === 'pumpkintools') {
             $roomId = 'ROOM06';
         }
+        Log::channel('line_webhook_log')->info('forwardToDefaultRoom: ' . $roomId . '');
 
         $this->updateRateAndForwardToRoom($CUSTOMER, $message, $current_rate, $acRef, $roomId, $BOT, $TOKEN);
     }

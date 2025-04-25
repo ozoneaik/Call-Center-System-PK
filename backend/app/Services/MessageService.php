@@ -95,8 +95,9 @@ class MessageService
                 $data['responseJson'] = $responseJson;
             } else {
                 $data['status'] = false;
-                Log::info($response->json());
-                throw new \Exception('ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API');
+                $resJson = $response->json();
+                $messageError = 'Line API PUSH MESSAGE => '.$resJson['details'][0]['message'] ?? 'ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API';
+                throw new \Exception($messageError);
             }
             $data['message'] = $response->json() ?? 'test';
             Log::info('ERROR METHOD MESSAGE SERVICE >>> sendMsgByLine');
