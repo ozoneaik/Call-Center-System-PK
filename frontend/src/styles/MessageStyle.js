@@ -105,10 +105,20 @@ export const MessageStyle = {
         },
         TextMySent: {
             color: '#ffffff',
-            
+
         },
         TextIsNotSent: {
             color: 'var(--joy-palette-text-primary)'
+        },
+        ActionButtons: {
+            position: 'absolute',
+            display: 'flex',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: 'md',
+            boxShadow: 'sm',
+            transition: 'opacity 0.2s',
+            zIndex: 10,
+            padding: '2px',
         }
     },
     imagePreview : {

@@ -90,6 +90,7 @@ export default function MessagePane() {
             return;
         }
         if (notification.message.sender) {
+            console.log(notification)
             if (notification.message.sender.custId) {
                 if (notification.message.sender.custId === sender.custId) {
                     setMessages((prevMessages) => {
@@ -99,6 +100,9 @@ export default function MessagePane() {
                                 id: notification.message.id,
                                 content: notification.message.content,
                                 contentType: notification.message.contentType,
+                                line_message_id : notification.message.line_message_id,
+                                line_quote_token : notification.message.line_quote_token,
+                                line_quoted_message_id : notification.message.line_quoted_message_id || null,
                                 sender: notification.message.sender,
                                 created_at: notification.message.created_at,
                             }
@@ -155,7 +159,7 @@ export default function MessagePane() {
                         <Box sx={MessageStyle.PaneContent}>
                             {loading && <CircularProgress />}
                             {!loading && (
-                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }} onClick={()=>console.log(messages)}>
+                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
                                     {messages.length > 0 && messages.map((message, index) => {
                                         const isYou = message.sender.empCode;
                                         return (
@@ -164,7 +168,10 @@ export default function MessagePane() {
                                                 sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
                                             >
                                                 <Avatar src={message.sender.avatar} />
-                                                <ChatBubble variant={isYou ? 'sent' : 'received'} {...message} {...{messages}} />
+                                                <ChatBubble
+                                                    variant={isYou ? 'sent' : 'received'} {...message}
+                                                    {...{messages,setMessages}}
+                                                />
                                             </Stack>
                                         );
                                     })}
@@ -189,7 +196,8 @@ export default function MessagePane() {
                     </Sheet>
                 </Sheet>
                 {/* Info */}
-                <Info sender={sender} starList={starList} notes={notes} check={check} />
+                {/*<Info sender={sender} starList={starList} notes={notes} check={check} />*/}
+                <Info {...{sender, starList, notes, check}}/>
             </Sheet>
         </>
     )

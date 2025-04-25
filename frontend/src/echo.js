@@ -35,6 +35,7 @@ export const messageByCust = ({onPassed}) => {
 export const newChatRooms = ({onPassed}) => {
     const channel = echo.channel(`newChatRooms`);
     channel.listen('.my-event', (event) => {
+        console.log('event Echo => ',event);
         onPassed(true,event);
     });
     return () => {
