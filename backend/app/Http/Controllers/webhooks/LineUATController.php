@@ -159,6 +159,7 @@ class LineUATController extends Controller
                 ]);
             } else {
                 $this->createNewConversation($CUSTOMER, $message, $keyword->redirectTo, 'pending', $BOT, $TOKEN);
+                $this->pusherService->sendNotification($CUSTOMER['custId']);
             }
         } else {
             $now = Carbon::now();
@@ -207,6 +208,7 @@ class LineUATController extends Controller
 
             $body_send = ['to' => $CUSTOMER['custId'], 'messages' => [$message_send]];
             $this->lineMessageService->pushMessage($body_send, $TOKEN);
+            $this->pusherService->sendNotification($CUSTOMER['custId']);
         }
 
         return $newAc;
@@ -232,6 +234,7 @@ class LineUATController extends Controller
         ]);
 
         $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $newAc->id, $TOKEN);
+        $this->pusherService->sendNotification($CUSTOMER['custId']);
 
         $message_menu = [
             'type' => 'text',
@@ -240,6 +243,7 @@ class LineUATController extends Controller
 
         $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
         $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
+        $this->pusherService->sendNotification($CUSTOMER['custId']);
 
         return $newAc;
     }
@@ -378,11 +382,11 @@ class LineUATController extends Controller
     private function handleNewMessage($CUSTOMER, $message, $BOT, $TOKEN): void
     {
         if ($message['type'] === 'text') {
-            $keyword = Keyword::query()->where('name', 'like', "%$message[text]%")
-                ->first();
+            $keyword = Keyword::query()->where('name', 'like', "%$message[text]%")->first();
 
             if ($keyword && $keyword->event !== true) {
                 $this->createNewConversation($CUSTOMER, $message, $keyword->redirectTo, 'pending', $BOT, $TOKEN);
+                $this->pusherService->sendNotification($CUSTOMER['custId']);
             } else {
                 $this->createBotConversation($CUSTOMER, $message, $BOT, $TOKEN);
             }

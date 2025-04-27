@@ -74,7 +74,7 @@ class MessageController extends Controller
                         $storeChatHistory['content'] = $m['content'];
                         
                         
-                        throw new \Exception('รับ content สำเร็จ');
+                        // throw new \Exception('รับ content สำเร็จ');
                         
                         
                         // อันเก่า
