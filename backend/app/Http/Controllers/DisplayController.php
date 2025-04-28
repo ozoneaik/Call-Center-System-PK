@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PDO;
 
 class DisplayController extends Controller
 {
@@ -60,8 +61,8 @@ class DisplayController extends Controller
             $sender['emp'] = $emp;
 
             $starList = Rates::query()
-                ->leftJoin('tag_menus','rates.tag','=','tag_menus.id')
-                ->select('rates.rate','rates.tag', 'rates.updated_at','tag_menus.tagName')
+                ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+                ->select('rates.rate', 'rates.tag', 'rates.updated_at', 'tag_menus.tagName')
                 ->where('rates.custId', $custId)
                 ->orderBy('rates.updated_at', 'desc')
                 ->get();
@@ -131,22 +132,53 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function ChatHistory(): JsonResponse
+    public function ChatHistory(Request $request): JsonResponse
     {
 
-        $list = ActiveConversations::query()
-            ->select('active_conversations.*', 'customers.custName', 'customers.avatar', 'customers.description', 'users.name')
-            ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
-            ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
-            ->distinct('active_conversations.custId')
-            ->orderBy('active_conversations.custId')
-            ->orderByDesc('active_conversations.updated_at')
-            ->get();
+        // $customer_list = ActiveConversations::query()
+        // ->select('active_conversations.id','active_conversations.rateRef', 'customers.*', 'users.name')
+        // ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
+        // ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
+        // ->distinct('active_conversations.custId')
+        // ->orderBy('customers.created_at', 'desc')
+        // ->paginate(300);
+        $customer_list = Customers::query()->where('customers.custId', 'U21af8c6969cc91a6c00359f33e7f3ba2')->orderBy('created_at', 'desc')->paginate(1000);
+        foreach ($customer_list as $customer) {
+            $customer->latest_message = ChatHistory::query()
+                ->select('content', 'contentType', 'created_at')
+                ->where('custId', $customer->custId)
+                ->orderBy('id', 'desc')
+                ->first();
+        }
 
 
         return response()->json([
-            'list' => $list
+            'list' => $customer_list,
         ]);
+    }
+
+    public function ChatHistoryDetail($custId)
+    {
+        $status = 400;
+        try {
+            // ดึง 500 รายการล่าสุด (id มากไปน้อย)
+            $chatHistory = ChatHistory::query()->where('custId', $custId)->orderBy('id', 'desc')->limit(500)->get();
+            // จากนั้นกลับลำดับ (น้อยไปมาก)
+            $chatHistory = $chatHistory->sortBy('id')->values();
+            $customer = Customers::query()->where('custId', $custId)->first();
+            return response()->json([
+                'message' => 'ดึงข้อมูลสำเร็จ',
+                'data' => [
+                    'chatHistory' => $chatHistory,
+                    'customer' => $customer,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => [],
+            ], $status ?? 500);
+        }
     }
 
 
@@ -173,12 +205,12 @@ class DisplayController extends Controller
             ->orderBy('updated_at', 'asc')
             ->get();
 
-            foreach ($result as $key => $value) {
-                $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
-                    ->orderBy('id', 'desc')
-                    ->first();
-                $value->latest_message = $latest_message;
-            }
+        foreach ($result as $key => $value) {
+            $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
+                ->orderBy('id', 'desc')
+                ->first();
+            $value->latest_message = $latest_message;
+        }
         return response()->json([
             'message' => 'myCase',
             'result' => $result

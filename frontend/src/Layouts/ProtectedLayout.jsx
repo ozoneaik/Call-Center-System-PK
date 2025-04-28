@@ -22,7 +22,7 @@ function ProtectedLayout() {
                     <Outlet />
                 </Box>
             </Box>
-            <FloatingBtn />
+            {/* <FloatingBtn /> */}
         </div>
     );
 

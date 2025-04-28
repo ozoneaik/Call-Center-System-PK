@@ -1,5 +1,5 @@
 export const ChatPageStyle = {
-    Layout : {
+    Layout: {
         flex: 1,
         width: '100%',
         mx: 'auto',
@@ -9,9 +9,9 @@ export const ChatPageStyle = {
             xs: '1fr',
         },
     },
-    MainContent : {
-        px: {xs: 2, md: 6},
-        pb: {xs: 2, sm: 2, md: 3},
+    MainContent: {
+        px: { xs: 2, md: 6 },
+        pb: { xs: 2, sm: 2, md: 3 },
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -19,25 +19,25 @@ export const ChatPageStyle = {
         height: '100dvh',
         gap: 1,
     },
-    BoxTable : {
+    BoxTable: {
         display: 'flex',
         mb: 1,
         gap: 1,
-        flexDirection: {xs: 'column', sm: 'row'},
-        alignItems: {xs: 'start', sm: 'center'},
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'start', sm: 'center' },
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
     BoxSheet: {
-        display: {sm: 'initial'}, width: '100%',
+        display: { sm: 'initial' }, width: '100%',
         borderRadius: 'sm', flexShrink: 1, overflow: 'auto', minHeight: '300px', maxHeight: 'calc(100vh - 200px)',
     },
-    Table : {
+    Table: {
         '--TableCell-headBackground': 'var(--joy-palette-background-level1)',
         '--Table-headerUnderlineThickness': '1px',
         '--TableRow-hoverBackground': 'var(--joy-palette-background-level1)',
     },
-    TableText : {
+    TableText: {
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',

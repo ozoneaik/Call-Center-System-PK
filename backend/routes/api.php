@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //ดูประวัติแชททั้งหมด
     Route::get('/chatHistory',[DisplayController::class, 'ChatHistory']);
+    Route::post('/chatHistory/{custId}',[DisplayController::class, 'ChatHistoryDetail']);
 
     // จัดการ BOT
     Route::prefix('bots')->group(function () {

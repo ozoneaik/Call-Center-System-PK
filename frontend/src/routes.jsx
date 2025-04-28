@@ -1,4 +1,4 @@
-import {createBrowserRouter} from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import ProtectedLayout from "./Layouts/ProtectedLayout.jsx";
 import MainChat from "./Views/ChatPages/main.jsx";
 import GuestLayout from "./Layouts/GuestLayout.jsx";
@@ -22,52 +22,55 @@ import AuthPages from "./Views/AuthPages/main.jsx";
 import KeyWordPage from "./Views/KeyWordPages/main.jsx";
 import MyCasePage from "./Views/MyCasePages/main.jsx";
 import SearchNote from "./Views/SearchNotePages/SearchNote.jsx";
+import ChatDetail from "./Views/ChatHistoryPages/ChatDetail.jsx";
 
 export const routes = createBrowserRouter([
     {
         path: '/',
-        element: <GuestLayout/>,
+        element: <GuestLayout />,
         children: [
-            {path: '/', element: <Login/>,},
+            { path: '/', element: <Login />, },
         ],
     },
     {
-        path: '/', element: <MainLayout/>, children: [
+        path: '/', element: <MainLayout />, children: [
             {
-                path: '/', element: <ProtectedLayout/>, children: [
-                    {path: 'home', element: <Home/>},
+                path: '/', element: <ProtectedLayout />, children: [
+                    { path: 'home', element: <Home /> },
                     {
                         path: '/chat', children: [
-                            {path: 'room/:roomId/:roomName', element: <MainChat/>},
-                            {path: 'myCase', element: <MyCasePage/>}
+                            { path: 'room/:roomId/:roomName', element: <MainChat /> },
+                            { path: 'myCase', element: <MyCasePage /> }
                         ]
                     },
-                    {path : 'search-notes', element : <SearchNote/>},
+                    { path: 'search-notes', element: <SearchNote /> },
                     {
-                        path: '/', element: <CheckAdmin/>, children: [
-                            {path: '/keywords', element: <KeyWordPage/>},
-                            {path: '/chatRooms', element: <ChatRooms/>},
-                            {path: '/shortChats', element: <ShortChats/>},
-                            {path: '/customers', element: <Customers/>},
-                            {path: '/users', element: <Users/>},
-                            {path: '/accessToken', element: <AccessToken/>},
-                            {path : '/botManage', element: <BotPage/>},
-                            {path : '/tags', element: <TagePage/>},
+                        path: '/', element: <CheckAdmin />, children: [
+                            { path: '/keywords', element: <KeyWordPage /> },
+                            { path: '/chatRooms', element: <ChatRooms /> },
+                            { path: '/shortChats', element: <ShortChats /> },
+                            { path: '/customers', element: <Customers /> },
+                            { path: '/users', element: <Users /> },
+                            { path: '/accessToken', element: <AccessToken /> },
+                            { path: '/botManage', element: <BotPage /> },
+                            { path: '/tags', element: <TagePage /> },
                         ]
                     },
-                    {path: '/chatHistory', element: <ChatHistory/>},
-                    {path : '/profile', element : <AuthPages/>}
-                ]
+
+                    { path: '/chatHistory', element: <ChatHistory /> },
+                    { path: '/profile', element: <AuthPages /> }
+                ],
             },
-            {path: '/report' , element : <ReportPage/>},
+            { path: '/chatHistory/detail/:custId', element: <ChatDetail /> },
+            { path: '/report', element: <ReportPage /> },
             {
                 path: '/select', children: [
-                    {path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane/>},
+                    { path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane /> },
                 ]
             }
         ]
     },
-    {path: 'access/denied', element: <NotFoundPage/>},
-    {path: 'test', element: <TestUi/>},
-    {path: '*', element: <NotFoundPage/>}
+    { path: 'access/denied', element: <NotFoundPage /> },
+    { path: 'test', element: <TestUi /> },
+    { path: '*', element: <NotFoundPage /> }
 ])

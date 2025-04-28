@@ -1,4 +1,4 @@
-import { Box, Button, FormControl, FormLabel, Input } from "@mui/joy"
+import { Box, Button, FormControl, FormLabel, Input, Stack } from "@mui/joy"
 import Autocomplete from '@mui/joy/Autocomplete';
 import { useState } from "react";
 
@@ -48,7 +48,7 @@ export const FilterChatHistory = (props) => {
     }
 
     return (
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Stack direction={'row'} spacing={2}>
             <FormControl>
                 <FormLabel>ชื่อลูกค้า</FormLabel>
                 <Input onChange={(e) => searchName(e)} />
@@ -56,9 +56,9 @@ export const FilterChatHistory = (props) => {
             <FormControl>
                 <FormLabel>ทักมาจาก</FormLabel>
                 <Autocomplete options={[
-                    'ทักมาจากไลน์ pumpkintools',
-                    'ทักมาจากไลน์ ศูนย์ซ่อม Pumpkin',
-                    'ทักมาจากไลน์ ไลน์ dearler'
+                    'pumpkintools',
+                    'ศูนย์ซ่อม Pumpkin',
+                    'dearler'
                 ]} sx={{ width: 300 }} onChange={(event, value) => searchDirectFrom(event, value)} />
             </FormControl>
             <FormControl>
@@ -69,11 +69,7 @@ export const FilterChatHistory = (props) => {
                 <FormLabel>ทักครั้งแรกเมื่อ	</FormLabel>
                 <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
             </FormControl>
-            <FormControl>
-                <FormLabel sx={{visibility: 'hidden'}}>ทักครั้งแรกเมื่อ</FormLabel>
-                <Input type="date" onChange={(e) => setEndTime(e.target.value)}/>
-            </FormControl>
-            <Button onClick={()=>searchDate()} disabled={!startTime || !endTime}>ค้นหา(สำหรับวันที่)</Button>
-        </Box>
+            <Button onClick={()=>searchDate()}>ค้นหา</Button>
+        </Stack>
     )
 }

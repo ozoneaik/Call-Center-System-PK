@@ -24,10 +24,11 @@ import {logoutApi} from "../Api/Auth.js";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {useChatRooms} from "../context/ChatRoomContext.jsx";
 import PersonIcon from '@mui/icons-material/Person';
-import {chatRoomListApi} from "../Api/ChatRooms.js";
 import {SidebarAdmin} from "./SidebarAdmin.jsx";
 import ThreePIcon from '@mui/icons-material/ThreeP';
+import HistoryIcon from '@mui/icons-material/History';
 import SearchIcon from '@mui/icons-material/Search';
+import { red } from '@mui/material/colors';
 
 export default function Sidebar() {
     const {setChatRoomsContext, chatRoomsContext,myRoomContext} = useChatRooms()
@@ -74,7 +75,7 @@ export default function Sidebar() {
 
 
     return (
-        <Sheet className="Sidebar" sx={LayoutStyle.Sidebar.Layout}>
+        <Sheet className="Sidebar" sx={[LayoutStyle.Sidebar.Layout]}>
             <GlobalStyles
                 styles={(theme) => ({
                     ':root': {
@@ -140,7 +141,7 @@ export default function Sidebar() {
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
                     <ListItem component={Link} to={`/chatHistory`}>
                         <ListItemButton selected={pathname === '/chatHistory'}>
-                            <MeetingRoomIcon/>
+                            <HistoryIcon/>
                             ประวัติการสนทนาทั้งหมด
                         </ListItemButton>
                     </ListItem>

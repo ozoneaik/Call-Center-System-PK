@@ -138,9 +138,9 @@ export const MyMessagesApi = async (empCode) => {
     }
 }
 
-export const chatHistoryApi = async () => {
+export const chatHistoryApi = async ({page=1}) => {
     try {
-        const { data, status } = await axiosClient.get(`/chatHistory`);
+        const { data, status } = await axiosClient.get(`/chatHistory?page=${page}`);
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
