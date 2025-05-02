@@ -33,7 +33,7 @@ export default function AccessToken() {
         accessTokenId: '',
         accessToken: '',
         description: '',
-        platform: '',
+        platform: 'line',
         created_at: new Date(),
         updated_at: new Date()
     })

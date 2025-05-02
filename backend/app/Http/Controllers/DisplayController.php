@@ -8,6 +8,7 @@ use App\Models\ChatHistory;
 use App\Models\ChatRooms;
 use App\Models\Customers;
 use App\Models\Notes;
+use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\TagMenu;
 use App\Services\DashboardService;
@@ -134,15 +135,23 @@ class DisplayController extends Controller
 
     public function ChatHistory(Request $request): JsonResponse
     {
+        $query = Customers::query();
+        if (isset($request['custName']) && $request['custName'] !== null) {
+            $message = 'ค้นหาชื่อผู้ใช้';
+            $query->where('custName', 'ILIKE', '%' . $request['custName'] . '%');
+        }
 
-        // $customer_list = ActiveConversations::query()
-        // ->select('active_conversations.id','active_conversations.rateRef', 'customers.*', 'users.name')
-        // ->join('customers', 'active_conversations.custId', '=', 'customers.custId')
-        // ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
-        // ->distinct('active_conversations.custId')
-        // ->orderBy('customers.created_at', 'desc')
-        // ->paginate(300);
-        $customer_list = Customers::query()->where('customers.custId', 'U21af8c6969cc91a6c00359f33e7f3ba2')->orderBy('created_at', 'desc')->paginate(1000);
+        if (isset($request['directFrom']) && $request['directFrom'] !== null) {
+            $message = 'ค้นหาจากแหล่งที่มา';
+            $query->where('platformRef','ILIKE',$request['directFrom']);
+        }
+
+        if(isset($request['firstContactDate']) && $request['firstContactDate'] !== null) {
+            $message = 'ค้นหาจากวันที่';
+            $query->whereDate('created_at', $request['firstContactDate']);
+        }
+
+        $customer_list = $query->orderBy('created_at', 'desc')->paginate(1000);
         foreach ($customer_list as $customer) {
             $customer->latest_message = ChatHistory::query()
                 ->select('content', 'contentType', 'created_at')
@@ -151,9 +160,13 @@ class DisplayController extends Controller
                 ->first();
         }
 
+        $platforms = PlatformAccessTokens::all();
 
         return response()->json([
+            'message' => $message ?? 'ดึงข้อมูลสำเร็จ',
             'list' => $customer_list,
+            'platforms' => $platforms,
+            'request' => $request->all(),
         ]);
     }
 

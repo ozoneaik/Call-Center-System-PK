@@ -16,6 +16,7 @@ import Grid from "@mui/joy/Grid";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { FilterChatHistory } from "./FilterChatHistory.jsx";
+import axiosClient from "../../Axios.js";
 
 const BreadcrumbsPath = [{ name: 'ห้องแชทล่าสุด' }];
 
@@ -30,6 +31,7 @@ export default function ChatHistory() {
     const [searchParams] = useSearchParams();
     const page_url = searchParams.get('page');
     const [links, setLinks] = useState([]);
+    const [platforms, setPlatform] = useState([]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -41,22 +43,43 @@ export default function ChatHistory() {
                 setTo(data.list.to);
                 setTotal(data.list.total);
                 setLinks(data.list.links);
+                setPlatform(data.platforms);
             }
         } catch (error) {
             console.error("Error fetching chat history:", error);
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchData().finally(()=>setLoading(false));
     }, [page_url]);
 
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
         navigate(`/select/message/${params}/0`);
     };
+
+    const handleSearch = async (formData) => {
+        console.log(formData);
+        setLoading(true);
+        try{
+            const {data, status} = await axiosClient.get('/chatHistory',{
+                params : formData,
+            });
+            console.log(data, status);
+            if (status === 200) {
+                setList(data.list.data);
+                setTo(data.list.to);
+                setTotal(data.list.total);
+                setLinks(data.list.links);
+                setPlatform(data.platforms);
+            }
+        }catch (error) {
+            console.log(error)
+        }finally{
+            setLoading(false);
+        }
+    }
 
     return (
         <Sheet sx={{
@@ -88,7 +111,7 @@ export default function ChatHistory() {
                     ประวัติการสนทนาทั้งหมด
                 </Typography>
 
-                <FilterChatHistory/>
+                <FilterChatHistory {...{platforms}} onPassed={(formData)=>handleSearch(formData)}/>
 
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
@@ -215,7 +238,7 @@ export default function ChatHistory() {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={6}>
+                                        <td colSpan={5}>
                                             <Box sx={{ textAlign: 'center', py: 4 }}>
                                                 <Typography level="body-lg">ไม่พบข้อมูลการสนทนา</Typography>
                                             </Box>
