@@ -139,7 +139,7 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
                     <tbody>
                         {filterProgress && filterProgress.length > 0 ? filterProgress.map((data, index) => (
                             <tr key={index}>
-                                <td>
+                                <td style={{overflow : 'hidden'}}>
                                     <Stack flexDirection='row' alignItems='center' gap={1}>
                                         <div>
                                             {!data.unread && <CircleIcon sx={{ color: 'green' }} />}

@@ -79,18 +79,28 @@ export default function ContextMenuButton(props) {
                             <Grid2 container spacing={2}>
                                 <Grid2 size={12}>
                                     <Typography>เนื้อหาที่ต้องการตอบกลับ</Typography>
-                                    <Box sx={{
-                                        p: 2,
-                                        borderRadius: 'md',
-                                        backgroundColor: 'background.level1',
-                                        overflow: 'auto'
-                                    }}>
-                                        <Typography>เนื้อหา : {content}</Typography>
-                                        <Typography>ประเภท : {contentType}</Typography>
-                                        <Typography>line_message_id : {line_message_id}</Typography>
-                                        <Typography>line_quote_token : {line_quote_token}</Typography>
-                                        <Typography>line_quoted_message_id : {line_quoted_message_id}</Typography>
-                                    </Box>
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                                        <Box sx={{
+                                            p: 2,
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: 'md',
+                                            backgroundColor: 'background.level1',
+                                            overflow: 'auto'
+                                        }}>
+                                            <Typography>
+                                                <span style={{ fontWeight: 'bold' }}>เนื้อหา&nbsp;{':'}&nbsp;</span>
+                                                {content}
+                                            </Typography>
+                                            <Typography>
+                                                <span style={{ fontWeight: 'bold' }}>ประเภท&nbsp;{':'}&nbsp;</span>
+                                                {contentType}
+                                            </Typography>
+                                            <iframe src={content} frameborder="0" style={{height : '40vh' ,width : '40vw'}}></iframe>
+                                        </Box>
+
+                                    </Stack>
+
                                 </Grid2>
                                 <Grid2 size={12}>
                                     <Typography>ข้อความที่ต้องการส่ง</Typography>
