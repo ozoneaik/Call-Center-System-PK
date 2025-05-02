@@ -1,5 +1,6 @@
 import { Button, FormControl, FormLabel, Input, Option, Select, Stack } from "@mui/joy"
 import { useState } from "react";
+import { Search, RotateLeft } from '@mui/icons-material';
 
 export const FilterChatHistory = ({ platforms, onPassed }) => {
     const [filter, setFilter] = useState({
@@ -28,7 +29,7 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
             e.preventDefault();
             onPassed(filter)
         }}>
-            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2} alignItems='end'>
                 <FormControl>
                     <FormLabel>ชื่อลูกค้า</FormLabel>
                     <Input name="custName" onChange={(e) => handleOnChange(e)} />
@@ -36,9 +37,7 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                 <FormControl>
                     <FormLabel>ติดต่อมาจาก</FormLabel>
                     <Select sx={{ width: '100%' }} onChange={(e, value) => searchDirectFrom(e, value)} name="directFrom" defaultValue=''>
-                        <Option value={''}>
-                            ทั้งหมด
-                        </Option>
+                        <Option value={''}>ทั้งหมด</Option>
                         {platforms.map((platform, index) => (
                             <Option key={index} value={platform.id}>
                                 {platform.description}
@@ -50,8 +49,12 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                     <FormLabel>ทักครั้งแรกเมื่อ	</FormLabel>
                     <Input type="date" name="firstContactDate" onChange={(e) => handleOnChange(e)} />
                 </FormControl>
-                <Button type="submit">ค้นหา</Button>
-                <Button type="reset" color="warning">reset</Button>
+                <Button type="submit" startDecorator={<Search />}>
+                    ค้นหา
+                </Button>
+                <Button type="reset" color="warning" startDecorator={<RotateLeft />}>
+                    reset
+                </Button>
             </Stack>
         </form>
     )

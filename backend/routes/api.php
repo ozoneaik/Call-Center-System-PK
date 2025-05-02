@@ -2,6 +2,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\ChatRoomsController;
+use App\Http\Controllers\Chats\Line\HistoryController;
+use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\KeywordController;
@@ -12,7 +14,6 @@ use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\webhooks\LineController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
 use Illuminate\Support\Facades\Route;
@@ -60,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('messages')->group(function () {
         Route::post('/send', [MessageController::class, 'send']);
         Route::post('/reply',[MessageController::class,'reply']);
-        Route::post('/receive', [MessageController::class, 'receive']);
+        Route::post('/receive', [LineReceiveController::class, 'receive']);
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
         Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
@@ -112,8 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/myMessages/{empCode}',[DisplayController::class, 'MyMessages']);
 
     //ดูประวัติแชททั้งหมด
-    Route::get('/chatHistory',[DisplayController::class, 'ChatHistory']);
-    Route::post('/chatHistory/{custId}',[DisplayController::class, 'ChatHistoryDetail']);
+    Route::get('/chatHistory',[HistoryController::class, 'ChatHistory']);
+    Route::post('/chatHistory/{custId}',[HistoryController::class, 'ChatHistoryDetail']);
 
     // จัดการ BOT
     Route::prefix('bots')->group(function () {
@@ -171,5 +172,3 @@ Route::get('/hello', function (){
         'Hashed' => \Illuminate\Support\Facades\Hash::make('1111')
     ]);
 });
-
-//$2y$12$xdY0UjNiCGuzMN86sMp.OuEhcVog5BYwigheoHZbMgSkqpX..9AR6

@@ -198,20 +198,32 @@ class MessageController extends Controller
                 if (!$updateRate) throw new \Exception('ไม่พบ Rate ที่ต้องการรับเรื่อง');
                 $updateRate['status'] = 'progress';
                 if ($updateRate->save()) {
+                    // รับเรื่องสำเร็จ
                     $message = 'รับเรื่องสำเร็จ';
                     $status = 200;
-                } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates';
-            } else $detail = 'ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท AC';
-            $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
+
+                    //ส่งข้อความรับเรื
+                    $Rate = Rates::query()->where('id', $rateId)->first();
+                    if ($Rate && isset($Rate->menuselect)) {
+                        
+                    }else{
+
+                    }
+                    $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
+                } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates');
+            } else ;
+            throw new \Exception('แฮร่');
+            
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
+            $status = 400;
             DB::rollBack();
         } finally {
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',
                 'detail' => $detail,
-            ], $status);
+            ], $status ?? 400);
         }
     }
 

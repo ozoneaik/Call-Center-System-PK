@@ -273,6 +273,8 @@ class LineUATController extends Controller
         $findMenu = false;
         foreach ($menus as $menu) {
             if ($menu->menuName === $message['text']) { // เมนูตรงกับข้อความ
+                $current_rate->menu_select = $menu->id;
+                $current_rate->save();
                 $this->updateRateAndForwardToRoom($CUSTOMER, $message, $current_rate, $acRef, $menu->roomId, $BOT, $TOKEN);
                 $findMenu = true;
                 break;

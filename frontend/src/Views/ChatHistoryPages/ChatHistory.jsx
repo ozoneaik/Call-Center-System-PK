@@ -29,7 +29,7 @@ export default function ChatHistory() {
     const [to, setTo] = useState(0);
     const [total, setTotal] = useState(0);
     const [searchParams] = useSearchParams();
-    const page_url = searchParams.get('page');
+    const page_url = searchParams.get('page') ?? 1;
     const [links, setLinks] = useState([]);
     const [platforms, setPlatform] = useState([]);
 

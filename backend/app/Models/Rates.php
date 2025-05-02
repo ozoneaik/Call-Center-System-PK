@@ -15,5 +15,12 @@ use Illuminate\Database\Eloquent\Model;
 class Rates extends Model
 {
     use HasFactory;
-    protected $fillable = ['custId','rate','latestRoomId','status','tag'];
+    protected $fillable = [
+        'custId',
+        'rate',
+        'latestRoomId',
+        'status',
+        'tag',
+        'menu_select',
+    ];
 }
