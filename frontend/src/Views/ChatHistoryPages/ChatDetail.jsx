@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sheet, Typography, Box, Avatar, Button, Stack } from '@mui/joy';
 import axiosClient from '../../Axios';
 import AddCommentIcon from '@mui/icons-material/AddComment';
+import CircularProgress from '@mui/joy/CircularProgress';
 
 export default function ChatDetail() {
 
@@ -26,103 +27,107 @@ export default function ChatDetail() {
         }
     }
 
-    return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-            {/* ส่วนหัว */}
-            <Sheet
-                variant="outlined"
-                sx={{
-                    p: 2,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    gap: 1
-                }}
-            >
-                <Stack direction='row' spacing={1}>
-                    <Avatar size="md" color="primary" src={customer?.avatar} />
-                    <Box>
-                        <Typography level="title-md">{customer?.custName}</Typography>
-                        <Typography level="body-sm">{customer?.description}</Typography>
-                    </Box>
-                </Stack>
+    const HeaderComponent = () => (
+        <Sheet variant="outlined" sx={HeaderStyle}>
+            <Stack direction='row' spacing={1}>
+                <Avatar size="md" color="primary" src={customer?.avatar} />
+                <Box>
+                    <Typography level="title-md">{customer?.custName}</Typography>
+                    <Typography level="body-sm">{customer?.description}</Typography>
+                </Box>
+            </Stack>
+            <Button startDecorator={<AddCommentIcon />} color='success'>สร้างเคสใหม่</Button>
+        </Sheet>
+    )
 
-                <Button startDecorator={<AddCommentIcon />} color='success'>สร้างเคสใหม่</Button>
-            </Sheet>
-
-            {/* ส่วนแสดงข้อความ */}
-            <Box
-                sx={{
-                    flex: 1,
-                    p: 2,
-                    overflow: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2
-                }}
-            >
-                {messages.map((message, index) => {
-                    const sender = JSON.parse(message.sender);
-                    return (
+    const MessageListComponent = () => (
+        <Box sx={MessageListComponentStyle}>
+            {messages.map((message, index) => {
+                const sender = JSON.parse(message.sender);
+                return (
+                    <Box key={message.id} sx={[messsageBoxStyle, { flexDirection: sender.empCode ? 'row-reverse' : 'row' }]}>
+                        <Avatar variant='solid' size="sm" color={sender?.custId ? "neutral" : "primary"} />
                         <Box
-                            key={message.id}
                             sx={{
-                                display: 'flex',
-                                flexDirection: sender.empCode ? 'row-reverse' : 'row',
-                                alignItems: 'flex-start',
-                                gap: 1
+                                maxWidth: '70%',
+                                p: 2,
+                                borderRadius: 'lg',
+                                bgcolor: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
+                                color: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
+                                position: 'relative',
                             }}
                         >
-
-                            <Avatar variant='solid' size="sm" color={sender?.custId ? "neutral" : "primary"} />
-                            {/* <Stack direction='column' spacing={2} sx={{maxWidth: '70%'}}> */}
-                            
-                                <Box
-                                    sx={{
-                                        maxWidth: '70%',
-                                        p: 2,
-                                        borderRadius: 'lg',
-                                        bgcolor: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
-                                        color: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
-                                        position: 'relative',
-                                    }}
-                                >
-                                    <Typography sx={{textAlign : 'end'}}>test</Typography>
-                                    <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
-                                        {message.content}
-                                    </Typography>
-                                    <Typography
-                                        level="body-xs"
-                                        sx={{
-                                            mt: 1,
-                                            display: 'block',
-                                            textAlign: sender?.empCode ? 'right' : 'left',
-                                            color: sender?.empCode ? 'primary.400' : 'neutral.400'
-                                        }}
-                                    >
-                                        {new Date(message.created_at).toLocaleString('th-TH')}
-                                    </Typography>
-                                </Box>
-                            {/* </Stack> */}
-
+                            <Typography sx={{ textAlign: 'end' }}>test</Typography>
+                            <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {message.content}
+                            </Typography>
+                            <Typography
+                                level="body-xs"
+                                sx={{
+                                    mt: 1,
+                                    display: 'block',
+                                    textAlign: sender?.empCode ? 'right' : 'left',
+                                    color: sender?.empCode ? 'primary.400' : 'neutral.400'
+                                }}
+                            >
+                                {new Date(message.created_at).toLocaleString('th-TH')}
+                            </Typography>
                         </Box>
-                    )
-                })}
-            </Box>
+                        {/* </Stack> */}
 
-            {/* ส่วนพิมพ์ข้อความ */}
-            {/* <Sheet
-                variant="outlined"
-                sx={{
-                    p: 2,
-                    borderTop: '1px solid',
-                    borderColor: 'divider'
-                }}
-            >
-                <Button fullWidth>เปิดเคสใหม่</Button>
-            </Sheet> */}
+                    </Box>
+                )
+            })}
         </Box>
+    )
+
+    return (
+        <Stack direction='row' spacing={0}>
+            {loading ?
+                <CircularProgress /> :
+                <>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+                        {/* ส่วนหัว */}
+                        <HeaderComponent />
+                        {/* ส่วนแสดงข้อความ */}
+                        <MessageListComponent />
+                    </Box >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+                        {/* ส่วนหัว */}
+                        <HeaderComponent />
+                        {/* ส่วนแสดงข้อความ */}
+                        <>get</>
+                    </Box >
+                </>}
+
+        </Stack>
+
+
     );
+}
+
+
+const HeaderStyle = {
+    p: 2,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid',
+    borderColor: 'divider',
+    gap: 1
+}
+
+const MessageListComponentStyle = {
+    flex: 1,
+    p: 2,
+    overflow: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2
+}
+
+const messsageBoxStyle = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 1
 }

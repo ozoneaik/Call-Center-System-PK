@@ -203,16 +203,6 @@ export default function Dashboard() {
                                             </tbody>
                                         </Table>
                                     </D>
-                                    {/* <D title={'จำนวนแชท'}>
-                                        <Grid container spacing={1}>
-                                            {contChats && contChats.length > 0 && contChats.map((item, index) => (
-                                                <Grid key={index} size={{xs: 6, md: 4}}>
-                                                    <StatCard total={item.total} chatData={item} title="ห้องช่าง"
-                                                              value={item.count}/>
-                                                </Grid>
-                                            ))}
-                                        </Grid>
-                                    </D> */}
                                 </Grid>
                                 <Grid size={12} mb={2}>
                                     <D title={'จำนวนดาว'}>

@@ -96,7 +96,7 @@ export default function ContextMenuButton(props) {
                                                 <span style={{ fontWeight: 'bold' }}>ประเภท&nbsp;{':'}&nbsp;</span>
                                                 {contentType}
                                             </Typography>
-                                            <iframe src={content} frameborder="0" style={{height : '40vh' ,width : '40vw'}}></iframe>
+                                            {contentType !== 'text' &&  <iframe src={content} frameborder="0" style={{height : '40vh' ,width : '40vw'}}></iframe>}
                                         </Box>
 
                                     </Stack>

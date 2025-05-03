@@ -23,6 +23,7 @@ import KeyWordPage from "./Views/KeyWordPages/main.jsx";
 import MyCasePage from "./Views/MyCasePages/main.jsx";
 import SearchNote from "./Views/SearchNotePages/SearchNote.jsx";
 import ChatDetail from "./Views/ChatHistoryPages/ChatDetail.jsx";
+import HomeNew from "./Views/HomePages/HomeNew.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -36,7 +37,7 @@ export const routes = createBrowserRouter([
         path: '/', element: <MainLayout />, children: [
             {
                 path: '/', element: <ProtectedLayout />, children: [
-                    { path: 'home', element: <Home /> },
+                    { path: 'home', element: <HomeNew /> },
                     {
                         path: '/chat', children: [
                             { path: 'room/:roomId/:roomName', element: <MainChat /> },
