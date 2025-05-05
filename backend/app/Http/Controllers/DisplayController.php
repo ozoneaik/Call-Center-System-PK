@@ -111,6 +111,9 @@ class DisplayController extends Controller
         $countChats['rooms'] = $this->dashboardService->countChat($today);
         $countChats['total'] = ChatHistory::query()->whereDate('created_at', $today)->count('id');
 
+        // ดึงอันดับพนักงานที่รับเรื่องมากที่สุด
+        $topEmployee = $this->TopEmployee();
+
         //ดึงจำนวนแชทที่ค้าง
         $pendingChats = $this->dashboardService->pendingChats($today);
 
@@ -120,7 +123,8 @@ class DisplayController extends Controller
             'customers' => $customers,
             'chatCounts' => $countChats,
             'stars' => $stars,
-            'pendingChats' => $pendingChats
+            'pendingChats' => $pendingChats,
+            'topEmployee' => $topEmployee,
         ]);
     }
 
@@ -166,5 +170,24 @@ class DisplayController extends Controller
             'message' => 'myCase',
             'result' => $result
         ]);
+    }
+
+    private function TopEmployee()
+    {
+        $startOfDay = Carbon::now()->startOfDay(); // 2025-05-05 00:00:00
+        $endOfDay = Carbon::now()->endOfDay();     // 2025-05-05 23:59:59
+        $topEmployee = ActiveConversations::query()
+            ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
+            ->select('users.name', DB::raw('COUNT(active_conversations.id) as count'))
+            ->where('users.empCode', '!=', 'BOT')
+            ->whereNotNull('active_conversations.empCode')
+            ->whereBetween('active_conversations.created_at', [$startOfDay, $endOfDay])
+            ->groupBy('users.name')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+
+        return $topEmployee;
     }
 }

@@ -90,7 +90,7 @@ class LineMessageService
                 };
                 $mediaPath = 'line-images/' . $mediaId . $extension;
                 Storage::disk('public')->put($mediaPath, $mediaContent);
-                $fullPath = $fullPath = asset('storage/' . $mediaPath);
+                $fullPath = asset('storage/' . $mediaPath);
                 return $fullPath;
             } else throw new \Exception("Error Processing Request Url ==> ".$url);
         } catch (\Exception $e) {

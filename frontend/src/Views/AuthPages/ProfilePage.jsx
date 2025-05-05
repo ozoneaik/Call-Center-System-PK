@@ -4,9 +4,10 @@ import {
     Stack, Chip, Modal, ModalDialog, ModalClose
 } from "@mui/joy";
 import { useAuth } from "../../context/AuthContext";
-import { Edit, InsertInvitation,EditCalendar } from '@mui/icons-material';
+import { Edit, InsertInvitation, EditCalendar } from '@mui/icons-material';
 import EditProfileForm from "./EditProfileForm";
 import { Grid2 } from '@mui/material';
+import axiosClient from '../../Axios';
 
 const LabelDetail = ({ headTitle, bodyTitle }) => (
     <Box>
@@ -25,7 +26,7 @@ const DateDetail = ({ headTitle, bodyTitle }) => (
             {headTitle}
         </Typography>
         <Chip
-            startDecorator={headTitle === 'วันที่สร้าง' ? <InsertInvitation /> : <EditCalendar/>} variant='solid'
+            startDecorator={headTitle === 'วันที่สร้าง' ? <InsertInvitation /> : <EditCalendar />} variant='solid'
             color={headTitle === 'วันที่สร้าง' ? 'primary' : 'warning'}
         >
             {new Date(bodyTitle).toLocaleString('th-Th')}
@@ -38,12 +39,36 @@ export default function ProfilePage() {
     const { user } = useAuth();
     const [openEditModal, setOpenEditModal] = useState(false);
     const profileData = { ...user };
+
+    const handleEdit = async (formDetail) => {
+        setOpenEditModal(false);
+        console.log('Submitting form data:', formDetail);
+        const formData = new FormData();
+        formData.append('name',formDetail.name);
+        formDetail.avatar && formData.append('avatar', formDetail.avatar);
+        formData.append('description', formDetail.description);
+        formData.append('currentPassword', formDetail.currentPassword);
+        formData.append('newPassword', formDetail.newPassword);
+        formData.append('confirmPassword', formDetail.confirmPassword);
+        formData.append('empCode', user.empCode);
+        try {
+            const { data, status } = await axiosClient.post('/users/profile', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+            console.log(data, status);
+            window.location.reload();
+        } catch (error) {
+            console.log(error);
+        }
+    }
     return (
         <>
             <Card variant="outlined" sx={{ mb: 4 }}>
                 <CardContent>
                     <Grid2 container spacing={3} sx={{ alignItems: 'center' }}>
-                        <Grid2 size={{ xs: 12, md: 3 }} sx={{borderRight : { xs: 'none', md: '1px solid' } }}>
+                        <Grid2 size={{ xs: 12, md: 3 }} sx={{ borderRight: { xs: 'none', md: '1px solid' } }}>
                             <Stack direction='column' spacing={2} justifyContent='center' alignItems='center'>
                                 <Avatar
                                     src={profileData.avatar}
@@ -96,7 +121,7 @@ export default function ProfilePage() {
                     </Typography>
                     <EditProfileForm
                         userData={profileData}
-                        onSubmitSuccess={() => setOpenEditModal(false)}
+                        onSubmitSuccess={(formData) => handleEdit(formData)}
                     />
                 </ModalDialog>
             </Modal>

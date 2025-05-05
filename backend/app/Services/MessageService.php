@@ -123,65 +123,6 @@ class MessageService
                 ->get();
             $accessToken = $token[0]->accessToken;
 
-            // $body = [
-            //     "to" => $custId,
-            //     "messages" => [
-            //         [
-            //             "type" => "flex",
-            //             "altText" => "this is a flex message",
-            //             "contents" => [
-            //                 "type" => "bubble",
-            //                 "body" => [
-            //                     "type" => "box",
-            //                     "layout" => "vertical",
-            //                     "contents" => [
-            //                         [
-            //                             "type" => "text",
-            //                             "text" => "ขอบคุณที่ใช้บริการแชทของเรา! 🙏",
-            //                             "weight" => "bold",
-            //                             "size" => "lg",
-            //                             "wrap" => true,
-            //                             "color" => "#eb5622"
-            //                         ],
-            //                         [
-            //                             "type" => "text",
-            //                             "text" => "เพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้โดยคลิกที่ลิงก์ด้านล่างค่ะ/ครับ",
-            //                             "wrap" => true,
-            //                             "size" => "md",
-            //                             "color" => "#666666",
-            //                             "margin" => "md"
-            //                         ],
-            //                         [
-            //                             "type" => "separator",
-            //                             "margin" => "lg"
-            //                         ],
-            //                         [
-            //                             "type" => "button",
-            //                             "action" => [
-            //                                 "type" => "uri",
-            //                                 "label" => "คลิกที่นี่เพื่อประเมิน",
-            //                                 "uri" => $URL_RATING
-            //                             ],
-            //                             "style" => "primary",
-            //                             "color" => "#eb5622",
-            //                             "margin" => "lg",
-            //                             "height" => "sm"
-            //                         ],
-            //                         [
-            //                             "type" => "text",
-            //                             "text" => "ขอบคุณสำหรับความคิดเห็นของคุณ 😊",
-            //                             "size" => "sm",
-            //                             "color" => "#999999",
-            //                             "wrap" => true,
-            //                             "margin" => "lg",
-            //                             "align" => "center"
-            //                         ]
-            //                     ]
-            //                 ]
-            //             ]
-            //         ]
-            //     ]
-            // ];
             $body = [
                 "to" => $custId,
                 "messages" => [
@@ -222,10 +163,12 @@ class MessageService
                 $data['message'] = 'ส่งประเมินสำเร็จ';
             } else {
                 $message = $response->json();
-                $message = $message['details'][0]['message'];
+                $message = collect($message)->get('details.0.message', 'ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API');
                 throw new \Exception('Line API รายละเอียด >>> ' . $message);
             }
         } catch (\Exception $e) {
+            Log::channel('line_webhook_log')->error($e->getMessage());
+            Log::channel('line_webhook_log')->error($e->getLine().' ' . $e->getFile());
             $data['status'] = false;
             $data['message'] = $e->getMessage();
         } finally {

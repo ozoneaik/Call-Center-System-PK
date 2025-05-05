@@ -10,8 +10,10 @@ use App\Services\UserRoomService;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -134,5 +136,38 @@ class UserController extends Controller
         return response()->json([
             'profile' => $user
         ]);
+    }
+
+    public function updateProfile(Request $request){
+        try{
+            $user = User::where('empCode', Auth::user()->empCode)->first();
+            $user->name = $request['name'];
+            $user->description = $request['description'];
+            if (isset($request['avatar'])) {
+                $avatarBase64 = $request['avatar'];
+                if (preg_match('/^data:image\/(\w+);base64,/', $avatarBase64, $type)) {
+                    $image = substr($avatarBase64, strpos($avatarBase64, ',') + 1);
+                    $image = str_replace(' ', '+', $image);
+                    $imageType = strtolower($type[1]);
+                    $imageName = 'avatar_' . uniqid() . '.' . $imageType;
+                    $imagePath = 'profile/' . $imageName;
+                    Storage::disk('public')->put($imagePath, base64_decode($image));
+                    $fullPath = asset('storage/' . $imagePath);
+                    $user->avatar = $fullPath;
+                } else {
+                    throw new \Exception('รูปภาพไม่อยู่ในรูปแบบ base64 ที่ถูกต้อง');
+                }
+            }
+            $user->save();
+            return response()->json([
+                'request' => $request->all(),
+                'user' => $user,
+            ]);
+        }catch (\Exception $e){
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail' => $e->getMessage()
+            ],400);
+        }
     }
 }

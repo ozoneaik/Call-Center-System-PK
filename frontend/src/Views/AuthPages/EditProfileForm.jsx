@@ -1,9 +1,24 @@
 import { useState } from 'react';
 import {
-    Box,Button, FormControl, FormLabel,Input, Stack,
-    Textarea, Typography, Divider, IconButton
+    Box, Button, FormControl, FormLabel, Input, Stack,
+    Textarea, Typography, Divider, IconButton,
+    Avatar
 } from "@mui/joy";
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { CloudUpload } from '@mui/icons-material';
+import { styled } from '@mui/joy';
+
+const VisuallyHiddenInput = styled('input')`
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  white-space: nowrap;
+  width: 1px;
+`;
 
 export default function EditProfileForm({ userData, onSubmitSuccess }) {
     const [formData, setFormData] = useState({
@@ -11,8 +26,10 @@ export default function EditProfileForm({ userData, onSubmitSuccess }) {
         description: userData.description || '',
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
     });
+
+    const [avatarPreview, setAvatarPreview] = useState(userData.avatar || '');
 
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState({
@@ -70,25 +87,45 @@ export default function EditProfileForm({ userData, onSubmitSuccess }) {
         return Object.keys(newErrors).length === 0;
     };
 
+    const handleUploadFile = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    avatar: reader.result
+                }));
+            };
+            reader.readAsDataURL(file);
+            setAvatarPreview(URL.createObjectURL(file));
+        }
+    }
+
     const handleSubmit = (e) => {
         e.preventDefault();
-
         if (validateForm()) {
-            // ส่งข้อมูลไปยัง API (ในตัวอย่างนี้จะจำลองการส่ง)
-            console.log('Submitting form data:', formData);
-
             // สมมติว่าการอัปเดตสำเร็จ
-            setTimeout(() => {
-                // เรียกใช้ callback function เมื่อบันทึกสำเร็จ
-                onSubmitSuccess();
-            }, 1000);
+            onSubmitSuccess(formData);
         }
     };
 
     return (
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ overflow: 'auto' }}>
             <Stack spacing={3}>
                 <Typography level="title-md">ข้อมูลส่วนตัว</Typography>
+                <FormControl error={!!errors.avatar}>
+                    <FormLabel>รูปประจำตัว</FormLabel>
+                    <Stack justifyContent='center' direction='column' alignItems='center'>
+                        <Avatar size='lg' src={avatarPreview} sx={{ mb: 2, height: 100, width: 100 }} />
+                        <Button component='label' role={undefined} tabIndex={-1} variant='outlined' color='neutral'
+                            startDecorator={<CloudUpload />}
+                        >
+                            Upload a file
+                            <VisuallyHiddenInput type='file' name='avatar' onChange={(e) => handleUploadFile(e)} />
+                        </Button>
+                    </Stack>
+                </FormControl>
                 <FormControl error={!!errors.name}>
                     <FormLabel>ชื่อ</FormLabel>
                     <Input

@@ -1,7 +1,11 @@
 import React from 'react';
-import { Box, Button, FormControl, FormLabel, Input, Option, Select, Stack } from '@mui/joy';
+import { Avatar, Box, Button, FormControl, FormLabel, Input, Option, Select, Stack } from '@mui/joy';
 import { storeTokenApi, updateTokenApi } from "../../Api/Token.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
+import FacebookLogo from '../../assets/FacebookLogo.svg';
+import LineLogo from '../../assets/LineLogo.svg';
+import ShopeeLogo from '../../assets/ShopeeLogo.svg';
+import LazadaLogo from '../../assets/LazadaLogo.svg';
 
 export const TokenForm = (props) => {
     const { newToken, setNewToken, setTokens } = props;
@@ -93,10 +97,22 @@ export const TokenForm = (props) => {
                 <FormControl>
                     <FormLabel>Platform</FormLabel>
                     <Select onChange={(e, newValue) => handleSelectPlatform(e, newValue)} defaultValue={newToken.platform}>
-                        <Option value={'line'}>line</Option>
-                        <Option value={'facebook'}>facebook</Option>
-                        <Option value={'shopee'}>shopee</Option>
-                        <Option value={'lazada'}>lazada</Option>
+                        <Option value={'line'}>
+                            <img src={LineLogo} width={20} height={20} />
+                            Line
+                        </Option>
+                        <Option value={'facebook'}>
+                            <img src={FacebookLogo} width={20} height={20} />
+                            Facebook
+                        </Option>
+                        <Option value={'shopee'}>
+                            <img src={ShopeeLogo} width={20} height={20} />
+                            Shopee
+                        </Option>
+                        <Option value={'lazada'}>
+                            <img src={LazadaLogo} width={20} height={20} />
+                            Lazada
+                        </Option>
                     </Select>
                 </FormControl>
 

@@ -155,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการข้อมูลส่วนตัว
     Route::prefix('users')->group(function(){
         Route::get('profile', [UserController::class, 'profile']);
+        Route::post('profile', [UserController::class, 'updateProfile']);
     });
 });
 
