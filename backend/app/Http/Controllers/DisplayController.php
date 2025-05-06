@@ -178,13 +178,13 @@ class DisplayController extends Controller
         $endOfDay = Carbon::now()->endOfDay();     // 2025-05-05 23:59:59
         $topEmployee = ActiveConversations::query()
             ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
-            ->select('users.name', DB::raw('COUNT(active_conversations.id) as count'))
+            ->select('users.name','users.avatar', DB::raw('COUNT(active_conversations.id) as count'))
             ->where('users.empCode', '!=', 'BOT')
             ->whereNotNull('active_conversations.empCode')
             ->whereBetween('active_conversations.created_at', [$startOfDay, $endOfDay])
-            ->groupBy('users.name')
+            ->groupBy('users.name','users.avatar')
             ->orderByDesc('count')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
 

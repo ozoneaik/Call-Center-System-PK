@@ -72,11 +72,11 @@ class MessageController extends Controller
                         Log::info('URL เต็ม = ' . $fullUrl);
                         $m['content'] = $fullUrl;
                         $storeChatHistory['content'] = $m['content'];
-                        
-                        
+
+
                         // throw new \Exception('รับ content สำเร็จ');
-                        
-                        
+
+
                         // อันเก่า
                         // $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
                         // $response = Http::timeout(30)
@@ -205,15 +205,13 @@ class MessageController extends Controller
                     //ส่งข้อความรับเรื
                     $Rate = Rates::query()->where('id', $rateId)->first();
                     if ($Rate && isset($Rate->menuselect)) {
-                        
-                    }else{
-
+                    } else {
                     }
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
                 } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates');
-            } else ;
+            } else;
             throw new \Exception('แฮร่');
-            
+
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -359,26 +357,43 @@ class MessageController extends Controller
 
     public function pauseTalk(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'activeConversationId' => 'required',
-            'rateId' => 'required',
-        ], [
-            'activeConversationId.required' => 'จำเป็นต้องระบุ ไอดีเคส',
-            'rateId.required' => 'จำเป็นต้องระบุ ไอดีเรท'
-        ]);
-        $rate = Rates::query()->where('id', $request['rateId'])->first();
-        $rate->status = 'pending';
-        $activeConversation = ActiveConversations::query()->where('id', $request['activeConversationId'])->first();
-        $activeConversation->receiveAt = null;
-        $activeConversation->startTime = null;
-        $activeConversation->empCode = null;
-        $activeConversation->save();
-        $rate->save();
-        $this->pusherService->sendNotification($rate['custId']);
-        return response()->json([
-            'message' => 'พักการสนทนาแล้ว',
-            'detail' => $request['activeConversationId'] . $request['rateId']
-        ]);
+        try {
+            DB::beginTransaction();
+            $request->validate([
+                'activeConversationId' => 'required',
+                'rateId' => 'required',
+            ], [
+                'activeConversationId.required' => 'จำเป็นต้องระบุ ไอดีเคส',
+                'rateId.required' => 'จำเป็นต้องระบุ ไอดีเรท'
+            ]);
+            $rate = Rates::query()->where('id', $request['rateId'])->first();
+            $rate->status = 'pending';
+            $activeConversation = ActiveConversations::query()->where('id', $request['activeConversationId'])->first();
+            $activeConversation->endTime = Carbon::now();
+            $activeConversation->totalTime = $this->messageService->differentTime($activeConversation->startTime, $activeConversation->endTime);
+            $activeConversation->save();
+            $rate->save();
+            $newAc = new ActiveConversations();
+            $newAc->custId = $rate->custId;
+            $newAc->roomId = $activeConversation->roomId;
+            $newAc->from_empCode = $activeConversation->empCode;
+            $newAc->from_roomId = $activeConversation->roomId;
+            $newAc->rateRef = $rate->id;
+            $newAc->save();
+            DB::commit();
+            $this->pusherService->sendNotification($rate['custId']);
+            return response()->json([
+                'message' => 'พักการสนทนาแล้ว',
+                'detail' => $request['activeConversationId'] . $request['rateId']
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('พักการสนทนา เกิดข้อผิดพลาด : ' . $e->getMessage(). '=>' . $e->getLine() . '=>' . $e->getFile());
+            return response()->json([
+                'message' => $e->getMessage(),
+                'body' => $request->all(),
+            ], 400);
+        }
     }
 
     public function endTalkAllProgress(Request $request, $roomId): JsonResponse
@@ -488,7 +503,7 @@ class MessageController extends Controller
             return response()->json([
                 'message' => 'upload file api error',
                 'body' => $request->all(),
-            ],400);
+            ], 400);
         }
     }
 }
