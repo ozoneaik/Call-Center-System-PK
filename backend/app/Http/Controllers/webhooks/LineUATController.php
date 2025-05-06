@@ -172,7 +172,7 @@ class LineUATController extends Controller
             Log::info('lessThanOrEqualTo: ' . $current_rate->created_at->lessThanOrEqualTo($now));
             $diff = $now->diffInHours($current_rate->created_at,true);
             Log::info('diffInHours New: ' . $diff);
-            if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) { // ทักมาภายใน 12 ชั่วโมง
+            if ($current_rate && $now->diffInHours($diff) <= 12) { // ทักมาภายใน 12 ชั่วโมง
                 $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
             } else { // ทักมามากกว่า 12 ชั่วโมง
                 $this->createBotConversation($CUSTOMER, $message, $BOT, $TOKEN);
