@@ -82,11 +82,11 @@ class LineReceiveController extends Controller
                     $message['contentType'] = 'text';
                     $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
                     $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมิน";
-                    $message['content'] += ' เช่น รหัสสินค้า / รุ่นสินค้า ที่ต้องการ เพื่อให้ทางแอดมินตรวจสอบให้กับทางลูกค้า';
+                    $message['content'] = $message['content'] . ' เช่น รหัสสินค้า / รุ่นสินค้า ที่ต้องการ เพื่อให้ทางแอดมินตรวจสอบให้กับทางลูกค้า';
                 } else if ($findMenu->menuName === 'ร้องเรียนบริการ') {
                     $message['contentType'] = 'text';
                     $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                    $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " คุณลูกค้าต้องการร้องเรียนบริการด้านใด  รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมรับเรื่อง";
+                    $message['content'] = $message['content'] . " รับเรื่องร้องเรียนคุณลูกค้า";
                 } else {
                     $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
                     $message['contentType'] = 'text';
@@ -119,7 +119,7 @@ class LineReceiveController extends Controller
                     } elseif ($findMenu->menuName === 'ร้องเรียนบริการ') {
                         $message['contentType'] = 'text';
                         $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " คุณลูกค้าต้องการร้องเรียนบริการด้านใด  รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมรับเรื่อง";
+                        $message['content'] = $message['content'] . " รับเรื่องร้องเรียนคุณลูกค้า";
                     } else {
                         $message['contentType'] = 'text';
                         $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
@@ -131,7 +131,7 @@ class LineReceiveController extends Controller
             }
         } else {
             $message['contentType'] = 'text';
-            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
         }
         $newChatHistory = new ChatHistory();
         $newChatHistory->custId = $Rate->custId;
