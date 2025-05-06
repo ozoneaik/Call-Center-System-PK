@@ -2,7 +2,7 @@ import React from 'react';
 import { Avatar, Box, Button, FormControl, FormLabel, Input, Option, Select, Stack } from '@mui/joy';
 import { storeTokenApi, updateTokenApi } from "../../Api/Token.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import FacebookLogo from '../../assets/FacebookLogo.svg';
+import FacebookLogo from '../../assets/facebookLogo.svg';
 import LineLogo from '../../assets/LineLogo.svg';
 import ShopeeLogo from '../../assets/ShopeeLogo.svg';
 import LazadaLogo from '../../assets/LazadaLogo.svg';
