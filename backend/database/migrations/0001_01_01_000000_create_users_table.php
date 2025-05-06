@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('empCode')->unique()->comment('รหัสพนักงาน');
             $table->string('name')->comment('ชื่อพนักงาน');
+            $table->string('real_name')->nullable()->comment('ชื่อจริง');
             $table->string('description')->nullable()->comment('คำอธิบาย');
             $table->string('avatar')->nullable()->comment('รูปประจำตัว');
             $table->string('email')->unique()->comment('อีเมลพนักงาน');

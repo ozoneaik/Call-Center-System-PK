@@ -34,6 +34,7 @@ class UserService
             $store = new User();
             $store['empCode'] = $user['empCode'];
             $store['name'] = $user['name'];
+            $store['real_name'] = $user['real_name'];
             $store['email'] = $user['email'];
             $store['description'] = $user['description'];
             if (!empty($user['list'])) {
@@ -53,7 +54,7 @@ class UserService
         } catch (QueryException $q) {
             Log::info('เกิดปัญหา ( QueryException )ที่ method store ใน UserService.php >>>');
             Log::error($q->getMessage());
-            $data['message'] = 'เกิดปัญหาการ query ข้อมูล';
+            $data['message'] = $q->getMessage() ?? 'เกิดปัญหาการ query ข้อมูล';
             DB::rollBack();
         } catch (\Exception $e) {
             Log::info('เกิดปัญหาที่ method store ใน UserService.php >>>');

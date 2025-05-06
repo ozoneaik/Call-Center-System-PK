@@ -51,7 +51,12 @@ class LineReceiveController extends Controller
                     $status = 200;
                     //ส่งข้อความรับเรือง
                     $Rate = Rates::query()->where('id', $rateId)->first();
-                    $this->sendMessageReceive($Rate, $updateAC);
+
+                    $now = Carbon::now();
+                    $diff = $now->diffInHours($Rate->created_at, true);
+                    if ($diff >= 12) {
+                        $this->sendMessageReceive($Rate, $updateAC);    
+                    }
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
                 } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates');
             } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Active');

@@ -6,15 +6,32 @@ import { LayoutStyle } from "../styles/LayoutStyle.js";
 import App from "../App.jsx";
 import FloatingBtn from "../Views/HomePages/FloatingBtn.jsx";
 import { AnnouncementBar } from "./AnnouncementBar.jsx";
+import { useEffect, useState } from "react";
+import axiosClient from "../Axios.js";
 
 function ProtectedLayout() {
+    const [announces, SetAnnounces] = useState([]);
+    useEffect(() => {
+        fetchAnnouncement();
+    }, []);
+
+    const fetchAnnouncement = async () => {
+        try {
+            const { data } = await axiosClient.get('/announces');
+            console.log(data);
+            SetAnnounces(data.announces);
+        } catch (error) {
+            console.log(error.response.data.message);
+        }
+    }
+
     return (
         <div>
             <App />
-            {/* <div style={{backgroundColor : 'red',color  : 'white',textAlign : 'center',padding : '5px'}}>
-                วันที่ 10/02/2568 จะมีการย้าย Server และเปลี่ยนที่อยู่เว็บไซต์ไปที่ http://www.callcenter-pk.pumpkin-th.com ช่วงเวลานี้อาจทำให้ข้อความลูกค้าล่าสุดหายไป ต้องขอภัยด้วยครับ/ค่ะ
-            </div> */}
-             {/*<AnnouncementBar /> */}
+            {announces.length > 0 && announces.map((item, index) => (
+                <AnnouncementBar key={index} item={item} />
+            ))}
+
             <Box sx={LayoutStyle.MainLayout}>
                 <Sidebar />
                 <Navbar />

@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\AnnounceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\ChatRoomsController;
@@ -165,6 +167,9 @@ Route::prefix('webhooks')->group(function () {
 });
 
 Route::post('/upload-file',[MessageController::class, 'uploadFile']);
+
+
+Route::get('/announces', [AnnounceController::class,'index']);
 
 
 Route::get('/hello', function (){

@@ -1,6 +1,6 @@
 import { Typography } from "@mui/joy";
 
-export const AnnouncementBar = () => {
+export const AnnouncementBar = ({item}) => {
     return (
         <div
             style={{
@@ -10,7 +10,8 @@ export const AnnouncementBar = () => {
                 backgroundColor: '#f15721',
                 padding: '5px 24px',
                 textAlign: 'center',
-                borderBottom: '2px solid #f15721'
+                borderBottom: '2px solid #f15721',
+                borderBottom : '2px solid black',
             }}
         >
             <Typography
@@ -20,13 +21,7 @@ export const AnnouncementBar = () => {
                     fontWeight: 'bold',
                     fontSize: '1rem'
                 }}>
-                ขณะนี้ไลน์&nbsp;
-                <u>ศูนย์ซ่อม&nbsp;pumpkin</u>
-                &nbsp;หมดโควตาในการส่งข้อความผ่านระบบ
-                &nbsp;หากต้องการคุยกับลูกค้าที่ทักมาจาก&nbsp;ไลน์
-                &nbsp;<u>ศูนย์ซ่อม&nbsp;pumpkin</u>
-                &nbsp;กรุณาคุยที่&nbsp;Line&nbsp;OA&nbsp;
-                ขออภัยในความไม่สะดวกครับ
+                {item.detail_text}
             </Typography>
         </div>
     );

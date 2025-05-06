@@ -83,15 +83,19 @@ class UserController extends Controller
                 $message = 'เสร็จสิ้น';
                 $detail = $user['message'];
             }else throw new \Exception($user['message']);
-        } catch (\Exception $exception) {
-            $detail = $exception->getMessage();
-            $user = [];
-        } finally {
             return response()->json([
                 'message' => $message ?? 'เกิดข้อผิดพลาด',
                 'detail' => $detail,
                 'user' => $user,
-            ],$status);
+            ]);
+        } catch (\Exception $exception) {
+            $status = 400;
+            $detail = $exception->getMessage();
+            return response()->json([
+                'message' => $message ?? 'เกิดข้อผิดพลาด',
+                'detail' => $detail,
+                'user' => [],
+            ],$status ?? 500);
         }
     }
 

@@ -19,6 +19,7 @@ export const CreateUser = (props) => {
         empCode: '',
         email: '',
         name: '',
+        real_name: '',
         description: '',
         role: 'user',
         roomId: 'ROOM01',
@@ -81,9 +82,15 @@ export const CreateUser = (props) => {
                             />
                         </Grid>
                         <Grid size={{xs: 12, md: 3}}>
-                            <FormLabel>ชื่อ-นามสกุล</FormLabel>
+                            <FormLabel>ชื่อ-นามสกุล (สำหรับการแสดง)</FormLabel>
                             <Input required value={user.name} type={'text'} placeholder={'ex.นายสมศรี บันลือ'}
                                    onChange={(e) => setUser({...user, name: e.target.value})}
+                            />
+                        </Grid>
+                        <Grid size={{xs: 12, md: 3}}>
+                            <FormLabel>ชื่อ-นามสกุล (จริง)</FormLabel>
+                            <Input required value={user.real_name} type={'text'} placeholder={'ex.นายสมศรี บันลือ'}
+                                   onChange={(e) => setUser({...user, real_name: e.target.value})}
                             />
                         </Grid>
                         <Grid size={{xs: 12, md: 6}}>
