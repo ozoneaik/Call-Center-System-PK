@@ -111,25 +111,6 @@ export default function MessagePane() {
                 } else { }
             } else { }
         } else { }
-
-        // if (notification && notification.title === 'มีข้อความใหม่เข้ามา') {
-        //     if (notification.custId === sender.custId) {
-        //         let pusher = JSON.parse(notification.sender);
-        //         setMessages((prevMessages) => {
-        //             const newId = prevMessages.length.toString();
-        //             return [
-        //                 ...prevMessages,
-        //                 {
-        //                     id: newId,
-        //                     content: notification.content,
-        //                     contentType: notification.contentType,
-        //                     sender: pusher,
-        //                     created_at: new Date().toString()
-        //                 },
-        //             ];
-        //         });
-        //     } else {}
-        // } else {}
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
@@ -164,6 +145,7 @@ export default function MessagePane() {
                                         const isYou = message.sender.empCode;
                                         return (
                                             <Stack
+                                                data-aos="fade-right"
                                                 key={index} direction="row" spacing={2}
                                                 sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
                                             >

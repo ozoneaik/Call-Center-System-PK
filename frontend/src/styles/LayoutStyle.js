@@ -1,10 +1,10 @@
 export const LayoutStyle = {
-    MainLayout : {
-        display : 'flex',
-        minHeight : '100dvh',
+    MainLayout: {
+        display: 'flex',
+        minHeight: '100dvh',
     },
-    Sidebar : {
-        ToggleOpen : {
+    Sidebar: {
+        ToggleOpen: {
             display: 'grid',
             transition: '0.2s ease',
             '& > *': {
@@ -12,7 +12,7 @@ export const LayoutStyle = {
             },
             gridTemplateRows: '1fr'
         },
-        ToggleClose : {
+        ToggleClose: {
             display: 'grid',
             transition: '0.2s ease',
             '& > *': {
@@ -20,7 +20,7 @@ export const LayoutStyle = {
             },
             gridTemplateRows: '0fr'
         },
-        Layout : {
+        Layout: {
             position: { xs: 'fixed', md: 'sticky' },
             transform: {
                 xs: 'translateX(calc(100% * (var(--SideNavigation-slideIn, 0) - 1)))',
@@ -39,7 +39,7 @@ export const LayoutStyle = {
             borderRight: '1px solid',
             borderColor: 'divider',
         },
-        Overlay : {
+        Overlay: {
             position: 'fixed',
             zIndex: 98, //9998
             top: 0,
@@ -54,26 +54,42 @@ export const LayoutStyle = {
                 lg: 'translateX(-100%)',
             },
         },
-        ListItemButton : {
+        ListItemButton: {
             minHeight: 0,
             overflow: 'hidden auto',
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
+            '&::-webkit-scrollbar': {
+                width: '0px',
+            },
+            '&:hover::-webkit-scrollbar': {
+                width: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#888',
+                borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: '#ff7922',
+            },
+            '&::-webkit-scrollbar-track': {
+                background: 'none',
+            },
         },
-        List : {
+        List: {
             gap: 1,
             '--List-nestedInsetStart': '30px',
             '--ListItem-radius': (theme) => theme.vars.radius.sm,
         },
-        ListButton : {
+        ListButton: {
             mt: 'auto',
             flexGrow: 0,
             '--ListItem-radius': (theme) => theme.vars.radius.sm,
             '--List-gap': '8px'
         }
     },
-    Navbar : {
+    Navbar: {
         display: { sm: 'flex', md: 'none' },
         alignItems: 'center',
         justifyContent: 'space-between',

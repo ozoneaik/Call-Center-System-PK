@@ -13,6 +13,7 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import TokenIcon from "@mui/icons-material/Token";
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
+import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
 
 export const SidebarAdmin = ({pathname,user}) => (
     <>
@@ -70,13 +71,21 @@ export const SidebarAdmin = ({pathname,user}) => (
                 </ListItemButton>
             </ListItem>
             {
-                user.name === 'adminIT' && (
-                    <ListItem component={Link} to={'/accessToken'}>
-                        <ListItemButton selected={pathname === '/accessToken'}>
-                            <TokenIcon/>
-                            จัดการ token
-                        </ListItemButton>
-                    </ListItem>
+                user.empCode === 'adminIT' && (
+                    <>
+                        <ListItem component={Link} to={'/accessToken'}>
+                            <ListItemButton selected={pathname === '/accessToken'}>
+                                <TokenIcon/>
+                                จัดการ token
+                            </ListItemButton>
+                        </ListItem>
+                        <ListItem component={Link} to={'/accessToken'}>
+                            <ListItemButton selected={pathname === '/accessToken'}>
+                                <CircleNotificationsIcon/>
+                                แจ้งเตือน
+                            </ListItemButton>
+                        </ListItem>
+                    </>
                 )
             }
         </List>

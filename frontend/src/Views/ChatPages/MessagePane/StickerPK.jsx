@@ -9,6 +9,7 @@ import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import { Box, ModalDialog } from '@mui/joy';
 import '../../../styles/stickerPk.css'
 import { sendApi } from '../../../Api/Messages';
+import { useMediaQuery } from '@mui/material';
 const stickerList = [
     { id: 1, content: 'https://slip.pumpkin.tools/sticker/20241108-152612.gif', contentType: 'sticker' },
     { id: 2, content: 'https://slip.pumpkin.tools/sticker/20241108-152638.gif', contentType: 'sticker' },
@@ -58,7 +59,9 @@ export const StickerPK = (props) => {
     }
     return (
         <>
-            <Button color="warning" onClick={() => setOpen(true)} disabled={Disable || disable}>
+            <Button
+            fullWidth={useMediaQuery('(max-width: 1000px)')}
+             color="warning" onClick={() => setOpen(true)} disabled={Disable || disable}>
                 <Typography sx={MessageStyle.InsertImage}>
                     ส่งสติกเกอร์
                 </Typography>

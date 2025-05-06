@@ -9,7 +9,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import {useNavigate, useParams} from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
 import Input from '@mui/joy/Input';
 import { useState, useEffect } from "react";
@@ -20,7 +20,7 @@ const data = [{
     empCode: '', receiveAt: '', empName: ''
 }];
 export const PendingTable = (props) => {
-    const {params} = useParams();
+    const { params } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { pending } = props;
@@ -28,7 +28,7 @@ export const PendingTable = (props) => {
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const [search, setSearch] = useState('');
-    const handleChat = ({rateId, roomId}) => {
+    const handleChat = ({ rateId, roomId }) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
             text: 'กด "ตกลง" เพื่อยืนยันรับเรื่อง',
@@ -82,7 +82,7 @@ export const PendingTable = (props) => {
             <Box sx={{ display: 'flex' }}>
                 <Button size='sm' variant='outlined' sx={{ mr: 1 }}
                     disabled={Disable} startDecorator={<ChatIcon />}
-                    onClick={() => handleChat({rateId : rateRef, id, custId, roomId})}
+                    onClick={() => handleChat({ rateId: rateRef, id, custId, roomId })}
                 >
                     <Typography>รับเรื่อง</Typography>
                 </Button>
@@ -124,18 +124,20 @@ export const PendingTable = (props) => {
 
     return (
         <>
-            <Box sx={ChatPageStyle.BoxTable}>
-                <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }} justifyContent='space-between'>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                     <Typography level="h2" component="h1">
                         รอดำเนินการ&nbsp;
                         <Typography level="body-sm" color="neutral">
                             {pending.length} รายการ
                         </Typography>
                     </Typography>
-                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
-                    <Button onClick={() => handleFilter()}>ค้นหา</Button>
+                    <Stack direction='row' spacing={2} sx={{ width: '100%' }}>
+                        <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <Button onClick={() => handleFilter()}>ค้นหา</Button>
+                    </Stack>
                 </Stack>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                <Stack direction={{xs : 'column', md : 'row'}} justifyContent='start' spacing={2} alignItems='center'>
                     {user.role === 'admin' && (
                         <>
                             <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
@@ -146,8 +148,8 @@ export const PendingTable = (props) => {
                             </Button>
                         </>
                     )}
-                </Box>
-            </Box>
+                </Stack>
+            </Stack>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>

@@ -11,6 +11,8 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import Divider from "@mui/joy/Divider";
 import ContextMenuButton from "./ContextMenuButton.jsx";
 import ImageIcon from '@mui/icons-material/Image';
+import ChatMediaPreview from "./ChatMediaPreview.jsx";
+import { useState } from "react";
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -18,9 +20,12 @@ export default function Bubble(props) {
     const { line_message_id, line_quote_token, line_quoted_message_id } = props;
     const { messages, onReply, setMessages } = props;
     const isSent = variant === 'sent';
+    const [open, setOpen] = useState(false);
+    const [previewSelect, setPreviewSelect] = useState('');
 
     return (
         <Box sx={{ maxWidth: '60%', minWidth: 'auto' }}>
+            {open && <ChatMediaPreview open={open} setOpen={setOpen} url={previewSelect}/>}
             <Stack direction="row" spacing={2} sx={MessageStyle.Bubble.Main} onClick={() => {
                 console.log(line_message_id, line_quote_token, line_quoted_message_id)
             }}>
@@ -124,7 +129,13 @@ export default function Bubble(props) {
                                                     contentType === 'video' ? 'ไฟล์ Video' :
                                                         contentType === 'image' ? 'ไฟล์รูปภาพ' : 'ไฟล์เสียง'}
                                             </Typography>
-                                            <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button>
+                                            <Button fullWidth size="sm" variant="outlined" onClick={() => {
+                                                setPreviewSelect(content);
+                                                setOpen(true);
+                                            }}>
+                                                ดู preview
+                                                </Button>
+                                            {/* <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button> */}
                                         </Stack>
                                     </Stack>
                                 </Sheet>

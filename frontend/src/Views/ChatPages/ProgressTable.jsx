@@ -14,8 +14,9 @@ import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import CircleIcon from '@mui/icons-material/Circle';
+import {Search} from '@mui/icons-material';
 
-export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgress }) => {
+export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgress }) => {
     const [search, setSearch] = useState('');
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -81,7 +82,7 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
                 return <>{data.latest_message.content}</>
             } else if (data.latest_message.contentType === 'image' || data.latest_message.contentType === 'sticker') {
                 return <>ส่งรูปภาพหรือสติกเกอร์ </>
-            }else if (data.latest_message.contentType === 'video'){
+            } else if (data.latest_message.contentType === 'video') {
                 return <>ส่งวิดีโอ</>
             }
             else if (data.latest_message.contentType === 'location') {
@@ -102,28 +103,30 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
 
     return (
         <>
-            <Box sx={ChatPageStyle.BoxTable}>
-                <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} sx={{ mb: 2 }} justifyContent='space-between'>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                     <Typography level="h2" component="h1">
                         กำลังดำเนินการ&nbsp;
                         <Typography level="body-sm" color="neutral">
                             {progress.length} รายการ
                         </Typography>
                     </Typography>
-                    <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
-                    <Button onClick={() => handleFilter()}>ค้นหา</Button>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                        <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <Button onClick={() => handleFilter()} startDecorator={<Search/>}>ค้นหา</Button>
+                    </Stack>
                 </Stack>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                <Stack direction={{xs : 'column', sm : 'row'}} spacing={2} justifyContent={{xs : 'start', sm :  'end'}}>
                     {user.role === 'admin' && (
-                        <Button color='warning' variant="outlined" onClick={handleEndTalkAll}>
+                        <Button color='warning' onClick={handleEndTalkAll}>
                             <SendIcon />&nbsp;จบการสนทนาทั้งหมด
                         </Button>
                     )}
-                    <Button component={Link} to={'/chatHistory'}>
+                    <Button component={Link} to={'/chatHistory'} color="neutral">
                         <HistoryIcon />&nbsp;ประวัติแชททั้งหมด
                     </Button>
-                </Box>
-            </Box>
+                </Stack>
+            </Stack>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
@@ -139,7 +142,7 @@ export const ProgressTable = ({roomId, progress, filterProgress, setFilterProgre
                     <tbody>
                         {filterProgress && filterProgress.length > 0 ? filterProgress.map((data, index) => (
                             <tr key={index}>
-                                <td style={{overflow : 'hidden'}}>
+                                <td style={{ overflow: 'hidden' }}>
                                     <Stack flexDirection='row' alignItems='center' gap={1}>
                                         <div>
                                             {!data.unread && <CircleIcon sx={{ color: 'green' }} />}

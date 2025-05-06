@@ -11,6 +11,7 @@ import Box from "@mui/joy/Box";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { Alert } from '@mui/joy';
+import { useMediaQuery } from "@mui/material";
 
 const ModalEndTalk = (props) => {
     const { user } = useAuth();
@@ -107,12 +108,14 @@ export const EndTalk = (props) => {
                     rateId={rateId} activeId={activeId} showModalEndTalk={showModalEndTalk}
                     setShowModalEndTalk={setShowModalEndTalk} tags={tags} />
             )}
-            <Button color='success' disabled={disable} variant="outlined" size="sm"
-                onClick={() => setShowModalEndTalk(true)}>
-                <DoneIcon />
-                <Typography color={disable ? '' : 'success'} fontSize='small' sx={MessageStyle.PaneHeader.BtnText}>
-                    จบการสนทนา
-                </Typography>
+            <Button
+                color='success' disabled={disable} variant="solid" size="sm"
+                fullWidth={useMediaQuery('(max-width: 1000px)')}
+                onClick={() => setShowModalEndTalk(true)}
+                startDecorator={<DoneIcon />}
+            >
+                {!useMediaQuery('(max-width: 1000px)') && 'จบการสนทนา'}
+                
             </Button>
         </>
     )

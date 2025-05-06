@@ -18,7 +18,7 @@ import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { FilterChatHistory } from "./FilterChatHistory.jsx";
 import axiosClient from "../../Axios.js";
 
-const BreadcrumbsPath = [{ name: 'ห้องแชทล่าสุด' }];
+const BreadcrumbsPath = [{ name: 'ประวัติการสนทนาทั้งหมด' }];
 
 export default function ChatHistory() {
     const theme = useTheme();
@@ -103,13 +103,9 @@ export default function ChatHistory() {
                 height: '100dvh',
                 gap: 2,
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center'}}>
                     <BreadcrumbsComponent list={BreadcrumbsPath} />
                 </Box>
-
-                <Typography level="h3" fontWeight="lg" sx={{ mb: 2 }} startDecorator={<HistoryIcon />}>
-                    ประวัติการสนทนาทั้งหมด
-                </Typography>
 
                 <FilterChatHistory {...{platforms}} onPassed={(formData)=>handleSearch(formData)}/>
 

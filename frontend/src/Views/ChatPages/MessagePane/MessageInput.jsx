@@ -4,23 +4,22 @@ import { Button, Textarea } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
-import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { sendApi } from "../../../Api/Messages.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { StickerPK } from "./StickerPK.jsx";
-import FilePresentIcon from '@mui/icons-material/FilePresent';
-
+import { FilePresent, PictureAsPdf, SendRounded } from '@mui/icons-material';
+import { useMediaQuery } from "@mui/material";
 export const MessageInput = (props) => {
     const { user } = useAuth();
     const { disable, setDisable } = props
-    const { check, msg, setMsg, sender, setMessages, activeId, messages } = props;
+    const { check, msg, sender, setMessages, activeId } = props;
     const [imagePreview, setImagePreview] = useState([]);
     const [selectedFile, setSelectedFile] = useState();
     const [disableBtn, setDisableBtn] = useState(false);
     const [msgInput, setMsgInput] = useState(msg);
+
 
     const handleRemoveImage = (index) => {
         if (index) {
@@ -128,7 +127,7 @@ export const MessageInput = (props) => {
                                             ) : (
                                                 <Box sx={{ mx: 1, p: 1, minWidth: 100, minHeight: 100, backgroundColor: '#d1dcf5', borderRadius: 4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                                     <div>
-                                                        <PictureAsPdfIcon fontSize="50px" />
+                                                        <PictureAsPdf fontSize="50px" />
                                                         <Typography>{image.fileName}</Typography>
                                                     </div>
                                                 </Box>
@@ -143,15 +142,16 @@ export const MessageInput = (props) => {
                             }
                             disabled={(sender.emp !== user.empCode) && (user.role !== 'admin')}
                             placeholder="พิมพ์ข้อความที่นี่..."
-                            minRows={imagePreview ? 1 : 3} maxRows={10}
+                            minRows={imagePreview ? 2 : 3} maxRows={10}
                             value={msgInput.content}
                             onChange={(e) => setMsgInput({ ...msg, content: e.target.value })}
                             endDecorator={
-                                <Stack direction="row" gap={1} sx={MessageStyle.TextArea}>
+                                <Stack direction={'row'} gap={1} sx={MessageStyle.TextArea}>
                                     <StickerPK disable={disable} sender={sender} activeId={activeId} />
                                     <Button
+                                    fullWidth={useMediaQuery('(max-width: 1000px)')}
                                         component='label' loading={disable} color="danger"
-                                        startDecorator={<FilePresentIcon />} disabled={disable}
+                                        startDecorator={<FilePresent />} disabled={disable}
                                     >
                                         <Typography sx={MessageStyle.InsertImage}>แนปไฟล์</Typography>
                                         <input
@@ -162,11 +162,12 @@ export const MessageInput = (props) => {
                                     </Button>
 
                                     <Button
-                                        startDecorator={<SendRoundedIcon />}
+                                        fullWidth={useMediaQuery('(max-width: 1000px)')}
+                                        startDecorator={<SendRounded />}
                                         loading={disable} color="primary" disabled={disable}
                                         onClick={() => handleSend({ type: 'text' })}
                                     >
-                                        ส่ง ( ctrl+enter )
+                                         {!useMediaQuery('(max-width: 1000px)') && <Typography sx={MessageStyle.InsertImage}>ส่ง {'(curl+enter)'}</Typography>}
                                     </Button>
                                 </Stack>
                             }
