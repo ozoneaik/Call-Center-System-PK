@@ -163,6 +163,11 @@ class LineUATController extends Controller
             }
         } else {
             $now = Carbon::now();
+            $created_at = Carbon::parse($current_rate->created_at);
+            Log::info('created_at: ' . $created_at);
+            Log::info('instance of: ' . $current_rate->created_at instanceof \Carbon\Carbon);
+            Log::info('$current_rate->created_at: ' . $current_rate->created_at);
+            Log::info('now: ' . $now);
             if ($current_rate && $now->diffInHours($current_rate->created_at) <= 12) { // ทักมาภายใน 12 ชั่วโมง
                 $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
             } else { // ทักมามากกว่า 12 ชั่วโมง
