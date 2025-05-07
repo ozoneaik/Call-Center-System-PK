@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
+use App\Models\Rates;
 use Illuminate\Http\Request;
 
 class HistoryController extends Controller
 {
-    public function ChatHistory(Request $request){
+    public function ChatHistory(Request $request)
+    {
         $query = Customers::query();
         if (isset($request['custName']) && $request['custName'] !== null) {
             $message = 'ค้นหาชื่อผู้ใช้';
@@ -19,10 +21,10 @@ class HistoryController extends Controller
 
         if (isset($request['directFrom']) && $request['directFrom'] !== null) {
             $message = 'ค้นหาจากแหล่งที่มา';
-            $query->where('platformRef','ILIKE',$request['directFrom']);
+            $query->where('platformRef', 'ILIKE', $request['directFrom']);
         }
 
-        if(isset($request['firstContactDate']) && $request['firstContactDate'] !== null) {
+        if (isset($request['firstContactDate']) && $request['firstContactDate'] !== null) {
             $message = 'ค้นหาจากวันที่';
             $query->whereDate('created_at', $request['firstContactDate']);
         }
@@ -46,7 +48,8 @@ class HistoryController extends Controller
         ]);
     }
 
-    public function ChatHistoryDetail($custId){
+    public function ChatHistoryDetail($custId)
+    {
         $status = 400;
         try {
             // ดึง 500 รายการล่าสุด (id มากไปน้อย)
@@ -54,11 +57,17 @@ class HistoryController extends Controller
             // จากนั้นกลับลำดับ (น้อยไปมาก)
             $chatHistory = $chatHistory->sortBy('id')->values();
             $customer = Customers::query()->where('custId', $custId)->first();
+            $current_rate = Rates::query()
+                ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
+                ->where('rates.custId', $custId)->orderBy('rates.id', 'desc')
+                ->select('rates.*', 'chat_rooms.roomName')
+                ->first();
             return response()->json([
                 'message' => 'ดึงข้อมูลสำเร็จ',
                 'data' => [
                     'chatHistory' => $chatHistory,
                     'customer' => $customer,
+                    'current_rate' => $current_rate,
                 ],
             ]);
         } catch (\Exception $e) {

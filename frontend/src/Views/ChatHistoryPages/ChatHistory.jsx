@@ -55,8 +55,10 @@ export default function ChatHistory() {
     }, [page_url]);
 
     const redirectChat = (select) => {
-        const params = `${select.rateRef}/${select.id}/${select.custId}`;
-        navigate(`/select/message/${params}/0`);
+        // const params = `${select.rateRef}/${select.id}/${select.custId}`;
+        // navigate(`/select/message/${params}/0`);
+
+        navigate('/chatHistory/detail/' + select.custId);
     };
 
     const handleSearch = async (formData) => {

@@ -4,9 +4,10 @@ import {
     Textarea, Typography, Divider, IconButton,
     Avatar
 } from "@mui/joy";
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { CloudUpload } from '@mui/icons-material';
+import {Visibility, VisibilityOff } from '@mui/icons-material';
+import { CloudUpload,Save } from '@mui/icons-material';
 import { styled } from '@mui/joy';
+import { Grid2 } from '@mui/material';
 
 const VisuallyHiddenInput = styled('input')`
   clip: rect(0 0 0 0);
@@ -113,131 +114,137 @@ export default function EditProfileForm({ userData, onSubmitSuccess }) {
     return (
         <Box component="form" onSubmit={handleSubmit} sx={{ overflow: 'auto' }}>
             <Stack spacing={3}>
-                <Typography level="title-md">ข้อมูลส่วนตัว</Typography>
-                <FormControl error={!!errors.avatar}>
-                    <FormLabel>รูปประจำตัว</FormLabel>
-                    <Stack justifyContent='center' direction='column' alignItems='center'>
-                        <Avatar size='lg' src={avatarPreview} sx={{ mb: 2, height: 100, width: 100 }} />
-                        <Button component='label' role={undefined} tabIndex={-1} variant='outlined' color='neutral'
-                            startDecorator={<CloudUpload />}
-                        >
-                            Upload a file
-                            <VisuallyHiddenInput type='file' name='avatar' onChange={(e) => handleUploadFile(e)} />
-                        </Button>
-                    </Stack>
-                </FormControl>
-                <FormControl error={!!errors.name}>
-                    <FormLabel>ชื่อ</FormLabel>
-                    <Input
-                        name="name" value={formData.name}
-                        onChange={handleChange}
-                        placeholder="กรอกชื่อ"
-                    />
-                    {errors.name && (
-                        <Typography level="body-xs" color="danger">
-                            {errors.name}
-                        </Typography>
-                    )}
-                </FormControl>
+                <Grid2 container spacing={2}>
+                    <Grid2 size={{ xs: 12, md: 6 }} sx={{ borderRight: { xs: 'none', md: '1px solid' } }}>
+                        <FormControl error={!!errors.avatar}>
+                            <Stack justifyContent='center' direction='column' alignItems='center'>
+                                <Avatar src={avatarPreview} sx={{ mb: 2, height: { xs: 100, lg: 300 }, width: { xs: 100, lg: 300 } }} />
+                                <Button component='label' role={undefined} tabIndex={-1} variant='outlined' color='neutral'
+                                    startDecorator={<CloudUpload />}
+                                >
+                                    Upload a file
+                                    <VisuallyHiddenInput type='file' name='avatar' onChange={(e) => handleUploadFile(e)} />
+                                </Button>
+                            </Stack>
+                        </FormControl>
+                    </Grid2>
+                    <Grid2 size={{ xs: 12, md: 6 }}>
+                        <Stack direction='column' spacing={2}>
+                            <FormControl error={!!errors.name}>
+                                <FormLabel>ชื่อ</FormLabel>
+                                <Input
+                                    name="name" value={formData.name}
+                                    onChange={handleChange}
+                                    placeholder="กรอกชื่อ"
+                                />
+                                {errors.name && (
+                                    <Typography level="body-xs" color="danger">
+                                        {errors.name}
+                                    </Typography>
+                                )}
+                            </FormControl>
 
-                <FormControl>
-                    <FormLabel>คำอธิบาย</FormLabel>
-                    <Textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        minRows={3}
-                        placeholder="เพิ่มคำอธิบายเกี่ยวกับตัวคุณ"
-                    />
-                </FormControl>
+                            <FormControl>
+                                <FormLabel>คำอธิบาย</FormLabel>
+                                <Textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    minRows={3}
+                                    placeholder="เพิ่มคำอธิบายเกี่ยวกับตัวคุณ"
+                                />
+                            </FormControl>
 
-                <Divider />
+                            <Divider />
 
-                <Typography level="title-md">เปลี่ยนรหัสผ่าน</Typography>
-                <Typography level="body-sm" color="neutral">
-                    หากคุณไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นช่องเหล่านี้ว่างไว้
-                </Typography>
+                            <Typography level="title-md">เปลี่ยนรหัสผ่าน</Typography>
+                            <Typography level="body-sm" color="neutral">
+                                หากคุณไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นช่องเหล่านี้ว่างไว้
+                            </Typography>
 
-                <FormControl error={!!errors.currentPassword}>
-                    <FormLabel>รหัสผ่านปัจจุบัน</FormLabel>
-                    <Input
-                        name="currentPassword"
-                        type={showPassword.current ? 'text' : 'password'}
-                        value={formData.currentPassword}
-                        onChange={handleChange}
-                        placeholder="กรอกรหัสผ่านปัจจุบัน"
-                        endDecorator={
-                            <IconButton
-                                onClick={() => togglePasswordVisibility('current')}
-                                edge="end"
-                            >
-                                {showPassword.current ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                        }
-                    />
-                    {errors.currentPassword && (
-                        <Typography level="body-xs" color="danger">
-                            {errors.currentPassword}
-                        </Typography>
-                    )}
-                </FormControl>
+                            <FormControl error={!!errors.currentPassword}>
+                                <FormLabel>รหัสผ่านปัจจุบัน</FormLabel>
+                                <Input
+                                    name="currentPassword"
+                                    type={showPassword.current ? 'text' : 'password'}
+                                    value={formData.currentPassword}
+                                    onChange={handleChange}
+                                    placeholder="กรอกรหัสผ่านปัจจุบัน"
+                                    endDecorator={
+                                        <IconButton
+                                            onClick={() => togglePasswordVisibility('current')}
+                                            edge="end"
+                                        >
+                                            {showPassword.current ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    }
+                                />
+                                {errors.currentPassword && (
+                                    <Typography level="body-xs" color="danger">
+                                        {errors.currentPassword}
+                                    </Typography>
+                                )}
+                            </FormControl>
 
-                <FormControl error={!!errors.newPassword}>
-                    <FormLabel>รหัสผ่านใหม่</FormLabel>
-                    <Input
-                        name="newPassword"
-                        type={showPassword.new ? 'text' : 'password'}
-                        value={formData.newPassword}
-                        onChange={handleChange}
-                        placeholder="กรอกรหัสผ่านใหม่"
-                        endDecorator={
-                            <IconButton
-                                onClick={() => togglePasswordVisibility('new')}
-                                edge="end"
-                            >
-                                {showPassword.new ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                        }
-                    />
-                    {errors.newPassword && (
-                        <Typography level="body-xs" color="danger">
-                            {errors.newPassword}
-                        </Typography>
-                    )}
-                </FormControl>
+                            <FormControl error={!!errors.newPassword}>
+                                <FormLabel>รหัสผ่านใหม่</FormLabel>
+                                <Input
+                                    name="newPassword"
+                                    type={showPassword.new ? 'text' : 'password'}
+                                    value={formData.newPassword}
+                                    onChange={handleChange}
+                                    placeholder="กรอกรหัสผ่านใหม่"
+                                    endDecorator={
+                                        <IconButton
+                                            onClick={() => togglePasswordVisibility('new')}
+                                            edge="end"
+                                        >
+                                            {showPassword.new ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    }
+                                />
+                                {errors.newPassword && (
+                                    <Typography level="body-xs" color="danger">
+                                        {errors.newPassword}
+                                    </Typography>
+                                )}
+                            </FormControl>
 
-                <FormControl error={!!errors.confirmPassword}>
-                    <FormLabel>ยืนยันรหัสผ่านใหม่</FormLabel>
-                    <Input
-                        name="confirmPassword"
-                        type={showPassword.confirm ? 'text' : 'password'}
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
-                        endDecorator={
-                            <IconButton
-                                onClick={() => togglePasswordVisibility('confirm')}
-                                edge="end"
-                            >
-                                {showPassword.confirm ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                        }
-                    />
-                    {errors.confirmPassword && (
-                        <Typography level="body-xs" color="danger">
-                            {errors.confirmPassword}
-                        </Typography>
-                    )}
-                </FormControl>
+                            <FormControl error={!!errors.confirmPassword}>
+                                <FormLabel>ยืนยันรหัสผ่านใหม่</FormLabel>
+                                <Input
+                                    name="confirmPassword"
+                                    type={showPassword.confirm ? 'text' : 'password'}
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                                    endDecorator={
+                                        <IconButton
+                                            onClick={() => togglePasswordVisibility('confirm')}
+                                            edge="end"
+                                        >
+                                            {showPassword.confirm ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    }
+                                />
+                                {errors.confirmPassword && (
+                                    <Typography level="body-xs" color="danger">
+                                        {errors.confirmPassword}
+                                    </Typography>
+                                )}
+                            </FormControl>
+                        </Stack>
 
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
-                    <Button variant="outlined" color="neutral" onClick={onSubmitSuccess}>
-                        ยกเลิก
-                    </Button>
-                    <Button type="submit" variant="solid" color="primary">
-                        บันทึก
-                    </Button>
-                </Box>
+                    </Grid2>
+                    <Grid2 size={12}>
+                        <Divider />
+                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+                            <Button type="submit" variant="solid" color="primary" startDecorator={<Save/>}>
+                                บันทึก
+                            </Button>
+                        </Box>
+                    </Grid2>
+                </Grid2>
             </Stack>
         </Box>
     );

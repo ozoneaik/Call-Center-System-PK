@@ -9,10 +9,10 @@ const options = {
     confirmButtonColor: '#f15721'
 }
 
-export const AlertDiaLog = ({title, text, icon, Outside, timer, onPassed}) => {
+export const AlertDiaLog = ({title, text, icon, Outside, timer, onPassed = ()=> {}}) => {
     Swal.fire({
         title: title,
-        text: text,
+        html: text,
         icon: icon ? icon : 'error',
         allowOutsideClick: Outside ? Outside : false,
         timer: timer ? timer : null,

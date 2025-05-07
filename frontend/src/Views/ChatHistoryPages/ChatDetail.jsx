@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Sheet, Typography, Box, Avatar, Button, Stack } from '@mui/joy';
+import { Sheet, Typography, Box, Avatar, Button, Stack, Card, Chip, IconButton } from '@mui/joy';
 import axiosClient from '../../Axios';
-import AddCommentIcon from '@mui/icons-material/AddComment';
+import { AddComment, ArrowBack } from '@mui/icons-material';
 import CircularProgress from '@mui/joy/CircularProgress';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import CreateCase from './CreateCase';
 
 export default function ChatDetail() {
 
     const [loading, setLoading] = useState(false);
     const [customer, setCustomer] = useState({});
     const [messages, setMessages] = useState([]);
+    const [currentRate, setCurrentRate] = useState({});
+    const [openCreateCase, setOpenCreateCase] = useState(false);
+
+    const { custId } = useParams();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
@@ -17,10 +24,11 @@ export default function ChatDetail() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const { data, status } = await axiosClient.post(`/chatHistory/${'U21af8c6969cc91a6c00359f33e7f3ba2'}`);
+            const { data, status } = await axiosClient.post(`/chatHistory/${custId}`);
             console.log(data, status);
             setCustomer(data.data.customer);
             setMessages(data.data.chatHistory);
+            setCurrentRate(data.data.current_rate);
 
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -29,14 +37,42 @@ export default function ChatDetail() {
 
     const HeaderComponent = () => (
         <Sheet variant="outlined" sx={HeaderStyle}>
-            <Stack direction='row' spacing={1}>
-                <Avatar size="md" color="primary" src={customer?.avatar} />
-                <Box>
-                    <Typography level="title-md">{customer?.custName}</Typography>
-                    <Typography level="body-sm">{customer?.description}</Typography>
-                </Box>
+            <Stack direction='row' spacing={2}>
+                <IconButton onClick={() => navigate(-1)} variant='outlined' size='sm' color='primary'>
+                    <ArrowBack />
+                </IconButton>
+                <Stack direction='row' spacing={1}>
+                    <Avatar size="md" color="primary" src={customer?.avatar} />
+                    <Box>
+                        <Stack direction='row' spacing={1}>
+                            <Typography level="title-md">{customer?.custName}</Typography>
+                            <Chip
+                                color={{
+                                    pending: 'warning',
+                                    progress: 'neutral',
+                                    success: 'success'
+                                }[currentRate.status] ?? 'danger'}
+                                variant='outlined' size='sm'
+                            >
+                                {{
+                                    pending: `รอรับเรื่อง ที่ห้อง ${currentRate.roomName}`,
+                                    progress: `อยู่ระหว่างดำเนินการ ที่ห้อง ${currentRate.roomName}`,
+                                    success: 'ปิดเคสแล้ว'
+                                }[currentRate.status] ?? 'ข้อผิดพลาด'}
+                            </Chip>
+                        </Stack>
+                        <Typography level="body-sm">{customer?.description}</Typography>
+                    </Box>
+                </Stack>
             </Stack>
-            <Button startDecorator={<AddCommentIcon />} color='success'>สร้างเคสใหม่</Button>
+
+            <Button
+                size='sm' startDecorator={<AddComment />} disabled={currentRate.status !== 'success'} color='success'
+                onClick={() => setOpenCreateCase(true)}
+            >
+                สร้างเคสใหม่
+            </Button>
+
         </Sheet>
     )
 
@@ -45,64 +81,56 @@ export default function ChatDetail() {
             {messages.map((message, index) => {
                 const sender = JSON.parse(message.sender);
                 return (
-                    <Box key={message.id} sx={[messsageBoxStyle, { flexDirection: sender.empCode ? 'row-reverse' : 'row' }]}>
-                        <Avatar variant='solid' size="sm" color={sender?.custId ? "neutral" : "primary"} />
-                        <Box
-                            sx={{
-                                maxWidth: '70%',
-                                p: 2,
-                                borderRadius: 'lg',
-                                bgcolor: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
-                                color: sender.empCode ? 'primary.softBg' : 'neutral.softBg',
-                                position: 'relative',
-                            }}
-                        >
-                            <Typography sx={{ textAlign: 'end' }}>test</Typography>
-                            <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {message.content}
-                            </Typography>
-                            <Typography
-                                level="body-xs"
-                                sx={{
-                                    mt: 1,
-                                    display: 'block',
-                                    textAlign: sender?.empCode ? 'right' : 'left',
-                                    color: sender?.empCode ? 'primary.400' : 'neutral.400'
-                                }}
-                            >
-                                {new Date(message.created_at).toLocaleString('th-TH')}
-                            </Typography>
-                        </Box>
-                        {/* </Stack> */}
+                    <Card
+                        invertedColors key={index}
+                        sx={{ padding: 1, border: 'none' }}
+                    >
+                        <Stack direction='row' justifyContent='space-between' alignItems='center'>
+                            <Stack direction='row' spacing={2} alignItems='center'>
+                                <Avatar size="sm" color="primary" src={sender.avatar} />
+                                <Stack direction='column'>
+                                    <Typography fontWeight='bold'>{sender.custName || sender.name}</Typography>
+                                    {message.contentType === 'text' || message.contentType === 'location' ? (
+                                        <Typography>{message.content}</Typography>
+                                    ) : (
+                                        <Button component={Link} to={message.content} size='sm' target='_blank'>
+                                            ดูสื่อ {{
+                                                image: 'รูปภาพ',
+                                                video: 'วิดีโอ',
+                                                audio: 'เสียง',
+                                                file: 'ไฟล์',
+                                                sticker: 'สติ๊กเกอร์',
+                                            }[message.contentType]}
+                                        </Button>
+                                    )}
 
-                    </Box>
+                                </Stack>
+                            </Stack>
+                            <Chip size='sm' color='warning'>
+                                {new Date(message.created_at).toLocaleString('TH-th')}
+                            </Chip>
+                        </Stack>
+                    </Card>
                 )
             })}
         </Box>
     )
 
     return (
-        <Stack direction='row' spacing={0}>
-            {loading ?
-                <CircularProgress /> :
-                <>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <>
+            {openCreateCase && <CreateCase open={openCreateCase} setOpen={setOpenCreateCase} custId={custId} />}
+            <Stack direction='row' spacing={0}>
+                {loading ?
+                    <CircularProgress /> :
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
                         {/* ส่วนหัว */}
                         <HeaderComponent />
                         {/* ส่วนแสดงข้อความ */}
                         <MessageListComponent />
                     </Box >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-                        {/* ส่วนหัว */}
-                        <HeaderComponent />
-                        {/* ส่วนแสดงข้อความ */}
-                        <>get</>
-                    </Box >
-                </>}
-
-        </Stack>
-
-
+                }
+            </Stack>
+        </>
     );
 }
 
@@ -119,11 +147,11 @@ const HeaderStyle = {
 
 const MessageListComponentStyle = {
     flex: 1,
-    p: 2,
+    // p: 2,
     overflow: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: 2
+    // gap: 2
 }
 
 const messsageBoxStyle = {

@@ -114,7 +114,7 @@ export default function ProfilePage() {
 
             {/* Modal สำหรับแก้ไขโปรไฟล์ */}
             <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
-                <ModalDialog aria-labelledby="edit-profile-modal" size="lg" sx={{ maxWidth: 500 }} >
+                <ModalDialog aria-labelledby="edit-profile-modal" sx={{ width : '50%'}}>
                     <ModalClose />
                     <Typography id="edit-profile-modal" level="h4" sx={{ mb: 3 }}>
                         แก้ไขโปรไฟล์

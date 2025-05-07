@@ -10,7 +10,6 @@ export const AnnouncementBar = ({item}) => {
                 backgroundColor: '#f15721',
                 padding: '5px 24px',
                 textAlign: 'center',
-                borderBottom: '2px solid #f15721',
                 borderBottom : '2px solid black',
             }}
         >

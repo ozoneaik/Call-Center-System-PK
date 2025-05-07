@@ -7,15 +7,14 @@ import {chatRoomListApi} from "../../Api/ChatRooms.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import {convertFullDate} from "../../Components/Options.jsx";
-import EditNoteIcon from "@mui/icons-material/EditNote";
 import Button from "@mui/joy/Button";
-import DeleteIcon from '@mui/icons-material/Delete';
 import Chip from "@mui/joy/Chip";
 import {AlertDiaLog} from "../../Dialogs/Alert.js";
 import {useAuth} from "../../context/AuthContext.jsx";
 import ModalDialog from "../../Components/ModalDialog.jsx";
 import {CreateUser} from "./CreateUser.jsx";
 import { FilterUser } from "./FilterUser.jsx";
+import {Close,EditNote,Delete,Add} from '@mui/icons-material';
 
 
 const BreadcrumbsPath = [{name: 'จัดการผู้ใช้'}, {name: 'รายละเอียด'}]
@@ -91,9 +90,9 @@ export default function Users() {
                     </Box>
                     <Box sx={ChatPageStyle.BoxTable}>
                         <Typography level="h2" component="h1">จัดการผู้ใช้</Typography>
-                        <Button color={!openCreate ? 'primary' : 'danger'} size='sm'
+                        <Button color={!openCreate ? 'primary' : 'danger'} startDecorator={openCreate ? <Close/> : <Add/>} size='sm'
                                 onClick={() => setOpenCreate(!openCreate)}>
-                            {!openCreate ? '+ เพิ่มผู้ใช้' : 'X'}
+                            {!openCreate ? 'เพิ่มผู้ใช้' : 'ยกเลิก'}
                         </Button>
                     </Box>
                     {openCreate && <CreateUser open={openCreate} setOpen={setOpenCreate} Refresh={refresh}/>}
@@ -120,7 +119,7 @@ export default function Users() {
                                                     size='sm' sx={{mr: 1}} src={item.avatar}
                                                     color='primary' variant='solid'
                                                 />
-                                                <Typography>{item.name}</Typography>
+                                                <Typography>{item.name} {item.real_name}</Typography>
                                             </div>
                                         </td>
                                         <td>
@@ -140,13 +139,13 @@ export default function Users() {
                                                     setSelected(item);
                                                 }}
                                             >
-                                                <EditNoteIcon/>
+                                                <EditNote/>
                                             </Button>
                                             <Button
                                                 disabled={(user.empCode === item.empCode) || (item.role === 'BOT')}
                                                 onClick={() => handleDelete(item.name, item.empCode)} size='sm'
                                                 color='danger'>
-                                                <DeleteIcon/>
+                                                <Delete/>
                                             </Button>
                                         </td>
                                     </tr>

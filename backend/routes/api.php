@@ -3,6 +3,7 @@
 use App\Http\Controllers\AnnounceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotMenuController;
+use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
@@ -158,6 +159,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('users')->group(function(){
         Route::get('profile', [UserController::class, 'profile']);
         Route::post('profile', [UserController::class, 'updateProfile']);
+    });
+
+    // จัดการเคส
+    Route::prefix('case')->group(function(){
+        Route::post('/store',[CaseController::class,'store']);
     });
 });
 
