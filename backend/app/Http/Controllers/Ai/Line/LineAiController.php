@@ -11,8 +11,8 @@ class LineAiController extends Controller
 {
     public function index(Request $request)
     {
-        $GEMINI_API_KEY = 'AIzaSyD7vb6DKuFCq36eBMFjWArTdu1HXNofmSg';
-        $LINE_CHANNEL_ACCESS_TOKEN = 'VM0CDgaGQJq3fVRHfWH1aSsLwcj3tsy3DEWHJOkoKG0TzCFW7ZjRBF4lUz+qPP5eELzEEnl+S8JPwztI8/iwjOkaIlDOw93aq+Rv2NFDoW0/X6aYLbhdiEWVQe6L3ndyZTnZKn9gi+0hy8pWfbAyEgdB04t89/1O/w1cDnyilFU=';
+        $GEMINI_API_KEY = env('GEMINI_API_KEY');
+        $LINE_CHANNEL_ACCESS_TOKEN = env('LINE_CHANNEL_ACCESS_TOKEN');
         $events = $request->events;
         Log::info('LineAiController', [
             'events' => json_encode($events, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
