@@ -22,5 +22,6 @@ class Rates extends Model
         'status',
         'tag',
         'menu_select',
+        'feedback_description',
     ];
 }

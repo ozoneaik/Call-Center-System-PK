@@ -9,6 +9,7 @@ use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\feedbackController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
 use Illuminate\Support\Facades\Route;
@@ -170,17 +172,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::prefix('webhooks')->group(function () {
    Route::post('/line',[LineUATController::class, 'webhook']);
+   Route::get('/facebook',[FacebookController::class, 'webhook']);
+   Route::post('/facebook',[FacebookController::class, 'webhookFacebook']);
 });
-
 Route::post('/upload-file',[MessageController::class, 'uploadFile']);
-
-
 Route::get('/announces', [AnnounceController::class,'index']);
 
+Route::get('/feedback/{custId}/{rateId}', [feedbackController::class,'index']);
+Route::post('/feedback', [feedbackController::class,'feedback']);
 
-Route::get('/hello', function (){
-    return response()->json([
-        'message' => 'hello world',
-        'Hashed' => \Illuminate\Support\Facades\Hash::make('1111')
-    ]);
-});
+require __DIR__.'/test_only.php';

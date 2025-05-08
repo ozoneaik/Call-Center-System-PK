@@ -24,6 +24,7 @@ import MyCasePage from "./Views/MyCasePages/main.jsx";
 import SearchNote from "./Views/SearchNotePages/SearchNote.jsx";
 import ChatDetail from "./Views/ChatHistoryPages/ChatDetail.jsx";
 import HomeNew from "./Views/HomePages/HomeNew.jsx";
+import Feedback from "./Views/Feedback.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -73,5 +74,6 @@ export const routes = createBrowserRouter([
     },
     { path: 'access/denied', element: <NotFoundPage /> },
     { path: 'test', element: <TestUi /> },
-    { path: '*', element: <NotFoundPage /> }
+    { path: '*', element: <NotFoundPage /> },
+    {path : 'feedback/:custId/:rateId', element : <Feedback/>}
 ])

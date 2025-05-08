@@ -29,7 +29,7 @@ class HistoryController extends Controller
             $query->whereDate('created_at', $request['firstContactDate']);
         }
 
-        $customer_list = $query->orderBy('created_at', 'desc')->paginate(100);
+        $customer_list = $query->orderBy('created_at', 'desc')->paginate(200);
         foreach ($customer_list as $customer) {
             $customer->latest_message = ChatHistory::query()
                 ->select('content', 'contentType', 'created_at')

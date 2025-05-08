@@ -418,6 +418,10 @@ class LineUATController extends Controller
             $rate->rate = $feedback === 'like' ? 5 : 1;
             $rate->save();
 
+            if ($feedback !== 'like') {
+                $this->messageService->quickReplyMsgLine($rate, $event['replyToken']);
+            }
+
             return true;
         } catch (\Exception $e) {
             $message = $e->getMessage() . $e->getLine() . $e->getFile();

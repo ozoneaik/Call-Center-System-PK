@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +35,7 @@ class MessageService
                 case 'text':
                     $msg['type'] = 'text';
                     $msg['text'] = $messages['content'];
-                    if (isset($messages['line_quote_token'])){
+                    if (isset($messages['line_quote_token'])) {
                         $msg['quoteToken'] = $messages['line_quote_token'];
                     }
                     break;
@@ -96,7 +97,7 @@ class MessageService
             } else {
                 $data['status'] = false;
                 $resJson = $response->json();
-                $messageError = 'Line API PUSH MESSAGE => '.$resJson['details'][0]['message'] ?? 'ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API';
+                $messageError = 'Line API PUSH MESSAGE => ' . $resJson['details'][0]['message'] ?? 'ส่งข้อความไม่สำเร็จ ติดต่อผู้ดูแลระบบเพื่อเช็ค Line API';
                 throw new \Exception($messageError);
             }
             $data['message'] = $response->json() ?? 'test';
@@ -168,11 +169,83 @@ class MessageService
             }
         } catch (\Exception $e) {
             Log::channel('line_webhook_log')->error($e->getMessage());
-            Log::channel('line_webhook_log')->error($e->getLine().' ' . $e->getFile());
+            Log::channel('line_webhook_log')->error($e->getLine() . ' ' . $e->getFile());
             $data['status'] = false;
             $data['message'] = $e->getMessage();
         } finally {
             return $data;
+        }
+    }
+
+    public function quickReplyMsgLine($rate, $replyToken)
+    {
+        $customer = Customers::query()->where('custId', $rate->custId)->first();
+        $token = PlatformAccessTokens::query()->where('id', $customer->platformRef)->first();
+        $accessToken = $token->accessToken;
+        $URL = ''.env('FRONTEND_URL').'/feedback/'.$customer->custId.'/'.$rate->id;
+        Log::error($URL);
+        $message = [
+            'replyToken' => $replyToken,
+            'messages' => [[
+                'type' => 'flex',
+                'altText' => 'Quick Reply',
+                'contents' => [
+                    'type' => 'bubble',
+                    'body' => [
+                        'type' => 'box',
+                        'layout' => 'vertical',
+                        'spacing' => 'md',
+                        'contents' => [
+                            [
+                                'type' => 'text',
+                                'text' => 'บจก. พัมคิน คอร์ปอเรชั่น',
+                                'weight' => 'bold',
+                                'size' => 'lg',
+                            ],
+                            [
+                                'type' => 'text',
+                                'text' => 'ขอความร่วมมือในการแสดงความคิดเห็นเพื่อนำไปปรับปรุงบริการของเรา',
+                                'color' => '#FF9826FF',
+                                'wrap' => true,
+                            ]
+                        ]
+                    ],
+                    'footer' => [
+                        'type' => 'box',
+                        'layout' => 'vertical',
+                        'contents' => [
+                            ['type' => 'spacer'],
+                            [
+                                'type' => 'button',
+                                'action' => [
+                                    'type' => 'uri',
+                                    'label' => '📄กรอกใบประเมิน',
+                                    'uri' => $URL,
+                                ],
+                                'color' => '#F15823FF',
+                                'style' => 'primary'
+                            ]
+                        ]
+                    ]
+                ]
+            ]]
+        ];
+        try {
+            $response = Http::withHeaders(['Authorization' => 'Bearer ' . $accessToken])
+                ->post('https://api.line.me/v2/bot/message/reply', $message);
+            if ($response->status() == 200) {
+                $responssJson = $response->json();
+                Log::error('Line Success ✅✅');
+            } else {
+                $responssJson = $response->json();
+                Log::error('Line Error ❌❌', [
+                    'error' => $responssJson,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('LineAiController', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

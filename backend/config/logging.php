@@ -128,7 +128,14 @@ return [
         ],
         'line_webhook_log' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/line_webhook_log.log'),
+            'path' => storage_path('logs/line/line_webhook_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+        'facebook_webhook_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/facebook_webhook_log.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
