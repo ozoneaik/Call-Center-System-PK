@@ -2,7 +2,7 @@ import { MessageStyle } from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
-import { Button, Modal, ModalClose, ModalDialog } from "@mui/joy";
+import { Button, Modal, ModalClose, ModalDialog, Sheet } from "@mui/joy";
 import Chip from "@mui/joy/Chip";
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import { useState } from "react";
@@ -16,6 +16,7 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import { PauseTalk } from "./PauseTalk.jsx";
 import { use } from "react";
 import { useMediaQuery } from "@mui/material";
+import HelpChat from "./HelpChat.jsx";
 
 function MessagePaneHeader(props) {
     const navigate = useNavigate();
@@ -38,6 +39,8 @@ function MessagePaneHeader(props) {
             content: content,
             contentType: 'text',
         }
+        console.log('msgFromShortCut', msgFromShortCut);
+        
         shortCustSend(msgFromShortCut)
         setShortcut(false);
     }
@@ -85,7 +88,11 @@ function MessagePaneHeader(props) {
                 <ModalDialog>
                     <ModalClose />
                     <Typography component="h2">ตัวช่วยตอบ</Typography>
-                    <ShortChatContent handle={(content) => sendShortCut(content)} />
+                    
+                        {/* <ShortChatContent handle={(content) => sendShortCut(content)} /> */}                
+                            <HelpChat handle={(content) => sendShortCut(content)} />
+                    
+
                 </ModalDialog>
             </Modal>
         </>

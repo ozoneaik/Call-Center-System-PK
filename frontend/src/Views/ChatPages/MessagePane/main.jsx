@@ -114,6 +114,8 @@ export default function MessagePane() {
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
+        console.log('c' , c);
+        
         setMsg(c)
         // await handleSend({c: c.content})
     }

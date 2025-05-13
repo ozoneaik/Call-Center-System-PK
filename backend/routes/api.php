@@ -10,6 +10,7 @@ use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\feedbackController;
+use App\Http\Controllers\HelpChatController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
+use App\Models\HelpChatModel;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -167,6 +169,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('case')->group(function(){
         Route::post('/store',[CaseController::class,'store']);
     });
+
+    Route::prefix('help-chat')->group(function(){
+        Route::get('/list',[HelpChatController::class,'index']);
+        Route::post('/search',[HelpChatController::class,'search']);
+    });
 });
 
 
@@ -182,3 +189,4 @@ Route::get('/feedback/{custId}/{rateId}', [feedbackController::class,'index']);
 Route::post('/feedback', [feedbackController::class,'feedback']);
 
 require __DIR__.'/test_only.php';
+

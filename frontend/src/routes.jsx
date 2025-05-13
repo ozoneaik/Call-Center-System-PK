@@ -6,7 +6,6 @@ import Login from "./Views/Login.jsx";
 import NotFoundPage from "./Views/NotFound.jsx";
 import MainLayout from "./Layouts/MainLayout.jsx";
 import MessagePane from "./Views/ChatPages/MessagePane/main.jsx";
-import Home from "./Views/HomePages/Home.jsx";
 import ChatRooms from "./Views/ChatRooms.jsx";
 import ShortChats from "./Views/shortChats/ShortChats.jsx";
 import Customers from "./Views/Customers.jsx";
@@ -25,6 +24,7 @@ import SearchNote from "./Views/SearchNotePages/SearchNote.jsx";
 import ChatDetail from "./Views/ChatHistoryPages/ChatDetail.jsx";
 import HomeNew from "./Views/HomePages/HomeNew.jsx";
 import Feedback from "./Views/Feedback.jsx";
+import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -56,6 +56,7 @@ export const routes = createBrowserRouter([
                             { path: '/accessToken', element: <AccessToken /> },
                             { path: '/botManage', element: <BotPage /> },
                             { path: '/tags', element: <TagePage /> },
+                            {path : '/helpChat', element : <HelpChatList/>},
                         ]
                     },
 
