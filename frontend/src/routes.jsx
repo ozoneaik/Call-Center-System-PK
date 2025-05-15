@@ -25,6 +25,7 @@ import ChatDetail from "./Views/ChatHistoryPages/ChatDetail.jsx";
 import HomeNew from "./Views/HomePages/HomeNew.jsx";
 import Feedback from "./Views/Feedback.jsx";
 import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
+import LayoutSeCreate from "./Views/Secret/LayoutSeCreate.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -70,7 +71,8 @@ export const routes = createBrowserRouter([
                 path: '/select', children: [
                     { path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane /> },
                 ]
-            }
+            },
+            {path: '/secret',element : <LayoutSeCreate/>}
         ]
     },
     { path: 'access/denied', element: <NotFoundPage /> },

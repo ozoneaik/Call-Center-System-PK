@@ -13,7 +13,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 
 const actionButtonsStyle = {
     position: 'absolute',
-    top: '-30px',
+    top: '-100px',
     right: 10,
     left: 'auto',
     display: 'flex',
@@ -96,7 +96,7 @@ export default function ContextMenuButton(props) {
                                                 <span style={{ fontWeight: 'bold' }}>ประเภท&nbsp;{':'}&nbsp;</span>
                                                 {contentType}
                                             </Typography>
-                                            {contentType !== 'text' &&  <iframe src={content} frameborder="0" style={{height : '40vh' ,width : '40vw'}}></iframe>}
+                                            {contentType !== 'text' && <iframe src={content} style={{ border: 'none', height: '40vh', width: '40vw' }}></iframe>}
                                         </Box>
 
                                     </Stack>
@@ -131,18 +131,26 @@ export default function ContextMenuButton(props) {
                 </ModalDialog>
             </Modal>
             <Box className="action-buttons" sx={actionButtonsStyle}>
-                <Button
-                    size="sm"
-                    variant="solid"
-                    color="warning"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setShowModal(true);
-                    }}
-                >
-                    <ReplyIcon fontSize="small" />
-                    ตอบกลับ
-                </Button>
+                <Stack direction='column' spacing={1}>
+                    <Button
+                        startDecorator={<ReplyIcon fontSize="small" />}
+                        size="sm" variant="solid" color="neutral"
+                        onClick={() => { alert('ฟีเจอร์ บันทึกลงในตัวช่วยตอบ ยังไม่พร้อมใช้งาน') }}
+                    >
+                        บันทึกลงใน ตัวช่วยตอบ
+                    </Button>
+                    <Button
+                        startDecorator={<ReplyIcon fontSize="small" />}
+                        size="sm" variant="solid"
+                        color="warning"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowModal(true);
+                        }}
+                    >
+                        ตอบกลับ
+                    </Button>
+                </Stack>
             </Box>
         </>
     )

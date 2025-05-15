@@ -38,6 +38,7 @@ function MessagePaneHeader(props) {
         const msgFromShortCut = {
             content: content,
             contentType: 'text',
+            sender : user
         }
         console.log('msgFromShortCut', msgFromShortCut);
         

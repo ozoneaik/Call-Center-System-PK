@@ -15,6 +15,7 @@ use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\Secret\BotRoomController;
 use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
@@ -174,6 +175,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list',[HelpChatController::class,'index']);
         Route::post('/search',[HelpChatController::class,'search']);
     });
+
+    Route::get('/bot-room', [BotRoomController::class,'index']);
+    Route::post('/bot-room/{rateId}/{roomId}', [BotRoomController::class,'changeRoomByOne']);
 });
 
 
