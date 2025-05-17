@@ -36,7 +36,7 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
         }, [startTime]);
 
         return (
-            <Chip color="primary">
+            <Chip color="primary" variant="solid">
                 <Typography sx={ChatPageStyle.TableText}>
                     {startTime ? timeDiff : 'ยังไม่เริ่มสนทนา'}
                 </Typography>
@@ -144,9 +144,9 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
                             <tr key={index}>
                                 <td style={{ overflow: 'hidden' }}>
                                     <Stack flexDirection='row' alignItems='center' gap={1}>
-                                        <div>
+                                        {/* <div>
                                             {!data.unread && <CircleIcon sx={{ color: 'green' }} />}
-                                        </div>
+                                        </div> */}
                                         <div style={{ display: "flex", alignItems: "center" }}>
                                             {data.avatar && <Avatar size='sm' sx={{ mr: 1 }} src={data.avatar} />}
                                             <Box>
@@ -178,14 +178,14 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
                                     </div>
                                 </td>
                                 <td>
-                                    <Chip color='danger'>
+                                    <Chip variant="solid" color='success'>
                                         <Typography sx={ChatPageStyle.TableText}>
                                             {data.receiveAt ? convertFullDate(data.receiveAt) : 'ยังไม่เริ่มสนทนา'}
                                         </Typography>
                                     </Chip>
                                 </td>
                                 <td>
-                                    <Chip color="warning">
+                                    <Chip variant="solid" color="warning">
                                         <Typography sx={ChatPageStyle.TableText}>
                                             {data.startTime ? convertFullDate(data.startTime) : 'ยังไม่เริ่มสนทนา'}
                                         </Typography>
@@ -206,7 +206,7 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
                         )) : (
                             <tr>
                                 <td colSpan={6} style={{ textAlign: 'center' }}>
-                                    <Chip color='primary'>ไม่มีข้อมูล</Chip>
+                                    <Chip variant="solid" color='primary'>ไม่มีข้อมูล</Chip>
                                 </td>
                             </tr>
                         )}

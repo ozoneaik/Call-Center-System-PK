@@ -48,7 +48,7 @@ function MessagePaneHeader(props) {
     return (
         <>
             {/* <Stack direction={{ sm: 'column', md: 'row' }} spacing={2} sx={MessageStyle.PaneHeader.Stack}> */}
-            <Stack direction={{ sm: 'column', md: 'row' }} justifyContent='space-between' spacing={2} sx={{p : 1}} borderBottom={1} borderColor='divider'>
+            <Stack direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body' justifyContent='space-between' spacing={2} sx={{p : 1}} borderBottom={1} borderColor='divider'>
                 <Stack direction="row" spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
                     <Button onClick={() => navigate(-1)} variant="outlined">
                         <ArrowBackIosIcon />

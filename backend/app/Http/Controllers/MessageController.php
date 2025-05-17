@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Requests\endTalkRequest;
 use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
@@ -27,11 +28,13 @@ class MessageController extends Controller
 {
     protected MessageService $messageService;
     protected PusherService $pusherService;
+    protected LineReceiveController $lineReceiveController;
 
-    public function __construct(MessageService $messageService, PusherService $pusherService)
+    public function __construct(MessageService $messageService, PusherService $pusherService, LineReceiveController $lineReceiveController)
     {
         $this->messageService = $messageService;
         $this->pusherService = $pusherService;
+        $this->lineReceiveController = $lineReceiveController;
     }
 
     // ฟังก์ชั่นการส่งข้อความ
@@ -195,6 +198,7 @@ class MessageController extends Controller
                     //ส่งข้อความรับเรื
                     $Rate = Rates::query()->where('id', $rateId)->first();
                     if ($Rate && isset($Rate->menuselect)) {
+                        
                     } else {
                     }
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');

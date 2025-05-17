@@ -1,18 +1,23 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Box, Textarea, Typography, Chip, Button, ChipDelete, Stack } from '@mui/joy';
-import { EmojiEmotions, Info, Send } from '@mui/icons-material';
+import { Box, Textarea, Typography, Chip, Button, ChipDelete, Stack, Card, IconButton } from '@mui/joy';
+import { Delete, Details, EmojiEmotions, Info, RemoveRedEye, Send, StackedLineChart } from '@mui/icons-material';
 import { sendApi } from '../../../Api/Messages';
 import { AlertDiaLog } from '../../../Dialogs/Alert';
 import { useNotification } from '../../../context/NotiContext';
 import { useAuth } from '../../../context/AuthContext';
+import { StickerPK } from './StickerPK';
+import StickerPkNew from './StickerPkNew';
+import ModalHelperSendMsg from '../../../Components/ModalHelperSendMsg';
 
 export default function MessageInputNew(props) {
-    const { sender, activeId, msg,setMsg } = props;
+    const { sender, activeId, msg, setMsg } = props;
+    const [openHelper, setOpenHelper] = useState(false);
     const [inputText, setInputText] = useState('');
     const [firstRender, setFirstRender] = useState(true);
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(false);
     const { notification } = useNotification();
+    const [stickerOpen, setStickerOpen] = useState(false);
     const { user } = useAuth();
     const textareaRef = useRef(null);
 
@@ -23,14 +28,14 @@ export default function MessageInputNew(props) {
         }
     }, [notification]);
 
-    useEffect(() =>{
+    useEffect(() => {
         if (firstRender) {
             setFirstRender(false);
             return;
         }
         console.log('msg >>> ', msg);
         setInputText(inputText + msg.content)
-    },[msg])
+    }, [msg])
 
     // ฟังก์ชันสำหรับจัดการการลากและวางไฟล์
     const handleDrop = useCallback((e) => {
@@ -44,7 +49,7 @@ export default function MessageInputNew(props) {
         const clipboardItems = Array.from(e.clipboardData.items);
         const pastedFiles = [];
         let hasStringData = false;
-        
+
         clipboardItems.forEach((item) => {
             if (item.kind === 'file') {
                 const file = item.getAsFile();
@@ -56,7 +61,7 @@ export default function MessageInputNew(props) {
                 // ไม่ต้องทำอะไรเพิ่มเติม เนื่องจาก Textarea จะรับค่าวางจากคลิปบอร์ดอัตโนมัติ
             }
         });
-        
+
         if (pastedFiles.length > 0) {
             setFiles((prev) => [...prev, ...pastedFiles]);
             e.preventDefault(); // ป้องกันการวางข้อความเมื่อมีไฟล์
@@ -85,7 +90,7 @@ export default function MessageInputNew(props) {
                 conversationId: activeId,
                 selectedFile: files
             });
-            
+
             if (status === 200) {
                 setInputText('');
                 setFiles([]);
@@ -113,36 +118,40 @@ export default function MessageInputNew(props) {
     return (
         <Box
             sx={{
-                borderRadius: 'lg', 
+                borderRadius: 'lg',
                 p: 2,
-                minHeight: '100px', 
+                minHeight: '100px',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
             }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
         >
             {files.length > 0 && (
-                <Box sx={{ mt: 2 }}>
+                <Box sx={{ my: 2 }}>
                     <Typography level="body-sm" sx={{ mb: 1 }}>
                         ไฟล์ที่แนบ:
                     </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {files.map((file, index) => (
-                            <Chip
-                                key={index}
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                variant='solid'
-                                endDecorator={
-                                    <ChipDelete
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteFile(index);
-                                        }}
-                                    />
-                                }
-                            >
-                                {file.name}
-                            </Chip>
+                            <Card sx={{ p: 0, pb: 1 }} key={index}>
+                                <Stack direction='column' spacing={2}>
+                                    <iframe onClick={() => { window.open(URL.createObjectURL(file), '_blank') }} src={URL.createObjectURL(file)} />
+                                    <Stack direction='row' spacing={2} justifyContent='center' alignItems='center'>
+                                        <Button
+                                            variant='solid' size='sm' startDecorator={<RemoveRedEye />}
+                                            onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                        >
+                                            ดูแบบเต็ม
+                                        </Button>
+                                        <Button
+                                            variant='solid' color='danger' startDecorator={<Delete />}
+                                            onClick={() => handleDeleteFile(index)} size='sm'
+                                        >
+                                            นำออก
+                                        </Button>
+                                    </Stack>
+                                </Stack>
+                            </Card>
                         ))}
                     </Box>
                 </Box>
@@ -152,7 +161,7 @@ export default function MessageInputNew(props) {
                 ref={textareaRef}
                 disabled={isDisabled}
                 placeholder="พิมพ์ข้อความ หรือวาง / ลากไฟล์ที่นี่"
-                minRows={4} 
+                minRows={4}
                 sx={{ mb: 1 }}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -166,33 +175,35 @@ export default function MessageInputNew(props) {
             />
 
             <Stack direction='row-reverse' spacing={2}>
-                <Button 
-                    disabled={isDisabled || (!inputText.trim() && files.length === 0)} 
-                    loading={loading} 
-                    onClick={handleSend} 
-                    size='sm' 
+                <Button
+                    disabled={isDisabled || (!inputText.trim() && files.length === 0)}
+                    loading={loading}
+                    onClick={handleSend}
+                    // onClick={() => console.log('file', files)}
+                    size='sm'
                     endDecorator={<Send />}
                 >
                     ส่ง
                 </Button>
-                <Button 
-                    disabled={isDisabled} 
-                    size='sm' 
-                    color='warning' 
+                <Button
+                    disabled={isDisabled}
+                    size='sm'
+                    color='warning'
                     endDecorator={<EmojiEmotions />}
+                    onClick={() => setStickerOpen(true)}
                 >
                     สติกเกอร์
                 </Button>
                 <Button
-                    onClick={() => window.open('https://images.pumpkin.tools/call_center_helper/how_to_send_file.mp4', '_blank')}
-                    size='sm' 
-                    variant='outlined' 
-                    color='neutral' 
+                    onClick={() => setOpenHelper(true)}
+                    size='sm' variant='outlined' color='neutral'
                     endDecorator={<Info />}
                 >
                     วิธีการใช้งาน ส่งข้อความ
                 </Button>
             </Stack>
+            {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
+            {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
         </Box>
     );
 }
