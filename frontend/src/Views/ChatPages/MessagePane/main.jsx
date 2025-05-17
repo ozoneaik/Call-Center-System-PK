@@ -14,6 +14,7 @@ import Info from "../Info/main.jsx";
 import { MessageInput } from "./MessageInput.jsx";
 import { chatRoomListApi } from "../../../Api/ChatRooms.js";
 import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
+import MessageInputNew from "./MessageInputNew.jsx";
 
 export default function MessagePane() {
     const { notification } = useNotification();
@@ -91,33 +92,42 @@ export default function MessagePane() {
         }
         if (notification.message.sender) {
             console.log(notification)
-            if (notification.message.sender.custId) {
-                if (notification.message.sender.custId === sender.custId) {
-                    setMessages((prevMessages) => {
-                        return [
-                            ...prevMessages,
-                            {
-                                id: notification.message.id,
-                                content: notification.message.content,
-                                contentType: notification.message.contentType,
-                                line_message_id : notification.message.line_message_id,
-                                line_quote_token : notification.message.line_quote_token,
-                                line_quoted_message_id : notification.message.line_quoted_message_id || null,
-                                sender: notification.message.sender,
-                                created_at: notification.message.created_at,
-                            }
-                        ]
-                    })
-                } else { }
-            } else { }
+            // if (notification.message.sender.custId) {
+            // if (notification.message.sender.custId === sender.custId) {
+            if (notification.customer.custId === sender.custId) {
+                setMessages((prevMessages) => {
+                    return [
+                        ...prevMessages,
+                        {
+                            id: notification.message.id,
+                            content: notification.message.content,
+                            contentType: notification.message.contentType,
+                            line_message_id: notification.message.line_message_id,
+                            line_quote_token: notification.message.line_quote_token,
+                            line_quoted_message_id: notification.message.line_quoted_message_id || null,
+                            sender: notification.message.sender,
+                            created_at: notification.message.created_at,
+                        }
+                    ]
+                })
+            } else {
+                console.log('ไม่ใช่ลูกค้า');
+
+            }
+            // } else { }
         } else { }
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
-        console.log('c + msg' , msg + c);
-        
+        console.log('c + msg', msg + c);
+
+        // setMsg({
+        //     content: msg.content + '\n' + c.content,
+        //     contentType: c.contentType,
+        //     sender: sender
+        // })
         setMsg({
-            content: msg.content + '\n' + c.content,
+            content: '\n - ' + c.content,
             contentType: c.contentType,
             sender: sender
         })
@@ -158,7 +168,7 @@ export default function MessagePane() {
                                                 <Avatar src={message.sender.avatar} />
                                                 <ChatBubble
                                                     variant={isYou ? 'sent' : 'received'} {...message}
-                                                    {...{messages,setMessages}}
+                                                    {...{ messages, setMessages }}
                                                 />
                                             </Stack>
                                         );
@@ -168,24 +178,30 @@ export default function MessagePane() {
                         </Box>
                         {/* Message Input */}
                         {!loading && (
-                            <MessageInput
-                                setDisable={setDisable}
-                                disable={disable}
-                                check={check}
-                                msg={msg}
+                            // <MessageInput
+                            //     setDisable={setDisable}
+                            //     disable={disable}
+                            //     check={check}
+                            //     msg={msg}
+                            //     setMsg={setMsg}
+                            //     sender={sender}
+                            //     setMessages={setMessages}
+                            //     messages={messages}
+                            //     activeId={activeId}>
+                            // </MessageInput>
+                            <MessageInputNew
                                 setMsg={setMsg}
+                                msg={msg}
                                 sender={sender}
-                                setMessages={setMessages}
-                                messages={messages}
-                                activeId={activeId}>
-                            </MessageInput>
+                                activeId={activeId}
+                            />
 
                         )}
                     </Sheet>
                 </Sheet>
                 {/* Info */}
                 {/*<Info sender={sender} starList={starList} notes={notes} check={check} />*/}
-                <Info {...{sender, starList, notes, check}}/>
+                <Info {...{ sender, starList, notes, check }} />
             </Sheet>
         </>
     )

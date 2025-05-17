@@ -17,6 +17,7 @@ use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Secret\BotRoomController;
 use App\Http\Controllers\ShortChatController;
+use App\Http\Controllers\StickerModelController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
@@ -178,6 +179,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/bot-room', [BotRoomController::class,'index']);
     Route::post('/bot-room/{rateId}/{roomId}', [BotRoomController::class,'changeRoomByOne']);
+
+
+    // จัดการสติกเกอร์
+    Route::prefix('sticker')->group(function(){
+        Route::get('/list',[StickerModelController::class,'index']);
+        Route::post('/store',[StickerModelController::class,'store']);
+        Route::put('/update/{id}',[StickerModelController::class,'update']);
+        Route::delete('/delete/{id}',[StickerModelController::class,'delete']);
+    });
 });
 
 

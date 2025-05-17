@@ -32,9 +32,7 @@ export const MessageInput = (props) => {
         if (index) {
             setImagePreview((prev) => prev.filter((_, i) => i !== index));
             setSelectedFile((prev) => prev.filter((_, i) => i !== index));
-
         } else {
-
             setImagePreview([]);
             setSelectedFile(null);
         }
@@ -75,6 +73,9 @@ export const MessageInput = (props) => {
                 return;
             }
         }
+        console.log('msgInput', msgInput);
+        console.log('selectedFile', selectedFile);
+    
         const { data, status } = await sendApi({
             msg: C,
             contentType: type,

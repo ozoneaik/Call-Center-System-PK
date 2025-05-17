@@ -1,4 +1,7 @@
-import { Input, FormLabel, Card, Stack, Checkbox, Typography, Sheet, Button, Divider, Chip, ChipDelete, Radio } from "@mui/joy";
+import {
+    Input, FormLabel, Card, Stack, Typography,
+    Sheet, Button, Divider, Chip, ChipDelete
+} from "@mui/joy";
 import { Box, debounce, FormGroup, Grid2 } from "@mui/material";
 import { useCallback, useState } from "react";
 import axiosClient from "../../../Axios";
@@ -39,22 +42,20 @@ export default function HelpChat({ handle }) {
             <Grid2 size={12}>
                 <FormGroup>
                     <FormLabel>ค้นหา</FormLabel>
-                    <Input onChange={handleSearch} />
+                    <Input value={search} onChange={handleSearch} />
                 </FormGroup>
             </Grid2>
-            {selected && (
-                <Grid2 size={12}>
-                    <Sheet sx={{ overflow: 'auto', maxHeight: '30vh' }}>
-                        ข้อความที่เลือก
-                        <Card color="primary" variant="outlined" invertedColors>
-                            <Typography>{selected.search }</Typography>
-                            <Chip color="success" endDecorator={<ChipDelete onDelete={() => handleDeleteSelected()} />} >
-                                คำตอบ : {selected.solve}
-                            </Chip>
-                        </Card>
-                    </Sheet>
-                </Grid2>
-            )}
+            {selected && (<Grid2 size={12}>
+                <Sheet sx={{ overflow: 'auto', maxHeight: '30vh' }}>
+                    ข้อความที่เลือก
+                    <Card color="primary" variant="outlined" invertedColors>
+                        <Typography>{selected.search}</Typography>
+                        <Chip color="success" endDecorator={<ChipDelete onDelete={() => handleDeleteSelected()} />} >
+                            คำตอบ : {selected.solve}
+                        </Chip>
+                    </Card>
+                </Sheet>
+            </Grid2>)}
             <Grid2 size={12}>
                 <Divider />
             </Grid2>

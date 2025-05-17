@@ -13,7 +13,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 
 const actionButtonsStyle = {
     position: 'absolute',
-    top: '-100px',
+    top: '-30px',
     right: 10,
     left: 'auto',
     display: 'flex',
@@ -131,24 +131,28 @@ export default function ContextMenuButton(props) {
                 </ModalDialog>
             </Modal>
             <Box className="action-buttons" sx={actionButtonsStyle}>
-                <Stack direction='column' spacing={1}>
+                <Stack direction='row' spacing={1}>
                     <Button
                         startDecorator={<ReplyIcon fontSize="small" />}
                         size="sm" variant="solid" color="neutral"
                         onClick={() => { alert('ฟีเจอร์ บันทึกลงในตัวช่วยตอบ ยังไม่พร้อมใช้งาน') }}
                     >
-                        บันทึกลงใน ตัวช่วยตอบ
+                        <Typography fontSize={12} color="white">
+                            บันทึกตัวช่วยตอบ
+                        </Typography>
                     </Button>
                     <Button
                         startDecorator={<ReplyIcon fontSize="small" />}
-                        size="sm" variant="solid"
-                        color="warning"
+                        size="sm" variant="solid" color="warning"
                         onClick={(e) => {
                             e.stopPropagation();
                             setShowModal(true);
                         }}
                     >
-                        ตอบกลับ
+                        <Typography fontSize={12} color="white">
+                            ตอบกลับ
+                        </Typography>
+
                     </Button>
                 </Stack>
             </Box>

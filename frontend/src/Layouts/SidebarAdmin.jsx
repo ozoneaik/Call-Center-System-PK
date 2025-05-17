@@ -7,7 +7,8 @@ import { Link } from "react-router-dom";
 import ListItemButton from "@mui/joy/ListItemButton";
 import {
     CircleNotifications, Keyboard, LocalOffer, Token, PeopleAlt,
-    ManageAccounts, MeetingRoom, SmartToy, AdminPanelSettings,LiveHelp
+    ManageAccounts, MeetingRoom, SmartToy, AdminPanelSettings,LiveHelp,
+    EmojiEmotions
 } from "@mui/icons-material";
 
 export const SidebarAdmin = ({ pathname, user }) => (
@@ -69,6 +70,12 @@ export const SidebarAdmin = ({ pathname, user }) => (
                 <ListItemButton selected={pathname === '/helpChat'}>
                     <LiveHelp />
                     จัดการ help Chat
+                </ListItemButton>
+            </ListItem>
+            <ListItem component={Link} to={'/sticker'}>
+                <ListItemButton selected={pathname === '/sticker'}>
+                    <EmojiEmotions />
+                    จัดการ Sticker
                 </ListItemButton>
             </ListItem>
             {

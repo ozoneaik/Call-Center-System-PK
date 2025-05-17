@@ -68,26 +68,15 @@ class MessageController extends Controller
                         $fileName = rand(0, 9999) . time() . '.' . $file->getClientOriginalExtension();
                         $path = $file->storeAs('public/line-images', $fileName);
                         // สร้าง URL ให้ frontend ใช้งาน
-                        $fullUrl = asset(Storage::url(str_replace('public/', '', $path)));
+
+                        $relativePath = Storage::url(str_replace('public/', '', $path)); // /storage/line-images/xxx.jpg
+                        $fullUrl = env('APP_URL') . $relativePath;
+                        // $fullUrl = asset(Storage::url(str_replace('public/', '', $path)));
                         Log::info('URL เต็ม = ' . $fullUrl);
+                        Log::info('APP_URL จาก config(app.url) = ' . config('app.url'));
                         $m['content'] = $fullUrl;
                         $storeChatHistory['content'] = $m['content'];
 
-
-                        // throw new \Exception('รับ content สำเร็จ');
-
-
-                        // อันเก่า
-                        // $URL = env('APP_WEBHOOK_URL') . '/api/file-upload';
-                        // $response = Http::timeout(30)
-                        //     ->attach('file', fopen($m['content']->getRealPath(), 'r'), $m['content']->getClientOriginalName())
-                        //     ->post($URL);
-                        // if ($response->status() == 200) {
-                        //     Log::info('บรรทัดที่ 74 messageController');
-                        //     Log::info($storeChatHistory['contentType']);
-                        //     $responseJson = $response->json();
-                        //     $storeChatHistory['content'] = $responseJson['imagePath'];
-                        //     $m['content'] = $responseJson['imagePath'];
                     } else {
                         throw new \Exception('ไม่สามารถส่งไฟล์ได้');
                     }
@@ -120,13 +109,14 @@ class MessageController extends Controller
             DB::rollBack();
             $detail = $e->getMessage();
             $status = 400;
-        } finally {
-            return response()->json([
-                'message' => $message ?? 'เกิดข้อผิดพลาด',
-                'detail' => $detail,
-                'content' => $messages ?? [],
-            ], $status);
+            $message = 'เกิดข้อผิดพลาด';
         }
+
+        return response()->json([
+            'message' => $message ?? 'เกิดข้อผิดพลาด',
+            'detail' => $detail,
+            'content' => $messages ?? [],
+        ], $status);
     }
 
     public function reply(Request $request): JsonResponse
@@ -388,7 +378,7 @@ class MessageController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('พักการสนทนา เกิดข้อผิดพลาด : ' . $e->getMessage(). '=>' . $e->getLine() . '=>' . $e->getFile());
+            Log::error('พักการสนทนา เกิดข้อผิดพลาด : ' . $e->getMessage() . '=>' . $e->getLine() . '=>' . $e->getFile());
             return response()->json([
                 'message' => $e->getMessage(),
                 'body' => $request->all(),
