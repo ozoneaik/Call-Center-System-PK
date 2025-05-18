@@ -265,6 +265,10 @@ export default function BotRoom() {
                                                     <Stack spacing={1} sx={{ flexGrow: 1 }}>
                                                         <Typography level="title-lg" noWrap>
                                                             {item.custName || 'ไม่ระบุชื่อ'}
+                                                            
+                                                        </Typography>
+                                                        <Typography>
+                                                            {sender.description}
                                                         </Typography>
                                                         <Chip 
                                                             size="sm" 
