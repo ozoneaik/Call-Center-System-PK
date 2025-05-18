@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Box, Textarea, Typography, Chip, Button, ChipDelete, Stack, Card, IconButton } from '@mui/joy';
-import { Delete, Details, EmojiEmotions, Info, RemoveRedEye, Send, StackedLineChart } from '@mui/icons-material';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Box, Textarea, Typography, Button, Stack, Card } from '@mui/joy';
+import { Delete, EmojiEmotions, Info, RemoveRedEye, Send} from '@mui/icons-material';
 import { sendApi } from '../../../Api/Messages';
 import { AlertDiaLog } from '../../../Dialogs/Alert';
 import { useNotification } from '../../../context/NotiContext';
 import { useAuth } from '../../../context/AuthContext';
-import { StickerPK } from './StickerPK';
 import StickerPkNew from './StickerPkNew';
 import ModalHelperSendMsg from '../../../Components/ModalHelperSendMsg';
 
@@ -199,7 +198,7 @@ export default function MessageInputNew(props) {
                     size='sm' variant='outlined' color='neutral'
                     endDecorator={<Info />}
                 >
-                    วิธีการใช้งาน ส่งข้อความ
+                    วิธีส่งข้อความ (ไฟล์,รูปภาพ,วิดีโอ)
                 </Button>
             </Stack>
             {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
