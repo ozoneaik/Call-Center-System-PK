@@ -18,7 +18,6 @@ function ProtectedLayout() {
     const fetchAnnouncement = async () => {
         try {
             const { data } = await axiosClient.get('/announces');
-            console.log(data);
             SetAnnounces(data.announces);
         } catch (error) {
             console.log(error.response.data.message);

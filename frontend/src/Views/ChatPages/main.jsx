@@ -2,15 +2,13 @@ import { useParams } from "react-router-dom";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import { useEffect, useState } from "react";
 import {MessageListApi} from "../../Api/Messages.js";
-import Box from "@mui/joy/Box";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { useNotification } from "../../context/NotiContext.jsx";
 import { PendingTable } from "./PendingTable.jsx";
 import { ProgressTable } from "./ProgressTable.jsx";
-import Sheet from "@mui/joy/Sheet";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { CircularProgress } from "@mui/joy";
+import {Sheet,CircularProgress,Box} from '@mui/joy';
 
 export default function MainChat() {
     const { user } = useAuth()
@@ -28,16 +26,14 @@ export default function MainChat() {
         const fetchChats = async () => {
             try {
                 const { data, status } = await MessageListApi(roomId);
-                console.log(data);
                 if (status === 200) {
                     setProgress(data.progress);
                     setFilterProgress(data.progress);
                     setPending(data.pending);
                     setFilterPending(data.pending);
                     const count = data.progress.filter((item) => item.empCode === user.empCode);
-                    
                     setUnRead(count ? count.length : 0);
-                } else console.log('ไม่มีรายการ MessageList')
+                }
             } catch (error) {
                 AlertDiaLog({ title: 'เกิดข้อผิดพลาด' })
             } finally {

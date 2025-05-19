@@ -29,9 +29,8 @@ const actionButtonsStyle = {
 
 export default function ContextMenuButton(props) {
     const { rateId, activeId, custId } = useParams();
-    const { user } = useAuth();
-    const { onReply, line_message_id, line_quote_token, line_quoted_message_id } = props;
-    const { sender, variant, content, created_at, contentType, messages, setMessages } = props;
+    const { line_message_id, line_quote_token, line_quoted_message_id } = props;
+    const { sender, content, contentType } = props;
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [replyContent, setReplyContent] = useState({
@@ -46,22 +45,21 @@ export default function ContextMenuButton(props) {
                 sender, content, line_message_id, line_quote_token, line_quoted_message_id,
                 rateId, activeId, custId, replyContent
             });
-            console.log(data, messages);
-            setMessages((prev) => {
-                return [
-                    ...prev,
-                    {
-                        content: data.response.content,
-                        contentType: data.response.contentType,
-                        line_message_id: data.response.line_message_id,
-                        line_quote_token: data.response.line_quote_token,
-                        line_quoted_message_id: data.response.line_quoted_message_id,
-                        sender: user,
-                        created_at: new Date().toISOString(),
-                    }
-                ]
-            })
-
+            console.log(data);
+            // setMessages((prev) => {
+            //     return [
+            //         ...prev,
+            //         {
+            //             content: data.response.content,
+            //             contentType: data.response.contentType,
+            //             line_message_id: data.response.line_message_id,
+            //             line_quote_token: data.response.line_quote_token,
+            //             line_quoted_message_id: data.response.line_quoted_message_id,
+            //             sender: user,
+            //             created_at: new Date().toISOString(),
+            //         }
+            //     ]
+            // })
             setShowModal(false);
         } catch (error) {
             alert(error.status)
@@ -149,10 +147,7 @@ export default function ContextMenuButton(props) {
                             setShowModal(true);
                         }}
                     >
-                        <Typography fontSize={12} color="white">
-                            ตอบกลับ
-                        </Typography>
-
+                        <Typography fontSize={12} color="white">ตอบกลับ</Typography>
                     </Button>
                 </Stack>
             </Box>

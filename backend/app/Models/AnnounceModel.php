@@ -12,6 +12,7 @@ class AnnounceModel extends Model
     protected $fillable = [
         'detail_text',
         'start_at',
-        'end_at'
+        'end_at',
+        'is_active',
     ];
 }

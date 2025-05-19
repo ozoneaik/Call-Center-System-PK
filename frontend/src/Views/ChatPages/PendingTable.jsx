@@ -1,26 +1,15 @@
-import Box from "@mui/joy/Box";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
-import Typography from "@mui/joy/Typography";
-import { Button, Sheet, Table, Stack } from "@mui/joy";
-import Avatar from "@mui/joy/Avatar";
+import { Button, Sheet, Table, Stack, Input, Chip, Typography, Box, Avatar } from "@mui/joy";
 import { convertFullDate, convertLocalDate, differentDate } from "../../Components/Options.jsx";
-import Chip from "@mui/joy/Chip";
 import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate, useParams } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
-import Input from '@mui/joy/Input';
 import { useState, useEffect } from "react";
 
-const data = [{
-    custName: '', userReply: '', updated_at: '',
-    from_roomId: '', from_empCode: '', rateRef: '',
-    empCode: '', receiveAt: '', empName: ''
-}];
 export const PendingTable = (props) => {
-    const { params } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { pending } = props;
@@ -132,12 +121,15 @@ export const PendingTable = (props) => {
                             {pending.length} รายการ
                         </Typography>
                     </Typography>
-                    <Stack direction='row' spacing={2} sx={{ width: '100%' }}>
-                        <Input type="search" placeholder="ค้นหาชื่อลูกค้า" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <Stack direction={{xs : 'column' , md : 'row'}} spacing={2}>
+                        <Input
+                            fullWidth type="search" placeholder="ค้นหาชื่อลูกค้า"
+                            value={search} onChange={(e) => setSearch(e.target.value)}
+                        />
                         <Button onClick={() => handleFilter()}>ค้นหา</Button>
                     </Stack>
                 </Stack>
-                <Stack direction={{xs : 'column', md : 'row'}} justifyContent='start' spacing={2} alignItems='center'>
+                {/* <Stack direction={{xs : 'column', md : 'row'}} justifyContent='start' spacing={2} alignItems='center'>
                     {user.role === 'admin' && (
                         <>
                             <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
@@ -148,7 +140,7 @@ export const PendingTable = (props) => {
                             </Button>
                         </>
                     )}
-                </Stack>
+                </Stack> */}
             </Stack>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
@@ -233,7 +225,7 @@ export const PendingTable = (props) => {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center' }}>
+                                    <td colSpan={6} style={{ textAlign: 'center' }}>
                                         <Chip color='danger'>ไม่มีข้อมูล</Chip>
                                     </td>
                                 </tr>

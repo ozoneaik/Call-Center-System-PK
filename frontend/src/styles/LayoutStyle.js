@@ -27,7 +27,7 @@ export const LayoutStyle = {
                 md: 'none',
             },
             transition: 'transform 0.4s, width 0.4s',
-            zIndex: 100, //10000
+            zIndex: 100,
             height: '100dvh',
             width: 'var(--Sidebar-width)',
             top: 0,
@@ -38,10 +38,45 @@ export const LayoutStyle = {
             gap: 2,
             borderRight: '1px solid',
             borderColor: 'divider',
+            // Dark background styling
+            // backgroundColor: 'neutral.700',
+            backgroundColor: '#363d42',
+            color: '#ffffff',
+            '& .MuiTypography-root': {
+                // color: '#363d42',
+                color: '#ccc'
+            },
+            '& .MuiListItemButton-root': {
+                color: '#ffffff',
+                '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                '&.Mui-selected': {
+                    backgroundColor: 'rgba(241, 87, 33, 0.2)',
+                    // backgroundColor: '#c05e40',
+                    color: '#fff',
+                    '&:hover': {
+                        backgroundColor: 'rgba(241, 87, 33, 0.3)',
+                    },
+                },
+            },
+            '& .MuiSvgIcon-root': {
+                // color: '#363d42',
+                color: '#ccc',
+            },
+            '& .MuiListItemButton-root.Mui-selected .MuiSvgIcon-root': {
+                color: '#fff',
+            },
+            '& .MuiDivider-root': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            '& .MuiAvatar-root': {
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+            },
         },
         Overlay: {
             position: 'fixed',
-            zIndex: 98, //9998
+            zIndex: 98,
             top: 0,
             left: 0,
             width: '100vw',
@@ -67,7 +102,7 @@ export const LayoutStyle = {
                 width: '4px',
             },
             '&::-webkit-scrollbar-thumb': {
-                backgroundColor: '#888',
+                backgroundColor: '#555',
                 borderRadius: '4px',
             },
             '&::-webkit-scrollbar-thumb:hover': {
@@ -97,7 +132,7 @@ export const LayoutStyle = {
         top: 0,
         width: '100vw',
         height: 'var(--Header-height)',
-        zIndex: 95, //9995
+        zIndex: 95,
         p: 2,
         gap: 1,
         borderBottom: '1px solid',

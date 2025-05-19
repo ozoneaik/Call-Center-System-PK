@@ -22,19 +22,10 @@ export default function MainLayout() {
                 await fetchChatRoom()
             } else if (status === 401) {
                 localStorage.removeItem('user');
-                // setUser(null);
                 window.location.href = '/';
             } else {
             }
         })();
-        // (async () => {
-        //     const {data, status} = await chatRoomListApi();
-        //     if (status === 200) {
-        //         console.log('chatRoom');
-        //         setMyRoomContext(data.chatRooms)
-        //         setChatRoomsContext(data.listAll)
-        //     }
-        // })();
         newMessage({
             onPassed: (status, event) => {
                 setNotification(event);
@@ -52,7 +43,6 @@ export default function MainLayout() {
     const fetchChatRoom = async () => {
         const {data, status} = await chatRoomListApi();
         if (status === 200) {
-            console.log('chatRoom');
             setMyRoomContext(data.chatRooms)
             setChatRoomsContext(data.listAll)
         }

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('detail_text')->nullable()->comment('รายละเอียดประกาศ');
             $table->dateTime('start_at')->nullable()->comment('เริ่มใช้งาน');
             $table->dateTime('end_at')->nullable()->comment('สิ้นสุดการใช้งาน');
+            $table->boolean('is_active')->default(true)->comment('สถานะการแจ้งเตือน');
             $table->timestamps();
         });
     }

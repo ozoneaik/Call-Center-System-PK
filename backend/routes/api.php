@@ -197,7 +197,12 @@ Route::prefix('webhooks')->group(function () {
    Route::post('/facebook',[FacebookController::class, 'webhookFacebook']);
 });
 Route::post('/upload-file',[MessageController::class, 'uploadFile']);
+
 Route::get('/announces', [AnnounceController::class,'index']);
+Route::get('/announces/list', [AnnounceController::class,'list_all']);
+Route::put('/announces/{id}', [AnnounceController::class,'update']);
+Route::post('/announces', [AnnounceController::class,'store']);
+Route::delete('/announces/{id}', [AnnounceController::class,'destroy']);
 
 Route::get('/feedback/{custId}/{rateId}', [feedbackController::class,'index']);
 Route::post('/feedback', [feedbackController::class,'feedback']);

@@ -1,60 +1,42 @@
-import {useEffect, useState} from 'react';
-import GlobalStyles from '@mui/joy/GlobalStyles';
-import Avatar from '@mui/joy/Avatar';
-import Box from '@mui/joy/Box';
-import Divider from '@mui/joy/Divider';
-import IconButton from '@mui/joy/IconButton';
-import List from '@mui/joy/List';
-import ListItem from '@mui/joy/ListItem';
-import ListItemButton, {listItemButtonClasses} from '@mui/joy/ListItemButton';
-import ListItemContent from '@mui/joy/ListItemContent';
-import Typography from '@mui/joy/Typography';
-import Sheet from '@mui/joy/Sheet';
-import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import HomeIcon from '@mui/icons-material/Home';
+import {
+    Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton,
+    listItemButtonClasses, ListItemContent, Typography, Sheet, GlobalStyles,
+    Button
+} from '@mui/joy';
 import Logo from '../assets/logo.png'
 import ColorSchemeToggle from '../ColorSchemeToggle';
-import {closeSidebar} from '../utils';
-import {LayoutStyle} from "../styles/LayoutStyle.js";
-import {useAuth} from "../context/AuthContext.jsx";
-import {AlertDiaLog} from "../Dialogs/Alert.js";
-import {logoutApi} from "../Api/Auth.js";
-import {Link, useLocation, useNavigate} from "react-router-dom";
-import {useChatRooms} from "../context/ChatRoomContext.jsx";
-import PersonIcon from '@mui/icons-material/Person';
-import {SidebarAdmin} from "./SidebarAdmin.jsx";
-import ThreePIcon from '@mui/icons-material/ThreeP';
-import HistoryIcon from '@mui/icons-material/History';
-import SearchIcon from '@mui/icons-material/Search';
-import { red } from '@mui/material/colors';
+import { closeSidebar } from '../utils';
+import { LayoutStyle } from "../styles/LayoutStyle.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { AlertDiaLog } from "../Dialogs/Alert.js";
+import { logoutApi } from "../Api/Auth.js";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useChatRooms } from "../context/ChatRoomContext.jsx";
+import { SidebarAdmin } from "./SidebarAdmin.jsx";
+import {
+    Search, History, ThreeP, Home, Person,
+    LogoutRounded, QuestionAnswerRounded
+} from '@mui/icons-material';
+
+const menuList = [
+    { label: 'หน้าหลัก', icon: <Home />, path: '/home' },
+    { label: 'เคสของฉัน', icon: <ThreeP />, path: '/chat/myCase' },
+    { label: 'ค้นหา note', icon: <Search />, path: '/search-notes' },
+];
 
 export default function Sidebar() {
-    const {setChatRoomsContext, chatRoomsContext,myRoomContext} = useChatRooms()
-    const {user, setUser} = useAuth();
+    const { myRoomContext } = useChatRooms()
+    const { user, setUser } = useAuth();
     const navigate = useNavigate();
-    const [chatRooms, setChatRooms] = useState([{roomName: '', roomId: ''}]);
-    const {pathname} = useLocation();
+    const { pathname } = useLocation();
     const currentRoomId = pathname.split('/')[3];
-
-    // const fetchChatRooms = async () => {
-    //     const {data, status} = await chatRoomListApi();
-    //     if (status === 200) {
-    //         setChatRooms(data.chatRooms);
-    //         setChatRoomsContext(data.chatRooms)
-    //     }
-    // }
-    // useEffect(() => {
-    //     fetchChatRooms().then(() => {});
-    // }, [])
 
     const Logout = () => {
         AlertDiaLog({
             text: 'ต้องการออกจากระบบหรือไม่', icon: 'info', Outside: true,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const {data, status} = await logoutApi();
+                    const { data, status } = await logoutApi();
                     status === 200 && setUser(null)
                     AlertDiaLog({
                         icon: status === 200 ? 'success' : 'error',
@@ -65,10 +47,10 @@ export default function Sidebar() {
                                 localStorage.removeItem('myChatRooms');
                                 localStorage.removeItem('chatRooms');
                                 navigate('/')
-                            } else {}
+                            } else { }
                         }
                     });
-                } else {}
+                } else { }
             }
         });
     }
@@ -86,46 +68,32 @@ export default function Sidebar() {
                     },
                 })}
             />
-            <Box sx={LayoutStyle.Sidebar.Overlay} onClick={() => closeSidebar()}/>
-            <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
+            <Box sx={LayoutStyle.Sidebar.Overlay} onClick={() => closeSidebar()} />
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <IconButton variant="soft" color="danger" size="sm">
-                    <img src={Logo || ''} alt="" width={25}/>
+                    <img src={Logo || ''} alt="" width={25} />
                 </IconButton>
                 <Typography level="title-lg">Pumpkin Co.</Typography>
-                <ColorSchemeToggle sx={{ml: 'auto'}}/>
+                <ColorSchemeToggle sx={{ ml: 'auto' }} />
             </Box>
-            <Box sx={{...LayoutStyle.Sidebar.ListItemButton, [`& .${listItemButtonClasses.root}`]: {gap: 1.5,},}}>
+            <Box sx={{ ...LayoutStyle.Sidebar.ListItemButton, [`& .${listItemButtonClasses.root}`]: { gap: 1.5, }, }}>
                 <List size="sm" sx={LayoutStyle.Sidebar.List}>
-                    <ListItem component={Link} to={`/home`}>
-                        <ListItemButton selected={pathname === `/home`}>
-                            <HomeIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">หน้าหลัก</Typography>
-                            </ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={`/chat/myCase`}>
-                        <ListItemButton selected={pathname === `/chat/myCase`}>
-                            <ThreePIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">เคสของฉัน</Typography>
-                            </ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem component={Link} to={`/search-notes`}>
-                        <ListItemButton selected={pathname === '/search-notes'}>
-                            <SearchIcon/>
-                            <ListItemContent>
-                                <Typography level="title-sm">ค้นหา note</Typography>
-                            </ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
+                    {menuList.map((item, index) => (
+                        <ListItem component={Link} to={item.path} key={index}>
+                            <ListItemButton selected={pathname === item.path}>
+                                {item.icon}
+                                <ListItemContent>
+                                    <Typography level="title-sm">{item.label}</Typography>
+                                </ListItemContent>
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
                     {myRoomContext && myRoomContext.length > 0 && (
                         myRoomContext.map((chatRoom, index) => (
                             <ListItem key={index} component={Link}
-                                      to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
+                                to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
                                 <ListItemButton selected={currentRoomId === chatRoom.roomId}>
-                                    <QuestionAnswerRoundedIcon/>
+                                    <QuestionAnswerRounded />
                                     <ListItemContent>
                                         <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                     </ListItemContent>
@@ -134,32 +102,28 @@ export default function Sidebar() {
                         ))
                     )}
                 </List>
-                <Typography startDecorator={<PersonIcon/>} level='body-sm'>
-                    รายการของท่าน
-                </Typography>
-                <Divider/>
+                <Typography startDecorator={<Person />} level='body-sm' mt={3}>รายการของท่าน</Typography>
+                <Divider />
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
                     <ListItem component={Link} to={`/chatHistory`}>
                         <ListItemButton selected={pathname === '/chatHistory'}>
-                            <HistoryIcon/>
-                            ประวัติการสนทนาทั้งหมด
+                            <History />
+                            <Typography level="title-sm">ประวัติการสนทนาทั้งหมด</Typography>
                         </ListItemButton>
                     </ListItem>
                 </List>
-
-                {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user}/>}
-
+                {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user} />}
             </Box>
-            <Divider/>
-            <Box sx={{display: 'flex', gap: 1, alignItems: 'center',cursor : 'pointer'}} component={Link} to={'/profile'}>
-                <Avatar src={user.avatar} variant="outlined" size="sm"/>
-                <Box sx={{minWidth: 0, flex: 1}} >
+            <Divider />
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', cursor: 'pointer' }} component={Link} to={'/profile'}>
+                <Avatar src={user.avatar} variant="outlined" size="sm" />
+                <Box sx={{ minWidth: 0, flex: 1 }} >
                     <Typography level="title-sm" mb={1}>{user.name}</Typography>
                     <Typography level="body-xs">สิทธิ์&nbsp;{user.role}</Typography>
                 </Box>
-                <IconButton onClick={Logout} size="sm" variant="soft" color="danger">
-                    <LogoutRoundedIcon/>
-                </IconButton>
+                <Button onClick={Logout} size="sm" variant="solid" color="danger">
+                    <LogoutRounded />
+                </Button>
             </Box>
         </Sheet>
     );

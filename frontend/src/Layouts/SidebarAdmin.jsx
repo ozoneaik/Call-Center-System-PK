@@ -7,9 +7,27 @@ import { Link } from "react-router-dom";
 import ListItemButton from "@mui/joy/ListItemButton";
 import {
     CircleNotifications, Keyboard, LocalOffer, Token, PeopleAlt,
-    ManageAccounts, MeetingRoom, SmartToy, AdminPanelSettings,LiveHelp,
+    ManageAccounts, MeetingRoom, SmartToy, AdminPanelSettings, LiveHelp,
     EmojiEmotions
 } from "@mui/icons-material";
+
+const menuList = [
+    { label: 'จัดการคีย์เวิร์ด', icon: <Keyboard />, path: '/keywords' },
+    { label: 'จัดการเมนูของบอท', icon: <SmartToy />, path: '/botManage' },
+    { label: 'จัดการห้องแชท', icon: <MeetingRoom />, path: '/chatRooms' },
+    { label: 'จัดการข้อความส่งด่วน', icon: <ManageAccounts />, path: '/shortChats' },
+    { label: 'จัดการลูกค้า', icon: <PeopleAlt />, path: '/customers' },
+    { label: 'จัดการผู้ใช้', icon: <ManageAccounts />, path: '/users' },
+    { label: 'จัดการ help Chat', icon: <LiveHelp />, path: '/helpChat' },
+    { label: 'จัดการ Sticker', icon: <EmojiEmotions />, path: '/sticker' },
+    { label: 'จัดการ tag การจบสนทนา', icon: <LocalOffer />, path: '/tags' },
+    { label: 'หน้ารายงาน', icon: <SmartToy />, path: '/report' },
+];
+
+const menuListAdmin = [
+    { label: 'จัดการ token', icon: <Token />, path: '/accessToken' },
+    { label: 'แจ้งเตือน', icon: <CircleNotifications />, path: '/announces' },
+];
 
 export const SidebarAdmin = ({ pathname, user }) => (
     <>
@@ -18,84 +36,25 @@ export const SidebarAdmin = ({ pathname, user }) => (
         </Typography>
         <Divider />
         <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
-            <ListItem component={Link} to={'/keywords'}>
-                <ListItemButton selected={pathname === '/keywords'}>
-                    <Keyboard />
-                    จัดการคีย์เวิร์ด
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={`/botManage`}>
-                <ListItemButton selected={pathname === '/botManage'}>
-                    <SmartToy />
-                    จัดการเมนูของบอท
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={`/report`}>
-                <ListItemButton selected={pathname === '/report'}>
-                    <SmartToy />
-                    หน้ารายงาน
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={`/chatRooms`}>
-                <ListItemButton selected={pathname === '/chatRooms'}>
-                    <MeetingRoom />
-                    จัดการห้องแชท
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={'/shortChats'}>
-                <ListItemButton selected={pathname === '/shortChats'}>
-                    <ManageAccounts />
-                    จัดการข้อความส่งด่วน
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={`/tags`}>
-                <ListItemButton selected={pathname === '/tags'}>
-                    <LocalOffer />
-                    จัดการ tag การจบสนทนา
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={'/customers'}>
-                <ListItemButton selected={pathname === '/customers'}>
-                    <PeopleAlt />
-                    จัดการลูกค้า
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={'/users'}>
-                <ListItemButton selected={pathname === '/users'}>
-                    <ManageAccounts />
-                    จัดการผู้ใช้
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={'/helpChat'}>
-                <ListItemButton selected={pathname === '/helpChat'}>
-                    <LiveHelp />
-                    จัดการ help Chat
-                </ListItemButton>
-            </ListItem>
-            <ListItem component={Link} to={'/sticker'}>
-                <ListItemButton selected={pathname === '/sticker'}>
-                    <EmojiEmotions />
-                    จัดการ Sticker
-                </ListItemButton>
-            </ListItem>
-            {
-                user.empCode === 'adminIT' && (
-                    <>
-                        <ListItem component={Link} to={'/accessToken'}>
-                            <ListItemButton selected={pathname === '/accessToken'}>
-                                <Token />
-                                จัดการ token
+            {menuList.map((item, index) => (
+                <ListItem component={Link} to={item.path} key={index}>
+                    <ListItemButton selected={pathname === item.path}>
+                        {item.icon}
+                        <Typography level="title-sm">{item.label}</Typography>
+                    </ListItemButton>
+                </ListItem>
+            ))}
+            {user.empCode === 'adminIT' &&
+                <>
+                    {menuListAdmin.map((item, index) => (
+                        <ListItem component={Link} to={item.path} key={index}>
+                            <ListItemButton selected={pathname === item.path}>
+                                {item.icon}
+                                <Typography level="title-sm">{item.label}</Typography>
                             </ListItemButton>
                         </ListItem>
-                        <ListItem component={Link} to={'/accessToken'}>
-                            <ListItemButton selected={pathname === '/accessToken'}>
-                                <CircleNotifications />
-                                แจ้งเตือน
-                            </ListItemButton>
-                        </ListItem>
-                    </>
-                )
-            }
+                    ))}
+                </>}
         </List>
     </>
 )

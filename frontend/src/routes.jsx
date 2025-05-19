@@ -27,6 +27,7 @@ import Feedback from "./Views/Feedback.jsx";
 import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
 import LayoutSeCreate from "./Views/Secret/LayoutSeCreate.jsx";
 import StickerList from "./Views/StickerPages/StickerList.jsx";
+import AnnouncesList from "./Views/announcePages/AnnouncesList.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -59,7 +60,8 @@ export const routes = createBrowserRouter([
                             { path: '/botManage', element: <BotPage /> },
                             { path: '/tags', element: <TagePage /> },
                             {path : '/helpChat', element : <HelpChatList/>},
-                            {path : '/sticker', element : <StickerList/>}
+                            {path : '/sticker', element : <StickerList/>},
+                            {path : '/announces', element : <AnnouncesList/>},
                         ]
                     },
 
