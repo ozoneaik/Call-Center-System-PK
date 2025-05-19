@@ -27,7 +27,7 @@ import Feedback from "./Views/Feedback.jsx";
 import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
 import LayoutSeCreate from "./Views/Secret/LayoutSeCreate.jsx";
 import StickerList from "./Views/StickerPages/StickerList.jsx";
-import AnnouncesList from "./Views/announcePages/AnnouncesList.jsx";
+import AnnouncesList from "./Views/AnnouncePages/AnnouncesList.jsx";
 
 export const routes = createBrowserRouter([
     {
