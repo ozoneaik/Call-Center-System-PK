@@ -126,7 +126,7 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
                         <Button onClick={() => handleFilter()} startDecorator={<Search />}>ค้นหา</Button>
                     </Stack>
                 </Stack>
-                <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} justifyContent={{ xs: 'start', sm: 'end' }}>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent={{ xs: 'start', lg: 'end' }}>
                     {user.role === 'admin' && (
                         <Button color='warning' onClick={handleEndTalkAll} startDecorator={<Send />}>
                             จบการสนทนาทั้งหมด

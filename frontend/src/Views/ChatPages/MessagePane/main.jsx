@@ -1,18 +1,13 @@
-import { useParams } from "react-router-dom";
-import { CircularProgress, Sheet } from "@mui/joy";
+import {useParams } from "react-router-dom";
+import { CircularProgress, Sheet,Box, Stack, Avatar } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
-import Box from "@mui/joy/Box";
-import Stack from "@mui/joy/Stack";
-import Avatar from "@mui/joy/Avatar";
 import { useEffect, useState } from "react";
 import { selectMessageApi } from "../../../Api/Messages.js";
 import ChatBubble from "./ChatBubble.jsx";
 import { useNotification } from "../../../context/NotiContext.jsx";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import Info from "../Info/main.jsx";
-import { MessageInput } from "./MessageInput.jsx";
-import { chatRoomListApi } from "../../../Api/ChatRooms.js";
 import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
 import MessageInputNew from "./MessageInputNew.jsx";
 
@@ -20,6 +15,8 @@ export default function MessagePane() {
     const { notification } = useNotification();
     const [messages, setMessages] = useState({});
     const { chatRoomsContext, setChatRoomsContext } = useChatRooms();
+
+    
     const [sender, setSender] = useState({
         custId: 'id ของลูกค้า',
         avatar: 'รูปประจำตัว',
@@ -64,21 +61,7 @@ export default function MessagePane() {
                 });
             }
         }
-        // const fetchChatRoom = async () => {
-        //     const {data, status} = await chatRoomListApi();
-        //     if (status === 200) {
-        //         console.log(data.chatRooms,chatRoomsContext);
-
-        //         // setChatRooms(data.chatRooms);
-        //         // setListAllChatRooms(data.listAll);
-
-        //     }
-        //     console.log('chat');
-        // }
-        fetchData().then(() => {
-            // fetchChatRoom().finally(() => {
-            // });
-        }).finally(() => {
+        fetchData().finally(() => {
             setDisable(false);
             setLoading(false);
         });
@@ -91,9 +74,6 @@ export default function MessagePane() {
             return;
         }
         if (notification.message.sender) {
-            console.log(notification)
-            // if (notification.message.sender.custId) {
-            // if (notification.message.sender.custId === sender.custId) {
             if (notification.customer.custId === sender.custId) {
                 setMessages((prevMessages) => {
                     return [
@@ -112,26 +92,17 @@ export default function MessagePane() {
                 })
             } else {
                 console.log('ไม่ใช่ลูกค้า');
-
             }
-            // } else { }
         } else { }
     }, [notification]);
 
     const sendFromShortCut = async (c) => {
         console.log('c + msg', msg + c);
-
-        // setMsg({
-        //     content: msg.content + '\n' + c.content,
-        //     contentType: c.contentType,
-        //     sender: sender
-        // })
         setMsg({
             content: '\n - ' + c.content,
             contentType: c.contentType,
             sender: sender
         })
-        // await handleSend({c: c.content})
     }
     return (
         <>
@@ -176,19 +147,7 @@ export default function MessagePane() {
                                 </Stack>
                             )}
                         </Box>
-                        {/* Message Input */}
                         {!loading && (
-                            // <MessageInput
-                            //     setDisable={setDisable}
-                            //     disable={disable}
-                            //     check={check}
-                            //     msg={msg}
-                            //     setMsg={setMsg}
-                            //     sender={sender}
-                            //     setMessages={setMessages}
-                            //     messages={messages}
-                            //     activeId={activeId}>
-                            // </MessageInput>
                             <MessageInputNew
                                 setMsg={setMsg}
                                 msg={msg}
@@ -199,8 +158,6 @@ export default function MessagePane() {
                         )}
                     </Sheet>
                 </Sheet>
-                {/* Info */}
-                {/*<Info sender={sender} starList={starList} notes={notes} check={check} />*/}
                 <Info {...{ sender, starList, notes, check }} />
             </Sheet>
         </>
