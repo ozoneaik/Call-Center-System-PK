@@ -1,14 +1,12 @@
-import Button from "@mui/joy/Button";
-import ReplyIcon from "@mui/icons-material/Reply";
-import Box from "@mui/joy/Box";
+import { Reply, Send } from "@mui/icons-material";
 import { useState } from "react";
-import { DialogContent, DialogTitle, Modal, ModalDialog, Stack, Textarea } from "@mui/joy";
+import {
+    Button, Box, Typography, DialogContent, DialogTitle,
+    IconButton, Modal, ModalDialog, Stack, Textarea
+} from "@mui/joy";
 import { Grid2 } from "@mui/material";
-import Typography from "@mui/joy/Typography";
 import axiosClient from "../../../Axios.js";
-import SendIcon from '@mui/icons-material/Send';
 import { useParams } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext.jsx";
 
 
 const actionButtonsStyle = {
@@ -45,21 +43,6 @@ export default function ContextMenuButton(props) {
                 sender, content, line_message_id, line_quote_token, line_quoted_message_id,
                 rateId, activeId, custId, replyContent
             });
-            console.log(data);
-            // setMessages((prev) => {
-            //     return [
-            //         ...prev,
-            //         {
-            //             content: data.response.content,
-            //             contentType: data.response.contentType,
-            //             line_message_id: data.response.line_message_id,
-            //             line_quote_token: data.response.line_quote_token,
-            //             line_quoted_message_id: data.response.line_quoted_message_id,
-            //             sender: user,
-            //             created_at: new Date().toISOString(),
-            //         }
-            //     ]
-            // })
             setShowModal(false);
         } catch (error) {
             alert(error.status)
@@ -116,7 +99,7 @@ export default function ContextMenuButton(props) {
                                 <Grid2 size={12}>
                                     <Stack direction='row-reverse'>
                                         <Button
-                                            startDecorator={<SendIcon />} size='sm' type='submit'
+                                            startDecorator={<Send />} size='sm' type='submit'
                                             disabled={!replyContent.text} loading={loading}
                                         >
                                             ส่ง
@@ -130,25 +113,12 @@ export default function ContextMenuButton(props) {
             </Modal>
             <Box className="action-buttons" sx={actionButtonsStyle}>
                 <Stack direction='row' spacing={1}>
-                    <Button
-                        startDecorator={<ReplyIcon fontSize="small" />}
-                        size="sm" variant="solid" color="neutral"
-                        onClick={() => { alert('ฟีเจอร์ บันทึกลงในตัวช่วยตอบ ยังไม่พร้อมใช้งาน') }}
+                    <IconButton
+                        size="sm" variant="outlined" color="warning"
+                        onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
                     >
-                        <Typography fontSize={12} color="white">
-                            บันทึกตัวช่วยตอบ
-                        </Typography>
-                    </Button>
-                    <Button
-                        startDecorator={<ReplyIcon fontSize="small" />}
-                        size="sm" variant="solid" color="warning"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowModal(true);
-                        }}
-                    >
-                        <Typography fontSize={12} color="white">ตอบกลับ</Typography>
-                    </Button>
+                        <Reply fontSize="small" />
+                    </IconButton>
                 </Stack>
             </Box>
         </>

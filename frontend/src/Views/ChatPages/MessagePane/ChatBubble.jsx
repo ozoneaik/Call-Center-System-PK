@@ -3,11 +3,8 @@ import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
 import { Avatar, Button, Sheet } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
-import { Link } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import {InsertDriveFile, PlayCircle, VolumeUp} from '@mui/icons-material';
 import Divider from "@mui/joy/Divider";
 import ContextMenuButton from "./ContextMenuButton.jsx";
 import ImageIcon from '@mui/icons-material/Image';
@@ -18,7 +15,7 @@ export default function Bubble(props) {
     const { user } = useAuth();
     const { sender, variant, content, created_at, contentType } = props;
     const { line_message_id, line_quote_token, line_quoted_message_id } = props;
-    const { messages, onReply, setMessages } = props;
+    const { messages } = props;
     const isSent = variant === 'sent';
     const [open, setOpen] = useState(false);
     const [previewSelect, setPreviewSelect] = useState('');
@@ -118,9 +115,9 @@ export default function Bubble(props) {
                                     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                                         <Avatar color="primary" size="lg">
                                             {contentType === 'file' ?
-                                                <InsertDriveFileRoundedIcon />
-                                                : contentType === 'video' ? <PlayCircleIcon />
-                                                    : contentType === 'image' ? <ImageIcon /> : <VolumeUpIcon />
+                                                <InsertDriveFile />
+                                                : contentType === 'video' ? <PlayCircle />
+                                                    : contentType === 'image' ? <ImageIcon /> : <VolumeUp />
                                             }
                                         </Avatar>
                                         <Stack direction='column' spacing={2} width='100%'>

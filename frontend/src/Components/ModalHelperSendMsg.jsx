@@ -1,7 +1,7 @@
 import { Modal, ModalDialog, ModalClose, Box } from "@mui/joy";
 import { useMediaQuery } from "@mui/material";
 
-const url = 'https://images.pumpkin.tools/call_center_helper/send_file.mp4';
+const url = 'https://images.pumpkin.tools/call_center_helper/how_to_send_file.mp4';
 
 export default function ModalHelperSendMsg(props) {
     const { open, setOpen } = props;
