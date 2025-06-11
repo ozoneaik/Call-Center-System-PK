@@ -47,15 +47,15 @@ export default function HomeNew() {
                         <>
                             {/* Left side - 8 columns */}
                             <Grid2 size={{ xs: 12, md: 8 }} container direction="column" spacing={2}>
-                                {/* <Grid2 size={12}>
+                                <Grid2 size={12}>
                                     <LatestCountMessage />
-                                </Grid2> */}
-                                <Grid2 size={12}>กำลังพัฒนา</Grid2>
+                                </Grid2>
+                                {/* <Grid2 size={12}>กำลังพัฒนา</Grid2> */}
                             </Grid2>
 
                             {/* Right side - 4 columns */}
                             <Grid2 size={{ xs: 12, md: 4 }} container direction="column" spacing={2}>
-                                {/* <Grid2 size={12} data-aos='fade-up'>
+                                <Grid2 size={12} data-aos='fade-up'>
                                     <AmountCustomer />
                                 </Grid2>
                                 <Grid2 size={12} data-aos='fade-up'>
@@ -63,7 +63,7 @@ export default function HomeNew() {
                                 </Grid2>
                                 <Grid2 size={12} data-aos='fade-up'>
                                         <LikeUnLike stars={stars} />
-                                </Grid2> */}
+                                </Grid2>
                             </Grid2>
                         </>
                     )}
