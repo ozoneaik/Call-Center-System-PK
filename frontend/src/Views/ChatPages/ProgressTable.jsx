@@ -3,7 +3,7 @@ import Typography from "@mui/joy/Typography";
 import { Button, Divider, Input, Sheet, Stack, Table, Box, Chip, Avatar } from "@mui/joy";
 import { convertFullDate, convertLocalDate, differentDate } from "../../Components/Options.jsx";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { endTalkAllProgressApi } from "../../Api/Messages.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useAuth } from "../../context/AuthContext.jsx";;
@@ -52,9 +52,12 @@ export const ProgressTable = ({ roomId, progress, filterProgress, setFilterProgr
     const [search, setSearch] = useState('');
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const handleChat = (rateId, activeId, custId) => {
         const params = `${rateId}/${activeId}/${custId}`;
-        navigate(`/select/message/${params}/1`);
+        navigate(`/select/message/${params}/1`,{
+            state: {from: location}
+        });
     };
 
     const TimeDisplay = ({ startTime }) => {

@@ -5,12 +5,13 @@ import ChatIcon from "@mui/icons-material/Chat";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { endTalkAllPendingApi, receiveApi } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import SendIcon from '@mui/icons-material/Send';
 import { useState, useEffect } from "react";
 
 export const PendingTable = (props) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const { pending } = props;
     const { setFilterPending, filterPending } = props;
@@ -57,7 +58,9 @@ export const PendingTable = (props) => {
 
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
-        navigate(`/select/message/${params}/0`);
+        navigate(`/select/message/${params}/0`, {
+            state: { from: location }
+        });
     }
 
     const BtnComponent = ({ rateRef, id, custId, roomId, index }) => {
@@ -121,7 +124,7 @@ export const PendingTable = (props) => {
                             {pending.length} รายการ
                         </Typography>
                     </Typography>
-                    <Stack direction={{xs : 'column' , md : 'row'}} spacing={2}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                         <Input
                             fullWidth type="search" placeholder="ค้นหาชื่อลูกค้า"
                             value={search} onChange={(e) => setSearch(e.target.value)}

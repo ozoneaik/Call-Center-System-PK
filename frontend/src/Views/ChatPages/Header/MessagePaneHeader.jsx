@@ -2,24 +2,23 @@ import { MessageStyle } from "../../../styles/MessageStyle.js";
 import Stack from "@mui/joy/Stack";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
-import { Button, Modal, ModalClose, ModalDialog, Sheet } from "@mui/joy";
+import { Button, Modal, ModalClose, ModalDialog } from "@mui/joy";
 import Chip from "@mui/joy/Chip";
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { openMessagesPane } from "../../../utils.js";
-import { ShortChatContent } from "../../../Components/ShortChatContent.jsx";
 import { EndTalk } from "./EndTalk.jsx";
 import { ChangeRoom } from "./ChangeRoom.jsx";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import { PauseTalk } from "./PauseTalk.jsx";
-import { use } from "react";
 import { useMediaQuery } from "@mui/material";
 import HelpChat from "./HelpChat.jsx";
 
 function MessagePaneHeader(props) {
     const navigate = useNavigate();
+    const {prevUrlfrom} = props;
     const { user } = useAuth();
     const { disable } = props;
     const { sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags, listAllChatRooms } = props;
@@ -31,26 +30,31 @@ function MessagePaneHeader(props) {
             onClick={onClick} fullWidth={useMediaQuery('(max-width: 1000px)')}
         >
             {!useMediaQuery('(max-width: 1000px)') && title}
-            
+
         </Button>
     );
     const sendShortCut = (content) => {
         const msgFromShortCut = {
             content: content,
             contentType: 'text',
-            sender : user
+            sender: user
         }
         console.log('msgFromShortCut', msgFromShortCut);
-        
+
         shortCustSend(msgFromShortCut)
         setShortcut(false);
+    }
+
+    const handleBack = () => {
+        console.log('prev location', window.history);
+        navigate(prevUrlfrom || '/', { replace: true });
     }
     return (
         <>
             {/* <Stack direction={{ sm: 'column', md: 'row' }} spacing={2} sx={MessageStyle.PaneHeader.Stack}> */}
-            <Stack direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body' justifyContent='space-between' spacing={2} sx={{p : 1}} borderBottom={1} borderColor='divider'>
+            <Stack direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body' justifyContent='space-between' spacing={2} sx={{ p: 1 }} borderBottom={1} borderColor='divider'>
                 <Stack direction="row" spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
-                    <Button onClick={() => navigate(-1)} variant="outlined">
+                    <Button onClick={handleBack} variant="outlined">
                         <ArrowBackIosIcon />
                     </Button>
                     <Avatar size="lg" src={sender.avatar} />
@@ -89,10 +93,10 @@ function MessagePaneHeader(props) {
                 <ModalDialog>
                     <ModalClose />
                     <Typography component="h2">ตัวช่วยตอบ</Typography>
-                    
-                        {/* <ShortChatContent handle={(content) => sendShortCut(content)} /> */}                
-                            <HelpChat handle={(content) => sendShortCut(content)} />
-                    
+
+                    {/* <ShortChatContent handle={(content) => sendShortCut(content)} /> */}
+                    <HelpChat handle={(content) => sendShortCut(content)} />
+
 
                 </ModalDialog>
             </Modal>

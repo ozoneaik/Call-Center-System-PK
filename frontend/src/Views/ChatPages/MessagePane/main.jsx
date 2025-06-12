@@ -1,4 +1,4 @@
-import {useParams } from "react-router-dom";
+import {useLocation, useParams } from "react-router-dom";
 import { CircularProgress, Sheet,Box, Stack, Avatar } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
@@ -15,6 +15,10 @@ export default function MessagePane() {
     const { notification } = useNotification();
     const [messages, setMessages] = useState({});
     const { chatRoomsContext, setChatRoomsContext } = useChatRooms();
+
+    const location = useLocation();
+    const from = location.state?.from?.pathname  || '/';
+    
 
     
     const [sender, setSender] = useState({
@@ -111,6 +115,7 @@ export default function MessagePane() {
                     <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader
+                            prevUrlfrom={from}
                             disable={disable}
                             rateId={rateId}
                             activeId={activeId}

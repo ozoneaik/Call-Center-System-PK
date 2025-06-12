@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Textarea, Typography, Button, Stack, Card } from '@mui/joy';
-import { Delete, EmojiEmotions, Info, RemoveRedEye, Send} from '@mui/icons-material';
+import { Delete, EmojiEmotions, Info, RemoveRedEye, Send } from '@mui/icons-material';
 import { sendApi } from '../../../Api/Messages';
 import { AlertDiaLog } from '../../../Dialogs/Alert';
 import { useNotification } from '../../../context/NotiContext';
@@ -131,27 +131,47 @@ export default function MessageInputNew(props) {
                         ไฟล์ที่แนบ:
                     </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {files.map((file, index) => (
-                            <Card sx={{ p: 0, pb: 1 }} key={index}>
-                                <Stack direction='column' spacing={2}>
-                                    <iframe onClick={() => { window.open(URL.createObjectURL(file), '_blank') }} src={URL.createObjectURL(file)} />
-                                    <Stack direction='row' spacing={2} justifyContent='center' alignItems='center'>
-                                        <Button
-                                            variant='solid' size='sm' startDecorator={<RemoveRedEye />}
-                                            onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                        >
-                                            ดูแบบเต็ม
-                                        </Button>
-                                        <Button
-                                            variant='solid' color='danger' startDecorator={<Delete />}
-                                            onClick={() => handleDeleteFile(index)} size='sm'
-                                        >
-                                            นำออก
-                                        </Button>
+                        {files.map((file, index) => {
+                            const fileURL = URL.createObjectURL(file);
+                            const fileType = file.type;
+                            let preview;
+                            if (fileType.startsWith('image/')) {
+                                preview = <img src={fileURL} alt={file.name} style={{ maxWidth: '200px', borderRadius: '8px' }} />;
+                            } else if (fileType.startsWith('video/')) {
+                                preview = <video src={fileURL} controls style={{ maxWidth: '200px', borderRadius: '8px' }} />;
+                            } else {
+                                preview = (
+                                    <Button
+                                        variant='outlined'
+                                        size='sm'
+                                        onClick={() => window.open(fileURL, '_blank')}
+                                    >
+                                        ดูไฟล์: {file.name}
+                                    </Button>
+                                );
+                            }
+                            return (
+                                <Card sx={{ p: 0, pb: 1 }} key={index}>
+                                    <Stack direction='column' spacing={2}>
+                                        <iframe onClick={() => { window.open(URL.createObjectURL(file), '_blank') }} src={URL.createObjectURL(file)} />
+                                        <Stack direction='row' spacing={2} justifyContent='center' alignItems='center'>
+                                            <Button
+                                                variant='solid' size='sm' startDecorator={<RemoveRedEye />}
+                                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                            >
+                                                ดูแบบเต็ม
+                                            </Button>
+                                            <Button
+                                                variant='solid' color='danger' startDecorator={<Delete />}
+                                                onClick={() => handleDeleteFile(index)} size='sm'
+                                            >
+                                                นำออก
+                                            </Button>
+                                        </Stack>
                                     </Stack>
-                                </Stack>
-                            </Card>
-                        ))}
+                                </Card>
+                            )
+                        })}
                     </Box>
                 </Box>
             )}
