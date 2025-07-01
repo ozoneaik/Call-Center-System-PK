@@ -10,7 +10,7 @@ import { useAuth } from "../../../context/AuthContext.jsx";
 import { openMessagesPane } from "../../../utils.js";
 import { EndTalk } from "./EndTalk.jsx";
 import { ChangeRoom } from "./ChangeRoom.jsx";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import { PauseTalk } from "./PauseTalk.jsx";
 import { useMediaQuery } from "@mui/material";

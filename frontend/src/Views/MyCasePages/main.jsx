@@ -6,7 +6,7 @@ import ChatIcon from '@mui/icons-material/Chat';
 import { useEffect, useState } from "react";
 import { myCaseApi } from "../../Api/Messages";
 import { convertFullDate } from "../../Components/Options";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 const BreadcrumbsPath = [{ name: 'เคสของฉัน' }, { name: 'รายละเอียด' }];
 
 const TitleComponent = ({ title, result, color = 'primary', type = 'text' }) => (
@@ -26,45 +26,53 @@ const TitleComponent = ({ title, result, color = 'primary', type = 'text' }) => 
     </Stack>
 )
 
-const Detail = ({ data }) => (
-    <Stack spacing={1}>
-        <Stack direction='row' spacing={1} alignItems='center'>
-            <Avatar color="primary" variant="solid" src={data.avatar || ''} />
-            <Typography level="body-md" color="primary" fontWeight='bold'>{data.custName}</Typography>
-        </Stack>
-        <Typography level="body-md" fontWeight='bold'>
-            รายละเอียด&nbsp;
-            <Typography level="body-xs">
-                (รหัสอ้างอิง&nbsp;A{data.id}R{data.rateRef})
-            </Typography>
+const Detail = ({ data }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    return (
+        <Stack spacing={1}>
+            <Stack direction='row' spacing={1} alignItems='center'>
+                <Avatar color="primary" variant="solid" src={data.avatar || ''} />
+                <Typography level="body-md" color="primary" fontWeight='bold'>{data.custName}</Typography>
+            </Stack>
+            <Typography level="body-md" fontWeight='bold'>
+                รายละเอียด&nbsp;
+                <Typography level="body-xs">
+                    (รหัสอ้างอิง&nbsp;A{data.id}R{data.rateRef})
+                </Typography>
 
-        </Typography>
-        <TitleComponent
-            title={'วันที่รับเรื่อง'} result={data.created_at}
-            color="neutral" type="date"
-        />
-        <Divider />
-        <Typography level="body-md" fontWeight='bold'>ข้อความ</Typography>
-        <TitleComponent
-            title={'เมื่อ'} result={data.latest_message.created_at}
-            color="neutral" type="date"
-        />
-        <TitleComponent
-            title={'ประเภทข้อความ'} result={data.latest_message.contentType}
-            color="warning"
-        />
-        <TitleComponent title={'เนื้อหา'} result={data.latest_message.content}
-            color="primary" type={data.latest_message.contentType}
-        />
-        <Stack direction='row' spacing={2} alignItems='center' marginTop={2}>
-            <Link style={{ width: '100%' }} to={`/select/message/${data.rateRef}/${data.id}/${data.custId}/1`}>
-                <Button color="primary" fullWidth size='sm'>
+            </Typography>
+            <TitleComponent
+                title={'วันที่รับเรื่อง'} result={data.created_at}
+                color="neutral" type="date"
+            />
+            <Divider />
+            <Typography level="body-md" fontWeight='bold'>ข้อความ</Typography>
+            <TitleComponent
+                title={'เมื่อ'} result={data.latest_message.created_at}
+                color="neutral" type="date"
+            />
+            <TitleComponent
+                title={'ประเภทข้อความ'} result={data.latest_message.contentType}
+                color="warning"
+            />
+            <TitleComponent title={'เนื้อหา'} result={data.latest_message.content}
+                color="primary" type={data.latest_message.contentType}
+            />
+            <Stack direction='row' spacing={2} alignItems='center' marginTop={2}>
+                <Button color="primary" onClick={() => {
+                    alert(location);
+                    const params = `/select/message/${data.rateRef}/${data.id}/${data.custId}/1`;
+                    navigate(params, {
+                        state: { from: location }
+                    });
+                }} fullWidth size='sm'>
                     <ChatIcon />
                 </Button>
-            </Link>
+            </Stack>
         </Stack>
-    </Stack>
-)
+    )
+}
 export default function MyCasePage() {
     const [list, setList] = useState([]);
     const [loading, setLoading] = useState(true);
