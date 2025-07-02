@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('roomId')->comment('รหัสห้อง');
             $table->string('roomName')->comment('ชื่อห้อง');
             $table->tinyInteger('unRead')->comment('ข้อความที่ยังไม่ได้อ่าน');
+            $table->boolean('is_active')->default(true)->comment('สถานะการใช้งานห้องแชท');
             $table->timestamps();
         });
     }

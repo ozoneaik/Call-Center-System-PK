@@ -42,6 +42,7 @@ export default function MainLayout() {
 
     const fetchChatRoom = async () => {
         const {data, status} = await chatRoomListApi();
+        console.log('data', data);
         if (status === 200) {
             setMyRoomContext(data.chatRooms)
             setChatRoomsContext(data.listAll)

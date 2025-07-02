@@ -333,12 +333,12 @@ class LineUATController extends Controller
     {
         $descriptions = PlatformAccessTokens::query()->where('id', $CUSTOMER['platformRef'])->first();
 
-        $roomId = 'ROOM01'; // Default room
+        $roomId = 'ROOM06'; // Default room
 
-        if ($descriptions->description === 'ศูนย์ซ่อม Pumpkin') {
-            $roomId = 'ROOM02';
-        } else if ($descriptions->description === 'pumpkintools') {
+        if (($descriptions->description === 'pumpkintools') || ($descriptions->description === 'ศูนย์ซ่อม Pumpkin')) {
             $roomId = 'ROOM06';
+        }elseif ($descriptions->description === 'ไลน์ dearler') {
+            $roomId = 'ROOM09';
         }
         Log::channel('line_webhook_log')->info('forwardToDefaultRoom: ' . $roomId . '');
 

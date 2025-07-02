@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ChatRooms extends Model
 {
     use HasFactory;
-    protected $fillable =['roomId','roomName','unRead'];
+    protected $fillable =['roomId','roomName','unRead','is_active'];
 
     public function rates(): HasMany
     {

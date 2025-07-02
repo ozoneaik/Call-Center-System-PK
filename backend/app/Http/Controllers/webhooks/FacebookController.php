@@ -8,25 +8,28 @@ use Illuminate\Support\Facades\Log;
 
 class FacebookController extends Controller
 {
-    public function webhook(Request $request)
-    {
-        Log::channel('facebook_webhook_log')->info('Facebook Webhook');
-        $VERIFY_TOKEN = 'G_211044g'; // ใส่ให้ตรงกับที่กรอกในหน้า Facebook Developer Console
-        if (
-            request('hub_mode') === 'subscribe' &&
-            request('hub_verify_token') === $VERIFY_TOKEN
-        ) {
-            Log::channel('facebook_webhook_log')->info('Facebook Webhook', [$request->all()]);
-            return response(request('hub_challenge'), 200);
-        }else{
-            Log::channel('facebook_webhook_log')->error('Facebook Webhook Error');
-            return response('Invalid token', 403);
-        }
-    }
-
     public function webhookFacebook(Request $request)
     {
-        Log::channel('facebook_webhook_log')->info("Facebook Webhook\n" . json_encode($request->all(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        return response('OK', 200);
+        Log::info('>>> Facebook POST webhook called');
+        Log::info($request->all());
+
+        return response('EVENT_RECEIVED', 200);
+    }
+
+    public function webhook(Request $request)
+    {
+        Log::info('>>> Facebook GET webhook verify called');
+        Log::info($request->query());
+
+        $verify_token = 'G_211044g';
+        $mode = $request->query('hub_mode');
+        $token = $request->query('hub_verify_token');
+        $challenge = $request->query('hub_challenge');
+
+        if ($mode === 'subscribe' && $token === $verify_token) {
+            return response($challenge, 200);
+        }
+
+        return response('Forbidden', 403);
     }
 }
