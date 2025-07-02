@@ -61,7 +61,6 @@ const Detail = ({ data }) => {
             />
             <Stack direction='row' spacing={2} alignItems='center' marginTop={2}>
                 <Button color="primary" onClick={() => {
-                    alert(location);
                     const params = `/select/message/${data.rateRef}/${data.id}/${data.custId}/1`;
                     navigate(params, {
                         state: { from: location }
