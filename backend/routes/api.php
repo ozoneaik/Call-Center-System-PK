@@ -29,13 +29,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/test',function (\Illuminate\Http\Request $request) {
+Route::post('/test', function (\Illuminate\Http\Request $request) {
     $file = $request->file('file_upload');
 
-   return response()->json([
-       'message' => $request->all(),
-       'file' => $file->getSize(),
-   ]);
+    return response()->json([
+        'message' => $request->all(),
+        'file' => $file->getSize(),
+    ]);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -64,12 +64,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/delete/{roomId}', [ChatRoomsController::class, 'delete']);
     });
 
-    Route::get('/myCase',[DisplayController::class,'myCase']);
+    Route::get('/myCase', [DisplayController::class, 'myCase']);
 
     // จัดการเกี่ยวกับแชท
     Route::prefix('messages')->group(function () {
         Route::post('/send', [MessageController::class, 'send']);
-        Route::post('/reply',[MessageController::class,'reply']);
+        Route::post('/reply', [MessageController::class, 'reply']);
         Route::post('/receive', [LineReceiveController::class, 'receive']);
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
@@ -98,58 +98,58 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการ note
     Route::prefix('notes')->group(function () {
-        Route::get('/list', [NotesController::class,'listAll']);
+        Route::get('/list', [NotesController::class, 'listAll']);
         Route::get('/selectNote/{custId}', [NotesController::class, 'selectNote']);
-       Route::get('/list/{custId}', [NotesController::class, 'list']);
-       Route::post('/store', [NotesController::class, 'store']);
-       Route::put('/update', [NotesController::class, 'update']);
-       Route::delete('/delete/{noteId}', [NotesController::class, 'delete']);
+        Route::get('/list/{custId}', [NotesController::class, 'list']);
+        Route::post('/store', [NotesController::class, 'store']);
+        Route::put('/update', [NotesController::class, 'update']);
+        Route::delete('/delete/{noteId}', [NotesController::class, 'delete']);
     });
 
     // จัดการ token
     Route::prefix('tokens')->group(function () {
         Route::post('/verify', [TokenController::class, 'verifyToken']);
-        Route::get('list',[TokenController::class, 'list']);
-        Route::post('store',[TokenController::class, 'store']);
-        Route::put('update',[TokenController::class, 'update']);
-        Route::delete('delete/{id}',[TokenController::class, 'delete']);
+        Route::get('list', [TokenController::class, 'list']);
+        Route::post('store', [TokenController::class, 'store']);
+        Route::put('update', [TokenController::class, 'update']);
+        Route::delete('delete/{id}', [TokenController::class, 'delete']);
     });
 
     // จัดการ Dashboard
-    Route::get('/dashboard',[DisplayController::class, 'Dashboard']);
+    Route::get('/dashboard', [DisplayController::class, 'Dashboard']);
 
     // จัดการข้อความส่วนตัว
-    Route::get('/myMessages/{empCode}',[DisplayController::class, 'MyMessages']);
+    Route::get('/myMessages/{empCode}', [DisplayController::class, 'MyMessages']);
 
     //ดูประวัติแชททั้งหมด
-    Route::get('/chatHistory',[HistoryController::class, 'ChatHistory']);
-    Route::post('/chatHistory/{custId}',[HistoryController::class, 'ChatHistoryDetail']);
+    Route::get('/chatHistory', [HistoryController::class, 'ChatHistory']);
+    Route::post('/chatHistory/{custId}', [HistoryController::class, 'ChatHistoryDetail']);
 
     // จัดการ BOT
     Route::prefix('bots')->group(function () {
-       Route::get('list',[BotMenuController::class,'list']);
-       Route::post('storeOrUpdate',[BotMenuController::class,'storeOrUpdate']);
+        Route::get('list', [BotMenuController::class, 'list']);
+        Route::post('storeOrUpdate', [BotMenuController::class, 'storeOrUpdate']);
     });
 
     // จัดการ Tag
     Route::prefix('tags')->group(function () {
-        Route::get('list',[TagMenuController::class, 'list']);
-        Route::post('store',[TagMenuController::class,'store']);
-        Route::put('update',[TagMenuController::class,'update']);
-        Route::delete('delete/{id}',[TagMenuController::class,'delete']);
+        Route::get('list', [TagMenuController::class, 'list']);
+        Route::post('store', [TagMenuController::class, 'store']);
+        Route::put('update', [TagMenuController::class, 'update']);
+        Route::delete('delete/{id}', [TagMenuController::class, 'delete']);
     });
 
     //จัดการ keyword
     Route::prefix('keywords')->group(function () {
-        Route::get('list',[KeywordController::class, 'list']);
-        Route::post('store',[KeywordController::class, 'store']);
-        Route::put('update/{id}',[KeywordController::class, 'update']);
-        Route::delete('delete/{id}',[KeywordController::class, 'delete']);
+        Route::get('list', [KeywordController::class, 'list']);
+        Route::post('store', [KeywordController::class, 'store']);
+        Route::put('update/{id}', [KeywordController::class, 'update']);
+        Route::delete('delete/{id}', [KeywordController::class, 'delete']);
     });
 
     //สำหรับจัดการแชทที่ค้างไว้
-    Route::post('/endTalkAllProgress/{roomId}',[MessageController::class, 'endTalkAllProgress']);
-    Route::post('/endTalkAllPending/{roomId}',[MessageController::class, 'endTalkAllPending']);
+    Route::post('/endTalkAllProgress/{roomId}', [MessageController::class, 'endTalkAllProgress']);
+    Route::post('/endTalkAllPending/{roomId}', [MessageController::class, 'endTalkAllPending']);
 
 
     //จัดการรายงาน
@@ -158,54 +158,56 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('rateList', [ReportController::class, 'RateList']);
         Route::get('activeList', [ReportController::class, 'activeList']);
         Route::get('fullReport', [ReportController::class, 'FullReport']);
-        Route::get('tagReports',[ReportController::class, 'TagReport']);
+        Route::get('tagReports', [ReportController::class, 'TagReport']);
     });
 
     // จัดการข้อมูลส่วนตัว
-    Route::prefix('users')->group(function(){
+    Route::prefix('users')->group(function () {
         Route::get('profile', [UserController::class, 'profile']);
         Route::post('profile', [UserController::class, 'updateProfile']);
     });
 
     // จัดการเคส
-    Route::prefix('case')->group(function(){
-        Route::post('/store',[CaseController::class,'store']);
+    Route::prefix('case')->group(function () {
+        Route::post('/store', [CaseController::class, 'store']);
     });
 
-    Route::prefix('help-chat')->group(function(){
-        Route::get('/list',[HelpChatController::class,'index']);
-        Route::post('/search',[HelpChatController::class,'search']);
+    Route::prefix('help-chat')->group(function () {
+        Route::get('/list', [HelpChatController::class, 'index']);
+        Route::post('/search', [HelpChatController::class, 'search']);
+        Route::post('/store', [HelpChatController::class, 'store']);
+        Route::put('{id}', [HelpChatController::class, 'update']);
+        Route::delete('{id}', [HelpChatController::class, 'destroy']);
     });
 
-    Route::get('/bot-room', [BotRoomController::class,'index']);
-    Route::post('/bot-room/{rateId}/{roomId}', [BotRoomController::class,'changeRoomByOne']);
+    Route::get('/bot-room', [BotRoomController::class, 'index']);
+    Route::post('/bot-room/{rateId}/{roomId}', [BotRoomController::class, 'changeRoomByOne']);
 
 
     // จัดการสติกเกอร์
-    Route::prefix('sticker')->group(function(){
-        Route::get('/list',[StickerModelController::class,'index']);
-        Route::post('/store',[StickerModelController::class,'store']);
-        Route::put('/update/{id}',[StickerModelController::class,'update']);
-        Route::delete('/delete/{id}',[StickerModelController::class,'delete']);
+    Route::prefix('sticker')->group(function () {
+        Route::get('/list', [StickerModelController::class, 'index']);
+        Route::post('/store', [StickerModelController::class, 'store']);
+        Route::put('/update/{id}', [StickerModelController::class, 'update']);
+        Route::delete('/delete/{id}', [StickerModelController::class, 'delete']);
     });
 });
 
 
 Route::prefix('webhooks')->group(function () {
-   Route::post('/line',[LineUATController::class, 'webhook']);
-   Route::get('/facebook',[FacebookController::class, 'webhook']);
-   Route::post('/facebook',[FacebookController::class, 'webhookFacebook']);
+    Route::post('/line', [LineUATController::class, 'webhook']);
+    Route::get('/facebook', [FacebookController::class, 'webhook']);
+    Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
 });
-Route::post('/upload-file',[MessageController::class, 'uploadFile']);
+Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
-Route::get('/announces', [AnnounceController::class,'index']);
-Route::get('/announces/list', [AnnounceController::class,'list_all']);
-Route::put('/announces/{id}', [AnnounceController::class,'update']);
-Route::post('/announces', [AnnounceController::class,'store']);
-Route::delete('/announces/{id}', [AnnounceController::class,'destroy']);
+Route::get('/announces', [AnnounceController::class, 'index']);
+Route::get('/announces/list', [AnnounceController::class, 'list_all']);
+Route::put('/announces/{id}', [AnnounceController::class, 'update']);
+Route::post('/announces', [AnnounceController::class, 'store']);
+Route::delete('/announces/{id}', [AnnounceController::class, 'destroy']);
 
-Route::get('/feedback/{custId}/{rateId}', [feedbackController::class,'index']);
-Route::post('/feedback', [feedbackController::class,'feedback']);
+Route::get('/feedback/{custId}/{rateId}', [feedbackController::class, 'index']);
+Route::post('/feedback', [feedbackController::class, 'feedback']);
 
-require __DIR__.'/test_only.php';
-
+require __DIR__ . '/test_only.php';
