@@ -31,6 +31,9 @@ export const ChatPageStyle = {
     BoxSheet: {
         display: { sm: 'initial' }, width: '100%',
         borderRadius: 'sm', flexShrink: 1, overflow: 'auto', minHeight: '300px', maxHeight: 'calc(100vh - 200px)',
+    }, BoxSheet2: {
+        display: { sm: 'initial' }, width: '100%',
+        borderRadius: 'sm', flexShrink: 1, overflow: 'auto'
     },
     Table: {
         '--TableCell-headBackground': 'var(--joy-palette-background-level1)',
