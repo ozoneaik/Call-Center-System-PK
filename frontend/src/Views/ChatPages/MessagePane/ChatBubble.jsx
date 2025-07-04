@@ -4,12 +4,13 @@ import Typography from "@mui/joy/Typography";
 import { Avatar, Button, Sheet } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import {InsertDriveFile, PlayCircle, VolumeUp} from '@mui/icons-material';
+import { InsertDriveFile, PlayCircle, VolumeUp } from '@mui/icons-material';
 import Divider from "@mui/joy/Divider";
 import ContextMenuButton from "./ContextMenuButton.jsx";
 import ImageIcon from '@mui/icons-material/Image';
 import ChatMediaPreview from "./ChatMediaPreview.jsx";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -22,7 +23,7 @@ export default function Bubble(props) {
 
     return (
         <Box sx={{ maxWidth: '60%', minWidth: 'auto' }}>
-            {open && <ChatMediaPreview open={open} setOpen={setOpen} url={previewSelect}/>}
+            {open && <ChatMediaPreview open={open} setOpen={setOpen} url={previewSelect} />}
             <Stack direction="row" spacing={2} sx={MessageStyle.Bubble.Main} onClick={() => {
                 console.log(line_message_id, line_quote_token, line_quoted_message_id)
             }}>
@@ -91,68 +92,69 @@ export default function Bubble(props) {
                                 <img src={content} alt="" width={165} />
                             </Sheet>
                         ) :
-                            // contentType === 'image' ? (
-                            //     <Sheet
-                            //         variant="outlined"
-                            //         sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
-                            //         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                            //             <Link to={content} target={'_blank'}>
-                            //                 <img loading="lazy" src={content} width={165} alt={content} />
-                            //             </Link>
-                            //         </Stack>
-                            //     </Sheet>
-                            // )
-                            //     :
-                            (contentType === 'file') || (contentType === 'video') || (contentType === 'audio') || (contentType === 'image') ? (
+                            contentType === 'image' ? (
                                 <Sheet
+                                    onClick={() => {
+                                        setPreviewSelect(content);
+                                        setOpen(true);
+                                    }}
                                     variant="outlined"
-                                    sx={[
-                                        { px: 1.75, py: 1.25, borderRadius: 'lg', },
-                                        isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
-                                        isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
-                                    ]}
-                                >
+                                    sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
                                     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                        <Avatar color="primary" size="lg">
-                                            {contentType === 'file' ?
-                                                <InsertDriveFile />
-                                                : contentType === 'video' ? <PlayCircle />
-                                                    : contentType === 'image' ? <ImageIcon /> : <VolumeUp />
-                                            }
-                                        </Avatar>
-                                        <Stack direction='column' spacing={2} width='100%'>
-                                            <Typography sx={{ fontSize: 'sm' }}>
-                                                {contentType === 'file' ? 'ไฟล์ PDF' :
-                                                    contentType === 'video' ? 'ไฟล์ Video' :
-                                                        contentType === 'image' ? 'ไฟล์รูปภาพ' : 'ไฟล์เสียง'}
-                                            </Typography>
-                                            <Button fullWidth size="sm" variant="outlined" onClick={() => {
-                                                setPreviewSelect(content);
-                                                setOpen(true);
-                                            }}>
-                                                ดู preview
-                                                </Button>
-                                            {/* <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button> */}
-                                        </Stack>
+                                        <img loading="lazy" src={content} width={165} alt={content} />
                                     </Stack>
                                 </Sheet>
                             ) :
-                                (
-                                    <Typography
-                                        component="pre" level="body-sm"
-                                        sx={{
-                                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                                            ...(
-                                                isSent
-                                                    ? (sender.empCode === user.empCode
-                                                        ? MessageStyle.Bubble.TextMySent
-                                                        : MessageStyle.Bubble.TextIsSent)
-                                                    : MessageStyle.Bubble.TextIsNotSent
-                                            )
-                                        }}>
-                                        {content}
-                                    </Typography>
-                                )
+                                (contentType === 'file') || (contentType === 'video') || (contentType === 'audio') ? (
+                                    <Sheet
+                                        variant="outlined"
+                                        sx={[
+                                            { px: 1.75, py: 1.25, borderRadius: 'lg', },
+                                            isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
+                                            isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
+                                        ]}
+                                    >
+                                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                                            <Avatar color="primary" size="lg">
+                                                {contentType === 'file' ?
+                                                    <InsertDriveFile />
+                                                    : contentType === 'video' ? <PlayCircle />
+                                                        : contentType === 'image' ? <ImageIcon /> : <VolumeUp />
+                                                }
+                                            </Avatar>
+                                            <Stack direction='column' spacing={2} width='100%'>
+                                                <Typography sx={{ fontSize: 'sm' }}>
+                                                    {contentType === 'file' ? 'ไฟล์ PDF' :
+                                                        contentType === 'video' ? 'ไฟล์ Video' :
+                                                            contentType === 'image' ? 'ไฟล์รูปภาพ' : 'ไฟล์เสียง'}
+                                                </Typography>
+                                                <Button fullWidth size="sm" variant="outlined" onClick={() => {
+                                                    setPreviewSelect(content);
+                                                    setOpen(true);
+                                                }}>
+                                                    ดู preview
+                                                </Button>
+                                                {/* <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button> */}
+                                            </Stack>
+                                        </Stack>
+                                    </Sheet>
+                                ) :
+                                    (
+                                        <Typography
+                                            component="pre" level="body-sm"
+                                            sx={{
+                                                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                                                ...(
+                                                    isSent
+                                                        ? (sender.empCode === user.empCode
+                                                            ? MessageStyle.Bubble.TextMySent
+                                                            : MessageStyle.Bubble.TextIsSent)
+                                                        : MessageStyle.Bubble.TextIsNotSent
+                                                )
+                                            }}>
+                                            {content}
+                                        </Typography>
+                                    )
                     }
                 </Sheet>
             </Box>
