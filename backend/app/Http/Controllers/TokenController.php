@@ -64,6 +64,12 @@ class TokenController extends Controller
             $store['fb_page_id'] = $request->get('fb_page_id');
         } else {
         }
+        // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
+        if ($request->get('platform') === 'lazada') {
+            $store->app_key = $request->get('app_key');
+            $store->app_secret = $request->get('app_secret');
+        } else {
+        }
         $store->save();
         return response()->json([
             'message' => 'สร้าง token สำเร็จ',
@@ -81,6 +87,12 @@ class TokenController extends Controller
         if ($request->get('platform') === 'facebook') {
             $store['fb_page_id'] = $request->get('fb_page_id');
         } else {
+        }
+
+        // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
+        if ($request->get('platform') === 'lazada') {
+            $update->app_key = $request->get('app_key');
+            $update->app_secret = $request->get('app_secret');
         }
         $update->save();
         return response()->json([
