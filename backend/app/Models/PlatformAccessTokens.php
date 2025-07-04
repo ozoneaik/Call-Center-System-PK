@@ -12,5 +12,5 @@ use Illuminate\Database\Eloquent\Model;
 class PlatformAccessTokens extends Model
 {
     use HasFactory;
-    protected $fillable = ['accessTokenId','accessToken','description','platform'];
+    protected $fillable = ['accessTokenId','accessToken','description','platform','page_id'];
 }
