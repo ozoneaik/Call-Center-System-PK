@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('accessToken', 512)->unique()->comment('channel access token');
             $table->string('description')->comment('คำอธิบาย token');
             $table->string('platform')->comment('จากแพลตฟอร์มไหน');
-            $table->string('page_id')->nullable()->comment('id pags facebook');
+            $table->string('page_id')->nullable()->comment('id pags facebook');TokenPages
             $table->timestamps();
         });
     }

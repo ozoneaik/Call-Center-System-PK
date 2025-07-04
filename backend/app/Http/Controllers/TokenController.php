@@ -18,7 +18,7 @@ class TokenController extends Controller
         $this->tokenService = $tokenService;
     }
 
-    public function verifyToken(Request $request) : JsonResponse
+    public function verifyToken(Request $request): JsonResponse
     {
         $request->validate(['token' => 'required'], ['token.required' => 'กรุณากรอก Token']);
         $status = 400;
@@ -42,7 +42,7 @@ class TokenController extends Controller
 
     public function list(): JsonResponse
     {
-        $token = PlatformAccessTokens::orderBy('id','asc')->get();
+        $token = PlatformAccessTokens::orderBy('id', 'asc')->get();
         return response()->json([
             'message' => 'success',
             'tokens' => $token
@@ -51,11 +51,19 @@ class TokenController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // return response()->json([
+        //     'message' => 'สร้าง token สำเร็จ',
+        //     'detail' => $request->all(),
+        // ], 400);
         $store = new PlatformAccessTokens();
         $store['accessTokenId'] = Hash::make(rand(0, 10000));
         $store['accessToken'] = $request->get('accessToken');
         $store['description'] = $request->get('description');
         $store['platform'] = $request->get('platform');
+        if ($request->get('platform') === 'facebook') {
+            $store['fb_page_id'] = $request->get('fb_page_id');
+        } else {
+        }
         $store->save();
         return response()->json([
             'message' => 'สร้าง token สำเร็จ',
@@ -70,6 +78,10 @@ class TokenController extends Controller
         $update['accessToken'] = $request->get('accessToken');
         $update['description'] = $request->get('description');
         $update['platform'] = $request->get('platform');
+        if ($request->get('platform') === 'facebook') {
+            $store['fb_page_id'] = $request->get('fb_page_id');
+        } else {
+        }
         $update->save();
         return response()->json([
             'message' => 'อัพเดทสำเร็จ',
