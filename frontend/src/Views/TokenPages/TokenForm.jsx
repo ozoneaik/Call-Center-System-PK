@@ -32,7 +32,7 @@ export const TokenForm = (props) => {
   const handleStore = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // if (!validateForm()) return;
 
     const { data, status } = await storeTokenApi(newToken);
     AlertDiaLog({
