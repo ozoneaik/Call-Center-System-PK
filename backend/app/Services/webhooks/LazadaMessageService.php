@@ -229,8 +229,7 @@ class LazadaMessageService
         $appKey = env('LAZADA_APP_KEY');
         $appSecret = env('LAZADA_APP_SECRET');
         $apiUrl = 'https://api.lazada.co.th/rest';
-
-        $apiPath = '/image/upload';
+        $apiPath = '/im/image/send';
 
         $params = [
             'session_id'   => $sessionId,
@@ -249,7 +248,7 @@ class LazadaMessageService
 
         try {
             $response = Http::attach(
-                'image',
+                'img_file',
                 file_get_contents($imagePath),
                 basename($imagePath)
             )->post($apiUrl . $apiPath, $params);
