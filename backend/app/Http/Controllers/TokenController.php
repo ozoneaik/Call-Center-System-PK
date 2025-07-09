@@ -61,6 +61,9 @@ class TokenController extends Controller
         $store['description'] = $request->get('description');
         $store['platform'] = $request->get('platform');
         if ($request->get('platform') === 'facebook') {
+            return response()->json([
+                'message' => 'เข้า'
+            ],400);
             $store['fb_page_id'] = $request->get('fb_page_id');
         } else {
         }
@@ -85,8 +88,7 @@ class TokenController extends Controller
         $update['description'] = $request->get('description');
         $update['platform'] = $request->get('platform');
         if ($request->get('platform') === 'facebook') {
-            $store['fb_page_id'] = $request->get('fb_page_id');
-        } else {
+            $update['fb_page_id'] = $request->get('fb_page_id');
         }
 
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---

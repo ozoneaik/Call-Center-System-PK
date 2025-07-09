@@ -32,8 +32,6 @@ export const TokenForm = (props) => {
   const handleStore = async (e) => {
     e.preventDefault();
 
-    // if (!validateForm()) return;
-
     const { data, status } = await storeTokenApi(newToken);
     AlertDiaLog({
       title: data.message,
@@ -58,8 +56,6 @@ export const TokenForm = (props) => {
 
   const handleUpdate = async (e, id) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
 
     const updatedData = {
       ...newToken,
@@ -141,10 +137,10 @@ export const TokenForm = (props) => {
           <FormControl>
             <FormLabel>Page ID</FormLabel>
             <Input required
-              name="page_id"
+              name="fb_page_id"
               onChange={handleOnChange}
               placeholder="กรุณากรอก Page ID"
-              value={newToken.page_id || ""}
+              value={newToken.fb_page_id || ""}
             />
           </FormControl>
         )}

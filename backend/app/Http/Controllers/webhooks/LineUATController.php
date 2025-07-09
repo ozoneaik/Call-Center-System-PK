@@ -170,7 +170,7 @@ class LineUATController extends Controller
             Log::info('now: ' . $now);
             Log::info('diffInHours: ' . $now->diffInHours($current_rate->created_at));
             Log::info('lessThanOrEqualTo: ' . $current_rate->created_at->lessThanOrEqualTo($now));
-            $diff = $now->diffInHours($current_rate->created_at,true);
+            $diff = $now->diffInHours($current_rate->created_at, true);
             Log::info('diffInHours New: ' . $diff);
             if ($current_rate && ($diff <= 12)) { // ทักมาภายใน 12 ชั่วโมง
                 $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
@@ -183,7 +183,7 @@ class LineUATController extends Controller
     private function handleMediaMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
         $now = Carbon::now();
-        if ($current_rate && $now->diffInHours($current_rate->created_at,true) <= 12) { // ทักมาภายใน 12 ชั่วโมง
+        if ($current_rate && $now->diffInHours($current_rate->created_at, true) <= 12) { // ทักมาภายใน 12 ชั่วโมง
             $this->createNewConversation($CUSTOMER, $message, $current_rate->latestRoomId, 'pending', $BOT, $TOKEN);
         } else { // ทักมามากกว่า 12 ชั่วโมง
             $this->createBotConversation($CUSTOMER, $message, $BOT, $TOKEN);
@@ -337,7 +337,7 @@ class LineUATController extends Controller
 
         if (($descriptions->description === 'pumpkintools') || ($descriptions->description === 'ศูนย์ซ่อม Pumpkin')) {
             $roomId = 'ROOM06';
-        }elseif ($descriptions->description === 'ไลน์ dearler') {
+        } elseif ($descriptions->description === 'ไลน์ dearler') {
             $roomId = 'ROOM09';
         }
         Log::channel('line_webhook_log')->info('forwardToDefaultRoom: ' . $roomId . '');
@@ -352,11 +352,11 @@ class LineUATController extends Controller
 
     private function handlePendingRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
-        $queueChat = ActiveConversations::query()
-            ->leftJoin('rates', 'active_conversations.rateRef', '=', 'rates.id')
-            ->where('active_conversations.roomId', $current_rate['latestRoomId'])
-            ->where('rates.status', '=', 'pending')
-            ->orderBy('active_conversations.created_at', 'asc')
+        $queueChat = Rates::query()
+            ->where('status', 'pending')
+            ->where('latestRoomId', $current_rate['latestRoomId'])
+            ->select('id', 'updated_at','custId')
+            ->orderBy('updated_at', 'asc')
             ->get();
 
         $count = 1;
