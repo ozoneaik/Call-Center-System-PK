@@ -5,6 +5,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ChatRoomsController;
+use App\Http\Controllers\Chats\Lazada\LazadaHistoryController;
+use App\Http\Controllers\Chats\Lazada\LazadaReceiveController;
+use App\Http\Controllers\Chats\Lazada\LazadaReplyController;
+use App\Http\Controllers\Chats\Lazada\LazadaSendController;
+use App\Http\Controllers\Chats\Lazada\LazadaSendToController;
 use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\CustomersController;
@@ -22,6 +27,7 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
+use App\Http\Controllers\webhooks\LazadaController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
 use App\Models\HelpChatModel;
@@ -66,7 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/myCase', [DisplayController::class, 'myCase']);
 
-    // จัดการเกี่ยวกับแชท
+    //จัดการเกี่ยวกับแชท
     Route::prefix('messages')->group(function () {
         Route::post('/send', [MessageController::class, 'send']);
         Route::post('/reply', [MessageController::class, 'reply']);
@@ -74,6 +80,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
         Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
+
+
+        Route::prefix('lazada')->group(function () {
+            Route::post('/receive', [LazadaReceiveController::class, 'receive']);
+            Route::post('/send', [LazadaSendController::class, 'send']);
+            Route::post('/sendTo', [LazadaSendToController::class, 'sendTo']);
+            Route::post('/reply', [LazadaReplyController::class, 'reply']);
+            Route::post('/endTalk', [MessageController::class, 'endTalk']);
+            Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
+        });
     });
 
     // ดึงข้อมูลเกี่ยวกับแชท
@@ -198,6 +214,8 @@ Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
     Route::get('/facebook', [FacebookController::class, 'webhook']);
     Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
+
+    Route::post('/lazada', [LazadaController::class, 'handleWebhook']);
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 

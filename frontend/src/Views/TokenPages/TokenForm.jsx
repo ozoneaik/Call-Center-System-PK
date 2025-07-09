@@ -35,6 +35,8 @@ export const TokenForm = (props) => {
     // if (!validateForm()) return;
 
     const { data, status } = await storeTokenApi(newToken);
+    console.log(newToken);
+
     AlertDiaLog({
       title: data.message,
       text: data.detail,
@@ -59,7 +61,7 @@ export const TokenForm = (props) => {
   const handleUpdate = async (e, id) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // if (!validateForm()) return;
 
     const updatedData = {
       ...newToken,
@@ -154,19 +156,19 @@ export const TokenForm = (props) => {
             <FormControl>
               <FormLabel>App Key</FormLabel>
               <Input required
-                name="app_key"
+                name="laz_app_key"
                 onChange={handleOnChange}
-                placeholder="กรุณากรอก App Key"
-                value={newToken.app_key || ""}
+                placeholder="กรุณากรอก Lazada App Key"
+                value={newToken.laz_app_key || ""}
               />
             </FormControl>
             <FormControl>
               <FormLabel>App Secret</FormLabel>
               <Input required
-                name="app_secret"
+                name="laz_app_secret"
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก App Secret"
-                value={newToken.app_secret || ""}
+                value={newToken.laz_app_secret || ""}
               />
             </FormControl>
           </>

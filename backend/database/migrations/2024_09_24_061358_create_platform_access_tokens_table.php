@@ -17,11 +17,12 @@ return new class extends Migration
             $table->string('accessToken', 512)->unique()->comment('channel access token');
             $table->string('description')->comment('คำอธิบาย token');
             $table->string('platform')->comment('จากแพลตฟอร์มไหน');
-            $table->string('page_id')->nullable()->comment('id pags facebook');
+            $table->string('fb_page_id')->nullable()->comment('id pags facebook');
+            $table->string('fb_verify_token')->nullable()->comment('verify token facebook');
 
             // --- เพิ่มคอลัมน์สำหรับ Lazada ---
-            $table->string('app_key')->nullable()->comment('App Key for Lazada');
-            $table->string('app_secret')->nullable()->comment('App Secret for Lazada');
+            $table->string('laz_app_key')->nullable()->comment('App Key for Lazada');
+            $table->string('laz_app_secret')->nullable()->comment('App Secret for Lazada');
             $table->timestamps();
         });
     }

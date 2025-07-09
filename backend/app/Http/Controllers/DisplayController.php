@@ -49,6 +49,9 @@ class DisplayController extends Controller
             if (!$list) throw new \Exception('เกิดปัญหาในการ query select');
             if ($list->isEmpty()) throw new \Exception('ไม่พบรายการ Chat');
             $sender = Customers::query()->where('custId', $custId)->first();
+            $platform = PlatformAccessTokens::query()->where('id' , $sender->platformRef)->select('platform')->first();
+            $sender = $sender->toArray();
+            $sender['platform'] = $platform->platform ?? 'Unknown';
             if (!$sender) throw new \Exception('ไม่พบ sender');
             $emp = $this->displayService->getEmpReply($request['activeId']);
             $room = ActiveConversations::query()->where('id', $request['activeId'])->first();

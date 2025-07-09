@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PlatformAccessTokens;
 use App\Services\TokenService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -51,54 +52,80 @@ class TokenController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // $req = $request->all();
         // return response()->json([
-        //     'message' => 'สร้าง token สำเร็จ',
-        //     'detail' => $request->all(),
+        //     'request' => $req,
+        //     'laz_app_key'=> $req['laz_app_key'] ?? null,
         // ], 400);
-        $store = new PlatformAccessTokens();
-        $store['accessTokenId'] = Hash::make(rand(0, 10000));
-        $store['accessToken'] = $request->get('accessToken');
-        $store['description'] = $request->get('description');
-        $store['platform'] = $request->get('platform');
-        if ($request->get('platform') === 'facebook') {
-            $store['fb_page_id'] = $request->get('fb_page_id');
-        } else {
+        try {
+            $store = new PlatformAccessTokens();
+            $store['accessTokenId'] = Hash::make(rand(0, 10000));
+            $store['accessToken'] = $request->get('accessToken');
+            $store['description'] = $request->get('description');
+            $store['platform'] = $request->get('platform');
+            if ($request->get('platform') === 'facebook') {
+                $store['fb_page_id'] = $request->get('fb_page_id');
+            } else {
+            }
+            // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
+            if ($request->get('platform') === 'lazada') {
+                $store->laz_app_key = $request->get('laz_app_key');
+                $store->laz_app_secret = $request->get('laz_app_secret');
+            } else {
+            }
+            $store->save();
+            return response()->json([
+                'message' => 'สร้าง token สำเร็จ',
+                'detail' => 'ไม่พบข้อผิดพลาด',
+                'Id' => $store->id
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail' => "ฐานข้อมูลไม่ถูกต้อง",
+                'error_detail' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail' => $e->getMessage()
+            ], 400);
         }
-        // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
-        if ($request->get('platform') === 'lazada') {
-            $store->app_key = $request->get('app_key');
-            $store->app_secret = $request->get('app_secret');
-        } else {
-        }
-        $store->save();
-        return response()->json([
-            'message' => 'สร้าง token สำเร็จ',
-            'detail' => 'ไม่พบข้อผิดพลาด',
-            'Id' => $store->id
-        ]);
     }
 
     public function update(Request $request): JsonResponse
     {
-        $update = PlatformAccessTokens::findOrFail($request['id']);
-        $update['accessToken'] = $request->get('accessToken');
-        $update['description'] = $request->get('description');
-        $update['platform'] = $request->get('platform');
-        if ($request->get('platform') === 'facebook') {
-            $store['fb_page_id'] = $request->get('fb_page_id');
-        } else {
-        }
+        try {
+            $update = PlatformAccessTokens::findOrFail($request['id']);
+            $update['accessToken'] = $request->get('accessToken');
+            $update['description'] = $request->get('description');
+            $update['platform'] = $request->get('platform');
+            if ($request->get('platform') === 'facebook') {
+                $store['fb_page_id'] = $request->get('fb_page_id');
+            } else {
+            }
 
-        // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
-        if ($request->get('platform') === 'lazada') {
-            $update->app_key = $request->get('app_key');
-            $update->app_secret = $request->get('app_secret');
+            // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
+            if ($request->get('platform') === 'lazada') {
+                $update->app_key = $request->get('laz_app_key');
+                $update->app_secret = $request->get('laz_app_secret');
+            }
+            $update->save();
+            return response()->json([
+                'message' => 'อัพเดทสำเร็จ',
+                'detail' => 'ไม่พบข้อผิดพลาด'
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail' => "ฐานข้อมูลไม่ถูกต้อง"
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail' => $e->getMessage()
+            ], 400);
         }
-        $update->save();
-        return response()->json([
-            'message' => 'อัพเดทสำเร็จ',
-            'detail' => 'ไม่พบข้อผิดพลาด'
-        ]);
     }
 
     public function delete($id): JsonResponse

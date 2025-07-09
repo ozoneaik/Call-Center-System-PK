@@ -6,6 +6,8 @@ use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Requests\endTalkRequest;
 use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
+use App\Services\webhooks\LazadaMessageService;
+
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\ChatRooms;
@@ -79,7 +81,6 @@ class MessageController extends Controller
                         Log::info('APP_URL จาก config(app.url) = ' . config('app.url'));
                         $m['content'] = $fullUrl;
                         $storeChatHistory['content'] = $m['content'];
-
                     } else {
                         throw new \Exception('ไม่สามารถส่งไฟล์ได้');
                     }
@@ -198,7 +199,6 @@ class MessageController extends Controller
                     //ส่งข้อความรับเรื
                     $Rate = Rates::query()->where('id', $rateId)->first();
                     if ($Rate && isset($Rate->menuselect)) {
-                        
                     } else {
                     }
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
@@ -500,4 +500,5 @@ class MessageController extends Controller
             ], 400);
         }
     }
+
 }
