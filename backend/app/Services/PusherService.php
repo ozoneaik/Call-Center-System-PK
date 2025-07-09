@@ -52,7 +52,42 @@ class PusherService
         }
     }
 
-    public function sendNotification($custId, $title = ''): void
+    public function sendNotification($custId, $title = '')
+    {
+        $Rate = Rates::query()->where('custId', $custId)->orderBy('id', 'desc')->first();
+        $activeConversation = ActiveConversations::query()->where('rateRef', $Rate->id)->orderBy('id', 'desc')->first();
+        $from_roomId = ChatRooms::query()->where('roomId', $activeConversation->from_roomId)->select('roomName')->first();
+        $activeConversation->roomName = $from_roomId->roomName ?? ' ';
+        if ($title === 'มีการรับเรื่อง') {
+            $activeConversation->empName = Auth::user()->name;
+        }
+        $customer = Customers::query()->where('custId', $custId)->first();
+        $message = ChatHistory::query()->where('custId', $custId)->orderBy('id', 'desc')->first();
+        $message->sender = json_decode($message->sender);
+        $Json['Rate'] = $Rate;
+        $Json['activeConversation'] = $activeConversation;
+        $Json['message'] = $message;
+        $Json['customer'] = $customer;
+        $AppCluster = env('PUSHER_APP_CLUSTER');
+        $AppKey = env('PUSHER_APP_KEY');
+        $AppSecret = env('PUSHER_APP_SECRET');
+        $AppID = env('PUSHER_APP_ID');
+        $options = ['cluster' => $AppCluster, 'useTLS' => true];
+        try {
+            $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
+            $pusher->trigger('notifications', 'my-event', $Json);
+        } catch (PusherException | GuzzleException $e) {
+            Log::error('Pusher Error');
+            Log::channel('lineEvent')->error(sprintf(
+                'Error: %s in %s on line %d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
+        }
+    }
+
+    public function sendNotification_by_view($custId, $title = ''): void
     {
         try {
             // 1. ดึงข้อมูลที่เกี่ยวข้องเหมือนเดิม
