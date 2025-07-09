@@ -27,7 +27,7 @@ class MessageService
     }
 
     // ส่งข้อความจากพนักงาน
-    public function sendMsgByLine($custId, $messages): array
+    public function sendMsgByLine($custId, $messages): array 
     {
         try {
             $data['status'] = false;

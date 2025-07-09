@@ -8,14 +8,40 @@ use Illuminate\Support\Facades\DB;
 
 class HelpChatController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $helpChats = HelpChatModel::query()->paginate(300);
+        $query = HelpChatModel::query();
+
+        // Filter by search keyword (ค้นหาในฟิลด์ search, problem, solve)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('search', 'like', "%{$search}%")
+                    ->orWhere('problem', 'like', "%{$search}%")
+                    ->orWhere('solve', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by skugroup
+        if ($request->filled('skugroup')) {
+            $query->where('skugroup', $request->input('skugroup'));
+        }
+
+        // Filter by cause (ตัวอย่าง)
+        if ($request->filled('cause')) {
+            $query->where('cause', $request->input('cause'));
+        }
+
+        // เพิ่ม filter อื่นๆ ตามต้องการได้ เช่น model, sku, etc.
+
+        $helpChats = $query->orderBy('updated_at', 'desc')->paginate(300);
+
         return response()->json([
             'message' => 'success',
             'data' => $helpChats,
         ]);
     }
+
 
     public function search(Request $request)
     {
@@ -79,6 +105,7 @@ class HelpChatController extends Controller
             'data' => $helpChat,
         ]);
     }
+
     public function destroy($id)
     {
         $helpChat = HelpChatModel::findOrFail($id);

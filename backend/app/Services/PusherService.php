@@ -19,7 +19,7 @@ class PusherService
 
     protected ResponseService $response;
 
-    public function newMessage($message, $emp = false, $title): array
+    public function newMessage($message, $emp = false, $title = ""): array
     {
         try {
             $AppCluster = env('PUSHER_APP_CLUSTER');

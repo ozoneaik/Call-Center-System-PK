@@ -13,6 +13,7 @@ use App\Http\Controllers\feedbackController;
 use App\Http\Controllers\HelpChatController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessageFacebookController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Secret\BotRoomController;
@@ -23,9 +24,12 @@ use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
+use App\Http\Controllers\webhooks\TiktokController;
 use App\Http\Middleware\UserAccess;
 use App\Models\HelpChatModel;
+use GuzzleHttp\Psr7\Message;
 use Illuminate\Support\Facades\Route;
+
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -75,7 +79,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
         Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
     });
-
+    Route::prefix('messages')->group(function () {
+        Route::post('/send', [MessageFacebookController::class, 'sendTextToFacebook']);
+        Route::get('/getMessagesFromFacebook', [MessageFacebookController::class, 'getMessagesFromFacebook']);
+    });
     // ดึงข้อมูลเกี่ยวกับแชท
     Route::prefix('display')->group(function () {
         Route::get('/message/list/{roomId}', [DisplayController::class, 'displayMessageList']);
@@ -176,7 +183,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list', [HelpChatController::class, 'index']);
         Route::post('/search', [HelpChatController::class, 'search']);
         Route::post('/store', [HelpChatController::class, 'store']);
-        Route::put('{id}', [HelpChatController::class, 'update']);
+        Route::post('/update/{id}', [HelpChatController::class, 'update']);
         Route::delete('{id}', [HelpChatController::class, 'destroy']);
     });
 
@@ -196,8 +203,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
-    Route::get('/facebook', [FacebookController::class, 'webhook']);
-    Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
+    Route::get('/facebook', [MessageFacebookController::class, 'webhook']);
+    Route::post('/facebook', [MessageFacebookController::class, 'webhookFacebook']);
+    Route::get('/tiktok', [TiktokController::class, 'webhook']);
+    Route::post('/tiktok',   [TiktokController::class, 'webhook']);
+    Route::get('/tiktok/oauth/callback', [\App\Http\Controllers\TiktokOAuthController::class, 'callback']);
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
@@ -211,3 +221,8 @@ Route::get('/feedback/{custId}/{rateId}', [feedbackController::class, 'index']);
 Route::post('/feedback', [feedbackController::class, 'feedback']);
 
 require __DIR__ . '/test_only.php';
+// routes/web.php
+Route::get('/tiktoksX5LAPvIj31FidCESk0J6Nfyb20L7eVr.txt', function () {
+    return response('tiktok-challenge:your_token_here', 200)
+        ->header('Content-Type', 'text/plain');
+});

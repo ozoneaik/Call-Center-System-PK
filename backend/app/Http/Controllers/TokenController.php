@@ -62,6 +62,7 @@ class TokenController extends Controller
         $store['platform'] = $request->get('platform');
         if ($request->get('platform') === 'facebook') {
             $store['fb_page_id'] = $request->get('fb_page_id');
+            $store['fb_verify_token'] = $request->get('fb_verify_token');
         } else {
         }
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
@@ -86,6 +87,7 @@ class TokenController extends Controller
         $update['platform'] = $request->get('platform');
         if ($request->get('platform') === 'facebook') {
             $store['fb_page_id'] = $request->get('fb_page_id');
+            $store['verify_token'] = $request->get('fb_verify_token');
         } else {
         }
 

@@ -55,8 +55,8 @@ class LineReceiveController extends Controller
                     $now = Carbon::now();
                     $diff = $now->diffInHours($Rate->created_at, true);
                     if ($diff >= 12) {
+                        $this->sendMessageReceive($Rate, $updateAC);    
                     }
-                    $this->sendMessageReceive($Rate, $updateAC);
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
                 } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates');
             } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Active');
@@ -80,70 +80,64 @@ class LineReceiveController extends Controller
         $token = PlatformAccessTokens::query()->where('id', $customer->platformRef)->first();
         $menus = BotMenu::query()->where('botTokenId', $token->id)->get();
         if (!$menus) throw new \Exception('ไม่พบเมนู');
-        if (isset($AC->from_empCode) && $AC->from_empCode !== 'BOT') {
-            $message['contentType'] = 'text';
-            $message['content'] = "แอดมิน". Auth::user()->name ."ขออนุญาติรับเรื่องดูแลคุณลูกค้าต่อจากเจ้าหน้าที่ท่านเดิม";
-        } else {
-            if ($token->description === 'pumpkintools') {
-                if ($Rate->menu_select) {
+        if ($token->description === 'pumpkintools') {
+            if ($Rate->menu_select) {
+                $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
+                if ($findMenu->menuName === 'สอบถาม/แนะนำสินค้า' || $findMenu->menuName === 'สอบถาม/สั่งซื้อสินค้า') {
+                    $message['contentType'] = 'text';
+                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                    $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมิน";
+                    $message['content'] = $message['content'] . ' เช่น รหัสสินค้า / รุ่นสินค้า ที่ต้องการ เพื่อให้ทางแอดมินตรวจสอบให้กับทางลูกค้า';
+                } else if ($findMenu->menuName === 'ร้องเรียนบริการ') {
+                    $message['contentType'] = 'text';
+                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                    $message['content'] = $message['content'] . " รับเรื่องร้องเรียนคุณลูกค้า";
+                } else {
                     $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
-                    if ($findMenu->menuName === 'สอบถาม/แนะนำสินค้า' || $findMenu->menuName === 'สอบถาม/สั่งซื้อสินค้า') {
+                    $message['contentType'] = 'text';
+                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                    $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                }
+            } else {
+                $message['contentType'] = 'text';
+                $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+            }
+        } elseif ($token->description === 'ศูนย์ซ่อม Pumpkin') {
+            if ($Rate->menu_select) {
+                $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
+                foreach ($menus as $key => $menu) {
+                    if ($findMenu->menuName === 'สอบถาม/ติดตามงานซ่อม') {
                         $message['contentType'] = 'text';
                         $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมิน";
-                        $message['content'] = $message['content'] . ' เช่น รหัสสินค้า / รุ่นสินค้า ที่ต้องการ เพื่อให้ทางแอดมินตรวจสอบให้กับทางลูกค้า';
-                    } else if ($findMenu->menuName === 'ร้องเรียนบริการ') {
+                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                        $message['content'] = $message['content'] . ' ชื่อ หรือ เบอร์โทรที่ส่งสินค้ามาซ่อม';
+                    } elseif ($findMenu->menuName === 'สอบถาม/สั่งซื้ออะไหล่') {
+                        $message['contentType'] = 'text';
+                        $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                        $message['content'] =  $message['content'] . ' รหัสสินค้า / รุ่นสินค้า หรือ S/N สินค้า';
+                    } elseif ($findMenu->menuName === 'สอบถาม/ที่อยู่ศูนย์บริการ') {
+                        $message['contentType'] = 'text';
+                        $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                        $message['content'] =  $message['content'] . ' จังหวัดที่คุณลูกค้าต้องการส่งสินค้าซ่อม';
+                    } elseif ($findMenu->menuName === 'ร้องเรียนบริการ') {
                         $message['contentType'] = 'text';
                         $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
                         $message['content'] = $message['content'] . " รับเรื่องร้องเรียนคุณลูกค้า";
                     } else {
-                        $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
                         $message['contentType'] = 'text';
-                        $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                        $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                        $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
                     }
-                } else {
-                    $message['contentType'] = 'text';
-                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
-                }
-            } elseif ($token->description === 'ศูนย์ซ่อม Pumpkin') {
-                if ($Rate->menu_select) {
-                    $findMenu = BotMenu::query()->where('id', $Rate->menu_select)->first();
-                    foreach ($menus as $key => $menu) {
-                        if ($findMenu->menuName === 'สอบถาม/ติดตามงานซ่อม') {
-                            $message['contentType'] = 'text';
-                            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                            $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
-                            $message['content'] = $message['content'] . ' ชื่อ หรือ เบอร์โทรที่ส่งสินค้ามาซ่อม';
-                        } elseif ($findMenu->menuName === 'สอบถาม/สั่งซื้ออะไหล่') {
-                            $message['contentType'] = 'text';
-                            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                            $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
-                            $message['content'] =  $message['content'] . ' รหัสสินค้า / รุ่นสินค้า หรือ S/N สินค้า';
-                        } elseif ($findMenu->menuName === 'สอบถาม/ที่อยู่ศูนย์บริการ') {
-                            $message['contentType'] = 'text';
-                            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                            $message['content'] = $message['content'] . " คุณลูกค้าต้องการ " . $findMenu->menuName . " รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
-                            $message['content'] =  $message['content'] . ' จังหวัดที่คุณลูกค้าต้องการส่งสินค้าซ่อม';
-                        } elseif ($findMenu->menuName === 'ร้องเรียนบริการ') {
-                            $message['contentType'] = 'text';
-                            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
-                            $message['content'] = $message['content'] . " รับเรื่องร้องเรียนคุณลูกค้า";
-                        } else {
-                            $message['contentType'] = 'text';
-                            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
-                        }
-                    }
-                } else {
-                    $message['contentType'] = 'text';
-                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
                 }
             } else {
                 $message['contentType'] = 'text';
-                $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
+                $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
             }
+        } else {
+            $message['contentType'] = 'text';
+            $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า";
         }
-
         $newChatHistory = new ChatHistory();
         $newChatHistory->custId = $Rate->custId;
         $newChatHistory->content = $message['content'];

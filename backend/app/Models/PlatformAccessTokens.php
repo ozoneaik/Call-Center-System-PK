@@ -12,5 +12,5 @@ use Illuminate\Database\Eloquent\Model;
 class PlatformAccessTokens extends Model
 {
     use HasFactory;
-    protected $fillable = ['accessTokenId', 'accessToken', 'description', 'platform', 'page_id', 'app_key', 'app_secret'];
+    protected $fillable = ['accessTokenId', 'accessToken', 'description', 'platform', 'laz_app_key', 'laz_app_secret','fb_page_id','fb_verify_token'];
 }

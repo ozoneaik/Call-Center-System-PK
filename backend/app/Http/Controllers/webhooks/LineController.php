@@ -31,8 +31,7 @@ class LineController extends Controller
         LineMessageService $LineMessageService,
         MessageService     $messageService,
         PusherService      $pusherService,
-    )
-    {
+    ) {
         $this->lineMessageService = $LineMessageService;
         $this->messageService = $messageService;
         $this->pusherService = $pusherService;
@@ -50,7 +49,7 @@ class LineController extends Controller
                 Log::channel('line_webhook_log')->info($event);
                 // เช็คก่อนว่า event มี type เป็น message หรือไม่
                 if ($event['type'] === 'message') {
-//------------------------------ เช็คต่อว่า เคยสร้าง ข้อมูลลูกค้ารายนี้หรือไม่ --------------------------------------------------------
+                    //------------------------------ เช็คต่อว่า เคยสร้าง ข้อมูลลูกค้ารายนี้หรือไม่ --------------------------------------------------------
                     $userId = $event['source']['userId'];
                     $customer = Customers::query()->where('custId', $userId)->first();
                     if (!$customer) {
@@ -76,8 +75,8 @@ class LineController extends Controller
                     } else $CUSTOMER = $customer;
 
                     $TOKEN = PlatformAccessTokens::query()->where('id', $CUSTOMER['platformRef'])->first();
-//---------------------------------------------------------------------------------------------------------------------
-//-----------------------เมื่อได้ customer แล้วให้เช็คต่อว่า ส่งข้อความอะไรเข้ามา แล้วเช็คว่าสถานะ rate ตอนนี้ เป็นอย่างไร-----------------------
+                    //---------------------------------------------------------------------------------------------------------------------
+                    //-----------------------เมื่อได้ customer แล้วให้เช็คต่อว่า ส่งข้อความอะไรเข้ามา แล้วเช็คว่าสถานะ rate ตอนนี้ เป็นอย่างไร-----------------------
                     $message = $event['message'];
                     $current_rate = Rates::query()
                         ->where('custId', $CUSTOMER['custId'])
@@ -85,8 +84,7 @@ class LineController extends Controller
                         ->first();
 
 
-                    if ($current_rate && $current_rate->status === 'success')
-                    {
+                    if ($current_rate && $current_rate->status === 'success') {
                         $AcRef = ActiveConversations::query()
                             ->where('rateRef', $current_rate->id)
                             ->orderBy('id', 'desc')
@@ -96,7 +94,7 @@ class LineController extends Controller
                             $start_url = "https://stickershop.line-scdn.net/stickershop/v1/sticker/";
                             $sticker_id = $message['stickerId'];
                             $end_url = "/iPhone/sticker.png";
-                            $content = $start_url.$sticker_id.$end_url;
+                            $content = $start_url . $sticker_id . $end_url;
                             ChatHistory::query()->create([
                                 'custId' => $CUSTOMER['custId'],
                                 'content' => $content,
@@ -146,8 +144,7 @@ class LineController extends Controller
                                         ]);
                                         $this->pusherService->sendNotification($CUSTOMER['custId']);
                                     }
-                                }
-                                else {
+                                } else {
                                     $now = Carbon::now();
                                     if ($now->diffInHours($current_rate->created_at) <= 12) {
                                         $newRate = Rates::query()->create([
@@ -184,7 +181,6 @@ class LineController extends Controller
                                         $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_menu, $newAc->id, $TOKEN);
                                         $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
                                     }
-
                                 }
                             } else if ($message['type'] === 'image' || $message['type'] === 'audio' || $message['type'] === 'video' || $message['type'] === 'file' || $message['type'] === 'location') {
                                 // เช็คก่อนว่า เกิน 12 ชัวโมงหรือไม่
@@ -249,9 +245,7 @@ class LineController extends Controller
                                 $this->lineMessageService->sendMenu($CUSTOMER, $TOKEN);
                             }
                         } // สิ้นสุด rate status == success
-                    }
-                    else if ($current_rate && $current_rate->status === 'progress')
-                    {
+                    } else if ($current_rate && $current_rate->status === 'progress') {
                         $acRef = ActiveConversations::query()
                             ->where('custId', $CUSTOMER['custId'])
                             ->orderBy('id', 'desc')->first();
@@ -295,7 +289,6 @@ class LineController extends Controller
                                         $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_send, $new_ac->id, $TOKEN);
                                         $this->lineMessageService->pushMessage($body_send, $TOKEN);
                                         break;
-
                                     } else {
                                         $findMenu = false;
                                     }
@@ -375,10 +368,8 @@ class LineController extends Controller
                         } else {
                             $this->lineMessageService->storeMessage($CUSTOMER, $CUSTOMER, $message, $acRef->id, $TOKEN);
                             $this->pusherService->sendNotification($CUSTOMER['custId']);
-                        }// สิ้นสุด rate status == progress
-                    }
-                    else if ($current_rate && $current_rate->status === 'pending')
-                    {
+                        } // สิ้นสุด rate status == progress
+                    } else if ($current_rate && $current_rate->status === 'pending') {
                         $queueChat = ActiveConversations::query()
                             ->leftJoin('rates', 'active_conversations.rateRef', '=', 'rates.id')
                             ->where('active_conversations.roomId', $current_rate['latestRoomId'])
@@ -410,10 +401,7 @@ class LineController extends Controller
                         $this->lineMessageService->storeMessage($CUSTOMER, $BOT, $message_count, $acId->id, $TOKEN);
                         $sendMshByLine = $this->lineMessageService->pushMessage($body, $TOKEN);
                         if ($sendMshByLine['status']) $this->pusherService->sendNotification($CUSTOMER['custId']);
-
-
-                    }
-                    else {
+                    } else {
                         Log::channel('line_webhook_log')->info('ทำงานที่นี่');
                         if ($message['type'] === 'text') {
                             $keyword = Keyword::query()->where('name', 'like', "%$message[text]%")
@@ -481,7 +469,7 @@ class LineController extends Controller
                         }
                     }
 
-//---------------------------------------------------------------------------------------------------------------------
+                    //---------------------------------------------------------------------------------------------------------------------
                 } elseif ($event['type'] === 'postback') {
                     $postback = $this->postback($event);
                     if (!$postback) {

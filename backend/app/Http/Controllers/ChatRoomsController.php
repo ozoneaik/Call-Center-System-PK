@@ -22,16 +22,14 @@ class ChatRoomsController extends Controller
     {
         $user = auth()->user();
         $role = $user['role'];
-        if ($role === 'admin') $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)->get();
+        if ($role === 'admin') $chatRooms = ChatRooms::all();
         else {
             // $chatRooms = ChatRooms::all();
             $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
-                ->where('empCode', $user['empCode'])
-                ->where('chat_rooms.is_active', 1)
-                ->get();
+                ->where('empCode', $user['empCode'])->get();
         }
 
-        $listAll = ChatRooms::where('chat_rooms.is_active', 1)->get();
+        $listAll = ChatRooms::all();
         return response()->json([
             'message' => 'success',
             'chatRooms' => $chatRooms,

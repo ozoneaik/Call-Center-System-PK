@@ -73,7 +73,7 @@ class LineUATController extends Controller
         $customer = Customers::query()->where('custId', $userId)->first();
 
         if (!$customer) {
-            $token_list = PlatformAccessTokens::all();
+            $token_list = PlatformAccessTokens::all() ;
             foreach ($token_list as $t) {
                 $response_customer = Http::withHeaders([
                     'Authorization' => 'Bearer ' . $t['accessToken'],
@@ -179,6 +179,7 @@ class LineUATController extends Controller
             }
         }
     }
+
 
     private function handleMediaMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN): void
     {
@@ -333,12 +334,12 @@ class LineUATController extends Controller
     {
         $descriptions = PlatformAccessTokens::query()->where('id', $CUSTOMER['platformRef'])->first();
 
-        $roomId = 'ROOM06'; // Default room
+        $roomId = 'ROOM01'; // Default room
 
-        if (($descriptions->description === 'pumpkintools') || ($descriptions->description === 'ศูนย์ซ่อม Pumpkin')) {
+        if ($descriptions->description === 'ศูนย์ซ่อม Pumpkin') {
+            $roomId = 'ROOM02';
+        } else if ($descriptions->description === 'pumpkintools') {
             $roomId = 'ROOM06';
-        }elseif ($descriptions->description === 'ไลน์ dearler') {
-            $roomId = 'ROOM09';
         }
         Log::channel('line_webhook_log')->info('forwardToDefaultRoom: ' . $roomId . '');
 

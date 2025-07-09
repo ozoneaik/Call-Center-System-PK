@@ -9,7 +9,8 @@
         "laravel/framework": "^11.9",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9"
+        "laravel/tinker": "^2.9",
+        "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^2.1",
