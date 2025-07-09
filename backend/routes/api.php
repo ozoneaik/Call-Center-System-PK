@@ -196,8 +196,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
-    Route::get('/facebook', [FacebookController::class, 'webhook']);
-    Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
+    Route::prefix('facebook')->group(function () {
+        Route::get('/', [FacebookController::class, 'webhook']);
+        Route::post('/', [FacebookController::class, 'webhookFacebook']);
+    });
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
