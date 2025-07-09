@@ -79,10 +79,20 @@ class LazadaSendController extends Controller
                     $fileName = rand(1000, 9999) . time() . '.' . $file->getClientOriginalExtension();
                     $path = $file->storeAs('public/lazada-files', $fileName);
 
+                    // สร้าง Relative URL ก่อน
                     $publicUrl = Storage::url($path);
+                    // สร้าง Absolute URL สำหรับบันทึกลง DB และส่งกลับไปให้ Frontend
+                    $fullUrl = asset($publicUrl);
+
                     $localPath = Storage::path($path);
+
+                    // สำหรับส่งไป Lazada API ใช้ Local Path ถูกต้องแล้ว
                     $m['content'] = $localPath;
-                    $chat->content = $publicUrl;
+                    // สำหรับบันทึกลง DB และแสดงผลที่ Frontend ให้ใช้ URL เต็ม
+                    $chat->content = $fullUrl;
+
+                    // [สำคัญ] อัปเดต content ที่จะส่งกลับไปให้ Frontend ด้วย
+                    $processedMessages[$key]['content'] = $fullUrl;
                 } else {
                     $chat->content = $m['content'];
                 }
@@ -101,7 +111,8 @@ class LazadaSendController extends Controller
                 }
 
                 $this->pusherService->sendNotification($custId);
-                $processedMessages[$key]['content'] = $m['content'];
+                $processedMessages[$key]['content'] = $chat->content;
+                // $processedMessages[$key]['content'] = $m['content'];
             }
 
             DB::commit();
