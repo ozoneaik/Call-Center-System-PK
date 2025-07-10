@@ -52,6 +52,16 @@ export const receiveApi = async (rateId, roomId) => {
     }
 }
 
+// รับเรื่อง lazada
+export const receiveApiLazada = async (rateId='', roomId='') => {
+    try {
+        const { data, status } = await axiosClient.post(`${messages}/lazada/receive`, { rateId, roomId });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}
+
 export const senToApi = async ({ rateId, activeConversationId, latestRoomId }) => {
     try {
         const { data, status } = await axiosClient.post(`${messages}/sendTo`, { rateId, activeConversationId, latestRoomId });

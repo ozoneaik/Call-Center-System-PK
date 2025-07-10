@@ -83,7 +83,7 @@ class LazadaController extends Controller
     private function handleChatMessage($customer, $data)
     {
         if (($data['from_account_type'] ?? 0) != 1) {
-            return; // ข้ามข้อความที่ไม่ใช่จากลูกค้า
+            return; 
         }
 
         $messageId = $data['message_id'] ?? null;
@@ -112,17 +112,11 @@ class LazadaController extends Controller
         }
     }
 
-    /**
-     * ฟังก์ชันกลางสำหรับประมวลผลข้อความที่ได้รับจาก Lazada
-     * ทำหน้าที่คล้ายกับ switch-case ใน LineMessageService::storeMessage
-     */
     private function processMessageContent(array $data): array
     {
-        // 1. แปลง JSON content เป็น array
         $contentData = json_decode($data['content'] ?? '{}', true);
         $result = ['content' => '[ไม่สามารถระบุประเภทข้อความได้]', 'contentType' => 'unknown'];
 
-        // 2. ตรวจสอบว่าเป็นรูปภาพหรือไม่ (เช็คทั้ง imgUrl และ img_url เพื่อความแน่นอน)
         $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'] ?? null;
         if ($imageUrl) {
             $result['content'] = LazadaMessageService::storeMedia($imageUrl);
@@ -131,16 +125,14 @@ class LazadaController extends Controller
             return $result;
         }
 
-        // 3. ตรวจสอบว่าเป็นข้อความตัวหนังสือหรือไม่
         if (isset($contentData['txt'])) {
             $result['content'] = $contentData['txt'];
             $result['contentType'] = 'text';
             return $result;
         }
 
-        // 4. ตรวจสอบว่าเป็นวิดีโอหรือไม่
         $videoUrl = $contentData['media_url'] ?? null;
-        if ($videoUrl && ($data['type'] ?? 0) == 6) { // อาจจะต้องเช็ค type 6 ประกอบ
+        if ($videoUrl && ($data['type'] ?? 0) == 6) { 
             $result['content'] = LazadaMessageService::storeMedia($videoUrl);
             $result['contentType'] = 'video';
             return $result;
@@ -155,67 +147,6 @@ class LazadaController extends Controller
 
         return $result;
     }
-
-    // private function processMessageContent(array $data): array
-    // {
-    //     // 1. แปลง JSON content เป็น array
-    //     $contentData = json_decode($data['content'] ?? '{}', true);
-    //     $result = ['content' => '[ไม่สามารถระบุประเภทข้อความได้]', 'contentType' => 'unknown'];
-
-    //     // 2. ตรวจสอบว่าเป็นรูปภาพหรือไม่ (เช็คทั้ง imgUrl และ img_url)
-    //     $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'] ?? null;
-    //     if ($imageUrl) {
-    //         $mediaInfo = LazadaMessageService::storeMedia($imageUrl);
-    //         $result['content'] = $mediaInfo['url'];
-    //         $result['contentType'] = 'image';
-
-    //         // OCR
-    //         if (!empty($mediaInfo['local_path'])) {
-    //             $ocrService = app(\App\Services\OcrService::class);
-    //             $extractedText = $ocrService->extractTextFromImage($mediaInfo['local_path']);
-    //             Log::info("📸 OCR extracted: {$extractedText}");
-
-    //             // ถ้ามีข้อความในภาพ ส่งข้อความตอบกลับลูกค้าอัตโนมัติ
-    //             if (!empty(trim($extractedText))) {
-    //                 $sessionId = $data['session_id'] ?? null;  // ต้องมี session_id หรือ customer id ใน $data
-    //                 if ($sessionId) {
-    //                     $replyText = "ข้อความในรูปภาพที่คุณส่งมาคือ: " . $extractedText;
-    //                     LazadaMessageService::sendReply($sessionId, $replyText);
-    //                     Log::info("📝 ส่งข้อความตอบกลับ OCR อัตโนมัติสำเร็จ");
-    //                 }
-    //             }
-    //         } else {
-    //             Log::info("📸 OCR ไม่พบข้อความในภาพ");
-    //         }
-
-    //         return $result;
-    //     }
-
-    //     // 3. ตรวจสอบว่าเป็นข้อความตัวหนังสือหรือไม่
-    //     if (isset($contentData['txt'])) {
-    //         $result['content'] = $contentData['txt'];
-    //         $result['contentType'] = 'text';
-    //         return $result;
-    //     }
-
-    //     // 4. ตรวจสอบว่าเป็นวิดีโอหรือไม่
-    //     $videoUrl = $contentData['media_url'] ?? null;
-    //     if ($videoUrl && ($data['type'] ?? 0) == 6) {
-    //         $mediaInfo = LazadaMessageService::storeMedia($videoUrl);
-    //         $result['content'] = $mediaInfo['url'];
-    //         $result['contentType'] = 'video';
-    //         return $result;
-    //     }
-
-    //     $templateId = $data['template_id'] ?? null;
-    //     if (in_array($templateId, [3, 4, 5])) {
-    //         $result['content'] = '[ลูกค้าส่ง Sticker/Card/Order]';
-    //         $result['contentType'] = 'card';
-    //         return $result;
-    //     }
-
-    //     return $result;
-    // }
 
     private function handleSuccessRateMessage($customer, $raw, $rate)
     {
@@ -237,7 +168,6 @@ class LazadaController extends Controller
         $acRef = ActiveConversations::query()->where('rateRef', $rate->id)->orderBy('id', 'desc')->first();
         $processedMessage = $this->processMessageContent($raw);
 
-        // บันทึกข้อความของลูกค้าก่อนเสมอ
         ChatHistory::query()->create([
             'custId' => $customer->custId,
             'content' => $processedMessage['content'],

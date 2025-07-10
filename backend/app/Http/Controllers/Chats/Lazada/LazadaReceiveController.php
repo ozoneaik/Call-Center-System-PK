@@ -48,7 +48,7 @@ class LazadaReceiveController extends Controller
             // อัปเดตข้อมูลการรับเรื่อง
             $updateAC->receiveAt = Carbon::now();
             $updateAC->startTime = Carbon::now();
-            $updateAC->empCode = auth()->user()->empCode;
+            $updateAC->empCode = Auth::user()->empCode;
             
             if ($updateAC->save()) {
                 // อัปเดตสถานะของ Rate เป็น 'progress'
@@ -63,7 +63,7 @@ class LazadaReceiveController extends Controller
                     $this->sendMessageReceive($updateRate, $updateAC);
                     
                     // แจ้งเตือนผ่าน Pusher (ถ้ามี)
-                    $this->pusherService->sendNotification($updateAC->custId, 'มีการรับเรื่อง Lazada');
+                    $this->pusherService->sendNotification($updateAC->custId, 'มีการรับเรื่อง');
                     
                     $message = 'รับเรื่อง Lazada สำเร็จ';
                     $status = 200;

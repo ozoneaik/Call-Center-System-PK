@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Storage;
 
 class LazadaMessageService
 {
-
     public static function storeMedia(?string $mediaUrl): string
     {
         if (!$mediaUrl) {
@@ -108,7 +107,7 @@ class LazadaMessageService
 
         try {
             $response = Http::asForm()->post($apiUrl . $apiPath, $params);
-            $jsonResponse = $response->json(); 
+            $jsonResponse = $response->json();
 
             if ($response->successful() && isset($jsonResponse['code']) && $jsonResponse['code'] == '0') {
                 Log::info('✅ Lazada IM Reply Sent Successfully', ['response' => $jsonResponse]);
@@ -120,17 +119,13 @@ class LazadaMessageService
         }
     }
 
-    private static function sendImageMessage(string $sessionId, string $imageUrl): void
+    public static function sendImageMessage(string $sessionId, string $imageUrl, $width = 600, $height = 600): void
     {
         $accessToken = env('LAZADA_ACCESS_TOKEN');
         $appKey = env('LAZADA_APP_KEY');
         $appSecret = env('LAZADA_APP_SECRET');
         $apiUrl = 'https://api.lazada.co.th/rest';
         $apiPath = '/im/message/send';
-
-        $imageSize = getimagesize($imageUrl);
-        $width = $imageSize[0] ?? 600;
-        $height = $imageSize[1] ?? 600;
 
         $params = [
             'session_id'   => $sessionId,
@@ -167,6 +162,8 @@ class LazadaMessageService
 
     public static function sendImage(string $sessionId, string $imagePath): void
     {
+        Log::channel('lazada_webhook_log')->info("📷 Sending image file path:", ['path' => $imagePath]);
+        return;
         $accessToken = env('LAZADA_ACCESS_TOKEN');
         $appKey = env('LAZADA_APP_KEY');
         $appSecret = env('LAZADA_APP_SECRET');
@@ -220,21 +217,15 @@ class LazadaMessageService
                     break;
 
                 case 'image':
-                    if (filter_var($message['content'], FILTER_VALIDATE_URL)) {
-                        $imageData = file_get_contents($message['content']);
-                        $tmpFile = tempnam(sys_get_temp_dir(), 'img_');
-                        file_put_contents($tmpFile, $imageData);
-                        $this->sendImage($custId, $tmpFile);
-                        unlink($tmpFile);
-                    } else {
-                        $this->sendImage($custId, $message['content']);
-                    }
+                    $imageUrl = $message['content'];
+                    $width = $message['width'] ?? 600; 
+                    $height = $message['height'] ?? 600;
+                    Log::channel('lazada_webhook_log')->info("💕 Sending image file path:", ['path' => $message['content']]);
+                    $this->sendImageMessage($custId, $imageUrl, $width, $height);
                     break;
-
                 default:
                     throw new \Exception("ไม่รองรับ contentType: " . $message['contentType']);
             }
-
             return [
                 'status' => true,
                 'message' => 'ส่งข้อความสำเร็จ',

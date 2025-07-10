@@ -20,7 +20,7 @@ import {
   differentDate,
 } from "../../Components/Options.jsx";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { receiveApi } from "../../Api/Messages.js";
+import { receiveApi, receiveApiLazada } from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -30,6 +30,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import axiosClient from "../../Axios.js";
 
 const LatestMessagePreview = ({ message }) => {
   if (!message || !message.contentType) return null;
@@ -85,33 +86,37 @@ export const PendingTable = (props) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [isFilterExpanded, setIsFilterExpanded] = useState(!isMobile);
+  console.log("pending", pending);
 
   useEffect(() => {
     setIsFilterExpanded(!isMobile);
   }, [isMobile]);
 
-  const handleReceiveChat = ({ rateId, id, custId }) => {
+  const handleReceiveChat = ({ rateId, id, custId, platform }) => {
     AlertDiaLog({
       title: "ต้องการรับเรื่องหรือไม่",
       text: 'กด "ตกลง" เพื่อยืนยันรับเรื่อง',
       icon: "info",
       onPassed: async (confirm) => {
         if (confirm) {
-          const { data, status } = await receiveApi(rateId, roomId);
-          if (status === 200) {
-            AlertDiaLog({
-              title: "รับเรื่องสำเร็จ",
-              icon: "success",
-              onPassed: () => {
-                window.location.reload();
-              },
-            });
+          if (platform === "lazada") {
+            const { data, status } = await receiveApiLazada(rateId, roomId);
+            if (status !== 200) {
+              AlertDiaLog({
+                title: data.message,
+                text: data.detail,
+                icon: "error",
+              });
+            }
           } else {
-            AlertDiaLog({
-              title: data.message,
-              text: data.detail,
-              icon: "error",
-            });
+            const { data, status } = await receiveApi(rateId, roomId);
+            if (status !== 200) {
+              AlertDiaLog({
+                title: data.message,
+                text: data.detail,
+                icon: "error",
+              });
+            }
           }
         }
       },
@@ -136,7 +141,7 @@ export const PendingTable = (props) => {
     setFilterPending(updateFilter);
   };
 
-  const BtnReceiveComponent = ({ rateRef, id, custId, index }) => {
+  const BtnReceiveComponent = ({ rateRef, id, custId, index, platform }) => {
     const isDisabled = user.role !== "admin" && index !== 0;
     return (
       <Button
@@ -145,7 +150,9 @@ export const PendingTable = (props) => {
         sx={{ mr: 1 }}
         disabled={isDisabled}
         startDecorator={<ChatIcon />}
-        onClick={() => handleReceiveChat({ rateId: rateRef, id, custId })}
+        onClick={() =>
+          handleReceiveChat({ rateId: rateRef, id, custId, platform })
+        }
       >
         รับเรื่อง
       </Button>
@@ -250,6 +257,7 @@ export const PendingTable = (props) => {
                         rateRef={data.rateRef}
                         id={data.id}
                         custId={data.custId}
+                        platform={data.platform}
                       />
                       <Button
                         size="sm"

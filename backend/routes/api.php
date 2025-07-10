@@ -29,6 +29,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LazadaController;
 use App\Http\Controllers\webhooks\LineUATController;
+use App\Http\Controllers\webhooks\ShopeeController;
+use App\Http\Controllers\webhooks\ShopeeRefreshToken as WebhooksShopeeRefreshToken;
+use App\Http\Controllers\webhooks\Token\ShopeeRefreshToken;
 use App\Http\Middleware\UserAccess;
 use App\Models\HelpChatModel;
 use Illuminate\Support\Facades\Route;
@@ -216,6 +219,9 @@ Route::prefix('webhooks')->group(function () {
     Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
 
     Route::post('/lazada', [LazadaController::class, 'handleWebhook']);
+
+    Route::post('/shopee', [ShopeeController::class, 'webhook']);
+    Route::get('/refresh-token', [WebhooksShopeeRefreshToken::class, 'refresh']);
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 

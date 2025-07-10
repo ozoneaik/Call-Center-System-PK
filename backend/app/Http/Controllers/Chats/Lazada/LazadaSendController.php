@@ -15,119 +15,101 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str; // เพิ่มการ import Str
 
 class LazadaSendController extends Controller
 {
     protected PusherService $pusherService;
+    protected LazadaMessageService $lazadaMessageService;
 
-    public function __construct(PusherService $pusherService)
+    public function __construct(PusherService $pusherService, LazadaMessageService $lazadaMessageService)
     {
         $this->pusherService = $pusherService;
+        $this->lazadaMessageService = $lazadaMessageService;
     }
 
+    /**
+     * รับข้อความจาก Agent และส่งไปยัง Lazada
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function send(Request $request): JsonResponse
     {
-        $detail = 'ไม่พบข้อผิดพลาด';
-        $custId = $request->input('custId');
-        $conversationId = $request->input('conversationId');
-        $messages = $request->input('messages', []);
-        $files = $request->file('messages', []);
-
         $status = 400;
         $message = 'เกิดข้อผิดพลาด';
-
-        $processedMessages = [];
-        foreach ($messages as $index => $msg) {
-            $processedMessages[$index] = $msg;
-            if (isset($files[$index]['content'])) {
-                $processedMessages[$index]['content'] = $files[$index]['content'];
-            }
-        }
+        $detail = 'ไม่พบข้อผิดพลาด';
+        $finalMessages = [];
 
         try {
-            if (empty($processedMessages)) {
+            $custId = $request->input('custId');
+            $conversationId = $request->input('conversationId');
+            $messages = $request->input('messages', []);
+            $files = $request->file('messages');
+
+            foreach ($messages as $index => $msg) {
+                $finalMessages[$index] = $msg;
+                if (isset($files[$index]['content'])) {
+                    $finalMessages[$index]['content'] = $files[$index]['content'];
+                }
+            }
+
+            if (empty($finalMessages)) {
                 throw new \Exception('ไม่มีข้อความหรือไฟล์ที่ต้องการส่ง');
             }
 
-            $checkCustId = Customers::query()->where('custId', $custId)->first();
-            if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความ');
-
+            Customers::query()->where('custId', $custId)->firstOrFail();
+            ActiveConversations::query()->where('id', $conversationId)->firstOrFail();
             DB::beginTransaction();
 
-            $checkConversation = ActiveConversations::query()->where('id', $conversationId)->first();
-            if (!$checkConversation) throw new \Exception('ไม่พบ Active Conversation');
+            foreach ($finalMessages as $key => &$m) {
+                $chatHistory = new ChatHistory();
+                $chatHistory->custId = $custId;
+                $chatHistory->contentType = $m['contentType'];
+                $chatHistory->sender = json_encode(Auth::user());
+                $chatHistory->conversationRef = $conversationId;
 
-            foreach ($processedMessages as $key => $m) {
-                $chat = new ChatHistory();
-                $chat->custId = $custId;
-                $chat->contentType = $m['contentType'];
-
-                // จัดการไฟล์ (image, video, file)
-                // if (in_array($m['contentType'], ['image', 'video', 'file']) && isset($m['content']) && $m['content'] instanceof \Illuminate\Http\UploadedFile) {
-                //     $file = $m['content'];
-                //     $fileName = rand(1000, 9999) . time() . '.' . $file->getClientOriginalExtension();
-                //     $path = $file->storeAs('public/lazada-files', $fileName);
-                //     $relativePath = Storage::url(str_replace('public/', '', $path));
-                //     $fullUrl = env('APP_URL') . $relativePath;
-
-                //     // อัปเดต content ให้เป็น URL ของไฟล์
-                //     $m['content'] = $fullUrl;
-                //     $chat->content = $fullUrl;
-                // } else {
-                if (in_array($m['contentType'], ['image', 'video', 'file']) && isset($m['content']) && $m['content'] instanceof \Illuminate\Http\UploadedFile) {
+                if ($m['contentType'] === 'image' && $m['content'] instanceof \Illuminate\Http\UploadedFile) {
                     $file = $m['content'];
-                    $fileName = rand(1000, 9999) . time() . '.' . $file->getClientOriginalExtension();
+                    $fileName = rand(0, 9999) . time() . '.' . $file->getClientOriginalExtension();
                     $path = $file->storeAs('public/lazada-files', $fileName);
 
-                    // สร้าง Relative URL ก่อน
                     $publicUrl = Storage::url($path);
-                    // สร้าง Absolute URL สำหรับบันทึกลง DB และส่งกลับไปให้ Frontend
                     $fullUrl = asset($publicUrl);
-
-                    $localPath = Storage::path($path);
-
-                    // สำหรับส่งไป Lazada API ใช้ Local Path ถูกต้องแล้ว
-                    $m['content'] = $localPath;
-                    // สำหรับบันทึกลง DB และแสดงผลที่ Frontend ให้ใช้ URL เต็ม
-                    $chat->content = $fullUrl;
-
-                    // [สำคัญ] อัปเดต content ที่จะส่งกลับไปให้ Frontend ด้วย
-                    $processedMessages[$key]['content'] = $fullUrl;
+                    Log::channel('lazada_webhook_log')->info('URL เต็ม = ' . $fullUrl);
+                    Log::channel('lazada_webhook_log')->info('APP_URL จาก config(app.url) = ' . config('app.url'));
+                    $m['content'] = $fullUrl;
+                    $chatHistory->content = $fullUrl;
                 } else {
-                    $chat->content = $m['content'];
+                    $chatHistory->content = $m['content'];
                 }
-
-                $chat->sender = json_encode(Auth::user());
-                $chat->conversationRef = $conversationId;
-
-                if (!$chat->save()) {
+                if (!$chatHistory->save()) {
                     throw new \Exception('ไม่สามารถบันทึก ChatHistory ได้');
                 }
-
-                $sendResult = app(LazadaMessageService::class)->sendMessage($custId, $m);
-
+                $sendResult = $this->lazadaMessageService->sendMessage($custId, $m);
                 if (!$sendResult['status']) {
                     throw new \Exception($sendResult['message'] ?? 'ส่งข้อความไป Lazada ไม่สำเร็จ');
                 }
-
                 $this->pusherService->sendNotification($custId);
-                $processedMessages[$key]['content'] = $chat->content;
-                // $processedMessages[$key]['content'] = $m['content'];
             }
 
             DB::commit();
             $status = 200;
             $message = 'ส่งข้อความสำเร็จ';
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            $detail = 'ไม่พบข้อมูลลูกค้าหรือการสนทนาที่ระบุ';
+            Log::channel('lazada_webhook_log')->error('LazadaSendController Error: ' . $detail, ['request' => $request->all()]);
         } catch (\Exception $e) {
             DB::rollBack();
             $detail = $e->getMessage();
-            Log::error('❌ LazadaSendController Error: ' . $e->getMessage());
+            Log::channel('lazada_webhook_log')->error('LazadaSendController Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         }
 
         return response()->json([
             'message' => $message,
             'detail' => $detail,
-            'content' => $processedMessages,
+            'content' => $finalMessages,
         ], $status);
     }
 }

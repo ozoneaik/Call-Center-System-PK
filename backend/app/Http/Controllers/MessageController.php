@@ -75,7 +75,7 @@ class MessageController extends Controller
                         // สร้าง URL ให้ frontend ใช้งาน
 
                         $relativePath = Storage::url(str_replace('public/', '', $path)); // /storage/line-images/xxx.jpg
-                        $fullUrl = env('APP_URL') . $relativePath;
+                        $fullUrl = env('APP_URL') . $relativePath;// http://domain-name/storage/line-images/xxx.jpg
                         // $fullUrl = asset(Storage::url(str_replace('public/', '', $path)));
                         Log::info('URL เต็ม = ' . $fullUrl);
                         Log::info('APP_URL จาก config(app.url) = ' . config('app.url'));

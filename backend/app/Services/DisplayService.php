@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 
 class DisplayService
@@ -19,14 +20,17 @@ class DisplayService
                 ->where('rates.status', $status)
                 ->where('active_conversations.endTime', null)
                 ->where('active_conversations.roomId', $roomId)
-                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
+                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.platformRef', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
                 ->orderBy('updated_at', 'asc')
                 ->get();
+
 
             foreach ($data as $key => $value) {
                 $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
                     ->orderBy('id', 'desc')
                     ->first();
+                $platform = PlatformAccessTokens::query()->where('id', $value['platformRef'])->select('platform')->first();
+                $value->platform = $platform->platform;
                 $value->latest_message = $latest_message;
             }
             return $data;
@@ -39,7 +43,7 @@ class DisplayService
                 ->where('rates.status', $status)
                 ->where('active_conversations.receiveAt', null)
                 ->where('active_conversations.roomId', $roomId)
-                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
+                ->select('chat_rooms.roomName', 'customers.custName', 'customers.platformRef', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
                 ->orderBy('updated_at', 'asc')
                 ->get();
 
@@ -48,6 +52,8 @@ class DisplayService
                 $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
                     ->orderBy('id', 'desc')
                     ->first();
+                $platform = PlatformAccessTokens::query()->where('id', $value['platformRef'])->select('platform')->first();
+                $value->platform = $platform->platform;
                 $value->latest_message = $latest_message;
             }
 

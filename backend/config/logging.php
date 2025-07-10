@@ -148,6 +148,19 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
+        'shopee_webhook_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopee/shopee_webhook.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+        'shopee_token_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopee/shopee_token_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ]
     ],
-
 ];
