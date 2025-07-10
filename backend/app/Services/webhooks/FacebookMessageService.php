@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 
 class FacebookMessageService
 {
+    // ส่งข้อความผ่าน Facebook API
     public function sendMessage($fb_page_id, $access_token, $message, $sender_id)
     {
         $url = 'https://graph.facebook.com/v23.0/' . $fb_page_id . '/messages';
@@ -43,6 +44,7 @@ class FacebookMessageService
         }
     }
 
+    // ดึงข้อมูลผู้ใช้จาก Facebook
     public function getProfile($sender_id, $fields = 'first_name,last_name,profile_pic')
     {
         try {
@@ -101,7 +103,10 @@ class FacebookMessageService
             ];
         }
     }
-    public function storeMessage($sender_id, $ac_id, $message,$sender){
+
+    // สร้าง message
+    public function storeMessage($sender_id, $ac_id, $message, $sender)
+    {
         Log::info('test');
         $store_chat = ChatHistory::query()->create([
             'custId' => $sender_id,
@@ -110,5 +115,17 @@ class FacebookMessageService
             'contentType' => $message['contentType'],
             'sender' => json_encode($sender),
         ]);
+    }
+
+    public function checkKeyword($message = null)
+    {
+        if (is_null($message)) {
+            return ['status' => false, 'message' => 'ไม่มีข้อมูลข้อความ'];
+        }
+        if ($message['contentType'] === 'text') {
+            # code...
+        }else{
+            return ['status' => false ,'message' => 'ข้อความเป็นประเภทอื่น'];
+        }
     }
 }

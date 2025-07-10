@@ -24,8 +24,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
-use App\Models\HelpChatModel;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -199,6 +199,15 @@ Route::prefix('webhooks')->group(function () {
     Route::prefix('facebook')->group(function () {
         Route::get('/', [FacebookController::class, 'webhook']);
         Route::post('/', [FacebookController::class, 'webhookFacebook']);
+    });
+    Route::prefix('test')->group(function () {
+        Route::get('/facebook', [FacebookController::class,'webhook']);
+        Route::post('/facebook', function (Request $request) {
+            return response()->json([
+                'message' => 'Test webhook received successfully',
+                'data' => $request->all(),
+            ]);
+        });
     });
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
