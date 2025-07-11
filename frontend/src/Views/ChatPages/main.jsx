@@ -8,7 +8,9 @@ import { useNotification } from "../../context/NotiContext.jsx";
 import { PendingTable } from "./PendingTable.jsx";
 import { ProgressTable } from "./ProgressTable.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { Sheet, CircularProgress, Box } from "@mui/joy";
+import { Sheet, CircularProgress, Box, Stack } from "@mui/joy";
+import OrderTable from "./ProgressTableNew.jsx";
+import PendingTableNew from "./PendingTableNew.jsx";
 
 export default function MainChat() {
     const { user } = useAuth();
@@ -23,7 +25,7 @@ export default function MainChat() {
     const [loading, setLoading] = useState(false);
     const [showMyCasesOnly, setShowMyCasesOnly] = useState(false);
 
-    // 💡 สร้างฟังก์ชันสำหรับจัดเรียงเพื่อนำไปใช้ซ้ำ
+    // สร้างฟังก์ชันสำหรับจัดเรียงเพื่อนำไปใช้ซ้ำ
     const sortChatsByLatestMessage = (chats) => {
         return [...chats].sort((a, b) => {
             const aTime = new Date(a.latest_message?.created_at || 0).getTime();
@@ -46,7 +48,7 @@ export default function MainChat() {
                         isUnread: unreadIds.includes(item.custId),
                     }));
 
-                    // ✅ ใช้ฟังก์ชันจัดเรียงที่สร้างไว้
+                    // ใช้ฟังก์ชันจัดเรียงที่สร้างไว้
                     const sortedProgress = sortChatsByLatestMessage(enrichedProgress);
 
                     setProgress(sortedProgress);
@@ -67,7 +69,7 @@ export default function MainChat() {
         };
         setLoading(true);
         fetchChats().then();
-    }, [roomId, user.empCode]); // เพิ่ม user.empCode เพื่อความถูกต้องในการนับ
+    }, [roomId, user.empCode]);
 
     useEffect(() => {
         if (firstRender) {
@@ -83,6 +85,9 @@ export default function MainChat() {
         ) {
             return;
         }
+
+        console.log('notification >>> ', notification);
+        
 
         if (notification.activeConversation.roomId === roomId) {
             if (notification.Rate.status === "progress") {
@@ -106,20 +111,21 @@ export default function MainChat() {
                                 isUnread: true,
                                 latest_message: {
                                     ...item.latest_message,
+                                    sender : notification.message.sender,
                                     contentType: notification.message.contentType,
                                     content: notification.message.content,
                                     sender_id: notification.message.sender_id,
-                                    created_at: notification.message.created_at, // 💡 เพิ่ม created_at
+                                    created_at: notification.message.created_at,
                                 },
                             };
                         }
                         return item;
                     });
 
-                    // ✅✅✅ จุดแก้ไขสำคัญ: จัดเรียง array ใหม่ก่อน set state ✅✅✅
+                    // จัดเรียง array ใหม่ก่อน set state
                     const sortedUpdatedProgress = sortChatsByLatestMessage(updatedProgress);
                     setFilterProgress(sortedUpdatedProgress);
-                    setProgress(sortedUpdatedProgress); // อัปเดต state หลักด้วย
+                    setProgress(sortedUpdatedProgress);
 
                 } else {
                     const newChatItem = {
@@ -135,6 +141,7 @@ export default function MainChat() {
                             content: notification.message.content,
                             created_at: notification.message.created_at,
                             sender_id: notification.message.sender_id,
+                            sender : notification.message.sender,
                         },
                         rateRef: notification.Rate.id,
                         receiveAt: notification.activeConversation.receiveAt,
@@ -144,10 +151,10 @@ export default function MainChat() {
                     };
                     const newProgress = filterProgress.concat(newChatItem);
 
-                    // ✅✅✅ จุดแก้ไขสำคัญ: จัดเรียง array ใหม่ก่อน set state ✅✅✅
+                    // จัดเรียง array ใหม่ก่อน set state
                     const sortedNewProgress = sortChatsByLatestMessage(newProgress);
                     setFilterProgress(sortedNewProgress);
-                    setProgress(sortedNewProgress); // อัปเดต state หลักด้วย
+                    setProgress(sortedNewProgress);
                 }
 
                 const deletePending = filterPending.filter(
@@ -155,7 +162,76 @@ export default function MainChat() {
                 );
                 setFilterPending(deletePending);
             } else if (notification.Rate.status === "pending") {
-                // ... (ส่วนของ pending หากต้องการให้เรียงตามเวลาเช่นกัน ก็สามารถใช้ logic เดียวกันได้)
+                const find = filterPending.find(
+                    (item) => item.custId === notification.Rate.custId
+                );
+
+                if (find) {
+                    let unreadIds = JSON.parse(
+                        localStorage.getItem("unreadCustIds") || "[]"
+                    );
+                    if (!unreadIds.includes(notification.Rate.custId)) {
+                        unreadIds.push(notification.Rate.custId);
+                        localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
+                    }
+
+                    const updatedPending = filterPending.map((item) => {
+                        if (item.id === notification.activeConversation.id) {
+                            return {
+                                ...item,
+                                isUnread: true,
+                                latest_message: {
+                                    ...item.latest_message,
+                                    sender : notification.message.sender,
+                                    contentType: notification.message.contentType,
+                                    content: notification.message.content,
+                                    sender_id: notification.message.sender_id,
+                                    created_at: notification.message.created_at,
+                                },
+                            };
+                        }
+                        return item;
+                    });
+
+                    // จัดเรียง array ใหม่ก่อน set state
+                    const sortedUpdatedPending = sortChatsByLatestMessage(updatedPending);
+                    setFilterPending(sortedUpdatedPending);
+                    setPending(sortedUpdatedPending);
+
+                } else {
+                    const newChatItem = {
+                        id: notification.activeConversation.id,
+                        custId: notification.customer.custId,
+                        custName: notification.customer.custName,
+                        avatar: notification.customer.avatar,
+                        description: notification.customer.description,
+                        empCode: notification.activeConversation.empCode,
+                        empName: notification.activeConversation.empName,
+                        latest_message: {
+                            contentType: notification.message.contentType,
+                            content: notification.message.content,
+                            created_at: notification.message.created_at,
+                            sender_id: notification.message.sender_id,
+                            sender : notification.message.sender,
+                        },
+                        rateRef: notification.Rate.id,
+                        receiveAt: notification.activeConversation.receiveAt,
+                        startTime: notification.activeConversation.startTime,
+                        updated_at: notification.activeConversation.updated_at,
+                        isUnread: true,
+                    };
+                    const newPending = filterPending.concat(newChatItem);
+
+                    // จัดเรียง array ใหม่ก่อน set state
+                    const sortedNewPending = sortChatsByLatestMessage(newPending);
+                    setFilterPending(sortedNewPending);
+                    setPending(sortedNewPending);
+                }
+
+                const deleteProgress = filterProgress.filter(
+                    (item) => item.custId !== notification.Rate.custId
+                );
+                setFilterProgress(deleteProgress);
             } else {
                 removeCase();
             }
@@ -178,36 +254,95 @@ export default function MainChat() {
     };
 
     const ContentComponent = () => (
-        <>
-            <ProgressTable
-                roomId={roomId}
-                progress={progress}
-                filterProgress={filterProgress}
-                setFilterProgress={setFilterProgress}
-                showMyCasesOnly={showMyCasesOnly}
-                setShowMyCasesOnly={setShowMyCasesOnly}
-            />
-            <PendingTable
-                setFilterPending={setFilterPending}
-                filterPending={filterPending}
-                disable={roomId === "ROOM00"}
-                pending={pending}
-                roomId={roomId}
-                roomName={roomName}
-            />
-        </>
+        <Stack
+            direction='column'
+            spacing={2}
+            sx={{
+                height: 'calc(100dvh - 140px)',
+                overflow: 'hidden'
+            }}
+        >
+            <Box>
+                <ProgressTable
+                    roomId={roomId}
+                    progress={progress}
+                    filterProgress={filterProgress}
+                    setFilterProgress={setFilterProgress}
+                    showMyCasesOnly={showMyCasesOnly}
+                    setShowMyCasesOnly={setShowMyCasesOnly}
+                />
+            </Box>
+            <Box>
+                <PendingTable
+                    setFilterPending={setFilterPending}
+                    filterPending={filterPending}
+                    disable={roomId === "ROOM00"}
+                    pending={pending}
+                    roomId={roomId}
+                    roomName={roomName}
+                />
+            </Box>
+        </Stack>
     );
 
     return (
         <>
-            <Sheet sx={ChatPageStyle.Layout}>
-                <Box component="main" sx={ChatPageStyle.MainContent}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <BreadcrumbsComponent list={BreadcrumbsPath} />
+            {
+                loading ? (
+                    <CircularProgress />
+                ) : (
+                    <Box
+                        component="main"
+                        className="MainContent"
+                        sx={{
+                            p: 2,
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minWidth: 0,
+                            height: '100dvh',
+                            gap: 2,
+                        }}
+                    >
+                        {/* <ContentComponent/> */}
+                        {/* แบ่งพื้นที่เท่าๆ กัน 50/50 */}
+                        <Box sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            overflow: 'hidden'
+                        }}>
+                            <OrderTable
+                                roomId={roomId}
+                                progress={progress}
+                                filterProgress={filterProgress}
+                                setFilterProgress={setFilterProgress}
+                                showMyCasesOnly={showMyCasesOnly}
+                                setShowMyCasesOnly={setShowMyCasesOnly}
+                            />
+                        </Box>
+
+                        <Box sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            overflow: 'hidden'
+                        }}>
+                            <PendingTableNew
+                                setFilterPending={setFilterPending}
+                                filterPending={filterPending}
+                                disable={roomId === "ROOM00"}
+                                pending={pending}
+                                roomId={roomId}
+                                roomName={roomName}
+                            />
+                        </Box>
                     </Box>
-                    {loading ? <CircularProgress /> : <ContentComponent />}
-                </Box>
-            </Sheet>
+                )
+            }
         </>
+
     );
 }

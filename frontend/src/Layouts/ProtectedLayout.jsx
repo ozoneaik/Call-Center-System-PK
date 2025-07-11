@@ -4,7 +4,6 @@ import Sidebar from "../Layouts/Sidebar.jsx";
 import Navbar from "./Navbar.jsx";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
 import App from "../App.jsx";
-import FloatingBtn from "../Views/HomePages/FloatingBtn.jsx";
 import { AnnouncementBar } from "./AnnouncementBar.jsx";
 import { useEffect, useState } from "react";
 import axiosClient from "../Axios.js";
@@ -38,7 +37,6 @@ function ProtectedLayout() {
                     <Outlet />
                 </Box>
             </Box>
-            {/* <FloatingBtn /> */}
         </div>
     );
 

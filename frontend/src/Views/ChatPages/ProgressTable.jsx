@@ -156,8 +156,8 @@ export const ProgressTable = ({
 
         return (
             <Chip color="primary" variant="solid" startDecorator={<AccessAlarm />}>
-                <Typography sx={ChatPageStyle.TableText}>
-                    {startTime ? timeDiff : "ยังไม่เริ่มสนทนา"}
+                <Typography>
+                    เวลาที่สนทนา : {startTime ? timeDiff : "ยังไม่เริ่มสนทนา"}
                 </Typography>
             </Chip>
         );
@@ -214,9 +214,10 @@ export const ProgressTable = ({
     };
 
     return (
-        <Stack sx={{maxHeight : 'calc(100dvh - 500px)', overflow: 'auto'}}>
+        <>
             <AccordionGroup sx={{ mb: 2 }}>
                 <Accordion
+                    sx={{ p: 0 }}
                     expanded={isFilterExpanded}
                     onChange={(event, expanded) => setIsFilterExpanded(expanded)}
                 >
@@ -241,7 +242,7 @@ export const ProgressTable = ({
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                                sx={{ flexGrow: 1}}
+                                sx={{ flexGrow: 1 }}
                             />
                             <Button onClick={handleFilter} startDecorator={<Search />}>
                                 ค้นหา
@@ -264,42 +265,40 @@ export const ProgressTable = ({
                                 />
                             </Box>
                             <Stack
-                            direction={{ xs: "column", sm: "row" }}
-                            spacing={1}
-                            justifyContent="flex-end"
-                        >
-                            {user.role === "admin" && (
-                                <Button
-                                    color="warning"
-                                    onClick={handleEndTalkAll}
-                                    startDecorator={<Send />}
-                                >
-                                    จบการสนทนาทั้งหมด
-                                </Button>
-                            )}
-                            <Button
-                                component={Link}
-                                to={"/chatHistory"}
-                                color="neutral"
-                                startDecorator={<History />}
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={1}
+                                justifyContent="flex-end"
                             >
-                                ประวัติแชททั้งหมด
-                            </Button>
-                        </Stack>
+                                {user.role === "admin" && (
+                                    <Button
+                                        color="warning"
+                                        onClick={handleEndTalkAll}
+                                        startDecorator={<Send />}
+                                    >
+                                        จบการสนทนาทั้งหมด
+                                    </Button>
+                                )}
+                                <Button
+                                    component={Link}
+                                    to={"/chatHistory"}
+                                    color="neutral"
+                                    startDecorator={<History />}
+                                >
+                                    ประวัติแชททั้งหมด
+                                </Button>
+                            </Stack>
                         </Stack>
                     </AccordionDetails>
                 </Accordion>
             </AccordionGroup>
 
-            <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
+            <Sheet variant="outlined" >
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
                         <tr>
                             <th style={{ width: 300 }}>ชื่อลูกค้า</th>
                             <th style={{ width: 200 }}>พนักงานรับเรื่อง</th>
-                            <th style={{ width: 200 }}>วันที่รับเรื่อง</th>
-                            <th style={{ width: 200 }}>เวลาเรื่ม</th>
-                            <th style={{ width: 200 }}>เวลาที่สนทนา</th>
+                            <th style={{ width: 300 }}>เวลา</th>
                             <th style={{ width: 150 }}>จัดการ</th>
                         </tr>
                     </thead>
@@ -319,36 +318,38 @@ export const ProgressTable = ({
                                             <Typography>{data.empName || "-"}</Typography>
                                         </div>
                                     </td>
+
                                     <td>
-                                        <Chip
-                                            variant="solid"
-                                            color="success"
-                                            startDecorator={<DateRange />}
-                                        >
-                                            <Typography sx={ChatPageStyle.TableText}>
-                                                {data.receiveAt
-                                                    ? convertFullDate(data.receiveAt)
-                                                    : "ยังไม่เริ่มสนทนา"}
-                                            </Typography>
-                                        </Chip>
+                                        <Stack spacing={1}>
+                                            <Chip
+                                                variant="solid"
+                                                color="success"
+                                                startDecorator={<DateRange />}
+                                            >
+                                                <Typography sx={ChatPageStyle.TableText}>
+                                                    วันที่รับเรื่อง	:
+                                                    {data.receiveAt
+                                                        ? convertFullDate(data.receiveAt)
+                                                        : "ยังไม่เริ่มสนทนา"}
+                                                </Typography>
+                                            </Chip>
+                                            <Chip
+                                                variant="solid"
+                                                color="warning"
+                                                startDecorator={<DateRange />}
+                                            >
+                                                <Typography sx={ChatPageStyle.TableText}>
+                                                    เวลาเรื่ม :{" "}
+                                                    {data.startTime
+                                                        ? convertFullDate(data.startTime)
+                                                        : "ยังไม่เริ่มสนทนา"}
+                                                </Typography>
+                                            </Chip>
+                                            <TimeDisplay startTime={data.startTime} />
+                                        </Stack>
+
                                     </td>
-                                    <td>
-                                        <Chip
-                                            variant="solid"
-                                            color="warning"
-                                            startDecorator={<DateRange />}
-                                        >
-                                            <Typography sx={ChatPageStyle.TableText}>
-                                                เวลาเรื่ม :{" "}
-                                                {data.startTime
-                                                    ? convertFullDate(data.startTime)
-                                                    : "ยังไม่เริ่มสนทนา"}
-                                            </Typography>
-                                        </Chip>
-                                    </td>
-                                    <td>
-                                        <TimeDisplay startTime={data.startTime} />
-                                    </td>
+
                                     <td>
                                         <Button
                                             onClick={() =>
@@ -376,6 +377,6 @@ export const ProgressTable = ({
                     </tbody>
                 </Table>
             </Sheet>
-        </Stack>
+        </>
     );
 };

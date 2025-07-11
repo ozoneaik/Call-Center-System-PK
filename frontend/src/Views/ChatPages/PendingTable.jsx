@@ -115,7 +115,7 @@ export const PendingTable = (props) => {
     };
 
     return (
-       <Stack sx={{maxHeight : 'calc(100dvh - 550px)', overflow: 'auto'}}>
+       <>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }} justifyContent='space-between'>
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                     <Typography level="h2" component="h1">
@@ -133,7 +133,7 @@ export const PendingTable = (props) => {
                     </Stack>
                 </Stack>
             </Stack>
-            <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
+            <Sheet variant="outlined">
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                     <thead>
                         <tr>
@@ -225,6 +225,6 @@ export const PendingTable = (props) => {
                     </tbody>
                 </Table>
             </Sheet>
-        </Stack>
+        </>
     );
 }

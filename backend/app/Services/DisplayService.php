@@ -24,10 +24,12 @@ class DisplayService
                 ->get();
 
             foreach ($data as $key => $value) {
-                $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
+                $latest_message = ChatHistory::query()->select('content','sender', 'contentType', 'created_at')->where('custId', $value->custId)
                     ->orderBy('id', 'desc')
                     ->first();
                 $value->latest_message = $latest_message;
+                $sender_json = json_decode($latest_message->sender);
+                $value->latest_message->sender = $sender_json;
             }
             return $data;
         } else {
