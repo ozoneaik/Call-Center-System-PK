@@ -214,7 +214,7 @@ export const ProgressTable = ({
     };
 
     return (
-        <Stack>
+        <Stack sx={{maxHeight : 'calc(100dvh - 500px)', overflow: 'auto'}}>
             <AccordionGroup sx={{ mb: 2 }}>
                 <Accordion
                     expanded={isFilterExpanded}
@@ -241,7 +241,7 @@ export const ProgressTable = ({
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                                sx={{ flexGrow: 1, minWidth: "200px" }}
+                                sx={{ flexGrow: 1}}
                             />
                             <Button onClick={handleFilter} startDecorator={<Search />}>
                                 ค้นหา
@@ -263,11 +263,7 @@ export const ProgressTable = ({
                                     onChange={handleCheckboxChange}
                                 />
                             </Box>
-                        </Stack>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        <Stack
+                            <Stack
                             direction={{ xs: "column", sm: "row" }}
                             spacing={1}
                             justifyContent="flex-end"
@@ -289,6 +285,7 @@ export const ProgressTable = ({
                             >
                                 ประวัติแชททั้งหมด
                             </Button>
+                        </Stack>
                         </Stack>
                     </AccordionDetails>
                 </Accordion>

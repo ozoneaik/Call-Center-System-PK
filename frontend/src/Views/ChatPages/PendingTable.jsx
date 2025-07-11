@@ -115,7 +115,7 @@ export const PendingTable = (props) => {
     };
 
     return (
-        <>
+       <Stack sx={{maxHeight : 'calc(100dvh - 550px)', overflow: 'auto'}}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }} justifyContent='space-between'>
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                     <Typography level="h2" component="h1">
@@ -132,18 +132,6 @@ export const PendingTable = (props) => {
                         <Button onClick={() => handleFilter()}>ค้นหา</Button>
                     </Stack>
                 </Stack>
-                {/* <Stack direction={{xs : 'column', md : 'row'}} justifyContent='start' spacing={2} alignItems='center'>
-                    {user.role === 'admin' && (
-                        <>
-                            <Input type="date" onChange={(e) => setStartTime(e.target.value)} />
-                            <Typography>ถึง</Typography>
-                            <Input type="date" onChange={(e) => setEndTime(e.target.value)} />
-                            <Button onClick={() => endTalkAllPending()} disabled={!startTime || !endTime}>
-                                <SendIcon />&nbsp;จบการสนทนาตามช่วงเวลา
-                            </Button>
-                        </>
-                    )}
-                </Stack> */}
             </Stack>
             <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                 <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
@@ -237,6 +225,6 @@ export const PendingTable = (props) => {
                     </tbody>
                 </Table>
             </Sheet>
-        </>
+        </Stack>
     );
 }
