@@ -222,3 +222,4 @@ Route::get('/feedback/{custId}/{rateId}', [feedbackController::class, 'index']);
 Route::post('/feedback', [feedbackController::class, 'feedback']);
 
 require __DIR__ . '/test_only.php';
+require __DIR__ . '/webhook.php';
