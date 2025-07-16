@@ -3,8 +3,10 @@
 namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
 use App\Models\Keyword;
 use App\Models\Rates;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -13,8 +15,19 @@ class FilterCase
     protected $MESSAGE;
     protected $CUSTOMER;
     protected $PLATFORM_ACCESS_TOKEN;
-    public function filterCase($customer, $message, $platformAccessToken)
+    protected $BOT;
+    public function __construct()
     {
+        $this->BOT = User::query()->where('empCode', 'BOT')->first();
+    }
+
+    public function filterCase($customer = null, $message = null, $platformAccessToken = null)
+    {
+        Log::channel('webhook_main')->info('เริ่มกรองเคส', [
+            'customer' => json_encode($customer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            'message' => json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            'platformAccessToken' => json_encode($platformAccessToken, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+        ]);
         try {
             // เช็คก่อนว่า มี $customer หรือ $message หรือ $platformAccessToken ครบทั้งสามอย่างหรือไม่
             $check_params = $this->checkParams($customer, $message, $platformAccessToken);
@@ -73,6 +86,12 @@ class FilterCase
                 'rateRef' => $new_rate['id']
             ]);
         }
+        $store_chat = ChatHistory::query()->create([
+            'custId' => $this->CUSTOMER['custId'],
+            'content' => $this->MESSAGE['content'],
+            'contentType' => $this->MESSAGE['contentType'],
+            'sender' => 
+        ]);
     }
 
     private function pendingCase($current_rate)

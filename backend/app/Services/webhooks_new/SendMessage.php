@@ -5,10 +5,9 @@ namespace App\Services\webhooks_new;
 use LINE\Clients\MessagingApi\Configuration;
 use LINE\Clients\MessagingApi\Api\MessagingApiApi;
 use LINE\Clients\MessagingApi\Model\PushMessageRequest;
-use LINE\Clients\MessagingApi\Model\ReplyMessageRequest;
 use LINE\Clients\MessagingApi\Model\TextMessage;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log; 
 
 class SendMessage
 {
