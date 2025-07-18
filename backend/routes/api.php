@@ -14,6 +14,7 @@ use App\Http\Controllers\HelpChatController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessageFacebookController;
+use App\Http\Controllers\NewMessageFacebookController;
 use App\Http\Controllers\NotesController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Secret\BotRoomController;
@@ -27,7 +28,10 @@ use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Controllers\webhooks\TiktokController;
 use App\Http\Middleware\UserAccess;
 use App\Models\HelpChatModel;
+use App\Models\PlatformAccessTokens;
 use GuzzleHttp\Psr7\Message;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
@@ -78,9 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
         Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
-    });
-    Route::prefix('messages')->group(function () {
-        Route::post('/send', [MessageFacebookController::class, 'sendTextToFacebook']);
+        Route::post('/facebook/send', [MessageFacebookController::class, 'sendTextToFacebook']);
         Route::get('/getMessagesFromFacebook', [MessageFacebookController::class, 'getMessagesFromFacebook']);
     });
     // ดึงข้อมูลเกี่ยวกับแชท
@@ -120,6 +122,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('store', [TokenController::class, 'store']);
         Route::put('update', [TokenController::class, 'update']);
         Route::delete('delete/{id}', [TokenController::class, 'delete']);
+
+        // Ensure the Illuminate\Http\Request is used in the closure's signature
+        Route::post('platform_list', function (Request $request) { // <-- The `Request` here needs to be imported
+            Log::info($request->platform); // This will now work
+            $platform = $request->platform;
+
+            if ($platform) {
+                $platform_list = PlatformAccessTokens::where('platform', $platform)->get();
+            } else {
+                $platform_list = PlatformAccessTokens::all();
+            }
+
+            return response()->json([
+                'platform_list' => $platform_list
+            ]);
+        });
     });
 
     // จัดการ Dashboard
@@ -205,6 +223,10 @@ Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
     Route::get('/facebook', [MessageFacebookController::class, 'webhook']);
     Route::post('/facebook', [MessageFacebookController::class, 'webhookFacebook']);
+    Route::get('/newFacebook', [NewMessageFacebookController::class, 'webhook']);
+    Route::post('/newFacebook', [NewMessageFacebookController::class, 'newWebhookFacebook']);
+    Route::post('/newFeedFacebook', [NewMessageFacebookController::class, 'postFeedFacebook']);
+    Route::get('/newFeedFacebook', [NewMessageFacebookController::class, 'getFeedFacebook']);
     Route::get('/tiktok', [TiktokController::class, 'webhook']);
     Route::post('/tiktok',   [TiktokController::class, 'webhook']);
     Route::get('/tiktok/oauth/callback', [\App\Http\Controllers\TiktokOAuthController::class, 'callback']);
@@ -216,6 +238,8 @@ Route::get('/announces/list', [AnnounceController::class, 'list_all']);
 Route::put('/announces/{id}', [AnnounceController::class, 'update']);
 Route::post('/announces', [AnnounceController::class, 'store']);
 Route::delete('/announces/{id}', [AnnounceController::class, 'destroy']);
+Route::get('/getFeedFacebook', [NewMessageFacebookController::class, 'getFeedFacebook']);
+
 
 Route::get('/feedback/{custId}/{rateId}', [feedbackController::class, 'index']);
 Route::post('/feedback', [feedbackController::class, 'feedback']);
@@ -224,5 +248,11 @@ require __DIR__ . '/test_only.php';
 // routes/web.php
 Route::get('/tiktoksX5LAPvIj31FidCESk0J6Nfyb20L7eVr.txt', function () {
     return response('tiktok-challenge:your_token_here', 200)
+        ->header('Content-Type', 'text/plain');
+});
+
+
+Route::get('/robots.txt', function () {
+    return response("User-agent: *\nDisallow:", 200)
         ->header('Content-Type', 'text/plain');
 });

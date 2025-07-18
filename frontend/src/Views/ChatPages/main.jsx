@@ -21,7 +21,7 @@ export default function MainChat() {
   const [filterPending, setFilterPending] = useState([]);
   const [firstRender, setFirstRender] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [showMyCasesOnly, setShowMyCasesOnly] = useState(false); 
+  const [showMyCasesOnly, setShowMyCasesOnly] = useState(false);
   useEffect(() => {
     const fetchChats = async () => {
       try {
@@ -145,7 +145,7 @@ export default function MainChat() {
               contentType: notification.message.contentType,
               content: notification.message.content,
               created_at: notification.message.created_at,
-              sender_id: notification.message.sender_id, 
+              sender_id: notification.message.sender_id,
             },
             rateRef: notification.Rate.id,
             receiveAt: null,

@@ -19,29 +19,111 @@ class FacebookService
     private $graphApiVersion = 'v19.0';
     private $pageId;
 
-    public function getTokenPlatformRef($custId)
-    {
-
-        $customer = Customers::query()->where('custId', $custId)->select('platformRef')->first();
-        if (isset($customer)) {
-            Log::error('customer not found');
-        } else {
-            Log::info('customer found');
-            $token = PlatformAccessTokens::query()->where('id', $customer->platformRef)->select('id')->first();
-            return $token?->id;
-        }
-    }
 
     public function sendTextMessage(string $senderId, string $recipientId, $message, $accessToken)
     {
+        $m_body = [];
+        switch ($message['contentType']) {
+            case 'text': {
+                    $m_body['text'] = $message['content'];
+                    break;
+                }
+            case 'image': {
+                    $m_body['attachment']['type'] = 'template';
+                    $m_body['attachment']['payload']['template_type'] = 'generic';
+                    $m_body['attachment']['payload']['elements'][0] = [
+                        'title' => 'รูป',
+                        'image_url' =>  $message['content'],
+                        'subtitle' => 'กรุณากดปุ่มดูรูปภาพ!',
+                        'default_action' => [
+                            'type' => 'web_url',
+                            'url' => $message['content'], // ลิงก์วิดีโอหรือไฟล์
+                            'webview_height_ratio' => 'tall'
+                        ],
+                        'buttons' => [
+                            [
+                                'type' => 'web_url',
+                                'url' => $message['content'],
+                                'title' => 'ดูรายละเอียด'
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+            case 'video': {
+                    $m_body['attachment']['type'] = 'template';
+                    $m_body['attachment']['payload']['template_type'] = 'generic';
+                    $m_body['attachment']['payload']['elements'][0] = [
+                        'title' => 'รูป',
+                        'subtitle' => 'กรุณากดปุ่มดูรูปภาพ!',
+                        'default_action' => [
+                            'type' => 'web_url',
+                            'url' => $message['content'], // ลิงก์วิดีโอหรือไฟล์
+                            'webview_height_ratio' => 'tall'
+                        ],
+                        'buttons' => [
+                            [
+                                'type' => 'web_url',
+                                'url' => $message['content'],
+                                'title' => 'ดูรายละเอียด'
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+            case 'audio': {
+                    $m_body['attachment']['type'] = 'template';
+                    $m_body['attachment']['payload']['template_type'] = 'generic';
+                    $m_body['attachment']['payload']['elements'][0] = [
+                        'title' => 'รูป',
+                        'subtitle' => 'กรุณากดปุ่มดูรูปภาพ!',
+                        'default_action' => [
+                            'type' => 'web_url',
+                            'url' => $message['content'], // ลิงก์วิดีโอหรือไฟล์
+                            'webview_height_ratio' => 'tall'
+                        ],
+                        'buttons' => [
+                            [
+                                'type' => 'web_url',
+                                'url' => $message['content'],
+                                'title' => 'ดูรายละเอียด'
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+            case 'file': {
+                    $m_body['attachment']['type'] = 'template';
+                    $m_body['attachment']['payload']['template_type'] = 'generic';
+                    $m_body['attachment']['payload']['elements'][0] = [
+                        'title' => 'รูป',
+                        'subtitle' => 'กรุณากดปุ่มดูรูปภาพ!',
+                        'default_action' => [
+                            'type' => 'web_url',
+                            'url' => $message['content'], // ลิงก์วิดีโอหรือไฟล์
+                            'webview_height_ratio' => 'tall'
+                        ],
+                        'buttons' => [
+                            [
+                                'type' => 'web_url',
+                                'url' => $message['content'],
+                                'title' => 'ดูรายละเอียด'
+                            ]
+                        ]
+                    ];
+                    break;
+                }
+            default:
+                $m_body['text'] = 'ไม่สามารถเช็คได้ว่าเป็น type อะไร';
+        }
 
-        // if (!$this->pageAccessToken) return;
+        Log::error(json_encode($m_body, JSON_PRETTY_PRINT));
 
         $url = "https://graph.facebook.com/{$this->graphApiVersion}/{$senderId}/messages";
         $response = Http::post($url, [
             'messaging_type' => 'RESPONSE',
             'recipient' => ['id' => $recipientId],
-            'message' => ['text' => $message['content']],
+            'message' => $m_body,
             'access_token' => $accessToken,
         ]);
         Log::info($response->body());
@@ -53,12 +135,11 @@ class FacebookService
         }
     }
 
-    public function checkOrCreateRateAndRespond(string $recipientId, string $custId, $content, $contentType, $accessToken, $senderId): bool
+    public function checkOrCreateRateAndRespond(string $recipientId, string $custId, $content, $contentType, $accessToken, $senderId, $textId): bool
     {
         $rate = Rates::where('custId', $custId)->orderBy('id', 'desc')->first();
         $customer = Customers::where('custId', $custId)->first();
         $bot = User::where('empCode', 'BOT')->first();
-
         if (!$rate) {
             $store_rate = Rates::create([
                 'custId' => $custId,
@@ -74,18 +155,25 @@ class FacebookService
                 'empCode' => 'BOT'
             ]);
 
-            ChatHistory::create([
-                'custId' => $custId,
-                'content' => $content,
-                'contentType' => $contentType,
-                'sender' => $customer->toJson(),
-                'conversationRef' => $store_active->id,
-            ]);
-
+            $textlist = ChatHistory::where('facebook_message_id', $textId)->get();
+            if (count($textlist) == 0) {
+                ChatHistory::create([
+                    'custId' => $custId,
+                    'content' => $content,
+                    'contentType' => $contentType,
+                    'sender' => $customer->toJson(),
+                    'conversationRef' => $store_active->id,
+                    'facebook_message_id' => $textId
+                ]);
+                Log::info('เพิ่มข้อความใหม่');
+            }
             $this->sendTextMessage(
                 $recipientId,
                 $senderId,
-                ['content' => "ยินดีต้อนรับคุณ {$customer->custName}\nกรุณาเลือกเมนู:"],
+                [
+                    'content' => "ยินดีต้อนรับคุณ {$customer->custName}\nกรุณาเลือกเมนู:",
+                    'contentType' => 'text'
+                ],
                 $accessToken
             );
 
@@ -112,32 +200,63 @@ class FacebookService
         $status = $rate->status;
 
         if ($status === 'pending') {
+            Log::error(json_encode($content, JSON_PRETTY_PRINT));
             $this->sendTextMessage(
                 $recipientId,
                 $senderId,
-                ['content' => "สถานะของคุณคือ : {$status}"],
+                [
+                    'content' => "สถานะของคุณคือ : {$status}",
+                    'contentType' => 'text'
+                ],
                 $accessToken
             );
+
 
             $activeConversation = ActiveConversations::where('custId', $custId)
                 ->where('rateRef', $rate->id)
                 ->orderBy('id', 'desc')
                 ->first();
-
-            ChatHistory::create([
-                'custId' => $custId,
-                'empCode' => 'BOT',
-                'content' => "สถานะของคุณคือ : {$status}",
-                'contentType' => 'text',
-                'sender' => $bot->toJson(),
-                'conversationRef' => $activeConversation?->id,
-            ]);
+            $textlist = ChatHistory::where('facebook_message_id', $textId)->get();
+            if (!empty($textlist)) {
+                ChatHistory::create([
+                    'custId' => $custId,
+                    'empCode' => 'BOT',
+                    'content' => "สถานะของคุณคือ : {$status}",
+                    'contentType' => 'text',
+                    'sender' => $bot->toJson(),
+                    'conversationRef' => $activeConversation?->id,
+                ]);
+            }
         }
 
         return false; // ✅ มี rate เดิมแล้ว
     }
 
-    public function saveGetMassage(string $recipientId, $custId, $content, $contentType, $accessToken, $senderId)
+    public function CheckRates($recipientId, $custId, $content, $contentType, $accessToken, $senderId, $textId)
+    {
+        Log::info("เริ่ม เช็ค rate");
+        $rate = Rates::where('custId', $custId)->orderBy('id', 'desc')->first();
+        $customer = Customers::where('custId', $custId)->first();
+        $bot = User::where('empCode', 'BOT')->first();
+        if (!$rate) {
+            $store_rate = Rates::create([
+                'custId' => $custId,
+                'rate' => 0,
+                'status' => 'pending',
+                'latestRoomId' => 'ROOM00'
+            ]);
+
+            $store_active = ActiveConversations::create([
+                'custId' => $custId,
+                'rateRef' => $store_rate->id,
+                'roomId' => 'ROOM00',
+                'empCode' => 'BOT'
+            ]);
+            Log::info('การเช็คทำงานปกติ');
+            return; // ✅ แจ้งว่าเป็นลูกค้าใหม่
+        }
+    }
+    public function saveGetMassage(string $recipientId, $custId, $content, $contentType, $accessToken, $senderId, $textId)
     {
         $rate = Rates::where('custId', $custId)->orderBy('id', 'desc')->first();
         $customer = Customers::where('custId', $custId)->first();
@@ -146,13 +265,22 @@ class FacebookService
             ->orderBy('id', 'desc')
             ->first();
         Log::info("saveGetMassage");
-        ChatHistory::create([
-            'custId' => $custId,
-            'content' => $content,
-            'contentType' => $contentType,
-            'sender' => $customer->toJson(),
-            'conversationRef' => $activeConversation?->id,
-        ]);
+        Log::error(json_encode($textId, JSON_PRETTY_PRINT) . "เช็คข้อมูล");
+        $textId_list = ChatHistory::where('facebook_message_id', $textId)->first()?->id;
+        if (empty($textId_list)) {
+            ChatHistory::create([
+                'custId' => $custId,
+                'content' => $content,
+                'contentType' => $contentType,
+                'sender' => $customer->toJson(),
+                'conversationRef' => $activeConversation?->id,
+                'facebook_message_id' => $textId
+            ]);
+            Log::warning('จบการเพิ่มข้อความใหม่' . json_encode($textId, JSON_PRETTY_PRINT));
+        } else {
+            Log::info('มีข้อความเดิม');
+        }
+        return;
     }
     public function getSenderProfile(string $senderId, $accessToken)
     {

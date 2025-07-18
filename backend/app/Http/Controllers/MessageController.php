@@ -44,6 +44,7 @@ class MessageController extends Controller
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
         $messages = $request['messages'];
+        return response()->json(['message' => $messages]);
         try {
             $checkCustId = Customers::query()->where('custId', $custId)->first();
             if (!$checkCustId) throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');

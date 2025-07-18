@@ -21,6 +21,7 @@ return new class extends Migration
             $table->text('line_message_id')->nullable()->comment('id ของข้อความไลน์');
             $table->text('line_quote_token')->nullable()->comment('token สำหรับการตอบกลับ');
             $table->text('line_quoted_message_id')->nullable()->comment('ว่าเป็นข้อความที่ตอบกลับหรือไม่');
+            $table->text('facebook_message_id')->nullable()->comment('id ข้อความ facebook');
             $table->timestamps();
         });
     }

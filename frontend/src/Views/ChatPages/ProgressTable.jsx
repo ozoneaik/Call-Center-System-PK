@@ -82,28 +82,28 @@ const IntroChat = ({ data }) => {
 };
 
 const MessageDetail = ({ data }) => {
-  if (data.latest_message.contentType) {
-    if (data.latest_message.contentType === "text")
-      return <>{data.latest_message.content}</>;
+  if (data.latest_message?.contentType) {
+    if (data.latest_message?.contentType === "text")
+      return <>{data.latest_message?.content}</>;
     else if (
-      data.latest_message.contentType === "image" ||
-      data.latest_message.contentType === "sticker"
+      data.latest_message?.contentType === "image" ||
+      data.latest_message?.contentType === "sticker"
     ) {
       return <>ส่งรูปภาพหรือสติกเกอร์ </>;
-    } else if (data.latest_message.contentType === "video") {
+    } else if (data.latest_message?.contentType === "video") {
       return <>ส่งวิดีโอ</>;
-    } else if (data.latest_message.contentType === "location") {
+    } else if (data.latest_message?.contentType === "location") {
       return <>ส่งที่อยู่ </>;
-    } else if (data.latest_message.contentType === "audio") {
+    } else if (data.latest_message?.contentType === "audio") {
       return (
         <>
-          ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message.created_at)})
+          ส่งไฟล์เสียง (เวลา {convertLocalDate(data.latest_message?.created_at)})
         </>
       );
-    } else if (data.latest_message.contentType === "file")
+    } else if (data.latest_message?.contentType === "file")
       return <>ส่งไฟล์ PDF</>;
-    else return <></>;
-  } else return <></>;
+    else return <>ไม่มีข้อมูล</>;
+  } else return <>ไม่มีข้อมูล</>;
 };
 
 export const ProgressTable = ({
@@ -240,7 +240,7 @@ export const ProgressTable = ({
                 // size="md"
                 checked={showMyCasesOnly}
                 onChange={handleCheckboxChange}
-            
+
               />
             </Box>
           </Stack>

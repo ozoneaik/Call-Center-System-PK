@@ -41,6 +41,44 @@ export const sendApi = async ({ msg, contentType, custId, conversationId, select
         return ErrorResponse(error);
     }
 }
+export const sendApiFB = async ({ msg, contentType, custId, conversationId, selectedFile }) => {
+
+    let Messages = [];
+    if (msg) {
+        Messages.push({
+            content: msg,
+            contentType: contentType,
+            sender: 'sender'
+        })
+    }
+    if (selectedFile) {
+        console.log('select file >> ', selectedFile)
+        const files = Array.isArray(selectedFile) ? selectedFile : Array.from(selectedFile);
+        files.forEach((file) => {
+            const fileContentType = file.type === 'image/png' || file.type === 'image/jpeg' ? 'image' :
+                file.type.startsWith('video/') ? 'video' : file.type.startsWith('application/pdf') ? 'file' : 'unknown';
+            Messages.push({
+                content: file,
+                contentType: fileContentType,
+                sender: 'sender'
+            });
+        });
+    } else console.log('🙏')
+    const body = {
+        custId: custId,
+        conversationId,
+        messages: Messages
+    };
+    console.log(body, msg)
+    try {
+        const { data, status } = await axiosClient.post(`${messages}/facebook/send`, { ...body }, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}
 
 // รับเรื่อง
 export const receiveApi = async (rateId, roomId) => {
@@ -62,9 +100,9 @@ export const senToApi = async ({ rateId, activeConversationId, latestRoomId }) =
 }
 
 // พักการสนทนา
-export const pauseTalkApi = async ({activeConversationId, rateId}) => {
+export const pauseTalkApi = async ({ activeConversationId, rateId }) => {
     try {
-        const { data, status } = await axiosClient.post(`${messages}/pauseTalk`, {activeConversationId,rateId});
+        const { data, status } = await axiosClient.post(`${messages}/pauseTalk`, { activeConversationId, rateId });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
@@ -72,9 +110,9 @@ export const pauseTalkApi = async ({activeConversationId, rateId}) => {
 }
 
 // จบการสนทนา
-export const endTalkApi = async ({ rateId, activeConversationId, tagId ,Assessment}) => {
+export const endTalkApi = async ({ rateId, activeConversationId, tagId, Assessment }) => {
     try {
-        const { data, status } = await axiosClient.post(`${messages}/endTalk`, { rateId, activeConversationId, tagId,Assessment });
+        const { data, status } = await axiosClient.post(`${messages}/endTalk`, { rateId, activeConversationId, tagId, Assessment });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
@@ -138,7 +176,7 @@ export const MyMessagesApi = async (empCode) => {
     }
 }
 
-export const chatHistoryApi = async ({page=1}) => {
+export const chatHistoryApi = async ({ page = 1 }) => {
     try {
         const { data, status } = await axiosClient.get(`/chatHistory?page=${page}`);
         return { data, status };

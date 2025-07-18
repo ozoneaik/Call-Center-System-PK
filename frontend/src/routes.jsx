@@ -28,6 +28,7 @@ import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
 import LayoutSeCreate from "./Views/Secret/LayoutSeCreate.jsx";
 import StickerList from "./Views/StickerPages/StickerList.jsx";
 import AnnouncesList from "./Views/AnnouncePages/AnnouncesList.jsx";
+import FeedFacebook from "./Views/PostFeeds/FeedFacebook.jsx";
 
 export const routes = createBrowserRouter([
     {
@@ -59,11 +60,12 @@ export const routes = createBrowserRouter([
                             { path: '/accessToken', element: <AccessToken /> },
                             { path: '/botManage', element: <BotPage /> },
                             { path: '/tags', element: <TagePage /> },
-                            {path : '/helpChat', element : <HelpChatList/>},
-                            {path : '/sticker', element : <StickerList/>},
-                            {path : '/announces', element : <AnnouncesList/>},
+                            { path: '/helpChat', element: <HelpChatList /> },
+                            { path: '/sticker', element: <StickerList /> },
+                            { path: '/announces', element: <AnnouncesList /> },
                         ]
                     },
+                    { path: '/facebook/feed', element: <FeedFacebook /> },
 
                     { path: '/chatHistory', element: <ChatHistory /> },
                     { path: '/profile', element: <AuthPages /> }
@@ -75,12 +77,12 @@ export const routes = createBrowserRouter([
                 path: '/select', children: [
                     { path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane /> },
                 ]
-            },
-            {path: '/secret',element : <LayoutSeCreate/>}
+            },                                                                                                                                                                                                                                                                                                                       
+            { path: '/secret', element: <LayoutSeCreate /> }
         ]
     },
     { path: 'access/denied', element: <NotFoundPage /> },
     { path: 'test', element: <TestUi /> },
     { path: '*', element: <NotFoundPage /> },
-    {path : 'feedback/:custId/:rateId', element : <Feedback/>}
+    { path: 'feedback/:custId/:rateId', element: <Feedback /> }
 ])
