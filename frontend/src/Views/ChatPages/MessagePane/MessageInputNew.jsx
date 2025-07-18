@@ -26,13 +26,12 @@ export default function MessageInputNew(props) {
   const [stickerOpen, setStickerOpen] = useState(false);
   const { user } = useAuth();
   const textareaRef = useRef(null);
-  
+
   useEffect(() => {
     return () => {
       files.forEach((file) => URL.revokeObjectURL(file.preview));
     };
   }, [files]);
-
 
   useEffect(() => {
     if (firstRender) {
@@ -52,20 +51,24 @@ export default function MessageInputNew(props) {
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files).map(file => Object.assign(file, {
-      preview: URL.createObjectURL(file)
-    }));
+    const droppedFiles = Array.from(e.dataTransfer.files).map((file) =>
+      Object.assign(file, {
+        preview: URL.createObjectURL(file),
+      })
+    );
     setFiles((prev) => [...prev, ...droppedFiles]);
   }, []);
 
   const handlePaste = useCallback((e) => {
     const pastedFiles = Array.from(e.clipboardData.items)
-      .filter(item => item.kind === 'file')
-      .map(item => {
+      .filter((item) => item.kind === "file")
+      .map((item) => {
         const file = item.getAsFile();
-        return file ? Object.assign(file, { preview: URL.createObjectURL(file) }) : null;
+        return file
+          ? Object.assign(file, { preview: URL.createObjectURL(file) })
+          : null;
       })
-      .filter(file => file !== null);
+      .filter((file) => file !== null);
 
     if (pastedFiles.length > 0) {
       setFiles((prev) => [...prev, ...pastedFiles]);
@@ -85,11 +88,37 @@ export default function MessageInputNew(props) {
     if ((!inputText.trim() && files.length === 0) || loading) {
       return;
     }
+    const validateFiles = () => {
+      const allowedImageTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      for (let file of files) {
+        if (!allowedImageTypes.includes(file.type)) {
+          return {
+            valid: false,
+            reason: `Lazada ไม่สามารถส่งไฟล์ประเภท ${file.type} ได้ กรุณาแนบเฉพาะรูปภาพเท่านั้น`,
+          };
+        }
+      }
+      return { valid: true };
+    };
     setLoading(true);
     try {
       const senderPlatform_format = sender?.platform || "Unknown";
-
       if (senderPlatform_format.toLowerCase() === "lazada") {
+        const validation = validateFiles();
+        if (!validation.valid) {
+          AlertDiaLog({
+            icon: "warning",
+            title: "ไม่รองรับไฟล์ที่แนบ",
+            text: validation.reason,
+          });
+          setLoading(false);
+          return;
+        }
         const formData = new FormData();
         formData.append("custId", sender.custId);
         formData.append("conversationId", activeId);
@@ -148,7 +177,7 @@ export default function MessageInputNew(props) {
     } catch (error) {
       const responseData = error.response?.data;
       const errorMsg = responseData?.message || "เกิดข้อผิดพลาดในการส่ง";
-      
+
       AlertDiaLog({
         icon: "error",
         title: "เกิดข้อผิดพลาด",
@@ -188,9 +217,9 @@ export default function MessageInputNew(props) {
                     src={file.preview}
                     alt={file.name}
                     style={{
-                      width: '150px',
-                      height: '150px',
-                      objectFit: 'cover',
+                      width: "150px",
+                      height: "150px",
+                      objectFit: "cover",
                       borderRadius: "8px",
                     }}
                   />
@@ -205,8 +234,8 @@ export default function MessageInputNew(props) {
                 );
               } else {
                 previewContent = (
-                  <Box sx={{ p: 2, width: '150px', textAlign: 'center' }}>
-                     <Typography>{file.name}</Typography>
+                  <Box sx={{ p: 2, width: "150px", textAlign: "center" }}>
+                    <Typography>{file.name}</Typography>
                   </Box>
                 );
               }

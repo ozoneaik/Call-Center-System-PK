@@ -117,6 +117,7 @@ export const PendingTable = (props) => {
                 icon: "error",
               });
             }
+            
           }
         }
       },

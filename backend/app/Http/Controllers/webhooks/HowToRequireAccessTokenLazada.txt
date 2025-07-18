@@ -1,0 +1,88 @@
+CHAT API MESSAGE LAZADA /im/message/send
+
+1. คำสั่งขอ code ของ Lazada 
+      ต้องมี redirect_uri=https://b6933ac42efb.ngrok-free.app/api/webhooks/lazada-new/callback
+      client_id=129869 //app_ley ของร้านเรา 
+        https://auth.lazada.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://b6933ac42efb.ngrok-free.app/api/webhooks/lazada-new/callback&client_id=129869
+
+2. หลังจากขั้นตอนแรก Function ใน LazadaNewController มันจะ CallBack แล้วได้ Access Token และ Refresh Token มาอัตโนมัติเมื่อ callBack กลับมา
+      {  //ตัวอย่าง Response 
+        "message": "แลก token สำเร็จ",
+        "data": {
+          "access_token": "50000101d15uLFaccxdOwYehmMl18298c9azkVSlEz9QPFuOVrmovZfPBtYXG4w3",
+          "country": "th",
+          "refresh_token": "50001100115cSBzTphATPIs8qCs15ecf4fdztU9AaiuEIUAROeXdaTeLRWaX0fM4",
+          "account_platform": "seller_center",
+          "refresh_expires_in": 15552000,
+          "country_user_info": [
+            {
+              "country": "th",
+              "user_id": "101075312191",
+              "seller_id": "101075312191",
+              "short_code": "TH1JZGGNXL"
+            }
+          ],
+          "expires_in": 2592000,
+          "account": "aofphuwadech@gmail.com",
+          "code": "0",
+          "request_id": "21015a4617528043743056637",
+          "_trace_id_": "2140e7c317528043743023562e020c"
+        }
+      }
+
+3. เมื่อเราต้องการจะ refresh token ให้เข้าไปทดสอบด้วย postman โดยใช้ url:: https://b6933ac42efb.ngrok-free.app/api/webhooks/lazada/refresh-token
+        Body x-www-form-urlencoded ---> 
+        KEY                    Value (refresh token ที่ได้ )
+        refresh_token         50001101234pMCczh1CLuEtqlZgewiKTVfgFuLWDQuAewm11e785fePPAwmnC7S4
+
+
+4.ตัวอย่าง Response เมื่อลูกค้าทักมา 
+    [2025-07-18 14:30:30] local.INFO: {
+        "seller_id": "101075312191",
+        "message_type": 2,
+        "data": {
+            "from_account_type": "1 (ลูกค้า)",
+            "session_id": "100111788158_1_101075312191_2_103",
+            "message_id": "04894kyICHK0BtlE931119",
+            "type": 1,
+            "content": "{\"txt\":\"สวัสดีครับ\"}",
+            "send_time": 1752823829616,
+            "to_account_id": "101075312191",
+            "auto_reply": false,
+            "to_account_type": 2,
+            "site_id": "TH",
+            "template_id": 1,
+            "from_user_id": "100111788158",
+            "status": 0
+        },
+        "timestamp": 1752823829,
+        "site": "lazada_th"
+    } 
+    [2025-07-18 14:30:30] local.INFO: ได้รับข้อความจาก: ลูกค้า  
+    [2025-07-18 14:30:30] local.INFO: เริ่มกรองเคส {"customer":"{
+        \"id\": 23,
+        \"custId\": \"100111788158_1_101075312191_2_103\",
+        \"custName\": \"ลูกค้า\",
+        \"description\": \"ลูกค้าจาก Lazada (ConnectPOS Demo)\",
+        \"avatar\": null,
+        \"platformRef\": 1,
+        \"created_at\": \"2025-07-18T04:30:03.000000Z\",
+        \"updated_at\": \"2025-07-18T04:30:03.000000Z\"
+    }","message":"{
+        \"content\": \"สวัสดีครับ\",
+        \"contentType\": \"text\"
+    }","platformAccessToken":"{
+        \"id\": 1,
+        \"accessTokenId\": \"$2y$12$FIjD3VFHgFnfPwQ9w4bkvOViISz4U98Cc5BNK.2HxBVbslJmJETzS\",
+        \"accessToken\": \"50000700c33tdKDoxmvh84kvFoReyth8ECRdLzzcnhJg11c1c52f5etzH5RzvLGN\",
+        \"description\": \"ConnectPOS Demo\",
+        \"platform\": \"lazada\",
+        \"fb_page_id\": null,
+        \"fb_verify_token\": null,
+        \"laz_app_key\": \"129869\",
+        \"laz_app_secret\": \"WDdLckaHRD0feu0H73X2Hoxmc0OHPchK\",
+        \"created_at\": \"2025-07-07T04:37:32.000000Z\",
+        \"updated_at\": \"2025-07-07T04:37:32.000000Z\"
+    }"}
+
+5. 

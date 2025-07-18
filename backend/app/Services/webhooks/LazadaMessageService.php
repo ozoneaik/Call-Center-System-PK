@@ -35,7 +35,7 @@ class LazadaMessageService
             $mediaPath = 'lazada-media/' . uniqid('lzd_', true) . $extension;
             Storage::disk('public')->put($mediaPath, $mediaContent);
             $fullPath = asset('storage/' . $mediaPath);
-            Log::info("✅ Stored Lazada media successfully: {$fullPath}");
+            Log::channel('lazada_webhook_log')->info("✅ Stored Lazada media successfully: {$fullPath}");
             return $fullPath;
         } catch (\Exception $e) {
             Log::channel('lazada_webhook_log')->error($e->getMessage(), [
@@ -72,10 +72,10 @@ class LazadaMessageService
         try {
             $response = Http::get($apiUrl . $apiPath, $params);
             $customerName = $response->json('data.buyer_nick', 'ลูกค้า');
-            Log::info('✅ Successfully fetched customer info', ['name' => $customerName]);
+            Log::channel('lazada_webhook_log')->info('✅ Successfully fetched customer info', ['name' => $customerName]);
             return $customerName;
         } catch (\Exception $e) {
-            Log::error('❌ Failed to get customer info', ['error' => $e->getMessage()]);
+            Log::channel('lazada_webhook_log')->error('❌ Failed to get customer info', ['error' => $e->getMessage()]);
             return 'ลูกค้า';
         }
     }
@@ -110,12 +110,12 @@ class LazadaMessageService
             $jsonResponse = $response->json();
 
             if ($response->successful() && isset($jsonResponse['code']) && $jsonResponse['code'] == '0') {
-                Log::info('✅ Lazada IM Reply Sent Successfully', ['response' => $jsonResponse]);
+                Log::channel('lazada_webhook_log')->info('✅ Lazada IM Reply Sent Successfully', ['response' => $jsonResponse]);
             } else {
-                Log::error('❌ Lazada API returned an error on reply', ['response' => $jsonResponse]);
+                Log::channel('lazada_webhook_log')->error('❌ Lazada API returned an error on reply', ['response' => $jsonResponse]);
             }
         } catch (\Exception $e) {
-            Log::error('❌ Failed to send Lazada IM Reply', ['error' => $e->getMessage()]);
+            Log::channel('lazada_webhook_log')->error('❌ Failed to send Lazada IM Reply', ['error' => $e->getMessage()]);
         }
     }
 
@@ -151,12 +151,12 @@ class LazadaMessageService
             $jsonResponse = $response->json();
 
             if ($response->successful() && isset($jsonResponse['code']) && $jsonResponse['code'] == '0') {
-                Log::info('✅ Lazada image message sent successfully', ['response' => $jsonResponse]);
+                Log::channel('lazada_webhook_log')->info('✅ Lazada image message sent successfully', ['response' => $jsonResponse]);
             } else {
-                Log::error('❌ Lazada API returned an error on image message', ['response' => $jsonResponse]);
+                Log::channel('lazada_webhook_log')->error('❌ Lazada API returned an error on image message', ['response' => $jsonResponse]);
             }
         } catch (\Exception $e) {
-            Log::error('❌ Failed to send image message', ['error' => $e->getMessage()]);
+            Log::channel('lazada_webhook_log')->error('❌ Failed to send image message', ['error' => $e->getMessage()]);
         }
     }
 
@@ -191,20 +191,20 @@ class LazadaMessageService
                 file_get_contents($imagePath),
                 basename($imagePath)
             )->post($apiUrl . $apiPath, $params);
-            Log::info("📷 Sending image file path:", ['path' => $imagePath]);
+            Log::channel('lazada_webhook_log')->info("📷 Sending image file path:", ['path' => $imagePath]);
 
             $json = $response->json();
             $imageUrl = $json['data']['image']['url'] ?? $json['data']['url'] ?? null;
 
             if ($imageUrl) {
-                Log::info('✅ Lazada Image Upload Response', ['response' => $json]);
+                Log::channel('lazada_webhook_log')->info('✅ Lazada Image Upload Response', ['response' => $json]);
 
                 self::sendImageMessage($sessionId, $imageUrl);
             } else {
-                Log::error('❌ Failed to upload image or missing image URL in response', ['response' => $json]);
+                Log::channel('lazada_webhook_log')->error('❌ Failed to upload image or missing image URL in response', ['response' => $json]);
             }
         } catch (\Exception $e) {
-            Log::error('❌ Error while sending image', ['error' => $e->getMessage()]);
+            Log::channel('lazada_webhook_log')->error('❌ Error while sending image', ['error' => $e->getMessage()]);
         }
     }
 
@@ -234,7 +234,7 @@ class LazadaMessageService
                 ]
             ];
         } catch (\Exception $e) {
-            Log::error('Lazada sendMessage failed: ' . $e->getMessage());
+            Log::channel('lazada_webhook_log')->error('Lazada sendMessage failed: ' . $e->getMessage());
             return [
                 'status' => false,
                 'message' => $e->getMessage()

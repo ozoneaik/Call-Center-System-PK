@@ -23,7 +23,6 @@ export default function MainChat() {
   const [loading, setLoading] = useState(false);
   const [showMyCasesOnly, setShowMyCasesOnly] = useState(false);
 
-  // 💡 สร้างฟังก์ชันสำหรับจัดเรียงเพื่อนำไปใช้ซ้ำ
   const sortChatsByLatestMessage = (chats) => {
     return [...chats].sort((a, b) => {
       const aTime = new Date(a.latest_message?.created_at || 0).getTime();
@@ -67,7 +66,7 @@ export default function MainChat() {
     };
     setLoading(true);
     fetchChats().then();
-  }, [roomId, user.empCode]); // เพิ่ม user.empCode เพื่อความถูกต้องในการนับ
+  }, [roomId, user.empCode]);
 
   useEffect(() => {
     if (firstRender) {
@@ -109,19 +108,21 @@ export default function MainChat() {
                   contentType: notification.message.contentType,
                   content: notification.message.content,
                   sender_id: notification.message.sender_id,
-                  created_at: notification.message.created_at, // 💡 เพิ่ม created_at
+                  created_at: notification.message.created_at,
                 },
               };
             }
             return item;
           });
 
-          // ✅✅✅ จุดแก้ไขสำคัญ: จัดเรียง array ใหม่ก่อน set state ✅✅✅
-          const sortedUpdatedProgress = sortChatsByLatestMessage(updatedProgress);
+          const sortedUpdatedProgress =
+            sortChatsByLatestMessage(updatedProgress);
           setFilterProgress(sortedUpdatedProgress);
-          setProgress(sortedUpdatedProgress); // อัปเดต state หลักด้วย
-
+          setProgress(sortedUpdatedProgress);
         } else {
+          //Check ว่า ข้อความล่าสุดมาจากลูกค้าหรือไม่ 
+          const isFromCustomer =
+            notification.message.sender_id === notification.customer.custId;
           const newChatItem = {
             id: notification.activeConversation.id,
             custId: notification.customer.custId,
@@ -140,14 +141,12 @@ export default function MainChat() {
             receiveAt: notification.activeConversation.receiveAt,
             startTime: notification.activeConversation.startTime,
             updated_at: notification.activeConversation.updated_at,
-            isUnread: true,
+            isUnread: isFromCustomer,
           };
           const newProgress = filterProgress.concat(newChatItem);
-
-          // ✅✅✅ จุดแก้ไขสำคัญ: จัดเรียง array ใหม่ก่อน set state ✅✅✅
           const sortedNewProgress = sortChatsByLatestMessage(newProgress);
           setFilterProgress(sortedNewProgress);
-          setProgress(sortedNewProgress); // อัปเดต state หลักด้วย
+          setProgress(sortedNewProgress);
         }
 
         const deletePending = filterPending.filter(
@@ -155,7 +154,72 @@ export default function MainChat() {
         );
         setFilterPending(deletePending);
       } else if (notification.Rate.status === "pending") {
-        // ... (ส่วนของ pending หากต้องการให้เรียงตามเวลาเช่นกัน ก็สามารถใช้ logic เดียวกันได้)
+        const find = filterPending.find(
+          (item) => item.custId === notification.Rate.custId
+        );
+
+        if (find) {
+          let unreadIds = JSON.parse(
+            localStorage.getItem("unreadCustIds") || "[]"
+          );
+          if (!unreadIds.includes(notification.Rate.custId)) {
+            unreadIds.push(notification.Rate.custId);
+            localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
+          }
+          const updatePending = filterPending.map((item) => {
+            if (item.id === notification.activeConversation.id) {
+              return {
+                ...item,
+                isUnread: true,
+                latest_message: {
+                  ...item.latest_message,
+                  sender: notification.message.sender,
+                  contentType: notification.message.contentType,
+                  content: notification.message.content,
+                  sender_id: notification.message.sender_id,
+                  created_at: notification.message.created_at,
+                },
+              };
+            }
+            return item;
+          });
+          // จัดเรียง array ใหม่ก่อน set state
+          const sortedUpdatedPending = sortChatsByLatestMessage(updatedPending);
+          setFilterPending(sortedUpdatedPending);
+          setPending(sortedUpdatedPending);
+        } else {
+          const newChatItem = {
+            id: notification.activeConversation.id,
+            custId: notification.customer.custId,
+            custName: notification.customer.custName,
+            avatar: notification.customer.avatar,
+            description: notification.customer.description,
+            empCode: notification.activeConversation.empCode,
+            empName: notification.activeConversation.empName,
+            latest_message: {
+              contentType: notification.message.contentType,
+              content: notification.message.content,
+              created_at: notification.message.created_at,
+              sender_id: notification.message.sender_id,
+              sender: notification.message.sender,
+            },
+            rateRef: notification.Rate.id,
+            receiveAt: notification.activeConversation.receiveAt,
+            startTime: notification.activeConversation.startTime,
+            updated_at: notification.activeConversation.updated_at,
+            isUnread: true,
+          };
+          const newPending = filterPending.concat(newChatItem);
+
+          // จัดเรียง array ใหม่ก่อน set state
+          const sortedNewPending = sortChatsByLatestMessage(newPending);
+          setFilterPending(sortedNewPending);
+          setPending(sortedNewPending);
+        }
+        const deleteProgress = filterProgress.filter(
+          (item) => item.custId !== notification.Rate.custId
+        );
+        setFilterProgress(deleteProgress);
       } else {
         removeCase();
       }

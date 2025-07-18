@@ -15,11 +15,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use App\Services\OcrService;
 
 class LazadaController extends Controller
 {
     protected $pusherService;
+    protected string $start_log_line = '--------------------------------------------------🌞 เริ่มรับ webhook--------------------------------------------------';
+    protected string $end_log_line = '---------------------------------------------------🌚 สิ้นสุดรับ webhook---------------------------------------------------';
     public function __construct(PusherService $pusherService)
     {
         $this->pusherService = $pusherService;
@@ -27,8 +28,19 @@ class LazadaController extends Controller
 
     public function handleWebhook(Request $request)
     {
-        Log::channel('lazada_webhook_log')->info('--- NEW LAZADA WEBHOOK RECEIVED ---');
-        Log::channel('lazada_webhook_log')->info('RAW BODY:', $request->all());
+        Log::channel('lazada_webhook_log')->info($this->start_log_line);
+        $data = $request->all();
+        if (isset($data['data']['from_account_type'])) {
+            $senderType = match ($data['data']['from_account_type']) {
+                1 => 'ลูกค้า',
+                2 => 'ร้านค้า',
+                3 => 'ระบบ',
+                default => 'ไม่ทราบ',
+            };
+
+            $data['data']['from_account_type'] = "{$data['data']['from_account_type']} ({$senderType})";
+        }
+        Log::channel('lazada_webhook_log')->info(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
         $messageType = $request->input('message_type');
         $data = $request->input('data');
@@ -36,12 +48,27 @@ class LazadaController extends Controller
         try {
             DB::beginTransaction();
 
-            if ($messageType == 2 && isset($data['session_id'])) {
-                Log::info('📥 Received Lazada chat message');
-                Log::channel('lazada_webhook_log')->info('MESSAGE DATA:', $data);
+            // if ($messageType == 2 && isset($data['session_id'])) {
+            //     $customer = $this->getOrCreateCustomer($data['session_id']);
+            //     Log::channel('lazada_webhook_log')->info('ได้รับข้อความจาก: ' . $customer->custName);
+            //     // Log::channel('lazada_webhook_log')->info('MESSAGE DATA:', $data);
+            //     // Log::channel('lazada_webhook_log')->info('🧍 ลูกค้า: ' . $customer->custName);
 
+            //     $this->handleChatMessage($customer, $data);
+            // }
+
+            if ($messageType == 2 && isset($data['session_id'])) {
                 $customer = $this->getOrCreateCustomer($data['session_id']);
-                Log::info('🧍 ลูกค้า: ' . $customer->custName);
+
+                $senderType = match ($data['from_account_type'] ?? null) {
+                    1 => 'ลูกค้า',
+                    2 => 'ร้านค้า',
+                    3 => 'ระบบ',
+                    default => 'ไม่ทราบ',
+                };
+
+                $senderId = $data['from_user_id'] ?? '-';
+                Log::channel('lazada_webhook_log')->info("ได้รับข้อความจาก: {$senderType}");
 
                 $this->handleChatMessage($customer, $data);
             }
@@ -49,8 +76,14 @@ class LazadaController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('❌ Lazada webhook error: ' . $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
+            Log::channel('lazada_webhook_log')->error('❌ Lazada webhook error: ' . json_encode([
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }
+
+        Log::channel('lazada_webhook_log')->info($this->end_log_line);
 
         return response()->json(['code' => '0', 'msg' => 'Processed']);
     }
@@ -82,30 +115,33 @@ class LazadaController extends Controller
 
     private function handleChatMessage($customer, $data)
     {
-        if (($data['from_account_type'] ?? 0) != 1) {
-            return; 
-        }
+        if (($data['from_account_type'] ?? 0) != 1) return;
 
         $messageId = $data['message_id'] ?? null;
         if (!$messageId) return;
 
         $cacheKey = "lazada_msg_{$messageId}";
-        if (Cache::has($cacheKey)) {
-            Log::debug("Skipping duplicate message_id: {$messageId}");
-            return;
-        }
+        if (Cache::has($cacheKey)) return;
         Cache::put($cacheKey, true, now()->addHour());
 
-        $currentRate = Rates::query()
-            ->where('custId', $customer->custId)
-            ->orderBy('id', 'desc')
-            ->first();
+        $processedMessage = $this->processMessageContent($data);
+        $platform = PlatformAccessTokens::find($customer->platformRef);
 
-        if ($currentRate && $currentRate->status === 'success') {
+        Log::channel('lazada_webhook_log')->info("เริ่มกรองเคส", [
+            'customer' => json_encode($customer->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            'message' => json_encode($processedMessage, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            'platformAccessToken' => json_encode($platform?->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        ]);
+
+        $currentRate = Rates::query()->where('custId', $customer->custId)->orderBy('id', 'desc')->first();
+        $status = $currentRate?->status ?? 'ไม่มีข้อมูล';
+        Log::channel('lazada_webhook_log')->info("ปัจจุบันเป็นเคส {$status} " . __FILE__ . __LINE__);
+
+        if ($currentRate && $status === 'success') {
             $this->handleSuccessRateMessage($customer, $data, $currentRate);
-        } elseif ($currentRate && $currentRate->status === 'progress') {
+        } elseif ($currentRate && $status === 'progress') {
             $this->handleProgressRateMessage($customer, $data, $currentRate);
-        } elseif ($currentRate && $currentRate->status === 'pending') {
+        } elseif ($currentRate && $status === 'pending') {
             $this->handlePendingRateMessage($customer, $data, $currentRate);
         } else {
             $this->handleNewMessage($customer, $data);
@@ -132,7 +168,7 @@ class LazadaController extends Controller
         }
 
         $videoUrl = $contentData['media_url'] ?? null;
-        if ($videoUrl && ($data['type'] ?? 0) == 6) { 
+        if ($videoUrl && ($data['type'] ?? 0) == 6) {
             $result['content'] = LazadaMessageService::storeMedia($videoUrl);
             $result['contentType'] = 'video';
             return $result;
@@ -141,7 +177,7 @@ class LazadaController extends Controller
         $templateId = $data['template_id'] ?? null;
         if (in_array($templateId, [3, 4, 5])) {
             $result['content'] = '[ลูกค้าส่ง Sticker/Card/Order]';
-            $result['contentType'] = 'card'; 
+            $result['contentType'] = 'card';
             return $result;
         }
 
@@ -160,6 +196,7 @@ class LazadaController extends Controller
             'sender' => $customer->toJson(),
             'conversationRef' => $acRef?->id,
         ]);
+
         $this->pusherService->sendNotification($customer->custId);
     }
 
@@ -176,6 +213,7 @@ class LazadaController extends Controller
             'conversationRef' => $acRef?->id,
         ]);
 
+        $this->pusherService->sendNotification($customer->custId);
         $menuOptions = [
             '1' => 'รับเรื่องสอบถามสินค้าเรียบร้อยแล้วค่ะ เจ้าหน้าที่จะรีบมาตอบกลับโดยเร็วที่สุดค่ะ',
             '2' => 'รับเรื่องตรวจสอบสถานะคำสั่งซื้อเรียบร้อยแล้วค่ะ เจ้าหน้าที่จะรีบมาตอบกลับโดยเร็วที่สุดค่ะ',
@@ -186,15 +224,13 @@ class LazadaController extends Controller
         $lower_message = strtolower(trim($processedMessage['content']));
 
         if ($processedMessage['contentType'] === 'text' && isset($menuOptions[$lower_message])) {
-            Log::info("🤖 Menu option '{$lower_message}' selected by {$customer->custName}.");
+            Log::channel('lazada_webhook_log')->info("🤖 Menu option '{$lower_message}' selected by {$customer->custName}.");
             $replyText = $menuOptions[$lower_message];
             $this->sendBotReply($customer->custId, $replyText, $acRef?->id);
         } elseif ($processedMessage['contentType'] === 'text' && $this->messageContainsKeyword($lower_message, ['เมนู', 'menu'])) {
-            Log::info("🤖 Keyword detected. Sending menu to {$customer->custName}.");
+            Log::channel('lazada_webhook_log')->info("🤖 Keyword detected. Sending menu to {$customer->custName}.");
             $this->sendMenu($customer->custId);
         }
-
-        $this->pusherService->sendNotification($customer->custId);
     }
 
     private function handlePendingRateMessage($customer, $raw, $rate)
@@ -229,7 +265,7 @@ class LazadaController extends Controller
             'conversationRef' => $newAC->id,
         ]);
 
-        $greet = "สวัสดีคุณ {$customer->custName} 🙏 ยินดีต้อนรับสู่ร้านค้า Lazada";
+        $greet = "สวัสดีคุณ {$customer->custName} ยินดีต้อนรับสู่ร้านค้า Pumpkin 🙏";
         $this->sendBotReply($customer->custId, $greet, $newAC->id);
 
         $this->sendMenu($customer->custId);
@@ -259,6 +295,7 @@ class LazadaController extends Controller
             'sender' => $user_bot ? $user_bot->toJson() : '{"name":"BOT"}',
             'conversationRef' => $conversationRef,
         ]);
+        $this->pusherService->sendNotification($sessionId);
     }
 
     private function messageContainsKeyword(string $message, array $keywords): bool

@@ -5,13 +5,15 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotMenuController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ChatRoomsController;
-use App\Http\Controllers\Chats\Lazada\LazadaHistoryController;
 use App\Http\Controllers\Chats\Lazada\LazadaReceiveController;
 use App\Http\Controllers\Chats\Lazada\LazadaReplyController;
 use App\Http\Controllers\Chats\Lazada\LazadaSendController;
 use App\Http\Controllers\Chats\Lazada\LazadaSendToController;
 use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
+use App\Http\Controllers\Chats\Shopee\ShopeeChatController;
+use App\Http\Controllers\Chats\Shopee\ShopeeShopController;
+use App\Http\Controllers\Chats\Shopee\ShopeeTokenController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\feedbackController;
@@ -28,12 +30,11 @@ use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LazadaController;
+use App\Http\Controllers\webhooks\LazadaNewController;
+use App\Http\Controllers\webhooks\LazadaSellerController;
 use App\Http\Controllers\webhooks\LineUATController;
-use App\Http\Controllers\webhooks\ShopeeController;
-use App\Http\Controllers\webhooks\ShopeeRefreshToken as WebhooksShopeeRefreshToken;
-use App\Http\Controllers\webhooks\Token\ShopeeRefreshToken;
 use App\Http\Middleware\UserAccess;
-use App\Models\HelpChatModel;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -212,17 +213,73 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-
 Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
     Route::get('/facebook', [FacebookController::class, 'webhook']);
     Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
 
+    //http://localhost:8000/api/webhooks/
     Route::post('/lazada', [LazadaController::class, 'handleWebhook']);
-
-    Route::post('/shopee', [ShopeeController::class, 'webhook']);
-    Route::get('/refresh-token', [WebhooksShopeeRefreshToken::class, 'refresh']);
+    Route::get('/lazada-new/callback', [LazadaNewController::class, 'handleCallback']);
+    Route::post('/lazada/refresh-token', [LazadaNewController::class, 'refreshToken']);
+    Route::get('/lazada/token/check-expiry/{seller_id}', [LazadaNewController::class, 'checkTokenExpiry']);
+    // Route::get('/lazada/seller-info', [LazadaSellerController::class, 'getSellerInfo']);
 });
+
+//------------------------------- SHOPEE CHAT-------------------------------------------------------------------------------
+//---------------------------- ขอ AccessToken ------------------------------------------------------------
+//http://localhost:8000/api/
+Route::get('/shopee/test-sign', [ShopeeTokenController::class, 'generateSign']);
+//พอได้ access Token ให้เอาไปแทนใน env
+Route::get('/shopee/access-token', [ShopeeTokenController::class, 'refreshToken']);
+
+//------------------------------- SHOP INFO --------------------------------------------------------------
+Route::get('/shopee/req-shop-info', [ShopeeShopController::class, 'requestShopInfo']);
+Route::get('/shopee/shop-info', [ShopeeShopController::class, 'getShopInfo']);
+//--------------------------------------------------------------------------------------------------------
+
+//--------------------- Route เฉพาะสำหรับ Conversation List Require Raise Token ---------------------------
+//ขอ Sign สำหรับดึงรายการแชท
+Route::get('/shopee/conversations', [ShopeeShopController::class, 'getSignConversation']);
+Route::get('/shopee/get-all-conversations', [ShopeeShopController::class, 'getAllConversations']);
+
+//---------------------------- Route Helper Chat Shopee --------------------------------------------------
+//Type:: shop_info //product_list //order_list //conversation_list //message_list //send_message
+Route::get('/shopee/generate-sign/{api_type}', [ShopeeShopController::class, 'helperGenerateSign']);
+
+//------------------------- Route สำหรับทดสอบ API จริง -----------------------------------------------------
+//Type:: shop_info //product_list //order_list //conversation_list //message_list //send_message
+Route::get('/shopee/test-api/{api_type}', [ShopeeShopController::class, 'testTypeAPI']);
+//---------------------------------------------------------------------------------------------------------
+
+Route::prefix('shopee-chat')->group(function () {
+
+    // Debug และทดสอบ
+    Route::get('debug-config', [ShopeeChatController::class, 'debugConfig']);
+    Route::get('test-connection', [ShopeeChatController::class, 'testConnection']);
+    Route::get('test-chat-api', [ShopeeChatController::class, 'testChatAPI']);
+
+    // ข้อมูลร้านค้า
+    Route::get('shop-info', [ShopeeChatController::class, 'getShopInfo']);
+
+    // การสนทนา
+    Route::get('conversations', [ShopeeChatController::class, 'getConversations']);
+    Route::get('conversations/{conversation_id}/messages', [ShopeeChatController::class, 'getMessages']);
+
+    // ส่งข้อความ
+    Route::get('get-message', [ShopeeChatController::class, 'getMessages']);
+    Route::post('send-message', [ShopeeChatController::class, 'sendMessage']);
+    Route::post('send-image', [ShopeeChatController::class, 'sendImage']);
+    Route::post('send-product', [ShopeeChatController::class, 'sendProduct']);
+
+    // อัปเดตสถานะ
+    Route::post('mark-as-read', [ShopeeChatController::class, 'markAsRead']);
+
+    Route::get('debug-chat-sign', [ShopeeChatController::class, 'debugChatSignature']);
+});
+
+//-------------------------------------------------------------------------------------------------------------------------
+
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
 Route::get('/announces', [AnnounceController::class, 'index']);
