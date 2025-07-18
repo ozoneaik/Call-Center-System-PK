@@ -52,6 +52,8 @@ class LineWebhookController extends Controller
                         $message = $event['message'];
                         $formatted_message = $this->formatMessage($message, $platform['accessToken']);
                         Log::channel('webhook_line_new')->info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+                        // เข้าสุ่ filterCase
                         $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform);
                     } else {
                         throw new \Exception('ไม่พบข้อมูลผู้ใช้ในระบบ');
@@ -174,9 +176,16 @@ class LineWebhookController extends Controller
                     'video/mov' => '.mov',
                     'audio/x-m4a' => '.m4a',
                     'application/pdf' => '.pdf',
+                    'application/zip' => '.zip',
+                    'application/msword' => '.doc',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => '.docx',
+                    'application/vnd.ms-excel' => '.xls',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => '.xlsx',
+                    'application/vnd.ms-powerpoint' => '.ppt',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation' => '.pptx',
                     default => '.bin',
                 };
-                $mediaPath = 'line-images/' . $mediaId . $extension;
+                $mediaPath = 'line-files/' . $mediaId . $extension;
                 Storage::disk('public')->put($mediaPath, $mediaContent);
                 $full_url = asset('storage/' . $mediaPath);
                 return $full_url;

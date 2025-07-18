@@ -86,6 +86,7 @@ class LineMessageService
                     'video/avi' => '.avi',
                     'video/mov' => '.mov',
                     'audio/x-m4a' => '.m4a',
+                    'application/pdf' => '.pdf',
                     default => '.bin',
                 };
                 $mediaPath = 'line-images/' . $mediaId . $extension;
