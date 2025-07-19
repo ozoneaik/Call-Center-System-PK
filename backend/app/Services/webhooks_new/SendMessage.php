@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class SendMessage
 {
-    public function sendMessage($message, $platFrom, $token)
+    public function sendMessage($message, $platFrom, $token,$customer)
     {
         switch ($platFrom) {
             case 'line':
-                $this->sendMsgByLine($message, $token);
+                $this->sendMsgByLine($message, $token,$customer,$customer);
                 break;
             case 'facebook':
                 $this->sendMsgByFacebook($message, $token);
@@ -37,7 +37,7 @@ class SendMessage
 
     private function storeMessage($message = null, $accessToken = null, $custId = null) {}
 
-    private function sendMsgByLine($message = null, $accessToken = null, $custId = null)
+    private function sendMsgByLine($message = null, $accessToken = null, $customer = null)
     {
         $client = new Client();
         $config = new Configuration();
@@ -81,7 +81,7 @@ class SendMessage
         $message_body = new TextMessage($msg_format);
 
         $request_line = new PushMessageRequest([
-            'to' => $custId,
+            'to' => $customer['custId'],
             'messages' => [$message_body],
         ]);
         $res_send_message = $messagingApi->pushMessage($request_line);

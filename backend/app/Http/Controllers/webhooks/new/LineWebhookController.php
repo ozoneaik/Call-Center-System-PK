@@ -50,7 +50,7 @@ class LineWebhookController extends Controller
 
                         // จัดรูปแบบข้อความก่อน
                         $message = $event['message'];
-                        $formatted_message = $this->formatMessage($message, $platform['accessToken']);
+                        $formatted_message = $this->formatMessage($message, $platform['accessToken'],$event['replyToken']);
                         Log::channel('webhook_line_new')->info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
                         // เข้าสุ่ filterCase
@@ -123,7 +123,7 @@ class LineWebhookController extends Controller
         }
     }
 
-    private function formatMessage($message, $accessToken)
+    private function formatMessage($message, $accessToken,$reply_token)
     {
         $msg_type = $message['type'] ?? null;
         $msg_formated = [];
@@ -147,6 +147,7 @@ class LineWebhookController extends Controller
             $msg_formated['contentType'] = 'text';
             $msg_formated['content'] =  'ไม่รู้จักประเภทข้อความ';
         }
+        $msg_formated['reply_token'] = $reply_token;
         $msg_formated['line_message_id'] = $message['id'] ?? null;
         $msg_formated['line_quote_token'] = $message['quoteToken'] ?? null;
         $msg_formated['line_quoted_message_id'] = $message['quotedMessageId'] ?? null;

@@ -2,13 +2,9 @@
 
 namespace App\Services\webhooks_new;
 
-use App\Models\ActiveConversations;
-use App\Models\ChatHistory;
-use App\Models\Keyword;
 use App\Models\Rates;
 use App\Models\User;
 use App\Services\PusherService;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class FilterCase
@@ -19,11 +15,15 @@ class FilterCase
     protected $BOT;
     protected PusherService $pusherService;
     protected NewCase $newCase;
-    public function __construct(PusherService $pusherService, NewCase $newCase)
+    protected ProgressCase $progressCase;
+    protected PendingCase $pendingCase;
+    public function __construct(PusherService $pusherService, NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase)
     {
         $this->pusherService = $pusherService;
         $this->BOT = User::query()->where('empCode', 'BOT')->first();
         $this->newCase = $newCase;
+        $this->progressCase = $progressCase;
+        $this->pendingCase = $pendingCase;
     }
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดกรองเคส---------------------------------------------------';
 
@@ -48,10 +48,10 @@ class FilterCase
             if (!$current_rate) {
                 $this->newCase->createCase($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'pending') {
-
-                // $this->pendingCase($current_rate);
+                $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'progress') {
-                $this->progressCase($current_rate);
+                // Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสอยู่ในสถานะกำลังดำเนินการ');
+                $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } else {
                 $this->successCase($current_rate);
             }
@@ -60,18 +60,6 @@ class FilterCase
         } catch (\Exception $e) {
             return ['status' => false, 'message' => $e->getMessage()];
         }
-    }
-
-
-    private function pendingCase($current_rate)
-    {
-        Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสอยู่ในสถานะรอดำเนินการ');
-        
-    }
-
-    private function progressCase($current_rate)
-    {
-        Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสกำลังดำเนินการ');
     }
 
     private function successCase($current_rate)
