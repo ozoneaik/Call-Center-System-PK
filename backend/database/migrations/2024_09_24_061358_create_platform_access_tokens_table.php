@@ -25,6 +25,8 @@ return new class extends Migration
             // --- เพิ่มคอลัมน์สำหรับ Lazada ---
             $table->string('laz_app_key')->nullable()->comment('App Key for Lazada');
             $table->string('laz_app_secret')->nullable()->comment('App Secret for Lazada');
+
+            $table->string('room_default_id')->default('ROOM99')->comment('ห้องแชทเริ่มต้น');
             $table->timestamps();
         });
     }

@@ -36,7 +36,22 @@ class ProgressCase
                 $this->pusherService->sendNotification($current_rate['custId']);
             }else{
                 Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสกำลังดำเนินการอยู่ที่ห้อง BOT');
+                $ac_latest = ActiveConversations::query()->where('custId', $current_rate['custId'])
+                    ->where('rateRef', $current_rate['id'])
+                    ->orderBy('id', 'desc')
+                    ->first();
+                ChatHistory::query()->create([
+                    'custId' => $current_rate['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $ac_latest['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
             }
+            $this->pusherService->sendNotification($customer['custId']);
         }catch (\Exception $e){
             Log::channel('webhook_main')->error('Error in ProgressCase: ' . $e->getMessage(), [
                 'message' => json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),

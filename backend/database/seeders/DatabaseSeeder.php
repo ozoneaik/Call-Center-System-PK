@@ -64,6 +64,7 @@ class DatabaseSeeder extends Seeder
             ['roomId' => 'ROOM04', 'roomName' => 'ห้องแชทฝ่ายประสานการขาย'],
             ['roomId' => 'ROOM05', 'roomName' => 'ฝ่ายบุคคล'],
             ['roomId' => 'ROOM06', 'roomName' => 'Customer Service'],
+            ['roomId' => 'ROOM99', 'roomName' => 'ห้องเริ่มต้น'],
         ];
         foreach ($rooms as $room) {
             ChatRooms::query()->create([

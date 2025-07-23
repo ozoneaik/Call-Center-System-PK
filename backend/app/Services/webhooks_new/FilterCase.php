@@ -46,11 +46,10 @@ class FilterCase
             $current_rate = Rates::query()->where('custId', $customer['custId'])
                 ->orderBy('id', 'desc')->first();
             if (!$current_rate) {
-                $this->newCase->createCase($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+                $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'pending') {
                 $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'progress') {
-                // Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสอยู่ในสถานะกำลังดำเนินการ');
                 $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } else {
                 $this->successCase($current_rate);

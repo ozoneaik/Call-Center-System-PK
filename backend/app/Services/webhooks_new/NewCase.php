@@ -3,10 +3,12 @@
 namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
+use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class NewCase
@@ -16,14 +18,14 @@ class NewCase
     protected ReplyMessage $replyMessage;
     protected PusherService $pusherService;
 
-    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService,ReplyMessage $replyMessage)
+    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService, ReplyMessage $replyMessage)
     {
         $this->replyMessage = $replyMessage;
         $this->checkKeyword = $checkKeyword;
         $this->pusherService = $pusherService;
     }
 
-    public function createCase($message, $customer, $platformAccessToken, $bot)
+    public function case($message, $customer, $platformAccessToken, $bot)
     {
         try {
             Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสใหม่ ไม่เคยสร้างเคส');
@@ -36,11 +38,6 @@ class NewCase
                     'status' => 'pending',
                     'rate' => 0,
                 ]);
-                $new_ac = ActiveConversations::query()->create([
-                    'custId' => $customer['custId'],
-                    'roomId' => $keyword['redirectTo'],
-                    'rateRef' => $new_rate['id'],
-                ]);
             } else {
                 $new_rate = Rates::query()->create([
                     'custId' => $customer['custId'],
@@ -48,15 +45,16 @@ class NewCase
                     'status' => 'progress',
                     'rate' => 0,
                 ]);
-                $new_ac = ActiveConversations::query()->create([
-                    'custId' => $customer['custId'],
-                    'roomId' => 'ROOM00',
-                    'receiveAt' => $now,
-                    'startTime' => $now,
-                    'empCode' => $bot['empCode'],
-                    'rateRef' => $new_rate['id']
-                ]);
             }
+
+            $new_ac = ActiveConversations::query()->create([
+                'custId' => $customer['custId'],
+                'roomId' => $new_rate['latestRoomId'],
+                'receiveAt' => $new_rate['status'] === 'pending' ? null : $now,
+                'startTime' => $new_rate['status'] === 'pending' ? null : $now,
+                'empCode' => $bot['empCode'],
+                'rateRef' => $new_rate['id']
+            ]);
             $store_chat = ChatHistory::query()->create([
                 'custId' => $customer['custId'],
                 'content' => $message['content'],
@@ -70,37 +68,32 @@ class NewCase
             $this->pusherService->sendNotification($customer['custId']);
 
             $msg_bot = [];
+            $msg_bot[0]['text'] = "สวัสดีคุณ " . $customer['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
+            $msg_bot[0]['type'] = 'text';
+            $msg_bot[1]['type'] = 'template';
+            $msg_bot[1]['altText'] = 'this is a buttons template';
+            $msg_bot[1]['template']['type'] = 'buttons';
+            $msg_bot[1]['template']['imageBackgroundColor'] = '#FFFFFF';
+            $msg_bot[1]['template']['title'] = 'ยินดีต้อนรับ 🤖';
+            $msg_bot[1]['template']['text'] = 'กรุณาเลือกเมนูที่ท่านต้องการสอบถาม';
             if ($new_rate['latestRoomId'] !== 'ROOM00') {
-                $msg_bot[0]['content'] = "สวัสดีคุณ " . $customer['custName'] . " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                $msg_bot[0]['contentType'] = 'text';
-                $msg_bot[1]['type'] = 'template';
-                $msg_bot[1]['altText'] = 'this is a buttons template';
-                $msg_bot[1]['template']['type'] = 'buttons';
-                $msg_bot[1]['template']['imageBackgroundColor'] = '#FFFFFF';
-                $msg_bot[1]['template']['title'] = 'ยินดีต้อนรับ 🤖';
-                $msg_bot[1]['template']['text'] = 'กรุณาเลือกเมนูที่ท่านต้องการสอบถาม';
-                $msg_bot[1]['template']['actions'][0] = [
-                    'type' => 'message',
-                    'label' => 'สั่งซื้อสินค้า',
-                    'text' => 'สั่งซื้อสินค้า'
-                ];
-                $msg_bot[1]['template']['actions'][1] = [
-                    'type' => 'message',
-                    'label' => 'การใช้งานสินค้า',
-                    'text' => 'การใช้งานสินค้า'
-                ];
-                $msg_bot[1]['template']['actions'][2] = [
-                    'type' => 'message',
-                    'label' => 'บริการหลังการขาย',
-                    'text' => 'บริการหลังการขาย'
-                ];
-                $msg_bot[1]['template']['actions'][3] = [
-                    'type' => 'message',
-                    'label' => 'ติดต่อเรื่องอื่นๆ',
-                    'text' => 'ติดต่อเรื่องอื่นๆ'
-                ];
-
-                
+                $menu_list = BotMenu::query()->where('botTokenId', $platformAccessToken['id'])->orderBy('id')->get();
+                if (count($menu_list) > 0) {
+                    foreach ($menu_list as $key => $menu) {
+                        $msg_bot[1]['template']['actions'][$key] = [
+                            'type' => 'message',
+                            'label' => $menu['menuName'],
+                            'text' => $menu['menuName'],
+                        ];
+                    }
+                } else {
+                    $msg_bot[1]['template']['actions'][0] = [
+                        'type' => 'message',
+                        'label' => 'สอบถาม / อื่นๆ',
+                        'text' => 'สอบถาม / อื่นๆ'
+                    ];
+                }
+                // $response_bot_send_menu = Http::
             }
             Log::channel('webhook_main')->info('สร้างเคสใหม่สำเร็จ');
         } catch (\Exception $e) {
