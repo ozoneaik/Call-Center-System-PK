@@ -161,6 +161,34 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-        ]
+        ],
+        'shopee_cron_job_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopee/shopee_cron_job_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+        'tiktok_token_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/tiktok/tiktok_token_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+        'shopee_refresh_cron_job_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopeeRefreshToken/shopee_cron_job_log_refresh_token.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+        'shopee_message_log' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopee/shopee_message_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
     ],
 ];

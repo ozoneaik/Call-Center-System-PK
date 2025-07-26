@@ -20,7 +20,11 @@ import {
   differentDate,
 } from "../../Components/Options.jsx";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { receiveApi, receiveApiLazada } from "../../Api/Messages.js";
+import {
+  receiveApi,
+  receiveApiLazada,
+  receiveApiShopee,
+} from "../../Api/Messages.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -108,6 +112,15 @@ export const PendingTable = (props) => {
                 icon: "error",
               });
             }
+          } else if (platform === "shopee") {
+            const { data, status } = await receiveApiShopee(rateId, roomId);
+            if (status !== 200) {
+              AlertDiaLog({
+                title: data.message,
+                text: data.detail,
+                icon: "error",
+              });
+            }
           } else {
             const { data, status } = await receiveApi(rateId, roomId);
             if (status !== 200) {
@@ -117,7 +130,6 @@ export const PendingTable = (props) => {
                 icon: "error",
               });
             }
-            
           }
         }
       },

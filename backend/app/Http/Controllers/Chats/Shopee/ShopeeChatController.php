@@ -3,335 +3,200 @@
 namespace App\Http\Controllers\Chats\Shopee;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
+use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
 use App\shopee\ShopeeChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ShopeeChatController extends Controller
 {
-    private $chatService;
-
-    public function __construct(ShopeeChatService $chatService)
-    {
-        $this->chatService = $chatService;
-    }
-
     /**
-     * ทดสอบ Chat API เฉพาะ
+     * Helper function สำหรับสร้าง ShopeeChatService instance จาก shop_id
+     * จะทำการค้นหา token จากฐานข้อมูลและสร้าง service instance ใหม่
+     *
+     * @param string $shopId
+     * @return ShopeeChatService|null
      */
-    public function testChatAPI(): JsonResponse
+    private function getChatService(string $shopId): ?ShopeeChatService
     {
-        try {
-            // ทดสอบการสร้าง Sign สำหรับ Chat API
-            $path = '/api/v2/sellerchat/get_conversation_list';
-            $timestamp = time();
-            $partnerId = config('shopee.partner_id');
-            $partnerKey = config('shopee.partner_key');
-            $accessToken = config('shopee.access_token');
+        $token = PlatformAccessTokens::where('platform', 'shopee')
+            ->where('shopee_shop_id', $shopId)
+            ->first();
 
-            // สำหรับ Chat API ไม่ใส่ shop_id
-            $baseString = $partnerId . $path . $timestamp . $accessToken;
-            $sign = hash_hmac('sha256', $baseString, $partnerKey);
-
-            return response()->json([
-                'success' => true,
-                'debug_info' => [
-                    'path' => $path,
-                    'timestamp' => $timestamp,
-                    'partner_id' => $partnerId,
-                    'base_string' => $baseString,
-                    'sign' => $sign,
-                    'access_token' => substr($accessToken, 0, 10) . '...'
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Configuration Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * ตรวจสอบการตั้งค่า API
-     */
-    public function debugConfig(): JsonResponse
-    {
-        $config = [
-            'partner_id' => config('shopee.partner_id'),
-            'partner_key' => config('shopee.partner_key') ? '***' . substr(config('shopee.partner_key'), -4) : null,
-            'shop_id' => config('shopee.shop_id'),
-            'access_token' => config('shopee.access_token') ? substr(config('shopee.access_token'), 0, 10) . '...' : null,
-            'base_url' => config('shopee.base_url', 'https://partner.shopeemobile.com'),
-        ];
-
-        $missing = [];
-        foreach (['partner_id', 'partner_key', 'shop_id', 'access_token'] as $key) {
-            if (empty(config('shopee.' . $key))) {
-                $missing[] = 'SHOPEE_' . strtoupper($key);
-            }
+        if (!$token) {
+            return null;
         }
 
-        return response()->json([
-            'config' => $config,
-            'missing_env' => $missing,
-            'is_complete' => empty($missing)
-        ]);
+        return new ShopeeChatService(
+            $token->shopee_partner_id,
+            $token->shopee_partner_key,
+            $token->shopee_shop_id,
+            $token->accessToken
+        );
     }
 
     /**
-     * ทดสอบการเชื่อมต่อ API
+     * ดึงข้อมูลร้านค้าจาก shop_id ที่ระบุ
+     * ตัวอย่าง Route: GET /api/shopee/chat/{shopId}/info
      */
-    public function testConnection(): JsonResponse
+    public function getShopInfo(string $shopId): JsonResponse
     {
-        try {
-            $result = $this->chatService->testConnection();
-
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message'],
-                'shop_name' => $result['shop_name'] ?? null,
-                'shop_id' => $result['shop_id'] ?? null,
-                'timestamp' => $result['timestamp'] ?? null,
-                'sign' => $result['sign'] ?? null
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Configuration Error: ' . $e->getMessage()
-            ], 500);
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
         }
+
+        $result = $chatService->getShopInfo();
+        return $this->formatResponse($result);
     }
 
     /**
-     * ดึงรายการการสนทนาทั้งหมด
+     * ดึงรายชื่อห้องแชททั้งหมด
+     * ตัวอย่าง Route: GET /api/shopee/chat/{shopId}/conversations
      */
-    public function getConversations(Request $request): JsonResponse
+    public function listConversations(Request $request, string $shopId): JsonResponse
     {
-        $pageSize = $request->get('page_size', 20);
-        $cursor = $request->get('cursor');
-
-        $result = $this->chatService->getConversations($pageSize, $cursor);
-
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'data' => $result['conversations'],
-                'next_cursor' => $result['next_cursor'],
-                'has_more' => $result['has_more'],
-                'total_count' => count($result['conversations'])
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
         }
+
+        $options = $request->only(['page_size', 'next_cursor', 'type', 'unread_count']);
+        $result = $chatService->getConversationList($options);
+        return $this->formatResponse($result);
     }
 
     /**
-     * ดึงรายการข้อความในการสนทนา
+     * ดึงข้อมูลการสนทนา 1 รายการ
+     * ตัวอย่าง Route: GET /api/shopee/chat/{shopId}/conversation/{conversationId}
      */
-    public function getMessages(Request $request, $conversationId): JsonResponse
+    public function getConversation(string $shopId, string $conversationId): JsonResponse
     {
-        $pageSize = $request->get('page_size', 20);
-        $cursor = $request->get('cursor');
-
-        $result = $this->chatService->getMessages($conversationId, $pageSize, $cursor);
-
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'data' => $result['messages'],
-                'next_cursor' => $result['next_cursor'],
-                'has_more' => $result['has_more'],
-                'total_count' => count($result['messages'])
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
         }
+
+        $result = $chatService->getOneConversation($conversationId);
+        return $this->formatResponse($result);
     }
 
     /**
-     * ส่งข้อความ
+     * ดึงประวัติข้อความจากห้องแชท
+     * ตัวอย่าง Route: GET /api/shopee/chat/{shopId}/messages/{conversationId}
      */
-    public function sendMessage(Request $request): JsonResponse
+    public function getMessages(Request $request, string $shopId, string $conversationId): JsonResponse
     {
-        $request->validate([
-            'conversation_id' => 'required|string',
-            'content' => 'required|string',
-            'message_type' => 'in:text,image,item,order,sticker'
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
+        }
+
+        $options = $request->only(['page_size', 'offset', 'message_id_list']);
+        $result = $chatService->getMessages($conversationId, $options);
+        return $this->formatResponse($result);
+    }
+
+    /**
+     * ส่งข้อความไปยังผู้ใช้
+     * ตัวอย่าง Route: POST /api/shopee/chat/{shopId}/send-message
+     */
+    public function sendMessage(Request $request, string $shopId): JsonResponse
+    {
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
+        }
+
+        $validatedData = $request->validate([
+            'to_id' => 'required|integer',
+            'message_type' => 'required|string|in:text,order,item,image,sticker,video,voucher',
+            'content' => 'required|array',
         ]);
 
-        $result = $this->chatService->sendMessage(
-            $request->conversation_id,
-            $request->content,
-            $request->message_type ?? 'text'
+        $options = $request->only(['business_type', 'conversation_id']);
+
+        $result = $chatService->sendMessage(
+            $validatedData['to_id'],
+            $validatedData['message_type'],
+            $validatedData['content'],
+            $options
         );
 
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'ส่งข้อความสำเร็จ',
-                'message_id' => $result['message_id']
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
-        }
+        return $this->formatResponse($result);
     }
 
     /**
-     * ส่งรูปภาพ
+     * อัปโหลดรูปภาพสำหรับใช้ในแชท
+     * ตัวอย่าง Route: POST /api/shopee/chat/57198184/upload-image
      */
-    public function sendImage(Request $request): JsonResponse
+    public function uploadImage(Request $request, string $shopId): JsonResponse
     {
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
+        }
+
+        $request->validate(['file' => 'required|file|mimes:jpg,jpeg,png,gif|max:10240']);
+
+        $result = $chatService->uploadImage($request->file('file'));
+        return $this->formatResponse($result);
+    }
+
+    /**
+     * อัปโหลดวิดีโอสำหรับใช้ในแชท
+     * ตัวอย่าง Route: POST /api/shopee/chat/{shopId}/upload-video
+     */
+    public function uploadVideo(Request $request, string $shopId): JsonResponse
+    {
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
+        }
+
         $request->validate([
-            'conversation_id' => 'required|string',
-            'image_url' => 'required|url'
+            // ขนาดไม่เกิน 30MB (30720 KB) และอนุญาตเฉพาะไฟล์วิดีโอ
+            'file' => 'required|file|mimes:mp4,mov,avi,webm|max:30720',
         ]);
 
-        $result = $this->chatService->sendImageMessage(
-            $request->conversation_id,
-            $request->image_url
-        );
-
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'ส่งรูปภาพสำเร็จ',
-                'message_id' => $result['message_id']
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
-        }
+        $result = $chatService->uploadVideo($request->file('file'));
+        return $this->formatResponse($result);
     }
 
     /**
-     * ส่งข้อความผลิตภัณฑ์
+     * ตรวจสอบผลลัพธ์การอัปโหลดวิดีโอ
+     * ตัวอย่าง Route: GET /api/shopee/chat/{shopId}/video-result/{vid}
      */
-    public function sendProduct(Request $request): JsonResponse
+    public function getVideoUploadResult(string $shopId, string $vid): JsonResponse
     {
-        $request->validate([
-            'conversation_id' => 'required|string',
-            'item_id' => 'required|integer'
-        ]);
-
-        $result = $this->chatService->sendProductMessage(
-            $request->conversation_id,
-            $request->item_id
-        );
-
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'ส่งผลิตภัณฑ์สำเร็จ',
-                'message_id' => $result['message_id']
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
+        $chatService = $this->getChatService($shopId);
+        if (!$chatService) {
+            return response()->json(['status' => 'error', 'message' => "Shopee configuration for Shop ID '{$shopId}' not found."], 404);
         }
+
+        $result = $chatService->getVideoUploadResult($vid);
+        return $this->formatResponse($result);
     }
 
     /**
-     * อัปเดตสถานะการอ่าน
+     * Helper function สำหรับจัดรูปแบบ Response
      */
-    public function markAsRead(Request $request): JsonResponse
+    private function formatResponse(array $result): JsonResponse
     {
-        $request->validate([
-            'conversation_id' => 'required|string'
-        ]);
-
-        $result = $this->chatService->markAsRead($request->conversation_id);
-
-        if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'อัปเดตสถานะการอ่านสำเร็จ'
-            ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
-        }
-    }
-
-    /**
-     * ดึงข้อมูลร้านค้า
-     */
-    public function getShopInfo(): JsonResponse
-    {
-        $result = $this->chatService->getShopInfo();
-
         if ($result['success']) {
             return response()->json([
                 'status' => 'success',
                 'data' => $result['data']
             ]);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => $result['error']
-            ], 400);
         }
-    }
 
-    /**
-     * Debug signature generation for Chat API
-     */
-    public function debugChatSignature(): JsonResponse
-    {
-        try {
-            $path = '/api/v2/sellerchat/get_conversation_list';
-            $timestamp = time();
-            $partnerId = config('shopee.partner_id');
-            $partnerKey = config('shopee.partner_key');
-            $accessToken = config('shopee.access_token');
-            $shopId = config('shopee.shop_id');
-
-            // Chat API signature (without shop_id)
-            $chatBaseString = $partnerId . $path . $timestamp . $accessToken;
-            $chatSign = hash_hmac('sha256', $chatBaseString, $partnerKey);
-
-            // Regular API signature (with shop_id)
-            $regularBaseString = $partnerId . $path . $timestamp . $accessToken . $shopId;
-            $regularSign = hash_hmac('sha256', $regularBaseString, $partnerKey);
-
-            return response()->json([
-                'success' => true,
-                'debug_info' => [
-                    'path' => $path,
-                    'timestamp' => $timestamp,
-                    'partner_id' => $partnerId,
-                    'shop_id' => $shopId,
-                    'access_token' => substr($accessToken, 0, 10) . '...',
-                    'chat_api' => [
-                        'base_string' => $chatBaseString,
-                        'sign' => $chatSign
-                    ],
-                    'regular_api' => [
-                        'base_string' => $regularBaseString,
-                        'sign' => $regularSign
-                    ]
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Configuration Error: ' . $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'error',
+            'message' => $result['message'],
+            'details' => $result['details'] ?? null
+        ], 400);
     }
 }

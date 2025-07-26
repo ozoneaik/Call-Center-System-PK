@@ -97,7 +97,7 @@ export const TokenForm = (props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} >
+    <form onSubmit={handleSubmit}>
       <Stack spacing={2}>
         <FormControl>
           <FormLabel>Platform</FormLabel>
@@ -130,7 +130,8 @@ export const TokenForm = (props) => {
         {newToken.platform && (
           <FormControl>
             <FormLabel>Token</FormLabel>
-            <Input required
+            <Input
+              required
               name="accessToken"
               onChange={handleOnChange}
               placeholder="กรุณากรอก Token"
@@ -142,7 +143,8 @@ export const TokenForm = (props) => {
         {newToken.platform === "facebook" && (
           <FormControl>
             <FormLabel>Page ID</FormLabel>
-            <Input required
+            <Input
+              required
               name="page_id"
               onChange={handleOnChange}
               placeholder="กรุณากรอก Page ID"
@@ -155,7 +157,8 @@ export const TokenForm = (props) => {
           <>
             <FormControl>
               <FormLabel>App Key</FormLabel>
-              <Input required
+              <Input
+                required
                 name="laz_app_key"
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก Lazada App Key"
@@ -164,7 +167,8 @@ export const TokenForm = (props) => {
             </FormControl>
             <FormControl>
               <FormLabel>App Secret</FormLabel>
-              <Input required
+              <Input
+                required
                 name="laz_app_secret"
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก App Secret"
@@ -174,10 +178,56 @@ export const TokenForm = (props) => {
           </>
         )}
 
+        {newToken.platform === "shopee" && (
+          <>
+            <FormControl>
+              <FormLabel>Partner ID</FormLabel>
+              <Input
+                required
+                name="shopee_partner_id"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Partner ID"
+                value={newToken.shopee_partner_id || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Partner Key</FormLabel>
+              <Input
+                required
+                name="shopee_partner_key"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Partner Key"
+                value={newToken.shopee_partner_key || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Shop ID</FormLabel>
+              <Input
+                required
+                name="shopee_shop_id"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Shop ID"
+                value={newToken.shopee_shop_id || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Refresh Token</FormLabel>
+              <Input
+                required
+                name="shopee_refresh_token"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Refresh Token"
+                value={newToken.shopee_refresh_token || ""}
+              />
+            </FormControl>
+          </>
+        )}
+
         {newToken.platform && (
           <FormControl>
             <FormLabel>คำอธิบาย</FormLabel>
-            <Input required
+            <Input
+              required
               name="description"
               onChange={handleOnChange}
               placeholder="กรุณากรอกคำอธิบาย"

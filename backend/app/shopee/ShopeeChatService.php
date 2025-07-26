@@ -3,6 +3,8 @@
 namespace App\shopee;
 
 use Illuminate\Support\Facades\Http;
+use Exception;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 
 class ShopeeChatService
@@ -11,416 +13,557 @@ class ShopeeChatService
     private $partnerKey;
     private $shopId;
     private $accessToken;
-    private $baseUrl = 'https://partner.shopeemobile.com';
+    private $baseUrl;
 
-    public function __construct()
+    public function __construct(string $partnerId, string $partnerKey, string $shopId, string $accessToken)
     {
-        $this->partnerId = config('shopee.partner_id');
-        $this->partnerKey = config('shopee.partner_key');
-        $this->shopId = config('shopee.shop_id');
-        $this->accessToken = config('shopee.access_token');
-
-        // ตรวจสอบว่าค่า config ครบถ้วน
-        if (empty($this->partnerId) || empty($this->partnerKey) || empty($this->shopId) || empty($this->accessToken)) {
-            throw new \Exception('Shopee API configuration is incomplete. Please check your .env file.');
-        }
+        $this->partnerId = $partnerId;
+        $this->partnerKey = $partnerKey;
+        $this->shopId = $shopId;
+        $this->accessToken = $accessToken;
+        $this->baseUrl = config('shopee.base_url', 'https://partner.shopeemobile.com');
     }
 
     /**
-     * คำนวณ Sign สำหรับ Shopee API
+     * เรียก API v2.shop.get_shop_info
+     * เพื่อดึงข้อมูลร้านค้า
+     * @return array
      */
-    private function generateSign($path, $timestamp, $accessToken = null, $shopId = null)
-    {
-        $baseString = $this->partnerId . $path . $timestamp;
-
-        if ($accessToken) {
-            $baseString .= $accessToken;
-        }
-
-        if ($shopId) {
-            $baseString .= $shopId;
-        }
-
-        return hash_hmac('sha256', $baseString, $this->partnerKey);
-    }
-
-    /**
-     * คำนวณ Sign สำหรับ Chat API (ไม่ใส่ shop_id ใน base string)
-     */
-    private function generateChatSign($path, $timestamp, $accessToken)
-    {
-        $baseString = $this->partnerId . $path . $timestamp . $accessToken;
-        return hash_hmac('sha256', $baseString, $this->partnerKey);
-    }
-
-    /**
-     * สร้าง Common Parameters สำหรับ API Call
-     */
-    private function getCommonParams($path, $includeShop = true)
-    {
-        $timestamp = time();
-        $params = [
-            'partner_id' => (int)$this->partnerId,
-            'timestamp' => $timestamp,
-            'access_token' => $this->accessToken,
-        ];
-
-        if ($includeShop) {
-            $params['shop_id'] = (int)$this->shopId;
-            $params['sign'] = $this->generateSign($path, $timestamp, $this->accessToken, $this->shopId);
-        } else {
-            $params['sign'] = $this->generateSign($path, $timestamp, $this->accessToken);
-        }
-
-        return $params;
-    }
-
-    /**
-     * สร้าง Common Parameters สำหรับ Chat API Call
-     */
-    private function getChatParams($path)
-    {
-        $timestamp = time();
-        $params = [
-            'partner_id' => (int)$this->partnerId,
-            'timestamp' => $timestamp,
-            'access_token' => $this->accessToken,
-            'shop_id' => (int)$this->shopId,
-            'sign' => $this->generateChatSign($path, $timestamp, $this->accessToken)
-        ];
-
-        return $params;
-    }
-
-    /**
-     * ดึงรายการการสนทนาทั้งหมด
-     */
-    public function getConversations($pageSize = 20, $cursor = null)
-    {
-        $path = '/api/v2/sellerchat/get_conversation_list';
-        $params = $this->getChatParams($path);
-        $params['page_size'] = $pageSize;
-
-        if ($cursor) {
-            $params['cursor'] = $cursor;
-        }
-
-        // Debug log
-        Log::info('Get Conversations Request:', [
-            'url' => $this->baseUrl . $path,
-            'params' => array_merge($params, ['access_token' => substr($this->accessToken, 0, 10) . '...']),
-            'sign_input' => $this->partnerId . $path . $params['timestamp'] . $this->accessToken
-        ]);
-
-        try {
-            $response = Http::get($this->baseUrl . $path, $params);
-
-            if (!$response->successful()) {
-                Log::error('HTTP Error: ' . $response->status() . ' - ' . $response->body());
-                return [
-                    'success' => false,
-                    'error' => 'HTTP Error: ' . $response->status() . ' - ' . $response->body()
-                ];
-            }
-
-            $data = $response->json();
-            Log::info('Get Conversations Response:', $data);
-
-            if (isset($data['error']) && $data['error'] === '') {
-                return [
-                    'success' => true,
-                    'data' => $data['response'],
-                    'conversations' => $data['response']['conversation_list'] ?? [],
-                    'next_cursor' => $data['response']['next_cursor'] ?? null,
-                    'has_more' => $data['response']['has_more'] ?? false
-                ];
-            } else {
-                Log::error('Shopee API Error: ' . ($data['message'] ?? $data['error'] ?? 'Unknown error'));
-                return [
-                    'success' => false,
-                    'error' => $data['message'] ?? $data['error'] ?? 'Unknown error'
-                ];
-            }
-        } catch (\Exception $e) {
-            Log::error('HTTP Request Error: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * ดึงรายการข้อความในการสนทนา
-     */
-    public function getMessages($conversationId, $pageSize = 20, $cursor = null)
-    {
-        $path = '/api/v2/sellerchat/get_message_list';
-        $params = $this->getChatParams($path);
-        $params['conversation_id'] = $conversationId;
-        $params['page_size'] = $pageSize;
-
-        if ($cursor) {
-            $params['cursor'] = $cursor;
-        }
-
-        // Debug log
-        Log::info('Get Messages Request:', [
-            'url' => $this->baseUrl . $path,
-            'params' => array_merge($params, ['access_token' => substr($this->accessToken, 0, 10) . '...']),
-            'sign_input' => $this->partnerId . $path . $params['timestamp'] . $this->accessToken
-        ]);
-
-        try {
-            $response = Http::get($this->baseUrl . $path, $params);
-
-            if (!$response->successful()) {
-                Log::error('HTTP Error: ' . $response->status() . ' - ' . $response->body());
-                return [
-                    'success' => false,
-                    'error' => 'HTTP Error: ' . $response->status() . ' - ' . $response->body()
-                ];
-            }
-
-            $data = $response->json();
-            Log::info('Get Messages Response:', $data);
-
-            if (isset($data['error']) && $data['error'] === '') {
-                return [
-                    'success' => true,
-                    'data' => $data['response'],
-                    'messages' => $data['response']['message_list'] ?? [],
-                    'next_cursor' => $data['response']['next_cursor'] ?? null,
-                    'has_more' => $data['response']['has_more'] ?? false
-                ];
-            } else {
-                Log::error('Shopee API Error: ' . ($data['message'] ?? $data['error'] ?? 'Unknown error'));
-                return [
-                    'success' => false,
-                    'error' => $data['message'] ?? $data['error'] ?? 'Unknown error'
-                ];
-            }
-        } catch (\Exception $e) {
-            Log::error('HTTP Request Error: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * ส่งข้อความ
-     */
-    public function sendMessage($conversationId, $content, $messageType = 'text')
-    {
-        $path = '/api/v2/sellerchat/send_message';
-        $params = $this->getChatParams($path);
-
-        $messageData = [
-            'conversation_id' => $conversationId,
-            'message_type' => $messageType,
-            'content' => $content
-        ];
-
-        // Debug log
-        Log::info('Send Message Request:', [
-            'url' => $this->baseUrl . $path,
-            'params' => array_merge($params, ['access_token' => substr($this->accessToken, 0, 10) . '...']),
-            'data' => $messageData,
-            'sign_input' => $this->partnerId . $path . $params['timestamp'] . $this->accessToken
-        ]);
-
-        try {
-            $response = Http::post($this->baseUrl . $path . '?' . http_build_query($params), $messageData);
-
-            if (!$response->successful()) {
-                Log::error('HTTP Error: ' . $response->status() . ' - ' . $response->body());
-                return [
-                    'success' => false,
-                    'error' => 'HTTP Error: ' . $response->status() . ' - ' . $response->body()
-                ];
-            }
-
-            $data = $response->json();
-            Log::info('Send Message Response:', $data);
-
-            if (isset($data['error']) && $data['error'] === '') {
-                return [
-                    'success' => true,
-                    'data' => $data['response'],
-                    'message_id' => $data['response']['message_id'] ?? null
-                ];
-            } else {
-                Log::error('Shopee API Error: ' . ($data['message'] ?? $data['error'] ?? 'Unknown error'));
-                return [
-                    'success' => false,
-                    'error' => $data['message'] ?? $data['error'] ?? 'Unknown error'
-                ];
-            }
-        } catch (\Exception $e) {
-            Log::error('HTTP Request Error: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * ส่งข้อความเป็นรูปภาพ
-     */
-    public function sendImageMessage($conversationId, $imageUrl)
-    {
-        return $this->sendMessage($conversationId, ['image_url' => $imageUrl], 'image');
-    }
-
-    /**
-     * ส่งข้อความเป็นผลิตภัณฑ์
-     */
-    public function sendProductMessage($conversationId, $itemId)
-    {
-        return $this->sendMessage($conversationId, ['item_id' => $itemId], 'item');
-    }
-
-    /**
-     * อัปเดตสถานะการอ่านข้อความ
-     */
-    public function markAsRead($conversationId)
-    {
-        $path = '/api/v2/sellerchat/read_conversation';
-        $params = $this->getChatParams($path);
-
-        $messageData = [
-            'conversation_id' => $conversationId
-        ];
-
-        // Debug log
-        Log::info('Mark as Read Request:', [
-            'url' => $this->baseUrl . $path,
-            'params' => array_merge($params, ['access_token' => substr($this->accessToken, 0, 10) . '...']),
-            'data' => $messageData,
-            'sign_input' => $this->partnerId . $path . $params['timestamp'] . $this->accessToken
-        ]);
-
-        try {
-            $response = Http::post($this->baseUrl . $path . '?' . http_build_query($params), $messageData);
-
-            if (!$response->successful()) {
-                Log::error('HTTP Error: ' . $response->status() . ' - ' . $response->body());
-                return [
-                    'success' => false,
-                    'error' => 'HTTP Error: ' . $response->status() . ' - ' . $response->body()
-                ];
-            }
-
-            $data = $response->json();
-            Log::info('Mark as Read Response:', $data);
-
-            return [
-                'success' => (isset($data['error']) && $data['error'] === ''),
-                'error' => (isset($data['error']) && $data['error'] !== '') ? ($data['message'] ?? $data['error']) : null
-            ];
-        } catch (\Exception $e) {
-            Log::error('HTTP Request Error: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * ดึงข้อมูลร้านค้า
-     */
-    public function getShopInfo()
-    {
-        $path = '/api/v2/shop/get_shop_info';
-        $params = $this->getCommonParams($path);
-
-        try {
-            $response = Http::get($this->baseUrl . $path, $params);
-
-            if (!$response->successful()) {
-                Log::error('HTTP Error: ' . $response->status() . ' - ' . $response->body());
-                return [
-                    'success' => false,
-                    'error' => 'HTTP Error: ' . $response->status()
-                ];
-            }
-
-            $data = $response->json();
-
-            // Debug log
-            Log::info('Shopee API Response:', $data);
-
-            if (isset($data['error']) && $data['error'] === '') {
-                return [
-                    'success' => true,
-                    'data' => $data['response'] ?? $data
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'error' => $data['message'] ?? $data['error'] ?? 'Unknown error'
-                ];
-            }
-        } catch (\Exception $e) {
-            Log::error('Exception in getShopInfo: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * ทดสอบการเชื่อมต่อ
-     */
-    public function testConnection()
+    public function getShopInfo(): array
     {
         try {
-            // ทดสอบการสร้าง Sign ก่อน
             $path = '/api/v2/shop/get_shop_info';
             $timestamp = time();
-            $sign = $this->generateSign($path, $timestamp, $this->accessToken, $this->shopId);
 
-            Log::info('Generated Sign Test:', [
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ];
+
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()];
+            }
+            return ['success' => false, 'message' => 'Failed to get shop info from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.order.get_order_list
+     */
+    public function getOrderList(array $options = []): array
+    {
+        try {
+            $path = '/api/v2/order/get_order_list';
+            $timestamp = time();
+
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ];
+
+            $queryParams = array_merge($queryParams, $options);
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get order list from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.order.get_order_detail (ฉบับแก้ไข)
+     *
+     * @param array $orderSnList
+     * @param array $options
+     * @return array
+     */
+    public function getOrderDetail(array $orderSnList, array $options = []): array
+    {
+        try {
+            $path = '/api/v2/order/get_order_detail';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+                'order_sn_list' => implode(',', $orderSnList),
+            ];
+
+            if (isset($options['response_optional_fields'])) {
+                $queryParams['response_optional_fields'] = $options['response_optional_fields'];
+            }
+
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get order detail from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.get_conversation_list
+     */
+    public function getConversationList(array $options = []): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/get_conversation_list';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $defaultParams = [
+                'direction' => 'older',
+                'type' => 'all',
+                'page_size' => 20
+            ];
+            $finalOptions = array_merge($defaultParams, $options);
+
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ];
+            $queryParams = array_merge($queryParams, $finalOptions);
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get conversation list from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.get_one_conversation
+     */
+    public function getOneConversation(string $conversationId): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/get_one_conversation';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+            $queryParams = [
+                'partner_id'      => (int)$this->partnerId,
+                'timestamp'       => $timestamp,
+                'sign'            => $sign,
+                'shop_id'         => (int)$this->shopId,
+                'access_token'    => $this->accessToken,
+                'conversation_id' => $conversationId,
+            ];
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get the conversation from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.delete_conversation
+     * เพื่อลบห้องสนทนา
+     *
+     * @param string $conversationId
+     * @param array $options
+     * @return array
+     */
+    public function deleteConversation(string $conversationId, array $options = []): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/delete_conversation';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $authUrl = $this->baseUrl . $path . '?' . http_build_query([
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ]);
+
+            $body = array_merge([
+                'conversation_id' => $conversationId,
+            ], $options);
+
+            $response = Http::post($authUrl, $body);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response'] ?? 'Conversation deleted successfully.'];
+            }
+            return ['success' => false, 'message' => 'Failed to delete conversation via Shopee API.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.get_message
+     */
+    public function getMessages(string $conversationId, array $options = []): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/get_message';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+            $queryParams = [
+                'partner_id'      => (int)$this->partnerId,
+                'timestamp'       => $timestamp,
+                'sign'            => $sign,
+                'shop_id'         => (int)$this->shopId,
+                'access_token'    => $this->accessToken,
+                'conversation_id' => $conversationId,
+            ];
+            $queryParams = array_merge($queryParams, $options);
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get messages from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.send_message
+     */
+    public function sendMessage(int $toId, string $messageType, array $content, array $options = []): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/send_message';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $authUrl = $this->baseUrl . $path . '?' . http_build_query([
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ]);
+
+            $body = array_merge([
+                'to_id'         => $toId,
+                'message_type'  => $messageType,
+                'content'       => $content,
+            ], $options);
+
+            $response = Http::post($authUrl, $body);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to send message via Shopee API.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.upload_image (Debug version)
+     * เพื่ออัปโหลดรูปภาพและรับ URL
+     *
+     * @param UploadedFile $file
+     * @return array
+     */
+    public function uploadImage(UploadedFile $file): array
+    {
+        try {
+            // Validation
+            if (!$file->isValid()) {
+                return ['success' => false, 'message' => 'Invalid uploaded file', 'details' => 'File validation failed'];
+            }
+
+            $path = '/api/v2/sellerchat/upload_image';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            // Log การสร้าง signature สำหรับ debug
+            Log::channel('shopee_cron_job_log')->debug('Shopee upload signature debug', [
+                'partnerId' => $this->partnerId,
                 'path' => $path,
                 'timestamp' => $timestamp,
-                'partner_id' => $this->partnerId,
-                'shop_id' => $this->shopId,
-                'access_token' => substr($this->accessToken, 0, 10) . '...',
+                'shopId' => $this->shopId,
+                'baseString' => $baseString,
                 'sign' => $sign
             ]);
 
-            $shopInfo = $this->getShopInfo();
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ];
 
-            if ($shopInfo['success']) {
-                Log::info('Shopee API connection successful');
-                return [
-                    'success' => true,
-                    'message' => 'เชื่อมต่อสำเร็จ',
-                    'shop_name' => $shopInfo['data']['shop_name'] ?? 'N/A',
-                    'shop_id' => $shopInfo['data']['shop_id'] ?? 'N/A',
-                    'timestamp' => $timestamp,
-                    'sign' => $sign
-                ];
+            $authUrl = $this->baseUrl . $path . '?' . http_build_query($queryParams);
+
+            // Log request details
+            Log::channel('shopee_cron_job_log')->info('Shopee upload image request', [
+                'url' => $authUrl,
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'shop_id' => $this->shopId
+            ]);
+
+            // ส่ง request
+            $response = Http::timeout(60)
+                ->asMultipart()
+                ->attach(
+                    'file', // ตรวจสอบว่า field name ถูกต้องหรือไม่ อาจต้องเป็น 'image'
+                    $file->getContent(),
+                    $file->getClientOriginalName()
+                )
+                ->post($authUrl);
+
+            // Log response details
+            Log::channel('shopee_cron_job_log')->info('Shopee upload image response', [
+                'status_code' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body(),
+                'is_successful' => $response->successful()
+            ]);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+
+                // ตรวจสอบ error ใน response
+                if (isset($responseData['error']) && !empty($responseData['error'])) {
+                    return [
+                        'success' => false,
+                        'message' => 'Shopee API error: ' . ($responseData['message'] ?? $responseData['error']),
+                        'details' => $responseData
+                    ];
+                }
+
+                // Success case
+                if (isset($responseData['response'])) {
+                    return ['success' => true, 'data' => $responseData['response']];
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Unexpected response format',
+                        'details' => $responseData
+                    ];
+                }
             } else {
-                Log::error('Shopee API connection failed: ' . $shopInfo['error']);
+                // HTTP error
+                $errorBody = $response->body();
+                $errorData = null;
+
+                try {
+                    $errorData = $response->json();
+                } catch (\Exception $e) {
+                    // Response is not JSON
+                }
+
                 return [
                     'success' => false,
-                    'message' => 'เชื่อมต่อล้มเหลว: ' . $shopInfo['error'],
-                    'timestamp' => $timestamp,
-                    'sign' => $sign
+                    'message' => 'HTTP error ' . $response->status(),
+                    'details' => [
+                        'status' => $response->status(),
+                        'body' => $errorBody,
+                        'json' => $errorData,
+                        'headers' => $response->headers()
+                    ]
                 ];
             }
-        } catch (\Exception $e) {
-            Log::error('Test connection exception: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::channel('shopee_cron_job_log')->error('Exception in uploadImage', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return [
                 'success' => false,
-                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+                'message' => 'Exception: ' . $e->getMessage(),
+                'details' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
             ];
         }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.upload_video
+     * เพื่ออัปโหลดไฟล์วิดีโอ
+     * @param UploadedFile $file
+     * @return array
+     */
+    public function uploadVideo(UploadedFile $file): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/upload_video';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $authUrl = $this->baseUrl . $path . '?' . http_build_query([
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ]);
+
+            $response = Http::asMultipart()
+                ->attach('file', $file->getContent(), $file->getClientOriginalName())
+                ->post($authUrl);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to upload video to Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.get_video_upload_result
+     * เพื่อตรวจสอบสถานะการอัปโหลดวิดีโอ
+     * @param string $vid
+     * @return array
+     */
+    public function getVideoUploadResult(string $vid): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/get_video_upload_result';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $queryParams = [
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+                'vid'           => $vid,
+            ];
+
+            $response = Http::get($this->baseUrl . $path, $queryParams);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response']];
+            }
+            return ['success' => false, 'message' => 'Failed to get video upload result from Shopee.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก API v2.sellerchat.delete_message
+     * เพื่อลบข้อความ
+     *
+     * @param string $messageId
+     * @param string $messageType
+     * @param array $options
+     * @return array
+     */
+    public function deleteMessage(string $messageId, string $messageType, array $options = []): array
+    {
+        try {
+            $path = '/api/v2/sellerchat/delete_message';
+            $timestamp = time();
+            $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+            $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+            $authUrl = $this->baseUrl . $path . '?' . http_build_query([
+                'partner_id'    => (int)$this->partnerId,
+                'timestamp'     => $timestamp,
+                'sign'          => $sign,
+                'shop_id'       => (int)$this->shopId,
+                'access_token'  => $this->accessToken,
+            ]);
+
+            $body = array_merge([
+                'message_id'   => $messageId,
+                'message_type' => $messageType,
+            ], $options);
+
+            $response = Http::post($authUrl, $body);
+
+            if ($response->successful() && empty($response->json()['error'])) {
+                return ['success' => true, 'data' => $response->json()['response'] ?? 'Message deleted successfully.'];
+            }
+            return ['success' => false, 'message' => 'Failed to delete message via Shopee API.', 'details' => $response->json()];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'An exception occurred: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * ดึงข้อมูล Media (เช่น รูปภาพ, วิดีโอ) จาก URL ของ Shopee
+     * ที่ต้องมีการยืนยันตัวตน (ฉบับแก้ไข เพิ่ม timestamp และ sign)
+     *
+     * @param string $mediaPath path ของ Media เช่น 'api/v4/...'
+     * @return \Illuminate\Http\Client\Response
+     */
+    public function getMediaContent(string $mediaPath): \Illuminate\Http\Client\Response
+    {
+        $path = '/' . ltrim($mediaPath, '/'); // ทำให้ path ขึ้นต้นด้วย / เสมอ
+        $timestamp = time();
+
+        // สร้าง BaseString และ Signature ให้ถูกต้อง
+        $baseString = $this->partnerId . $path . $timestamp . $this->accessToken . $this->shopId;
+        $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+        $queryParams = [
+            'partner_id'   => (int)$this->partnerId,
+            'shop_id'      => (int)$this->shopId,
+            'access_token' => $this->accessToken,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+        ];
+
+        // ยิง GET request พร้อมพารามิเตอร์ยืนยันตัวตนที่ครบถ้วน
+        return Http::timeout(60)->get($this->baseUrl . $path, $queryParams);
     }
 }

@@ -73,6 +73,13 @@ class TokenController extends Controller
                 $store->laz_app_secret = $request->get('laz_app_secret');
             } else {
             }
+            if ($request->get('platform') === 'shopee') {
+                $store->shopee_partner_id = $request->get('shopee_partner_id');
+                $store->shopee_partner_key = $request->get('shopee_partner_key');
+                $store->shopee_shop_id = $request->get('shopee_shop_id');
+                $store->shopee_refresh_token = $request->get('shopee_refresh_token');
+                // 'accessToken' จะถูกใช้เป็น shopee_access_token
+            }
             $store->save();
             return response()->json([
                 'message' => 'สร้าง token สำเร็จ',
@@ -109,6 +116,13 @@ class TokenController extends Controller
             if ($request->get('platform') === 'lazada') {
                 $update->app_key = $request->get('laz_app_key');
                 $update->app_secret = $request->get('laz_app_secret');
+            }
+
+            if ($request->get('platform') === 'shopee') {
+                $update->shopee_partner_id = $request->get('shopee_partner_id');
+                $update->shopee_partner_key = $request->get('shopee_partner_key');
+                $update->shopee_shop_id = $request->get('shopee_shop_id');
+                $update->shopee_refresh_token = $request->get('shopee_refresh_token');
             }
             $update->save();
             return response()->json([

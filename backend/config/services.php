@@ -44,4 +44,12 @@ return [
         'app_key' => env('LAZADA_APP_KEY'),
         'app_secret' => env('LAZADA_APP_SECRET'),
     ],
+
+    'tiktok' => [
+        'app_key'     => env('TIKTOK_APP_KEY'),
+        'app_secret'  => env('TIKTOK_APP_SECRET'),
+        'redirect_uri' => env('TIKTOK_REDIRECT_URI'),
+        'access_token' => env('TIKTOK_ACCESS_TOKEN'),
+        'shop_cipher' => env('TIKTOK_SHOPCIPHER'),
+    ],
 ];

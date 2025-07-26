@@ -108,6 +108,7 @@ export default function MessageInputNew(props) {
     setLoading(true);
     try {
       const senderPlatform_format = sender?.platform || "Unknown";
+
       if (senderPlatform_format.toLowerCase() === "lazada") {
         const validation = validateFiles();
         if (!validation.valid) {
@@ -142,6 +143,45 @@ export default function MessageInputNew(props) {
 
         if (status === 200) {
           console.info("Lazada send response:", data);
+          setInputText("");
+          setFiles([]);
+        } else {
+          AlertDiaLog({
+            icon: "error",
+            title: data.message || "เกิดข้อผิดพลาด",
+            text: data.detail || "ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง",
+          });
+        }
+      } else if (senderPlatform_format.toLowerCase() === "shopee") {
+        const formData = new FormData();
+        formData.append("custId", sender.custId);
+        formData.append("conversationId", activeId);
+
+        if (inputText.trim()) {
+          formData.append("messages[0][content]", inputText);
+          formData.append("messages[0][contentType]", "text");
+        }
+
+        files.forEach((file, index) => {
+          const messageIndex = inputText.trim() ? index + 1 : index;
+          const contentType = file.type.startsWith("video/")
+            ? "video"
+            : "image";
+
+          formData.append(`messages[${messageIndex}][content]`, file);
+          formData.append(
+            `messages[${messageIndex}][contentType]`,
+            contentType
+          ); 
+        });
+
+        const { data, status } = await axiosClient.post(
+          "/messages/shopee/send",
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        if (status === 200) {
+          console.info("Shopee send response:", data);
           setInputText("");
           setFiles([]);
         } else {
@@ -208,7 +248,6 @@ export default function MessageInputNew(props) {
             ไฟล์ที่แนบ:
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-            {/* ✅ [แก้ไข] ส่วนแสดงผลไฟล์ตัวอย่าง */}
             {files.map((file, index) => {
               let previewContent;
               if (file.type.startsWith("image/")) {
