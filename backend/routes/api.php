@@ -249,6 +249,23 @@ Route::prefix('webhooks')->group(function () {
 
     //http://localhost:8000/api/webhooks/tiktok/order-detail
     Route::get('/tiktok/order-detail', [TikTokShopController::class, 'getOrderDetail']);
+
+    //http://localhost:8000/api/webhooks/tiktok/conversations
+    Route::prefix('tiktok')->group(function () {
+        // Existing routesw
+        Route::get('/authorized-shops', [TikTokShopController::class, 'getAuthorizedShops']);
+        Route::get('/order-detail', [TikTokShopController::class, 'getOrderDetail']);
+
+        // New conversation routes
+        Route::get('/conversations', [TikTokShopController::class, 'getConversations']);
+        Route::get('/conversation/{conversationId}', [TikTokShopController::class, 'getConversationDetail']);
+        Route::get('/conversation/{conversationId}/messages', [TikTokShopController::class, 'getConversationMessages']);
+        Route::post('/conversation/{conversationId}/send', [TikTokShopController::class, 'sendMessage']);
+        Route::put('/conversation/{conversationId}/status', [TikTokShopController::class, 'updateConversationStatus']);
+
+        // Webhook route
+        Route::post('/webhook', [TikTokShopController::class, 'handleWebhook']);
+    });
 });
 
 //------------------------------- SHOPEE CHAT-------------------------------------------------------------------------------
@@ -258,15 +275,9 @@ Route::prefix('webhooks')->group(function () {
 
 //http://localhost:8000/api/shopee-chat/shopee/
 Route::prefix('shopee-chat')->group(function () {
-    //     Route::get('/shopee/test-sign', [ShopeeTokenController::class, 'generateSign']);
-    //http://localhost:8000/api/shopee-chat/shopee/access-token 
+    Route::get('/shopee/test-sign', [ShopeeTokenController::class, 'generateSign']);
     Route::get('/shopee/access-token', [ShopeeTokenController::class, 'refreshToken']);
-
-    //     // Debug และทดสอบ
-    //     Route::get('/debug-config', [ShopeeChatController::class, 'debugConfig']);
-    //     Route::get('/test-connection', [ShopeeChatController::class, 'testConnection']);
-    //     Route::get('/test-chat-api', [ShopeeChatController::class, 'testChatAPI']);
-    //     Route::get('/shopee/debug-chat-sign', [ShopeeChatController::class, 'debugChatSignature']);
+    Route::get('/test-connection', [ShopeeChatController::class, 'testConnection']);
 
     //     // ข้อมูลร้านค้า
     //     //http://localhost:8000/api/shopee-chat/shopee/shop-info
