@@ -210,7 +210,6 @@ class ShopeeMessageService
         }
     }
     
-    // ... ส่วนที่เหลือของโค้ดยังคงเหมือนเดิม ...
     private function storeUploadedVideoLocally(UploadedFile $videoFile): ?string
     {
         try {
@@ -218,7 +217,6 @@ class ShopeeMessageService
             $fileName = pathinfo($originalName, PATHINFO_FILENAME) . '_' . time() . '.' . $videoFile->getClientOriginalExtension();
             $storagePath = 'shopee-videos/' . $fileName;
 
-            // บันทึกไฟล์ลง public storage
             $stored = Storage::disk('public')->put($storagePath, $videoFile->get());
 
             if (!$stored) {

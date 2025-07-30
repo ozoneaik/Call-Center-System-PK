@@ -229,14 +229,14 @@ Route::prefix('webhooks')->group(function () {
     Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
 
     //http://localhost:8000/api/webhooks/shopee
-    //https://b6933ac42efb.ngrok-free.app/api/webhooks/shopee
+    //https://e0c2e59fd590.ngrok-free.app/api/webhooks/shopee
     Route::post('/lazada', [LazadaController::class, 'handleWebhook']);
     Route::get('/lazada-new/callback', [LazadaNewController::class, 'handleCallback']);
     Route::post('/lazada/refresh-token', [LazadaNewController::class, 'refreshToken']);
     Route::get('/lazada/token/check-expiry/{seller_id}', [LazadaNewController::class, 'checkTokenExpiry']);
     // Route::get('/lazada/seller-info', [LazadaSellerController::class, 'getSellerInfo']);
 
-    //https://b6933ac42efb.ngrok-free.app/api/webhooks/tiktok/callback?code=TESTCODE123&state=xyz
+    //https://e0c2e59fd590.ngrok-free.app/api/webhooks/tiktok/callback?code=TESTCODE123&state=xyz
     //http://localhost:8000/api/webhooks/tiktok/callback
     Route::get('/tiktok/callback', [TiktokTokenController::class, 'getAccessToken']);
 

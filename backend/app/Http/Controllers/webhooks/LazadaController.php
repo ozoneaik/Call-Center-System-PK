@@ -21,6 +21,7 @@ class LazadaController extends Controller
     protected $pusherService;
     protected string $start_log_line = '--------------------------------------------------🌞 เริ่มรับ webhook--------------------------------------------------';
     protected string $end_log_line = '---------------------------------------------------🌚 สิ้นสุดรับ webhook---------------------------------------------------';
+
     public function __construct(PusherService $pusherService)
     {
         $this->pusherService = $pusherService;
@@ -47,15 +48,6 @@ class LazadaController extends Controller
 
         try {
             DB::beginTransaction();
-
-            // if ($messageType == 2 && isset($data['session_id'])) {
-            //     $customer = $this->getOrCreateCustomer($data['session_id']);
-            //     Log::channel('lazada_webhook_log')->info('ได้รับข้อความจาก: ' . $customer->custName);
-            //     // Log::channel('lazada_webhook_log')->info('MESSAGE DATA:', $data);
-            //     // Log::channel('lazada_webhook_log')->info('🧍 ลูกค้า: ' . $customer->custName);
-
-            //     $this->handleChatMessage($customer, $data);
-            // }
 
             if ($messageType == 2 && isset($data['session_id'])) {
                 $customer = $this->getOrCreateCustomer($data['session_id']);
@@ -153,11 +145,16 @@ class LazadaController extends Controller
         $contentData = json_decode($data['content'] ?? '{}', true);
         $result = ['content' => '[ไม่สามารถระบุประเภทข้อความได้]', 'contentType' => 'unknown'];
 
+        if (($data['template_id'] ?? null) == 10006 && isset($contentData['title'])) {
+            $result['content'] = "[ลูกค้าส่งข้อมูลสินค้า: " . $contentData['title'] . "]";
+            $result['contentType'] = 'card';
+            return $result;
+        }
+
         $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'] ?? null;
         if ($imageUrl) {
             $result['content'] = LazadaMessageService::storeMedia($imageUrl);
             $result['contentType'] = 'image';
-
             return $result;
         }
 
@@ -252,7 +249,13 @@ class LazadaController extends Controller
 
     private function handleNewMessage($customer, $raw)
     {
-        $newRate = Rates::query()->create(['custId' => $customer->custId, 'status' => 'progress']);
+        $newRate = Rates::query()->create([
+            'custId' => $customer->custId,
+            'status' => 'progress',
+            'rate'   => 0,
+            'latestRoomId' => 'ROOM00'
+        ]);
+
         $newAC = ActiveConversations::query()->create(['custId' => $customer->custId, 'roomId' => 'ROOM00', 'rateRef' => $newRate->id]);
 
         $processedMessage = $this->processMessageContent($raw);

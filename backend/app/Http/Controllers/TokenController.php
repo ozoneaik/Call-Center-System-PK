@@ -100,45 +100,98 @@ class TokenController extends Controller
         }
     }
 
+    // public function update(Request $request): JsonResponse
+    // {
+    //     try {
+    //         $update = PlatformAccessTokens::findOrFail($request['id']);
+    //         $update['accessToken'] = $request->get('accessToken');
+    //         $update['description'] = $request->get('description');
+    //         $update['platform'] = $request->get('platform');
+    //         if ($request->get('platform') === 'facebook') {
+    //             $store['fb_page_id'] = $request->get('fb_page_id');
+    //         } else {
+    //         }
+
+    //         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
+    //         if ($request->get('platform') === 'lazada') {
+    //             $update->app_key = $request->get('laz_app_key');
+    //             $update->app_secret = $request->get('laz_app_secret');
+    //         }
+
+    //         if ($request->get('platform') === 'shopee') {
+    //             $update->shopee_partner_id = $request->get('shopee_partner_id');
+    //             $update->shopee_partner_key = $request->get('shopee_partner_key');
+    //             $update->shopee_shop_id = $request->get('shopee_shop_id');
+    //             $update->shopee_refresh_token = $request->get('shopee_refresh_token');
+    //         }
+    //         $update->save();
+    //         return response()->json([
+    //             'message' => 'อัพเดทสำเร็จ',
+    //             'detail' => 'ไม่พบข้อผิดพลาด'
+    //         ]);
+    //     } catch (QueryException $e) {
+    //         return response()->json([
+    //             'message' => 'เกิดข้อผิดพลาด',
+    //             'detail' => "ฐานข้อมูลไม่ถูกต้อง"
+    //         ], 400);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'เกิดข้อผิดพลาด',
+    //             'detail' => $e->getMessage()
+    //         ], 400);
+    //     }
+    // }
+
     public function update(Request $request): JsonResponse
     {
         try {
-            $update = PlatformAccessTokens::findOrFail($request['id']);
-            $update['accessToken'] = $request->get('accessToken');
-            $update['description'] = $request->get('description');
-            $update['platform'] = $request->get('platform');
-            if ($request->get('platform') === 'facebook') {
-                $store['fb_page_id'] = $request->get('fb_page_id');
-            } else {
+            // Validate that an ID is provided
+            $request->validate(['id' => 'required|exists:platform_access_tokens,id']);
+
+            $update = PlatformAccessTokens::findOrFail($request->input('id'));
+
+            // Update common fields
+            $update->fill($request->only(['accessToken', 'description', 'platform']));
+
+            // Update platform-specific fields
+            if ($request->input('platform') === 'facebook') {
+                $update->fb_page_id = $request->input('fb_page_id');
             }
 
-            // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
-            if ($request->get('platform') === 'lazada') {
-                $update->app_key = $request->get('laz_app_key');
-                $update->app_secret = $request->get('laz_app_secret');
+            if ($request->input('platform') === 'lazada') {
+                // CORRECTED property names
+                $update->laz_app_key = $request->input('laz_app_key');
+                $update->laz_app_secret = $request->input('laz_app_secret');
             }
 
-            if ($request->get('platform') === 'shopee') {
-                $update->shopee_partner_id = $request->get('shopee_partner_id');
-                $update->shopee_partner_key = $request->get('shopee_partner_key');
-                $update->shopee_shop_id = $request->get('shopee_shop_id');
-                $update->shopee_refresh_token = $request->get('shopee_refresh_token');
+            if ($request->input('platform') === 'shopee') {
+                $update->shopee_partner_id = $request->input('shopee_partner_id');
+                $update->shopee_partner_key = $request->input('shopee_partner_key');
+                $update->shopee_shop_id = $request->input('shopee_shop_id');
+                $update->shopee_refresh_token = $request->input('shopee_refresh_token');
             }
+
             $update->save();
+
             return response()->json([
                 'message' => 'อัพเดทสำเร็จ',
                 'detail' => 'ไม่พบข้อผิดพลาด'
             ]);
-        } catch (QueryException $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'เกิดข้อผิดพลาด',
-                'detail' => "ฐานข้อมูลไม่ถูกต้อง"
-            ], 400);
+                'message' => 'ข้อมูลไม่ถูกต้อง',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'ไม่พบข้อมูล Token',
+                'detail' => 'The provided ID was not found.'
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'เกิดข้อผิดพลาด',
+                'message' => 'เกิดข้อผิดพลาดไม่คาดคิด',
                 'detail' => $e->getMessage()
-            ], 400);
+            ], 500);
         }
     }
 

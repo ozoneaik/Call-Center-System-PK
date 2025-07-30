@@ -110,16 +110,6 @@ export default function MessageInputNew(props) {
       const senderPlatform_format = sender?.platform || "Unknown";
 
       if (senderPlatform_format.toLowerCase() === "lazada") {
-        const validation = validateFiles();
-        if (!validation.valid) {
-          AlertDiaLog({
-            icon: "warning",
-            title: "ไม่รองรับไฟล์ที่แนบ",
-            text: validation.reason,
-          });
-          setLoading(false);
-          return;
-        }
         const formData = new FormData();
         formData.append("custId", sender.custId);
         formData.append("conversationId", activeId);
@@ -131,8 +121,15 @@ export default function MessageInputNew(props) {
 
         files.forEach((file, index) => {
           const messageIndex = inputText.trim() ? index + 1 : index;
+          const contentType = file.type.startsWith("video/")
+            ? "video"
+            : "image";
+
           formData.append(`messages[${messageIndex}][content]`, file);
-          formData.append(`messages[${messageIndex}][contentType]`, "image");
+          formData.append(
+            `messages[${messageIndex}][contentType]`,
+            contentType
+          );
         });
 
         const { data, status } = await axiosClient.post(
@@ -172,7 +169,7 @@ export default function MessageInputNew(props) {
           formData.append(
             `messages[${messageIndex}][contentType]`,
             contentType
-          ); 
+          );
         });
 
         const { data, status } = await axiosClient.post(
