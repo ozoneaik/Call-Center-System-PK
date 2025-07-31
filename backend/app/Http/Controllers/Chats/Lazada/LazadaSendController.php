@@ -53,7 +53,7 @@ class LazadaSendController extends Controller
             foreach ($messages as $index => $msg) {
                 $finalMessages[$index] = $msg;
             }
-            
+
             if ($files) {
                 foreach ($files as $index => $fileData) {
                     if (isset($fileData['content']) && $fileData['content'] instanceof UploadedFile) {
@@ -78,7 +78,7 @@ class LazadaSendController extends Controller
 
             Customers::query()->where('custId', $custId)->firstOrFail();
             ActiveConversations::query()->where('id', $conversationId)->firstOrFail();
-            
+
             DB::beginTransaction();
 
             foreach ($finalMessages as $key => &$m) {
@@ -94,7 +94,7 @@ class LazadaSendController extends Controller
                     $file = $m['content'];
                     $folder = ($m['contentType'] === 'video') ? 'public/lazada-videos' : 'public/lazada-images';
                     $fileName = rand(0, 9999) . time() . '.' . $file->getClientOriginalExtension();
-                    
+
                     $path = $file->storeAs($folder, $fileName);
 
                     $publicUrlForHistory = $this->createPublicUrl($path);
@@ -105,7 +105,6 @@ class LazadaSendController extends Controller
                     } elseif ($m['contentType'] === 'video') {
                         $m['content'] = storage_path('app/' . $path);
                     }
-                    
                 } else {
                     $chatHistory->content = $m['content'];
                 }
@@ -125,14 +124,13 @@ class LazadaSendController extends Controller
                 if (!$sendResult['status']) {
                     throw new \Exception($sendResult['message'] ?? 'ส่งข้อความไป Lazada ไม่สำเร็จ');
                 }
-                
+
                 $this->pusherService->sendNotification($custId);
             }
 
             DB::commit();
             $status = 200;
             $message = 'ส่งข้อความสำเร็จ';
-            
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             $detail = 'ไม่พบข้อมูลลูกค้าหรือการสนทนาที่ระบุ';
@@ -162,7 +160,7 @@ class LazadaSendController extends Controller
     private function createPublicUrl(string $storagePath): string
     {
         $relativePath = str_replace('public/', '', $storagePath);
-        $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+        $baseUrl = rtrim(config('app.webhook_url', config('app.url')), '/');
         return $baseUrl . '/storage/' . $relativePath;
     }
 }

@@ -53,7 +53,8 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
-
+    
+    'webhook_url' => env('APP_WEBHOOK_URL', env('APP_URL', 'http://localhost')),
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -145,14 +145,58 @@ class LazadaController extends Controller
         $contentData = json_decode($data['content'] ?? '{}', true);
         $result = ['content' => '[ไม่สามารถระบุประเภทข้อความได้]', 'contentType' => 'unknown'];
 
+        Log::channel('lazada_webhook_log')->info("🔍 Debug processMessageContent", [
+            'raw_data' => $data,
+            'content_data' => $contentData,
+            'message_type' => $data['type'] ?? 'not_set',
+            'template_id' => $data['template_id'] ?? 'not_set'
+        ]);
+
         if (($data['template_id'] ?? null) == 10006 && isset($contentData['title'])) {
             $result['content'] = "[ลูกค้าส่งข้อมูลสินค้า: " . $contentData['title'] . "]";
             $result['contentType'] = 'card';
             return $result;
         }
 
+        $messageType = $data['type'] ?? 0;
+        $templateId = $data['template_id'] ?? null;
+
+        $videoUrl = $contentData['media_url'] ?? $contentData['video_url'] ?? null;
+        $isVideoMessage = (
+            $messageType == 6 ||
+            $templateId == 6 ||
+            isset($contentData['video_url']) ||
+            isset($contentData['media_url']) ||
+            (isset($contentData['video_id']) && $contentData['video_id'])
+        );
+
+        if ($isVideoMessage) {
+            Log::channel('lazada_webhook_log')->info("🎥 Video message detected", [
+                'video_url' => $videoUrl,
+                'message_type' => $messageType,
+                'template_id' => $templateId,
+                'has_video_id' => isset($contentData['video_id']),
+                'content_keys' => array_keys($contentData)
+            ]);
+
+            if ($videoUrl) {
+                $result['content'] = LazadaMessageService::storeMedia($videoUrl);
+                $result['contentType'] = 'video';
+                return $result;
+            } elseif ($thumbnailUrl = $contentData['imgUrl'] ?? null) {
+                Log::channel('lazada_webhook_log')->info("📹 No direct video URL. Storing video thumbnail instead.", ['thumbnail_url' => $thumbnailUrl]);
+                $result['content'] = LazadaMessageService::storeMedia($thumbnailUrl);
+                $result['contentType'] = 'image'; // Treat the thumbnail as an image for display
+                return $result;
+            } else {
+                $result['content'] = '[ลูกค้าส่งวีดีโอ - ไม่สามารถแสดงได้]';
+                $result['contentType'] = 'text';
+                return $result;
+            }
+        }
+
         $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'] ?? null;
-        if ($imageUrl) {
+        if ($imageUrl && !$isVideoMessage) {
             $result['content'] = LazadaMessageService::storeMedia($imageUrl);
             $result['contentType'] = 'image';
             return $result;
@@ -164,19 +208,16 @@ class LazadaController extends Controller
             return $result;
         }
 
-        $videoUrl = $contentData['media_url'] ?? null;
-        if ($videoUrl && ($data['type'] ?? 0) == 6) {
-            $result['content'] = LazadaMessageService::storeMedia($videoUrl);
-            $result['contentType'] = 'video';
-            return $result;
-        }
-
-        $templateId = $data['template_id'] ?? null;
         if (in_array($templateId, [3, 4, 5])) {
             $result['content'] = '[ลูกค้าส่ง Sticker/Card/Order]';
             $result['contentType'] = 'card';
             return $result;
         }
+
+        Log::channel('lazada_webhook_log')->warning("⚠️ Unknown message format", [
+            'data' => $data,
+            'content_data' => $contentData
+        ]);
 
         return $result;
     }

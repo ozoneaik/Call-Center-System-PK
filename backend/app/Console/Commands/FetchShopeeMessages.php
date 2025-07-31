@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\ActiveConversations;
+use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
+use App\Models\Keyword;
 use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\User;
@@ -21,6 +23,9 @@ use Illuminate\Support\Str;
 
 class FetchShopeeMessages extends Command
 {
+    // region Class Properties & Constructor
+    // ===================================================================
+
     protected $signature = 'shopee:fetch-messages';
     protected $description = 'Fetch new Shopee chat messages for all registered shops and save them to the database.';
 
@@ -91,9 +96,6 @@ class FetchShopeeMessages extends Command
         } while (!empty($nextCursor));
     }
 
-    /**
-     * Router หลัก: ตรวจสอบสถานะและส่งต่อไปยัง Handler ที่เหมาะสม
-     */
     private function handleMessages(ShopeeChatService $chatService, array $conv, PlatformAccessTokens $token): void
     {
         $BOT = User::firstOrCreate(['empCode' => 'BOT'], ['name' => 'System Bot', 'email' => 'bot@system.local', 'password' => Hash::make(Str::random(16))]);
@@ -112,7 +114,7 @@ class FetchShopeeMessages extends Command
             match ($status) {
                 'success' => $this->handleSuccessRateMessage($customer, $latestRate, $newMessages, $chatService, $token, $BOT, $SHOPEE_AGENT),
                 'progress' => $this->handleProgressRateMessage($customer, $latestRate, $newMessages, $chatService, $token, $BOT, $SHOPEE_AGENT),
-                'pending' => $this->handlePendingRateMessage($customer, $latestRate, $newMessages, $chatService, $token, $SHOPEE_AGENT),
+                'pending' => $this->handlePendingRateMessage($customer, $latestRate, $newMessages, $chatService, $token, $BOT, $SHOPEE_AGENT),
                 default => $this->handleNewMessage($customer, $newMessages, $chatService, $token, $BOT, $SHOPEE_AGENT),
             };
 
@@ -121,54 +123,153 @@ class FetchShopeeMessages extends Command
         });
     }
 
-    // ===================================================================
-    // >> Status Handlers
-    // ===================================================================
-
     private function handleNewMessage(Customers $customer, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
-        $this->createBotConversation($customer, $newMessages, $chatService, $token, $bot, $shopeeAgent);
+        $firstMessage = $newMessages[0];
+
+        if ($firstMessage['message_type'] === 'text') {
+            $contentData = json_decode($firstMessage['content'], true);
+            $text = $contentData['text'] ?? '';
+
+            $keyword = Keyword::query()->where('name', 'like', "%$text%")->first();
+
+            if ($keyword && ($keyword->event ?? false) !== true) {
+                Log::channel('shopee_cron_job_log')->info("Keyword '{$text}' found. Routing to room {$keyword->redirectTo}.");
+                $this->createNewConversation($customer, $newMessages, $keyword->redirectTo, 'pending', $chatService, $token, $bot, $shopeeAgent);
+            } else {
+                Log::channel('shopee_cron_job_log')->info("No keyword found. Routing to BOT first.");
+                $this->createBotConversation($customer, $newMessages, $chatService, $token, $bot, $shopeeAgent);
+            }
+        } else {
+            Log::channel('shopee_cron_job_log')->info("First message is not text. Routing to BOT first.");
+            $this->createBotConversation($customer, $newMessages, $chatService, $token, $bot, $shopeeAgent);
+        }
     }
 
-    private function handlePendingRateMessage(Customers $customer, Rates $rate, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $shopeeAgent): void
+    private function handleSuccessRateMessage(Customers $customer, Rates $rate, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
-        $acRef = ActiveConversations::where('rateRef', $rate->id)->latest('id')->first();
-        foreach ($newMessages as $msg) {
-            $this->storeMessage($msg, $customer, $acRef->id, $shopeeAgent, $chatService, $token);
+        $firstMessage = $newMessages[0];
+
+        if ($firstMessage['message_type'] === 'text') {
+            $contentData = json_decode($firstMessage['content'], true);
+            $text = $contentData['text'] ?? '';
+
+            $keyword = Keyword::query()
+                ->where('name', 'like', "%$text%")
+                ->where(fn ($q) => $q->where('event', '!=', true)->orWhereNull('event'))
+                ->first();
+
+            if ($keyword) {
+                Log::channel('shopee_cron_job_log')->info("Returning customer sent keyword '{$text}'. Routing to room {$keyword->redirectTo}.");
+                $this->createNewConversation($customer, $newMessages, $keyword->redirectTo, 'pending', $chatService, $token, $bot, $shopeeAgent);
+                return;
+            }
         }
-        Log::channel('shopee_cron_job_log')->info("Saved " . count($newMessages) . " new message(s) to existing pending conversationRef {$acRef->id}.");
+
+        $isRecent = Carbon::now()->diffInHours($rate->updated_at) <= self::RECENT_CONVERSATION_HOURS;
+        if ($isRecent) {
+            Log::channel('shopee_cron_job_log')->info("Recent success case (<12h) replied. Re-opening in last used room: {$rate->latestRoomId}.");
+            $this->createNewConversation($customer, $newMessages, $rate->latestRoomId, 'pending', $chatService, $token, $bot, $shopeeAgent);
+        } else {
+            Log::channel('shopee_cron_job_log')->info("Old success case (>12h) replied. Starting new conversation with BOT.");
+            $this->createBotConversation($customer, $newMessages, $chatService, $token, $bot, $shopeeAgent);
+        }
     }
 
     private function handleProgressRateMessage(Customers $customer, Rates $rate, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
+        $acRef = ActiveConversations::where('rateRef', $rate->id)->latest('id')->first();
+
+        if (!$acRef) {
+            Log::channel('shopee_cron_job_log')->error("Data inconsistency: Found 'progress' rate (ID: {$rate->id}) with no ActiveConversation for customer {$customer->custId}.");
+            return;
+        }
+
         if ($rate->latestRoomId === self::DEFAULT_BOT_ROOM_ID) {
-            Log::channel('shopee_cron_job_log')->info("Progress case is with BOT. Forwarding to agent queue.");
-            $acRef = ActiveConversations::where('rateRef', $rate->id)->latest('id')->first();
-            $this->updateRateAndForwardToRoom($customer, $rate, $acRef, $newMessages, $chatService, $token, $bot, $shopeeAgent);
+            $firstMessage = $newMessages[0];
+            $targetRoomId = self::DEFAULT_SHOPEE_ROOM_ID;
+            $foundMatch = false;
+
+            if ($firstMessage['message_type'] === 'text') {
+                $contentData = json_decode($firstMessage['content'], true);
+                $text = trim($contentData['text'] ?? '');
+
+                $menu = BotMenu::where('botTokenId', $customer->platformRef)
+                    ->where('menuName', $text)
+                    ->first();
+
+                if ($menu) {
+                    $targetRoomId = $menu->roomId;
+                    $foundMatch = true;
+                    Log::channel('shopee_cron_job_log')->info("BotMenu '{$text}' matched. Forwarding to room {$targetRoomId}.");
+                } else {
+                    $keyword = Keyword::where('name', 'like', "%{$text}%")
+                        ->where(fn ($q) => $q->where('event', '!=', true)->orWhereNull('event'))
+                        ->first();
+                    if ($keyword) {
+                        $targetRoomId = $keyword->redirectTo;
+                        $foundMatch = true;
+                        Log::channel('shopee_cron_job_log')->info("Keyword '{$text}' matched. Forwarding to room {$targetRoomId}.");
+                    }
+                }
+            }
+
+            if (!$foundMatch) {
+                Log::channel('shopee_cron_job_log')->info("No menu or keyword match. Forwarding to default room {$targetRoomId}.");
+            }
+
+            $this->updateRateAndForwardToRoom($customer, $rate, $acRef, $newMessages, $targetRoomId, $chatService, $token, $bot, $shopeeAgent);
         } else {
             Log::channel('shopee_cron_job_log')->info("Progress case is with an agent. Appending messages.");
-            $acRef = ActiveConversations::where('rateRef', $rate->id)->latest('id')->first();
             foreach ($newMessages as $msg) {
                 $this->storeMessage($msg, $customer, $acRef->id, $shopeeAgent, $chatService, $token);
             }
         }
     }
 
-    private function handleSuccessRateMessage(Customers $customer, Rates $rate, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
+    private function handlePendingRateMessage(Customers $customer, Rates $rate, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
-        $isRecent = Carbon::now()->diffInHours($rate->updated_at) <= self::RECENT_CONVERSATION_HOURS;
-        if ($isRecent) {
-            Log::channel('shopee_cron_job_log')->info("Recent conversation. Re-opening in room {$rate->latestRoomId}.");
-            $this->createNewConversation($customer, $newMessages, $rate->latestRoomId, $chatService, $token, $bot, $shopeeAgent);
-        } else {
-            Log::channel('shopee_cron_job_log')->info("Old conversation. Starting new with bot.");
-            $this->createBotConversation($customer, $newMessages, $chatService, $token, $bot, $shopeeAgent);
-        }
-    }
+        $acRef = ActiveConversations::where('rateRef', $rate->id)->latest('id')->first();
 
-    // ===================================================================
-    // >> Conversation Creation & Update Functions
-    // ===================================================================
+        if (!$acRef) {
+            Log::channel('shopee_cron_job_log')->error("Data inconsistency: Found 'pending' rate (ID: {$rate->id}) with no ActiveConversation for customer {$customer->custId}.");
+            return;
+        }
+
+        foreach ($newMessages as $msg) {
+            $this->storeMessage($msg, $customer, $acRef->id, $shopeeAgent, $chatService, $token);
+        }
+        Log::channel('shopee_cron_job_log')->info("Saved " . count($newMessages) . " new message(s) to existing pending conversationRef {$acRef->id}.");
+
+        $queueChat = ActiveConversations::query()
+            ->join('rates', 'active_conversations.rateRef', '=', 'rates.id')
+            ->where('active_conversations.roomId', $rate->latestRoomId)
+            ->where('rates.status', '=', 'pending')
+            ->orderBy('active_conversations.created_at', 'asc')
+            ->get(['active_conversations.custId']);
+
+        $queuePosition = 1;
+        foreach ($queueChat as $queueItem) {
+            if ($queueItem->custId == $customer->custId) {
+                break;
+            }
+            $queuePosition++;
+        }
+
+        // --- SECTION FOR TESTING: Temporarily disable sending queue message ---
+        /*
+        $queueMessageText = "คิวของท่านคือ {$queuePosition} คิว กรุณารอสักครู่ค่ะ";
+
+        try {
+            $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $queueMessageText]);
+            $this->storeSystemMessage($queueMessageText, $customer, $acRef->id, $bot);
+            Log::channel('shopee_cron_job_log')->info("Sent queue notification (Position: {$queuePosition}) to customer {$customer->custId}.");
+        } catch (\Exception $e) {
+            Log::channel('shopee_cron_job_log')->error("Failed to send queue notification to customer {$customer->custId}: " . $e->getMessage());
+        }
+        */
+        Log::channel('shopee_cron_job_log')->info("TEST MODE: Skipped sending queue notification to customer {$customer->custId}.");
+    }
 
     private function createBotConversation(Customers $customer, array $initialMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
@@ -179,53 +280,68 @@ class FetchShopeeMessages extends Command
             $this->storeMessage($msg, $customer, $newAC->id, $shopeeAgent, $chatService, $token);
         }
 
-        // >> COMMENT OUT FOR TESTING
+        // --- SECTION FOR TESTING: Temporarily disable sending welcome message ---
         /*
-    $welcomeText = "สวัสดีค่ะคุณ {$customer->custName} ยินดีต้อนรับค่ะ หากต้องการสอบถามข้อมูลเพิ่มเติม สามารถพิมพ์ข้อความทิ้งไว้ได้เลยค่ะ";
-    try {
-        $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $welcomeText]);
-        $this->storeSystemMessage($welcomeText, $customer, $newAC->id, $bot);
-    } catch (\Exception $e) {
-        Log::channel('shopee_cron_job_log')->error("Failed to send welcome message: " . $e->getMessage());
-    }
-    */
-        Log::channel('shopee_cron_job_log')->info("Welcome message sending is currently disabled for testing.");
-        // << END COMMENT
+        $welcomeText = "สวัสดีค่ะคุณ {$customer->custName} เพื่อให้การบริการของเรารวดเร็วยิ่งขึ้น กรุณาพิมพ์ข้อความเพื่อเลือกหัวข้อด้านล่างได้เลยค่ะ\n\n1. สอบถามข้อมูลสินค้า\n2. ติดตามสถานะคำสั่งซื้อ\n3. แจ้งปัญหาการใช้งาน\n4. ติดต่อเจ้าหน้าที่";
+
+        try {
+            $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $welcomeText]);
+            $this->storeSystemMessage($welcomeText, $customer, $newAC->id, $bot);
+            Log::channel('shopee_cron_job_log')->info("Sent welcome menu to customer {$customer->custId}.");
+        } catch (\Exception $e) {
+            Log::channel('shopee_cron_job_log')->error("Failed to send welcome menu to customer {$customer->custId}: " . $e->getMessage());
+        }
+        */
+        Log::channel('shopee_cron_job_log')->info("TEST MODE: Skipped sending welcome menu to customer {$customer->custId}.");
     }
 
-    private function createNewConversation(Customers $customer, array $initialMessages, string $roomId, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
+    private function createNewConversation(Customers $customer, array $initialMessages, string $roomId, string $status, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
-        $newRate = Rates::create(['custId' => $customer->custId, 'status' => 'pending', 'latestRoomId' => $roomId, 'rate' => 0]);
+        $newRate = Rates::create(['custId' => $customer->custId, 'status' => $status, 'latestRoomId' => $roomId, 'rate' => 0]);
         $newAC = ActiveConversations::create(['custId' => $customer->custId, 'roomId' => $roomId, 'rateRef' => $newRate->id]);
 
         foreach ($initialMessages as $msg) {
             $this->storeMessage($msg, $customer, $newAC->id, $shopeeAgent, $chatService, $token);
         }
 
-        $waitText = "ระบบกำลังส่งเรื่องต่อไปยังเจ้าหน้าที่ กรุณารอสักครู่ค่ะ";
-        try {
-            $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $waitText]);
-            $this->storeSystemMessage($waitText, $customer, $newAC->id, $bot);
-        } catch (\Exception $e) {
-            Log::channel('shopee_cron_job_log')->error("Failed to send 'please wait' message: " . $e->getMessage());
+        if ($roomId !== self::DEFAULT_BOT_ROOM_ID) {
+            // --- SECTION FOR TESTING: Temporarily disable sending wait message ---
+            /*
+            $waitText = "ระบบกำลังส่งต่อให้เจ้าหน้าที่ที่รับผิดชอบเพื่อเร่งดำเนินการเข้ามาสนทนา กรุณารอสักครู่";
+            try {
+                $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $waitText]);
+                $this->storeSystemMessage($waitText, $customer, $newAC->id, $bot);
+            } catch (\Exception $e) {
+                Log::channel('shopee_cron_job_log')->error("Failed to send 'please wait' message: " . $e->getMessage());
+            }
+            */
+            Log::channel('shopee_cron_job_log')->info("TEST MODE: Skipped sending 'please wait' message to customer {$customer->custId}.");
         }
     }
 
-    private function updateRateAndForwardToRoom(Customers $customer, Rates $rate, ActiveConversations $acRef, array $newMessages, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
+    private function updateRateAndForwardToRoom(Customers $customer, Rates $rate, ActiveConversations $acRef, array $newMessages, string $targetRoomId, ShopeeChatService $chatService, PlatformAccessTokens $token, User $bot, User $shopeeAgent): void
     {
         $rate->status = 'pending';
-        $rate->latestRoomId = self::DEFAULT_SHOPEE_ROOM_ID;
+        $rate->latestRoomId = $targetRoomId;
         $rate->save();
 
         $acRef->endTime = now();
         $acRef->save();
 
-        $newAc = ActiveConversations::create(['custId' => $customer->custId, 'roomId' => self::DEFAULT_SHOPEE_ROOM_ID, 'rateRef' => $rate->id, 'from_empCode' => 'BOT', 'from_roomId' => self::DEFAULT_BOT_ROOM_ID]);
+        $newAc = ActiveConversations::create([
+            'custId' => $customer->custId,
+            'roomId' => $targetRoomId,
+            'rateRef' => $rate->id,
+            'from_empCode' => 'BOT',
+            'from_roomId' => self::DEFAULT_BOT_ROOM_ID
+        ]);
 
         foreach ($newMessages as $msg) {
             $this->storeMessage($msg, $customer, $newAc->id, $shopeeAgent, $chatService, $token);
         }
 
+        // --- SECTION FOR TESTING: Temporarily disable sending forward message ---
+        /*
         $forwardText = "กำลังส่งเรื่องต่อไปยังเจ้าหน้าที่ กรุณารอสักครู่ค่ะ";
         try {
             $chatService->sendMessage((int)$customer->custId, 'text', ['text' => $forwardText]);
@@ -233,32 +349,30 @@ class FetchShopeeMessages extends Command
         } catch (\Exception $e) {
             Log::channel('shopee_cron_job_log')->error("Failed to send forwarding message: " . $e->getMessage());
         }
+        */
+        Log::channel('shopee_cron_job_log')->info("TEST MODE: Skipped sending forwarding message to customer {$customer->custId}.");
     }
 
-    // ===================================================================
-    // >> Utility / Service-like Functions
-    // ===================================================================
+    private function storeSystemMessage(string $text, Customers $customer, int $conversationRef, User $sender): void
+    {
+        ChatHistory::create([
+            'custId' => $customer->custId,
+            'content' => $text,
+            'contentType' => 'text',
+            'sender' => $sender->toJson(),
+            'conversationRef' => $conversationRef,
+            'line_message_id' => 'BOT-' . Str::uuid(),
+        ]);
+    }
 
     private function storeMessage(array $msg, Customers $customer, int $conversationRef, User $shopeeAgent, ShopeeChatService $chatService, PlatformAccessTokens $token): void
     {
-        // >> NEW LOGGING FORMAT
         $logContext = [
             'customer' => $customer->toJson(self::JSON_LOG_OPTIONS),
             'message' => json_encode($msg, self::JSON_LOG_OPTIONS),
             'platformAccessToken' => $token->toJson(self::JSON_LOG_OPTIONS)
         ];
         Log::channel('shopee_message_log')->info('เริ่มกรองเคส', $logContext);
-
-        $currentRate = Rates::where('custId', $customer->custId)->orderBy('id', 'desc')->first();
-        $status = $currentRate?->status ?? 'new';
-        $statusText = match ($status) {
-            'pending' => 'รอคิว',
-            'progress' => 'กำลังดำเนินการ',
-            'success' => 'สำเร็จ',
-            default => 'เคสใหม่'
-        };
-        Log::channel('shopee_message_log')->info("ปัจจุบันเป็นเคส {$statusText}");
-        // << END NEW LOGGING FORMAT
 
         $contentToStore = $this->parseMessageContent($msg, $customer, $chatService);
         $sender = ($msg['from_id'] == $customer->custId) ? $customer->toJson() : $shopeeAgent->toJson();
@@ -276,18 +390,6 @@ class FetchShopeeMessages extends Command
         ]);
     }
 
-    private function storeSystemMessage(string $text, Customers $customer, int $conversationRef, User $sender): void
-    {
-        ChatHistory::create([
-            'custId' => $customer->custId,
-            'content' => $text,
-            'contentType' => 'text',
-            'sender' => $sender->toJson(),
-            'conversationRef' => $conversationRef,
-            'line_message_id' => 'BOT-' . Str::uuid(),
-        ]);
-    }
-
     private function parseMessageContent(array $msg, Customers $customer, ShopeeChatService $chatService): string
     {
         $rawContent = $msg['content'];
@@ -296,56 +398,23 @@ class FetchShopeeMessages extends Command
         switch ($msg['message_type']) {
             case 'text':
                 return $contentData['text'] ?? (is_string($rawContent) ? $rawContent : json_encode($rawContent));
-
             case 'image':
                 return $contentData['image_url'] ?? $contentData['url'] ?? json_encode($rawContent);
-
             case 'sticker':
                 return $contentData['image_url'] ?? json_encode($rawContent);
-
             case 'video':
                 $videoUrl = $contentData['video_url'] ?? $contentData['url'] ?? null;
                 $videoId = $contentData['vid'] ?? $contentData['video_id'] ?? null;
                 if ($videoUrl) {
                     $localUrl = $this->downloadAndStoreVideo($videoUrl, $videoId, $customer);
-                    return $localUrl ?: $videoUrl; // คืนค่า URL ที่เก็บในเครื่อง ถ้าสำเร็จ
+                    return $localUrl ?: $videoUrl;
                 }
                 return json_encode($rawContent);
-
+            case 'bundle_message':
+                $messageCount = count($contentData['messages'] ?? []);
+                return "[System Notification: Bundle of {$messageCount} messages]";
             default:
                 return is_string($rawContent) ? $rawContent : json_encode($rawContent);
-        }
-    }
-
-    private function downloadAndStoreVideo(string $videoUrl, ?string $videoId, Customers $customer): ?string
-    {
-        try {
-            if (preg_match('/\/([a-zA-Z0-9\-_]{20,})\.default\.mp4/', $videoUrl, $matches)) {
-                $fileName = $matches[1] . '.mp4';
-            } else {
-                $fileName = ($videoId ? $videoId : 'video_' . time() . '_' . Str::random(8)) . '.mp4';
-            }
-
-            $response = Http::timeout(120)->get($videoUrl);
-
-            if ($response->failed() || strlen($response->body()) < 1024) {
-                Log::channel('shopee_cron_job_log')->error("Failed to download video or content too small.", ['url' => $videoUrl]);
-                return null;
-            }
-
-            $storagePath = 'shopee-videos/' . $fileName;
-            if (Storage::disk('public')->exists($storagePath)) {
-                $pathInfo = pathinfo($fileName);
-                $fileName = $pathInfo['filename'] . '_' . time() . '.' . $pathInfo['extension'];
-                $storagePath = 'shopee-videos/' . $fileName;
-            }
-
-            Storage::disk('public')->put($storagePath, $response->body());
-
-            return asset('storage/' . $storagePath);
-        } catch (\Exception $e) {
-            Log::channel('shopee_cron_job_log')->error("Exception while storing video", ['error' => $e->getMessage(), 'url' => $videoUrl]);
-            return null;
         }
     }
 
@@ -376,5 +445,36 @@ class FetchShopeeMessages extends Command
                 'description' => "ลูกค้าจาก Shopee ({$token->description})",
             ]
         );
+    }
+
+    private function downloadAndStoreVideo(string $videoUrl, ?string $videoId, Customers $customer): ?string
+    {
+        try {
+            if (preg_match('/\/([a-zA-Z0-9\-_]{20,})\.default\.mp4/', $videoUrl, $matches)) {
+                $fileName = $matches[1] . '.mp4';
+            } else {
+                $fileName = ($videoId ? $videoId : 'video_' . time() . '_' . Str::random(8)) . '.mp4';
+            }
+
+            $response = Http::timeout(120)->get($videoUrl);
+
+            if ($response->failed() || strlen($response->body()) < 1024) {
+                Log::channel('shopee_cron_job_log')->error("Failed to download video or content too small.", ['url' => $videoUrl]);
+                return null;
+            }
+
+            $storagePath = 'shopee-videos/' . $fileName;
+            if (Storage::disk('public')->exists($storagePath)) {
+                $pathInfo = pathinfo($fileName);
+                $fileName = $pathInfo['filename'] . '_' . time() . '.' . $pathInfo['extension'];
+                $storagePath = 'shopee-videos/' . $fileName;
+            }
+
+            Storage::disk('public')->put($storagePath, $response->body());
+            return asset('storage/' . $storagePath);
+        } catch (\Exception $e) {
+            Log::channel('shopee_cron_job_log')->error("Exception while storing video", ['error' => $e->getMessage(), 'url' => $videoUrl]);
+            return null;
+        }
     }
 }

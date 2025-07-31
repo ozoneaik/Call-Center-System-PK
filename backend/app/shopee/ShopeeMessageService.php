@@ -10,27 +10,14 @@ use Illuminate\Support\Facades\Storage;
 
 class ShopeeMessageService
 {
-    /**
-     * กำหนดค่า options สำหรับ json_encode ไว้ใช้ซ้ำ
-     */
     private const JSON_LOG_OPTIONS = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 
-    /**
-     * ส่งข้อความไปยังลูกค้า Shopee
-     *
-     * @param string $custId คือ to_id ของลูกค้า Shopee
-     * @param array $message ข้อมูลข้อความที่ต้องการส่ง ['contentType' => 'text'|'image'|'video', 'content' => '...']
-     * @return array ผลลัพธ์การส่ง ['status' => bool, 'message' => string, 'final_content' => string]
-     */
     public function sendMessage(string $custId, array $message): array
     {
         try {
-            // ดึงข้อมูลลูกค้าและ token
             $customer = Customers::where('custId', $custId)->firstOrFail();
             $token = PlatformAccessTokens::findOrFail($customer->platformRef);
 
-            // *** เพิ่ม Log รูปแบบใหม่ตรงนี้ ***
-            // สร้าง message array สำหรับ log โดยไม่รวม object UploadedFile
             $logMessage = $message;
             if (isset($logMessage['content']) && $logMessage['content'] instanceof UploadedFile) {
                 $logMessage['content'] = '[UploadedFile: ' . $logMessage['content']->getClientOriginalName() . ']';
@@ -42,8 +29,6 @@ class ShopeeMessageService
                 'platformAccessToken' => $token->toJson(self::JSON_LOG_OPTIONS),
             ]);
 
-
-            // สร้าง chat service
             $chatService = new ShopeeChatService(
                 $token->shopee_partner_id,
                 $token->shopee_partner_key,
@@ -52,7 +37,7 @@ class ShopeeMessageService
             );
 
             $finalContent = $message['content'];
-            $contentPayload = null; // กำหนดค่าเริ่มต้น
+            $contentPayload = null; 
 
             switch ($message['contentType']) {
                 case 'text':
@@ -105,7 +90,6 @@ class ShopeeMessageService
                         'imageUrl' => $shopeeImageUrl
                     ]);
                     
-                    // ลองส่งหลาย format เพื่อความเข้ากันได้
                     $contentPayload = ['url' => $shopeeImageUrl];
                     $result = $chatService->sendMessage((int)$custId, 'image', $contentPayload);
                     if (!$result['success']) {
@@ -128,13 +112,11 @@ class ShopeeMessageService
                         throw new \Exception('Invalid file format for video message. Expected UploadedFile.');
                     }
 
-                    // 1. บันทึกไฟล์วิดีโอที่อัปโหลดลง Local Storage ก่อน และรับ URL กลับมา
                     $finalContent = $this->storeUploadedVideoLocally($message['content']);
                     if (!$finalContent) {
                         throw new \Exception('Failed to store uploaded video locally.');
                     }
 
-                    // 2. อัปโหลดไฟล์ไปยัง Shopee
                     $uploadResult = $chatService->uploadVideo($message['content']);
                     if (!$uploadResult['success']) {
                         throw new \Exception('Failed to upload video to Shopee. Details: ' . json_encode($uploadResult['details'] ?? 'N/A'));
@@ -146,22 +128,19 @@ class ShopeeMessageService
                         throw new \Exception('No video ID found in upload response. Response: ' . json_encode($videoData));
                     }
 
-                    // 3. รอ video processing จาก Shopee
                     $processingResult = $this->waitForVideoProcessing($chatService, $videoId);
                     if (!$processingResult['success']) {
                         throw new \Exception($processingResult['message']);
                     }
 
-                    // 4. ส่งข้อความวิดีโอโดยใช้ข้อมูลจาก Shopee
                     $videoInfo = $processingResult['videoInfo'] ?? [];
                     $result = $this->tryVideoMessageFormats($chatService, (int)$custId, $videoId, $videoInfo);
-                    $contentPayload = $result['sent_payload'] ?? null; // เก็บ payload ที่ส่งสำเร็จไว้ log
+                    $contentPayload = $result['sent_payload'] ?? null; 
                     break;
                 default:
                     throw new \Exception("Unsupported Shopee message contentType: " . $message['contentType']);
             }
 
-            // ตรวจสอบผลลัพธ์การส่งข้อความ
             if (!$result['success']) {
                 Log::channel('shopee_cron_job_log')->error('Failed to send message via Shopee API.', [
                     'custId' => $custId,
@@ -227,7 +206,6 @@ class ShopeeMessageService
                 return null;
             }
 
-            // สร้าง public URL
             $baseUrl = config('app.url', 'http://localhost:8000');
             $publicUrl = $baseUrl . '/storage/' . $storagePath;
 
@@ -370,7 +348,7 @@ class ShopeeMessageService
             ]);
 
             $result = $chatService->sendMessage($custId, 'video', $contentPayload);
-            $result['sent_payload'] = $contentPayload; // เพิ่ม payload เข้าไปในผลลัพธ์
+            $result['sent_payload'] = $contentPayload; 
             $lastResult = $result;
 
             if ($result['success']) {
