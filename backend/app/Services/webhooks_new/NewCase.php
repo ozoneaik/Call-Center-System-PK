@@ -93,7 +93,6 @@ class NewCase
                         'text' => 'สอบถาม / อื่นๆ'
                     ];
                 }
-                // $response_bot_send_menu = Http::
             }
             Log::channel('webhook_main')->info('สร้างเคสใหม่สำเร็จ');
         } catch (\Exception $e) {

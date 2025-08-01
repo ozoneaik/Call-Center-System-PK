@@ -30,6 +30,7 @@ class LineWebhookController extends Controller
     public function webhook(Request $request)
     {
         Log::channel('webhook_line_new')->info($this->start_log_line); //เริ่มรับ webhook
+        Log::info('รับ webhook จาก Line');
         try {
             $req = $request->all();
             Log::channel('webhook_line_new')->info(json_encode($req, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

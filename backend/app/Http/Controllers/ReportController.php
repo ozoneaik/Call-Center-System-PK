@@ -243,7 +243,7 @@ class ReportController extends Controller
                 $totalMinutes = ($day * 24 * 60) + ($hour * 60) + $minute;
                 if ($totalMinutes <= 5) {
                     $fiveMinutes++;
-                }elseif ($totalMinutes <= 30) {
+                } elseif ($totalMinutes <= 30) {
                     $halfHour++;
                 } elseif ($totalMinutes > 30 && $totalMinutes <= 60) {
                     $oneHour++;
@@ -280,7 +280,8 @@ class ReportController extends Controller
         ]);
     }
 
-    public function TagReport(Request $request){
+    public function TagReport(Request $request)
+    {
         $request->validate([
             'startTime' => 'required|date',
             'endTime' => 'required|date'
@@ -324,6 +325,223 @@ class ReportController extends Controller
             'tagReports' => $results,
             'startTime' => $startTime,
             'endTime' => $endTime,
+        ]);
+    }
+
+
+
+
+
+
+
+
+
+
+
+    public function index(Request $request)
+    {
+        if (isset($request['export'])) {
+            $export = 'excel';
+        } else {
+            $export = null;
+        }
+        // ดึงข้อมูลเคสหลักที่มีสถานะ success ในช่วงเดือนกรกฎาคม 2025
+        $main_case = DB::connection('pgsql_sub')->table('rates')
+            ->where('rates.status', 'success')
+            ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
+            ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+            ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
+            ->whereBetween('rates.created_at', ['2025-07-01 00:00:00', '2025-07-31 23:59:59'])
+            ->select('rates.*', 'customers.custName', 'tag_menus.tagName', 'chat_rooms.roomName as latestRoomName')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // ดึง rate_id ทั้งหมดมาใช้ในการ query เคสย่อย
+        $rate_ids = $main_case->pluck('id')->toArray();
+
+        // ดึงข้อมูลเคสย่อยทั้งหมดที่เกี่ยวข้องในครั้งเดียว
+        $sub_cases = DB::connection('pgsql_sub')->table('active_conversations')
+            ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
+            ->leftJoin('users as from_emp', 'from_emp.empCode', '=', 'active_conversations.from_empCode')
+            ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'active_conversations.roomId')
+            ->leftJoin('chat_rooms as from_chat_room', 'from_chat_room.roomId', '=', 'active_conversations.from_roomId')
+            ->whereIn('active_conversations.rateRef', $rate_ids)
+            ->select(
+                'active_conversations.*',
+                'users.name as empName',
+                'from_emp.name as from_empName',
+                'chat_rooms.roomName as roomName',
+                'from_chat_room.roomName as from_roomName'
+            )
+            ->get()
+            ->groupBy('rateRef'); // จัดกลุ่มตาม rateRef เพื่อให้ง่ายต่อการแมป
+
+        // แมปเคสย่อยกับเคสหลักและเพิ่ม tag
+        foreach ($main_case as $key => $rate) {
+            $current_sub_cases = $sub_cases->get($rate->id, collect()); // ดึงเคสย่อยของเคสหลักนี้
+
+            // ตัวแปรสำหรับเก็บเวลารวม
+            $total_hours = 0;
+            $total_minutes = 0;
+            $total_seconds = 0;
+
+            if ($current_sub_cases->isNotEmpty()) {
+                // หาเคสย่อยล่าสุด (id มากสุด)
+                $latest_sub_case_id = $current_sub_cases->max('id');
+
+                // เพิ่ม tag ให้กับเคสย่อยแต่ละตัวและคำนวณเวลารวม
+                foreach ($current_sub_cases as $sub_key => $sub_case) {
+                    // คำนวณเวลาจาก totalTime
+                    if (!empty($sub_case->totalTime)) {
+                        // แยกเวลาออกจากสตริง เช่น "0 ชั่วโมง 2 นาที 1 วินาที"
+                        preg_match('/(\d+) ชั่วโมง/', $sub_case->totalTime, $hours_match);
+                        preg_match('/(\d+) นาที/', $sub_case->totalTime, $minutes_match);
+                        preg_match('/(\d+) วินาที/', $sub_case->totalTime, $seconds_match);
+
+                        $total_hours += isset($hours_match[1]) ? (int)$hours_match[1] : 0;
+                        $total_minutes += isset($minutes_match[1]) ? (int)$minutes_match[1] : 0;
+                        $total_seconds += isset($seconds_match[1]) ? (int)$seconds_match[1] : 0;
+                    }
+
+                    if ($sub_case->id == $latest_sub_case_id) {
+                        // เคสย่อยล่าสุด ใช้ tag เดียวกับเคสหลัก
+                        $current_sub_cases[$sub_key]->tagName = $rate->tagName;
+                    } else {
+                        // เคสย่อยอื่นๆ ใช้ tag เป็น "ส่งต่อ"
+                        $current_sub_cases[$sub_key]->tagName = 'ส่งต่อ';
+                    }
+                }
+            }
+
+            // แปลงเวลาให้ถูกต้อง (60 วินาที = 1 นาที, 60 นาที = 1 ชั่วโมง)
+            $total_minutes += floor($total_seconds / 60);
+            $total_seconds = $total_seconds % 60;
+            $total_hours += floor($total_minutes / 60);
+            $total_minutes = $total_minutes % 60;
+
+            // สร้าง totalTime string สำหรับเคสหลัก
+            $main_case[$key]->totalTime = $total_hours . ' ชั่วโมง ' . $total_minutes . ' นาที ' . $total_seconds . ' วินาที';
+            $main_case[$key]->sub_case = $current_sub_cases;
+        }
+
+        // ถ้าต้องการ export Excel
+        if ($export === 'excel') {
+            return $this->exportToExcel($main_case);
+        }
+
+        return response()->json([
+            'message' => 'report',
+            'detail' => 'รายงานทั้งหมด',
+            'count_rate_success' => count($main_case),
+            'cases' => $main_case,
+        ]);
+    }
+
+    private function exportToExcel($main_case)
+    {
+        // สร้างข้อมูลสำหรับ Excel
+        $excel_data = [];
+
+        // หัวตาราง
+        $excel_data[] = [
+            'ID เคสหลัก',
+            'ชื่อลูกค้า',
+            'สถานะ',
+            'หมายเลขแท็ก',
+            'แท็คการจบสนทนา',
+            'เวลารวม',
+            'จบสนทนาเมื่อ',
+            'จำนวนเคสย่อย',
+            'ID เคสย่อย',
+            'Tag เคสย่อย',
+            'พนักงานที่รับเรื่อง',
+            'ห้องที่รับเรื่อง',
+            'จากพนักงาน',
+            'จากห้อง',
+            'วันที่สร้าง',
+            'รับเรื่อง/สนทนาเมื่อ',
+            'จบสนทนาเมื่อ',
+            'เวลาสนทนาทั้งหมดเคสย่อย'
+        ];
+
+        foreach ($main_case as $rate) {
+            if ($rate->sub_case->isNotEmpty()) {
+                // ถ้ามีเคสย่อย แสดงแต่ละเคสย่อย
+                foreach ($rate->sub_case as $sub_case) {
+                    $excel_data[] = [
+                        $rate->id,
+                        $rate->custName,
+                        $rate->status,
+                        $rate->tag ?? '',
+                        $rate->tagName,
+                        $rate->totalTime,
+                        $rate->created_at,
+                        count($rate->sub_case),
+                        $sub_case->id,
+                        $sub_case->tagName,
+                        $sub_case->empName,
+                        $sub_case->roomName,
+                        $sub_case->from_empName,
+                        $sub_case->from_roomName,
+                        $sub_case->created_at,
+                        $sub_case->startTime,
+                        $sub_case->endTime,
+                        $sub_case->totalTime ?? ''
+                    ];
+                }
+            } else {
+                // ถ้าไม่มีเคสย่อย แสดงเฉพาะเคสหลัก
+                $excel_data[] = [
+                    $rate->id,
+                    $rate->status,
+                    $rate->tag ?? '',
+                    $rate->totalTime,
+                    $rate->created_at,
+                    0,
+                    '',
+                    '',
+                    ''
+                ];
+            }
+        }
+
+        // สร้างไฟล์ Excel
+        $filename = 'report_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+        // ใช้ PhpSpreadsheet
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // เขียนข้อมูลลงใน sheet
+        $row = 1;
+        foreach ($excel_data as $data) {
+            $col = 'A';
+            foreach ($data as $value) {
+                $sheet->setCellValue($col . $row, $value);
+                $col++;
+            }
+            $row++;
+        }
+
+        // จัดรูปแบบหัวตาราง
+        $sheet->getStyle('A1:R1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:R1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $sheet->getStyle('A1:R1')->getFill()->getStartColor()->setARGB('FFCCCCCC');
+
+        // ปรับขนาดคอลัมน์อัตโนมัติ
+        foreach (range('A', 'R') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // สร้าง response สำหรับดาวน์โหลด
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
         ]);
     }
 }
