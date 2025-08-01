@@ -6,7 +6,7 @@ export default function UserCase() {
     return (
         <div>
             <Stack direction='row' justifyContent='space-between'>
-                <h1>พนักงานที่ทำงาน updated</h1>
+                <h1>พนักงานที่ทำงาน</h1>
                  <Button size='sm' variant="plain" startDecorator={<Add/>}>แสดงเพิ่มเติม</Button>
             </Stack>
             <Grid2 mt={2} spacing={2} container sx={{ maxHeight: 490 }} overflow='auto'>
