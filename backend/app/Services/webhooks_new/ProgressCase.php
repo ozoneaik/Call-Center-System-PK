@@ -11,11 +11,13 @@ class ProgressCase
 {
     protected PusherService $pusherService;
     protected BotReplyMessage $botReplyMessage;
+    protected ReplyMessage $replyMessage;
 
-    public function __construct(PusherService $pusherService, BotReplyMessage $botReplyMessage)
+    public function __construct(PusherService $pusherService, BotReplyMessage $botReplyMessage, ReplyMessage $replyMessage)
     {
         $this->pusherService = $pusherService;
         $this->botReplyMessage = $botReplyMessage;
+        $this->replyMessage = $replyMessage;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
@@ -54,16 +56,13 @@ class ProgressCase
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
                 $this->pusherService->sendNotification($customer['custId']);
-                $msg_redirect = [[
-                    'content' => 'ระบบกำลังส่งต่อให้เข้าหน้าที่ กรุณารอซักครู่',
-                    'contentType' => "text",
-                ]];
+                $msg_redirect = $this->format_message($platformAccessToken['platform']);
                 $reply_token = $message['reply_token'] ?? null;
-                $bot_send_msg = $this->botReplyMessage->replyMessage($msg_redirect, $platformAccessToken, $customer,$reply_token);
+                $bot_send_msg = $this->replyMessage->reply($msg_redirect, $platformAccessToken,$bot, $customer, $reply_token);
                 if (!$bot_send_msg['status']) {
                     Log::channel('webhook_main')->error($bot_send_msg['message'], [
                         'error' => $bot_send_msg['message']
-                    ]);sudo chown -R view:www-data /home/view/ViewFolder/example-app
+                    ]);
                 } else {
                     Log::channel('webhook_main')->info($bot_send_msg['message'], [
                         'message' => $bot_send_msg['message']
@@ -76,6 +75,24 @@ class ProgressCase
                 'customer' => json_encode($customer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
                 'platformAccessToken' => json_encode($platformAccessToken, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             ]);
+        }
+    }
+
+    private function format_message($platform)
+    {
+        switch (strtoupper($platform)) {
+            case 'LINE':
+                return [[
+                    'type' => 'text',
+                    'text' => 'ระบบกำลังส่งต่อให้เข้าหน้าที่ กรุณารอซักครู่'
+                ]];
+                break;
+            default:
+                return [
+                    'type' => 'text',
+                    'text' => 'ไม่รู้'
+                ];
+                break;
         }
     }
 }

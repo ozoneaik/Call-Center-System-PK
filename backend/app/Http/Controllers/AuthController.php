@@ -34,7 +34,8 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
         if(!$user || !Hash::check($data['password'], $user->password)){
             return response()->json([
-                'message' => 'รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ (IT)'
+                'message' => 'รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ (IT)',
+                'data' => $data,
             ],400);
         }
         $token = $user->createToken('auth_token')->plainTextToken;
