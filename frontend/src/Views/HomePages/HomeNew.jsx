@@ -7,9 +7,10 @@ import 'aos/dist/aos.css';
 import { useEffect, useState } from "react";
 import axiosClient from "../../Axios";
 import { Search } from "@mui/icons-material";
-import UserCase from "./UserCase";
+import UC from "./UserCase/UC";
 import AllCase from "./AllCase";
 import StatisticsCase from "./StatisticsCase";
+import AllCaseDashboard from "./UserCase/Dashboard/AllCaseDashboard";
 AOS.init();
 
 const BreadcrumbsPath = [{ name: 'Home', path: '/หน้าหลัก' }]
@@ -48,10 +49,10 @@ export default function HomeNew() {
 
                     </Grid2>
                     <Grid2 size={12}>
-                        <UserCase />
+                        <UC />
                     </Grid2>
                     <Grid2 size={12}>
-                        <AllCase />
+                        <AllCaseDashboard />
                     </Grid2>
                     <Grid2 size={12}>
                         <StatisticsCase />
