@@ -10,6 +10,7 @@ use App\Models\Customers;
 use App\Models\Keyword;
 use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
+use App\Models\SaleInformation;
 use App\Models\User;
 use App\Services\MessageService;
 use App\Services\PusherService;
@@ -52,6 +53,7 @@ class LineUATController extends Controller
                     $CUSTOMER = $this->getOrCreateCustomer($userId);
                     $TOKEN = PlatformAccessTokens::query()->where('id', $CUSTOMER['platformRef'])->first();
                     $message = $event['message'];
+
                     $this->handleMessage($CUSTOMER, $message, $BOT, $TOKEN);
                 }
                 // ถ้าเป็นการกด like , unlike
@@ -99,7 +101,12 @@ class LineUATController extends Controller
 
     private function handleMessage($CUSTOMER, $message, $BOT, $TOKEN): void
     {
+        $customer_is_sale = $this->filterCaseSale($CUSTOMER['custId']);
         $current_rate = Rates::query()->where('custId', $CUSTOMER['custId'])->orderBy('id', 'desc')->first();
+        if ($customer_is_sale) {
+            $this->createSaleChat($CUSTOMER, $current_rate, $message);
+            return;
+        }
         if ($current_rate && $current_rate->status === 'success') {
             $this->handleSuccessRateMessage($CUSTOMER, $message, $current_rate, $BOT, $TOKEN);
         } elseif ($current_rate && $current_rate->status === 'progress') {
@@ -355,7 +362,7 @@ class LineUATController extends Controller
         $queueChat = Rates::query()
             ->where('status', 'pending')
             ->where('latestRoomId', $current_rate['latestRoomId'])
-            ->select('id', 'updated_at','custId')
+            ->select('id', 'updated_at', 'custId')
             ->orderBy('updated_at', 'asc')
             ->get();
 
@@ -428,5 +435,57 @@ class LineUATController extends Controller
             Log::channel('line_webhook_log')->error($message);
             return false;
         }
+    }
+
+
+    private function filterCaseSale($custId)
+    {
+        $found = SaleInformation::query()->where('sale_cust_id', $custId)->first();
+        if ($found) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private function createSaleChat($customer, $current_rate = null, $message)
+    {
+        if (!isset($current_rate) || ($current_rate && $current_rate->status === 'success')) {
+            Log::info('สร้างเคสใหม่');
+            $new_rate = Rates::query()->create([
+                'custId' => $customer['custId'],
+                'rate' => 0,
+                'latestRoomId' => 'ROOM20',
+                'status' => 'pending',
+            ]);
+            $new_ac = ActiveConversations::query()->create([
+                'custId' => $customer['custId'],
+                'roomId' => 'ROOM20',
+                'rateRef' => $new_rate->id,
+            ]);
+            $new_chat = ChatHistory::query()->create([
+                'custId' => $customer['custId'],
+                'content' => $message['text'] ?? '',
+                'contentType' => $message['type'],
+                'sender' => $customer->toJson(),
+                'conversationRef' => $new_ac->id,
+                'line_quoteToken' => $message['quoteToken'] ?? null
+            ]);
+        } elseif (($current_rate && $current_rate->status === 'progress') || ($current_rate && $current_rate->status === 'pending')) {
+            Log::info('ไม่สร้างเคสใหม่');
+            $ac = ActiveConversations::query()->where('rateRef', $current_rate->id)->orderBy('id', 'desc')->first();
+            $new_chat = ChatHistory::query()->create([
+                'custId' => $customer['custId'],
+                'content' => $message['text'] ?? '',
+                'contentType' => $message['type'],
+                'sender' => $customer->toJson(),
+                'conversationRef' => $ac->id,
+                'line_quoteToken' => $message['quoteToken'] ?? null
+            ]);
+        }else{
+            Log::info('ไม่พบเคสที่เกี่ยวข้อง');
+        }
+
+        $this->pusherService->sendNotification($customer['custId']);
     }
 }
