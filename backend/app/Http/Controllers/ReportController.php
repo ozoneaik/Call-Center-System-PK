@@ -351,7 +351,7 @@ class ReportController extends Controller
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
-            ->whereBetween('rates.created_at', ['2025-07-01 00:00:00', '2025-07-31 23:59:59'])
+            ->whereBetween('rates.created_at', ['2025-08-05 00:00:00', '2025-08-05 23:59:59'])
             ->select('rates.*', 'customers.custName', 'tag_menus.tagName', 'chat_rooms.roomName as latestRoomName')
             ->orderBy('id', 'desc')
             ->get();
