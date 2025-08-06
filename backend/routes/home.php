@@ -25,6 +25,8 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/closed-today', [UcTagSummaryController::class, 'closedTodayByUser']);
         Route::get('/users/{empCode}/closed-week', [UcTagSummaryController::class, 'closedThisWeekByUser']);
         Route::get('/users/{empCode}/closed-month', [UcTagSummaryController::class, 'closedMonthByUser']);
+        Route::get('/users/{empCode}/in-progress', [UcTagSummaryController::class, 'inProgressByUser']);
+        Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedByUser']);
 
         // Route::get('/users/{empCode}/tags/today',   [UcTagSummaryController::class, 'todayClosedTagsByUser']);
         // Route::get('/users/{empCode}/tags/week',    [UcTagSummaryController::class, 'weekClosedTagsByUser']);

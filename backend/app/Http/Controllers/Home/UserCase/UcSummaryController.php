@@ -21,7 +21,7 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereDate('r.updated_at', Carbon::today())
+            ->whereDate('ac.endTime', Carbon::today())
             ->where('r.status', 'success')
             ->where('ac.empCode', '!=', 'BOT')
             ->where('ac.empCode', '!=', 'adminIT')
@@ -53,7 +53,7 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereBetween('r.updated_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->whereBetween('ac.endTime', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->where('r.status', 'success')
             ->where('ac.empCode', '!=', 'BOT')
             ->where('ac.empCode', '!=', 'adminIT')
@@ -69,7 +69,7 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereBetween('r.updated_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+            ->whereBetween('ac.endTime', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->where('r.status', 'success')
             ->where('ac.empCode', '!=', 'BOT')
             ->where('ac.empCode', '!=', 'adminIT')
@@ -106,7 +106,7 @@ class UcSummaryController extends Controller
 
         $totalSuccessToday = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-            ->whereDate('r.updated_at', $today)
+            ->whereDate('ac.endTime', $today)
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->count();
@@ -126,14 +126,14 @@ class UcSummaryController extends Controller
 
         $totalSuccessWeek = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-            ->whereBetween('r.updated_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->whereBetween('ac.endTime', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->count();
 
         $totalSuccessMonth = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-            ->whereBetween('r.updated_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+            ->whereBetween('ac.endTime', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->count();

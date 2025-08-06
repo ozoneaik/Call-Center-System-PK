@@ -19,6 +19,8 @@ import LegendToggle from "./LegendToggle";
 import ClosedTodayModal from "./Dashboard/ClosedModals/ClosedTodayModal";
 import ClosedWeekModal from "./Dashboard/ClosedModals/ClosedWeekModal";
 import ClosedMonthModal from "./Dashboard/ClosedModals/ClosedMonthModal";
+import InProgressModal from "./Dashboard/ClosedModals/InProgressModal";
+import ForwardedModal from "./Dashboard/ClosedModals/ForwardedModal";
 
 export default function UC() {
     const theme = useTheme();
@@ -47,6 +49,16 @@ export default function UC() {
     const [closedMonthRange, setClosedMonthRange] = useState({ start: "", end: "" });
     const [closedMonthUser, setClosedMonthUser] = useState(null);
 
+    const [openInProgress, setOpenInProgress] = useState(false);
+    const [inProgressLoading, setInProgressLoading] = useState(false);
+    const [inProgressRows, setInProgressRows] = useState([]);
+    const [inProgressUser, setInProgressUser] = useState(null);
+
+    const [openForwardedModal, setOpenForwardedModal] = useState(false);
+    const [forwardedUser, setForwardedUser] = useState(null);
+    const [forwardedData, setForwardedData] = useState([]);
+    const [forwardedLoading, setForwardedLoading] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -64,7 +76,6 @@ export default function UC() {
             const data = userCaseRes.data;
             const activeList = activeUserRes.data?.active_users_today || [];
 
-            // แปลงเป็น Set เพื่อ lookup ง่าย
             const activeSet = new Set(activeList.map(u => u.empCode));
 
             if (data?.success && data?.progress && data?.weekSuccess && data?.monthSuccess) {
@@ -86,7 +97,7 @@ export default function UC() {
                                 weekClosed: 0,
                                 monthClosed: 0,
                                 forwarded: 0,
-                                isActiveToday: activeSet.has(item.empCode), // ✅ เพิ่มตรงนี้
+                                isActiveToday: activeSet.has(item.empCode),
                                 [field]: value
                             });
                         }
@@ -170,6 +181,34 @@ export default function UC() {
         }
     };
 
+    const handleOpenInProgress = async (emp) => {
+        try {
+            setInProgressUser(emp);
+            setOpenInProgress(true);
+            setInProgressLoading(true);
+            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/in-progress`);
+            setInProgressRows(data?.cases || []);
+        } catch (e) {
+            alert("โหลดข้อมูลกำลังดำเนินการไม่สำเร็จ");
+        } finally {
+            setInProgressLoading(false);
+        }
+    };
+
+    const handleOpenForwardedModal = async (emp) => {
+        try {
+            setForwardedUser(emp);
+            setOpenForwardedModal(true);
+            setForwardedLoading(true);
+            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/forwarded-today`);
+            setForwardedData(data?.cases || []);
+        } catch (error) {
+            alert("โหลดข้อมูลการส่งต่อเคสไม่สำเร็จ");
+        } finally {
+            setForwardedLoading(false);
+        }
+    };
+
     return (
         <div>
             <Stack direction="row" justifyContent="space-between" mb={2}>
@@ -223,6 +262,8 @@ export default function UC() {
                             onClickTodayClosed={handleOpenClosedToday}
                             onClickWeekClosed={handleOpenClosedWeek}
                             onClickMonthClosed={handleOpenClosedMonth}
+                            onClickInProgress={handleOpenInProgress}
+                            onClickForwarded={handleOpenForwardedModal}
                         />
                     </Grid2>
                 </>
@@ -233,6 +274,8 @@ export default function UC() {
                         onClickTodayClosed={handleOpenClosedToday}
                         onClickWeekClosed={handleOpenClosedWeek}
                         onClickMonthClosed={handleOpenClosedMonth}
+                        onClickInProgress={handleOpenInProgress}
+                        onClickForwarded={handleOpenForwardedModal}
                     />
                 </>
             )}
@@ -250,6 +293,8 @@ export default function UC() {
                 onClickTodayClosed={handleOpenClosedToday}
                 onClickWeekClosed={handleOpenClosedWeek}
                 onClickMonthClosed={handleOpenClosedMonth}
+                onClickInProgress={handleOpenInProgress}
+                onClickForwarded={handleOpenForwardedModal}
             />
 
             <ClosedTodayModal
@@ -277,6 +322,22 @@ export default function UC() {
                 data={closedMonthData}
                 range={closedMonthRange}
                 user={closedMonthUser}
+            />
+
+            <InProgressModal
+                open={openInProgress}
+                onClose={() => setOpenInProgress(false)}
+                loading={inProgressLoading}
+                user={inProgressUser}
+                rows={inProgressRows}
+            />
+
+            <ForwardedModal
+                open={openForwardedModal}
+                onClose={() => setOpenForwardedModal(false)}
+                user={forwardedUser}
+                loading={forwardedLoading}
+                data={forwardedData}
             />
         </div>
     );

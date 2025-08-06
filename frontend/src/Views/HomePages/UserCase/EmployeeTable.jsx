@@ -5,6 +5,8 @@ export default function EmployeeTable({
     onClickTodayClosed,
     onClickWeekClosed,
     onClickMonthClosed,
+    onClickInProgress,
+    onClickForwarded,
 }) {
     return (
         <Sheet variant="outlined" sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 490 }}>
@@ -29,7 +31,10 @@ export default function EmployeeTable({
                             employee.weekClosed > 0 && typeof onClickWeekClosed === "function";
                         const clickableMonth =
                             employee.monthClosed > 0 && typeof onClickMonthClosed === "function";
-
+                        const clickableInProgress =
+                            employee.inProgress > 0 && typeof onClickInProgress === "function";
+                        const clickableForwarded =
+                            employee.forwarded > 0 && typeof onClickForwarded === "function";
                         return (
                             <tr key={employee.id}>
                                 <td style={{ textAlign: "center" }}>{index + 1}</td>
@@ -63,13 +68,22 @@ export default function EmployeeTable({
                                     </Typography>
                                 </td>
 
-                                {/* กำลังดำเนินการ */}
                                 <td style={{
                                     textAlign: "center",
                                     color: employee.inProgress === 0 ? "#D32F2F" : "green",
                                     fontWeight: employee.inProgress === 0 ? "bold" : "normal",
                                 }}>
-                                    {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
+                                    <Typography
+                                        component="span"
+                                        sx={{
+                                            cursor: clickableInProgress ? "pointer" : "default",
+                                            textDecoration: clickableInProgress ? "underline" : "none",
+                                            "&:hover": clickableInProgress ? { opacity: 0.8 } : {},
+                                        }}
+                                        onClick={() => clickableInProgress && onClickInProgress(employee)}
+                                    >
+                                        {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
+                                    </Typography>
                                 </td>
 
                                 {/* สัปดาห์นี้ */}
@@ -118,7 +132,16 @@ export default function EmployeeTable({
                                     color: employee.forwarded === 0 ? "#D32F2F" : "green",
                                     fontWeight: employee.forwarded === 0 ? "bold" : "normal",
                                 }}>
-                                    {employee.forwarded}
+                                    <Typography
+                                        component="span"
+                                        sx={{ cursor: clickableForwarded ? 'pointer' : 'default',
+                                            textDecoration: clickableForwarded ? 'underline' : 'none',
+                                            "&:hover": clickableForwarded ? { opacity: 0.8 } : {},
+                                         }}
+                                        onClick={() => clickableForwarded && onClickForwarded(employee)}
+                                    >
+                                        {employee.forwarded}
+                                    </Typography>
                                 </td>
 
                                 {/* สถานะ */}

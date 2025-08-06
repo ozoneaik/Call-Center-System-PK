@@ -4,7 +4,7 @@ import { Card, CardContent, Stack, Typography, Chip, Box, Avatar } from "@mui/jo
 import { Autorenew, CalendarMonth, DateRange, Done, Send } from "@mui/icons-material";
 import BoxCase from "./BoxCase";
 
-export default function EmployeeCards({ employees, onClickTodayClosed, onClickWeekClosed, onClickMonthClosed }) {
+export default function EmployeeCards({ employees, onClickTodayClosed, onClickWeekClosed, onClickMonthClosed, onClickInProgress, onClickForwarded }) {
     return employees.map((employee) => (
         <Grid2 size={{ xs: 12 }} key={employee.id}>
             <Card>
@@ -54,11 +54,13 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                             icon={<Autorenew />}
                             label="เคสที่กำลังดำเนินการ"
                             value={employee.inProgress}
-                            color={
-                                employee.inProgress === 0
-                                    ? '#D32F2F' : "green"
-                            }
+                            color={employee.inProgress === 0 ? '#D32F2F' : 'green'}
                             warning={employee.inProgress === 0}
+                            onClick={() =>
+                                employee.inProgress > 0 &&
+                                onClickInProgress &&
+                                onClickInProgress(employee)
+                            }
                         />
                         <BoxCase
                             icon={<DateRange />}
@@ -97,6 +99,11 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                                     ? '#D32F2F' : "green"
                             }
                             warning={employee.forwarded === 0}
+                            onClick={() =>
+                                employee.forwarded > 0 &&
+                                onClickForwarded &&
+                                onClickForwarded(employee)
+                            }
                         />
                     </Stack>
                 </CardContent>

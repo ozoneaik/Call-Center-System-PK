@@ -8,11 +8,13 @@ import {
     Chip,
     LinearProgress
 } from "@mui/joy";
+import useResponsiveModal from "./useResponsiveModal";
 
 export default function ClosedMonthModal({ open, onClose, loading, data, range, user }) {
+    const modalSx = useResponsiveModal();
     return (
         <Modal open={open} onClose={onClose}>
-            <ModalDialog sx={{ minWidth: 720, maxWidth: 980 }}>
+            <ModalDialog sx={modalSx}>
                 <ModalClose />
                 <Typography level="h4" mb={1}>
                     ปิดเคสเดือนนี้ {range?.start && range?.end ? `(${range.start} - ${range.end})` : ""}
@@ -30,7 +32,19 @@ export default function ClosedMonthModal({ open, onClose, loading, data, range, 
                     </Box>
                 ) : (
                     <Box sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 520 }}>
-                        <Table stickyHeader hoverRow>
+                        <Table
+                            stickyHeader
+                            hoverRow
+                            sx={{
+                                "& th, & td": {
+                                    fontSize: "0.75rem",
+                                    padding: "6px 8px",
+                                    whiteSpace: "nowrap",
+                                    textOverflow: "ellipsis",
+                                    overflow: "hidden",
+                                },
+                            }}
+                        >
                             <thead>
                                 <tr>
                                     <th style={{ textAlign: 'left', paddingLeft: 12, whiteSpace: 'nowrap' }}>ชื่อลูกค้า</th>

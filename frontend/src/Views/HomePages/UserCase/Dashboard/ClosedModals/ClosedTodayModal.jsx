@@ -1,9 +1,12 @@
 import { Box, Modal, ModalDialog, ModalClose, Table, Typography, Chip, LinearProgress } from "@mui/joy";
+import useResponsiveModal from "./useResponsiveModal";
 
 export default function ClosedTodayModal({ open, onClose, loading, date, user, data }) {
+  const modalSx = useResponsiveModal();
+
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalDialog sx={{ minWidth: 720, maxWidth: 980 }}>
+      <ModalDialog sx={modalSx}>
         <ModalClose />
         <Typography level="h4" mb={1}>
           ปิดเคสวันนี้ {date ? `(${date})` : ""}
@@ -21,7 +24,19 @@ export default function ClosedTodayModal({ open, onClose, loading, date, user, d
           </Box>
         ) : (
           <Box sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 520 }}>
-            <Table stickyHeader hoverRow sx={{ tableLayout: 'auto' }}>
+            <Table
+              stickyHeader
+              hoverRow
+              sx={{
+                "& th, & td": {
+                  fontSize: "0.75rem",
+                  padding: "6px 8px",
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                },
+              }}
+            >
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', paddingLeft: 12, whiteSpace: 'nowrap' }}>ชื่อลูกค้า</th>
@@ -34,7 +49,7 @@ export default function ClosedTodayModal({ open, onClose, loading, date, user, d
                   data.map((row) => (
                     <tr key={row.conversation_id}>
                       <td style={{ paddingLeft: 12 }}>
-                        {row.customer_name || "-"}
+                        <a href={`/chatHistory/detail/${row.custId}`} target="_blank" rel="noopener noreferrer" > {row.customer_name || "-"} </a>
                       </td>
                       <td style={{ textAlign: "left" }}>
                         {row.closed_at ? new Date(row.closed_at).toLocaleString() : "-"}

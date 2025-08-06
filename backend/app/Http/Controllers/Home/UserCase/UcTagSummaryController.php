@@ -17,7 +17,7 @@ class UcTagSummaryController extends Controller
         $results = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereDate('r.updated_at', $today)   // เวลาอัปเดตของ rate = เวลาปิดเคส
+            ->whereDate('ac.endTime', $today)
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') AS tag_name, COUNT(*) AS total')
@@ -38,7 +38,7 @@ class UcTagSummaryController extends Controller
         $rows = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereDate('r.updated_at', $today)   // เวลาอัปเดตของ rate = เวลาปิดเคส
+            ->whereDate('ac.endTime', $today)   // เวลาอัปเดตของ rate = เวลาปิดเคส
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') AS tag_name, COUNT(*) AS total')
@@ -60,7 +60,7 @@ class UcTagSummaryController extends Controller
         $rows = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') AS tag_name, COUNT(*) AS total')
@@ -85,7 +85,7 @@ class UcTagSummaryController extends Controller
         $rows = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') AS tag_name, COUNT(*) AS total')
@@ -102,15 +102,12 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    /**
-     * 🔧 ใช้ซ้ำ: query สรุปแท็กในช่วงวันที่ โดยระบุ empCode (บังคับ)
-     */
     private function tagSummaryByUserRange($start, $end, string $empCode)
     {
         return DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->where('ac.empCode', $empCode)
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
@@ -170,17 +167,18 @@ class UcTagSummaryController extends Controller
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->where('ac.empCode', $empCode)
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('
             ac.id as conversation_id,
-            r.updated_at as closed_at,
+            "ac"."endTime" as closed_at,
+            ac."custId",
             COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name, 
             COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
         ')
-            ->orderByDesc('r.updated_at')
+            ->orderByDesc(DB::raw('"ac"."endTime"'))
             ->get();
 
         return response()->json([
@@ -200,17 +198,17 @@ class UcTagSummaryController extends Controller
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->where('ac.empCode', $empCode)
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('
             ac.id as conversation_id,
-            r.updated_at as closed_at,
+            "ac"."endTime" as closed_at,
             COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
             COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
         ')
-            ->orderByDesc('r.updated_at')
+            ->orderByDesc(DB::raw('"ac"."endTime"'))
             ->get();
 
         return response()->json([
@@ -233,17 +231,17 @@ class UcTagSummaryController extends Controller
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
-            ->whereBetween('r.updated_at', [$start, $end])
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
             ->where('ac.empCode', $empCode)
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->selectRaw('
             ac.id as conversation_id,
-            r.updated_at as closed_at,
+            "ac"."endTime" as closed_at,
             COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
             COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
         ')
-            ->orderByDesc('r.updated_at')
+            ->orderByDesc(DB::raw('"ac"."endTime"'))
             ->get();
 
         return response()->json([
@@ -251,6 +249,58 @@ class UcTagSummaryController extends Controller
             'empCode' => $empCode,
             'total'   => $rows->count(),
             'cases'   => $rows,
+        ]);
+    }
+
+    public function inProgressByUser(string $empCode)
+    {
+        $today = Carbon::today();
+
+        $rows = DB::connection('pgsql_real')->table('rates as r')
+            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+            ->leftJoin('customers as c', 'ac.custId', '=', 'c.custId')
+            ->leftJoin('chat_rooms as cr', 'cr.roomId', '=', 'ac.roomId')
+            ->whereDate('r.updated_at', $today)
+            ->where('r.status', 'progress')
+            ->where('ac.empCode', $empCode)
+            ->select(
+                'ac.id as conversation_id',
+                DB::raw('COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name'),
+                'ac.roomId as room_id',
+                'cr.roomName as inprogress_room_name',
+                'ac.startTime as started_at'
+            )
+            ->orderByDesc('ac.startTime')
+            ->get();
+
+        return response()->json([
+            'empCode' => $empCode,
+            'total' => $rows->count(),
+            'cases' => $rows,
+        ]);
+    }
+
+    public function forwardedByUser(string $empCode)
+    {
+        $rows = DB::connection('pgsql_real')->table('active_conversations as ac')
+            ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
+            ->leftJoin('chat_rooms as cr', 'cr.roomId', '=', 'ac.roomId') // ✅ เพิ่มเพื่อดึงชื่อห้อง
+            ->where('ac.from_empCode', $empCode)
+            ->whereNotNull('ac.from_empCode')
+            ->select(
+                'ac.id as conversation_id',
+                DB::raw('COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name'),
+                'ac.roomId as forwarded_to_room',
+                'cr.roomName as forwarded_room_name', // ✅ ดึงชื่อห้อง
+                'ac.updated_at as forwarded_time'
+            )
+            ->orderByDesc('ac.updated_at')
+            ->get();
+
+        return response()->json([
+            'empCode' => $empCode,
+            'total' => $rows->count(),
+            'cases' => $rows,
         ]);
     }
 }

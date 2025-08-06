@@ -1,4 +1,3 @@
-//EmployeeModal.js
 import {
     Modal,
     ModalDialog,
@@ -24,7 +23,9 @@ export default function EmployeeModal({
     departments,
     onClickTodayClosed,
     onClickWeekClosed,
-    onClickMonthClosed
+    onClickMonthClosed,
+    onClickInProgress,
+    onClickForwarded,
 }) {
     return (
         <Modal open={open} onClose={onClose}>
@@ -64,6 +65,8 @@ export default function EmployeeModal({
                             onClickTodayClosed={onClickTodayClosed}
                             onClickWeekClosed={onClickWeekClosed}
                             onClickMonthClosed={onClickMonthClosed}
+                            onClickInProgress={onClickInProgress}
+                            onClickForwarded={onClickForwarded}
                         />
                     </Grid2>
                 ) : (
@@ -73,6 +76,8 @@ export default function EmployeeModal({
                         onClickTodayClosed={onClickTodayClosed}
                         onClickWeekClosed={onClickWeekClosed}
                         onClickMonthClosed={onClickMonthClosed}
+                        onClickInProgress={onClickInProgress}
+                        onClickForwarded={onClickForwarded}
                     />
                 )}
             </ModalDialog>
