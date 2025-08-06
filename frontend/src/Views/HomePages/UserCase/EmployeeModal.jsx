@@ -21,7 +21,10 @@ export default function EmployeeModal({
     setFilterDept,
     searchName,
     setSearchName,
-    departments
+    departments,
+    onClickTodayClosed,
+    onClickWeekClosed,
+    onClickMonthClosed
 }) {
     return (
         <Modal open={open} onClose={onClose}>
@@ -56,10 +59,21 @@ export default function EmployeeModal({
                 </Stack>
                 {isMobile ? (
                     <Grid2 spacing={2} container>
-                        <EmployeeCards employees={filteredEmployees} />
+                        <EmployeeCards
+                            employees={filteredEmployees}
+                            onClickTodayClosed={onClickTodayClosed}
+                            onClickWeekClosed={onClickWeekClosed}
+                            onClickMonthClosed={onClickMonthClosed}
+                        />
                     </Grid2>
                 ) : (
-                    <EmployeeTable employees={filteredEmployees} />
+                    // <EmployeeTable employees={filteredEmployees} />
+                    <EmployeeTable
+                        employees={filteredEmployees}
+                        onClickTodayClosed={onClickTodayClosed}
+                        onClickWeekClosed={onClickWeekClosed}
+                        onClickMonthClosed={onClickMonthClosed}
+                    />
                 )}
             </ModalDialog>
         </Modal>

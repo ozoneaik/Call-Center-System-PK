@@ -16,6 +16,9 @@ import EmployeeModal from "./EmployeeModal";
 import EmployeeTable from "./EmployeeTable";
 import FilterControls from "./Fillter/FilterControls";
 import LegendToggle from "./LegendToggle";
+import ClosedTodayModal from "./Dashboard/ClosedModals/ClosedTodayModal";
+import ClosedWeekModal from "./Dashboard/ClosedModals/ClosedWeekModal";
+import ClosedMonthModal from "./Dashboard/ClosedModals/ClosedMonthModal";
 
 export default function UC() {
     const theme = useTheme();
@@ -25,6 +28,24 @@ export default function UC() {
     const [filterDept, setFilterDept] = useState('');
     const [searchName, setSearchName] = useState('');
     const [employees, setEmployees] = useState([]);
+
+    const [openClosedToday, setOpenClosedToday] = useState(false);
+    const [closedTodayLoading, setClosedTodayLoading] = useState(false);
+    const [closedTodayData, setClosedTodayData] = useState([]);
+    const [closedTodayDate, setClosedTodayDate] = useState("");
+    const [closedTodayUser, setClosedTodayUser] = useState(null);
+
+    const [openClosedWeek, setOpenClosedWeek] = useState(false);
+    const [closedWeekLoading, setClosedWeekLoading] = useState(false);
+    const [closedWeekData, setClosedWeekData] = useState([]);
+    const [closedWeekRange, setClosedWeekRange] = useState({ start: "", end: "" });
+    const [closedWeekUser, setClosedWeekUser] = useState(null);
+
+    const [openClosedMonth, setOpenClosedMonth] = useState(false);
+    const [closedMonthLoading, setClosedMonthLoading] = useState(false);
+    const [closedMonthData, setClosedMonthData] = useState([]);
+    const [closedMonthRange, setClosedMonthRange] = useState({ start: "", end: "" });
+    const [closedMonthUser, setClosedMonthUser] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -102,10 +123,57 @@ export default function UC() {
         new Set(employees.map(emp => emp.department).filter(Boolean))
     ).sort((a, b) => a.localeCompare(b, 'th'));
 
+    const handleOpenClosedToday = async (emp) => {
+        try {
+            setClosedTodayUser(emp);
+            setOpenClosedToday(true);
+            setClosedTodayLoading(true);
+            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/closed-today`);
+            setClosedTodayData(data?.cases || []);
+            setClosedTodayDate(data?.date || "");
+        } catch (e) {
+            alert("โหลดข้อมูลปิดเคสวันนี้ไม่สำเร็จ");
+        } finally {
+            setClosedTodayLoading(false);
+        }
+    };
+
+    const handleOpenClosedWeek = async (emp) => {
+        try {
+            setClosedWeekUser(emp);
+            setOpenClosedWeek(true);
+            setClosedWeekLoading(true);
+            const { data } = await axiosClient.get(
+                `home/user-case/users/${emp.empCode}/closed-week`
+            );
+            setClosedWeekData(data?.cases || []);
+            setClosedWeekRange(data?.range || { start: "", end: "" });
+        } catch (e) {
+            alert("โหลดข้อมูลปิดเคสสัปดาห์นี้ไม่สำเร็จ");
+        } finally {
+            setClosedWeekLoading(false);
+        }
+    };
+
+    const handleOpenClosedMonth = async (emp) => {
+        try {
+            setClosedMonthUser(emp);
+            setOpenClosedMonth(true);
+            setClosedMonthLoading(true);
+            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/closed-month`);
+            setClosedMonthData(data?.cases || []);
+            setClosedMonthRange(data?.range || { start: "", end: "" });
+        } catch (e) {
+            alert("โหลดข้อมูลปิดเคสเดือนนี้ไม่สำเร็จ");
+        } finally {
+            setClosedMonthLoading(false);
+        }
+    };
+
     return (
         <div>
             <Stack direction="row" justifyContent="space-between" mb={2}>
-                <Typography level="h2">พนักงานที่ทำงาน</Typography>
+                <Typography level="h4">พนักงานที่ทำงาน</Typography>
             </Stack>
 
             <Box mb={2}>
@@ -150,13 +218,22 @@ export default function UC() {
                 <>
                     <LegendToggle />
                     <Grid2 spacing={2} container sx={{ maxHeight: 490 }} overflow="auto">
-                        <EmployeeCards employees={filteredEmployees.slice(0, 4)} />
+                        <EmployeeCards
+                            employees={filteredEmployees.slice(0, 4)}
+                            onClickTodayClosed={handleOpenClosedToday}
+                            onClickWeekClosed={handleOpenClosedWeek}
+                            onClickMonthClosed={handleOpenClosedMonth}
+                        />
                     </Grid2>
                 </>
             ) : (
                 <>
                     {/* <LegendToggle /> */}
-                    <EmployeeTable employees={filteredEmployees.slice(0, 4)} />
+                    <EmployeeTable employees={filteredEmployees.slice(0, 4)}
+                        onClickTodayClosed={handleOpenClosedToday}
+                        onClickWeekClosed={handleOpenClosedWeek}
+                        onClickMonthClosed={handleOpenClosedMonth}
+                    />
                 </>
             )}
 
@@ -170,6 +247,36 @@ export default function UC() {
                 searchName={searchName}
                 setSearchName={setSearchName}
                 departments={departments}
+                onClickTodayClosed={handleOpenClosedToday}
+                onClickWeekClosed={handleOpenClosedWeek}
+                onClickMonthClosed={handleOpenClosedMonth}
+            />
+
+            <ClosedTodayModal
+                open={openClosedToday}
+                onClose={() => setOpenClosedToday(false)}
+                loading={closedTodayLoading}
+                date={closedTodayDate}
+                user={closedTodayUser}
+                data={closedTodayData}
+            />
+
+            <ClosedWeekModal
+                open={openClosedWeek}
+                onClose={() => setOpenClosedWeek(false)}
+                loading={closedWeekLoading}
+                data={closedWeekData}
+                range={closedWeekRange}
+                user={closedWeekUser}
+            />
+
+            <ClosedMonthModal
+                open={openClosedMonth}
+                onClose={() => setOpenClosedMonth(false)}
+                loading={closedMonthLoading}
+                data={closedMonthData}
+                range={closedMonthRange}
+                user={closedMonthUser}
             />
         </div>
     );

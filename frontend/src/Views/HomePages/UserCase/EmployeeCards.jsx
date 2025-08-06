@@ -4,7 +4,7 @@ import { Card, CardContent, Stack, Typography, Chip, Box, Avatar } from "@mui/jo
 import { Autorenew, CalendarMonth, DateRange, Done, Send } from "@mui/icons-material";
 import BoxCase from "./BoxCase";
 
-export default function EmployeeCards({ employees }) {
+export default function EmployeeCards({ employees, onClickTodayClosed, onClickWeekClosed, onClickMonthClosed }) {
     return employees.map((employee) => (
         <Grid2 size={{ xs: 12 }} key={employee.id}>
             <Card>
@@ -44,6 +44,11 @@ export default function EmployeeCards({ employees }) {
                                     ? '#D32F2F' : "green"
                             }
                             warning={employee.todayClosed === 0}
+                            onClick={() =>
+                                employee.todayClosed > 0 &&
+                                onClickTodayClosed &&
+                                onClickTodayClosed(employee)
+                            }
                         />
                         <BoxCase
                             icon={<Autorenew />}
@@ -64,6 +69,11 @@ export default function EmployeeCards({ employees }) {
                                     ? '#D32F2F' : "green"
                             }
                             warning={employee.weekClosed === 0}
+                            onClick={() =>
+                                employee.weekClosed > 0 &&
+                                onClickWeekClosed &&
+                                onClickWeekClosed(employee)
+                            }
                         />
                         <BoxCase
                             icon={<CalendarMonth />}
@@ -74,6 +84,9 @@ export default function EmployeeCards({ employees }) {
                                     ? '#D32F2F' : "green"
                             }
                             warning={employee.forwarded === 0}
+                            onClick={() =>
+                                employee.monthClosed > 0 && onClickMonthClosed && onClickMonthClosed(employee)
+                            }
                         />
                         <BoxCase
                             icon={<Send />}

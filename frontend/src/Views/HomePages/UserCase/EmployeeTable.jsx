@@ -1,103 +1,144 @@
-import {
-    Avatar,
-    Box,
-    Chip,
-    Sheet,
-    Stack,
-    Table,
-    Typography
-} from "@mui/joy";
+import { Avatar, Box, Chip, Sheet, Stack, Table, Typography } from "@mui/joy";
 
-export default function EmployeeTable({ employees }) {
+export default function EmployeeTable({
+    employees,
+    onClickTodayClosed,
+    onClickWeekClosed,
+    onClickMonthClosed,
+}) {
     return (
-        <Sheet variant="outlined" sx={{ borderRadius: 'sm', overflow: 'auto', maxHeight: 490 }}>
+        <Sheet variant="outlined" sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 490 }}>
             <Table stickyHeader hoverRow>
                 <thead>
                     <tr>
-                        <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                        <th style={{ width: '200px', padding: '12px' }}>พนักงาน</th>
-                        <th style={{ textAlign: 'center' }}>ปิดเคสวันนี้</th>
-                        <th style={{ textAlign: 'center' }}>กำลังดำเนินการ</th>
-                        <th style={{ textAlign: 'center' }}>ปิดเคสสัปดาห์นี้</th>
-                        <th style={{ textAlign: 'center' }}>ปิดเคสเดือนนี้</th>
-                        <th style={{ textAlign: 'center' }}>ส่งต่อเคส</th>
-                        <th style={{ width: '100px', textAlign: 'center' }}>สถานะ</th>
+                        <th style={{ width: "40px", textAlign: "center" }}>#</th>
+                        <th style={{ width: "200px", padding: "12px" }}>พนักงาน</th>
+                        <th style={{ textAlign: "center" }}>ปิดเคสวันนี้</th>
+                        <th style={{ textAlign: "center" }}>กำลังดำเนินการ</th>
+                        <th style={{ textAlign: "center" }}>ปิดเคสสัปดาห์นี้</th>
+                        <th style={{ textAlign: "center" }}>ปิดเคสเดือนนี้</th>
+                        <th style={{ textAlign: "center" }}>ส่งต่อเคส</th>
+                        <th style={{ width: "100px", textAlign: "center" }}>สถานะ</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {employees.map((employee, index) => (
-                        <tr key={employee.id}>
-                            <td style={{ textAlign: 'center' }}>{index + 1}</td>
-                            <td style={{ padding: '12px' }}>
-                                <Box display='flex' alignItems='center' gap={2}>
-                                    <Avatar variant="solid" color="primary" sx={{ width: '40px', height: '40px' }} />
-                                    <Stack spacing={0.5}>
-                                        <Typography fontWeight='bold' fontSize={14}>{employee.name}</Typography>
-                                        <Chip size="sm" variant="soft">{employee.department}</Chip>
-                                    </Stack>
-                                </Box>
-                            </td>
-                            <td style={{
-                                textAlign: 'center',
-                                color:
-                                    employee.todayClosed === 0
-                                        ? '#D32F2F' : "green",
-                                fontWeight: employee.todayClosed === 0 ? 'bold' : 'normal',
-                            }}>
-                                {employee.todayClosed}
-                            </td>
-                            <td style={{
-                                textAlign: 'center',
-                                color:
-                                    employee.inProgress === 0
-                                        ? '#D32F2F' : "green",
-                                fontWeight: employee.inProgress === 0 ? 'bold' : 'normal',
-                            }}>
-                                {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
-                            </td>
-                            <td style={{
-                                textAlign: 'center',
-                                color:
-                                    employee.weekClosed === 0
-                                        ? '#D32F2F' : "green",
-                                fontWeight: employee.weekClosed === 0 ? 'bold' : 'normal',
-                            }}>
-                                {employee.weekClosed}
-                            </td>
-                            <td style={{
-                                textAlign: 'center',
-                                color:
-                                    employee.monthClosed === 0
-                                        ? '#D32F2F' : "green",
-                                fontWeight: employee.monthClosed === 0 ? 'bold' : 'normal',
-                            }}>
-                                {employee.monthClosed}
-                            </td>
-                            <td style={{
-                                textAlign: 'center',
-                                color:
-                                    employee.forwarded === 0
-                                        ? '#D32F2F' : "green",
-                                fontWeight: employee.forwarded === 0 ? 'bold' : 'normal',
-                            }}>
-                                {employee.forwarded}
-                            </td>
-                            <td style={{ textAlign: 'center', padding: '12px' }}>
-                                <Chip
-                                    size="sm"
-                                    variant="soft"
-                                    color={employee.isActiveToday ? 'success' : 'neutral'}
-                                    sx={{
-                                        fontWeight: 'bold',
-                                        backgroundColor: employee.isActiveToday ? '#E8F5E8' : '#F5F5F5',
-                                        color: employee.isActiveToday ? '#2E7D32' : '#666666'
-                                    }}
-                                >
-                                    {employee.isActiveToday ? 'Active' : 'Inactive'}
-                                </Chip>
-                            </td>
-                        </tr>
-                    ))}
+                    {employees.map((employee, index) => {
+                        const clickableToday =
+                            employee.todayClosed > 0 && typeof onClickTodayClosed === "function";
+                        const clickableWeek =
+                            employee.weekClosed > 0 && typeof onClickWeekClosed === "function";
+                        const clickableMonth =
+                            employee.monthClosed > 0 && typeof onClickMonthClosed === "function";
+
+                        return (
+                            <tr key={employee.id}>
+                                <td style={{ textAlign: "center" }}>{index + 1}</td>
+                                <td style={{ padding: "12px" }}>
+                                    <Box display="flex" alignItems="center" gap={2}>
+                                        <Avatar variant="solid" color="primary" sx={{ width: 40, height: 40 }} />
+                                        <Stack spacing={0.5}>
+                                            <Typography fontWeight="bold" fontSize={14}>{employee.name}</Typography>
+                                            <Chip size="sm" variant="soft">{employee.department}</Chip>
+                                        </Stack>
+                                    </Box>
+                                </td>
+
+                                {/* วันนี้ */}
+                                <td style={{
+                                    textAlign: "center",
+                                    color: employee.todayClosed === 0 ? "#D32F2F" : "green",
+                                    fontWeight: employee.todayClosed === 0 ? "bold" : "normal",
+                                }}>
+                                    <Typography
+                                        component="span"
+                                        sx={{
+                                            cursor: clickableToday ? "pointer" : "default",
+                                            textDecoration: clickableToday ? "underline" : "none",
+                                            "&:hover": clickableToday ? { opacity: 0.8 } : {},
+                                        }}
+                                        aria-label="ดูรายละเอียดปิดเคสวันนี้"
+                                        onClick={() => clickableToday && onClickTodayClosed(employee)}
+                                    >
+                                        {employee.todayClosed}
+                                    </Typography>
+                                </td>
+
+                                {/* กำลังดำเนินการ */}
+                                <td style={{
+                                    textAlign: "center",
+                                    color: employee.inProgress === 0 ? "#D32F2F" : "green",
+                                    fontWeight: employee.inProgress === 0 ? "bold" : "normal",
+                                }}>
+                                    {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
+                                </td>
+
+                                {/* สัปดาห์นี้ */}
+                                <td style={{
+                                    textAlign: "center",
+                                    color: employee.weekClosed === 0 ? "#D32F2F" : "green",
+                                    fontWeight: employee.weekClosed === 0 ? "bold" : "normal",
+                                }}>
+                                    <Typography
+                                        component="span"
+                                        sx={{
+                                            cursor: clickableWeek ? "pointer" : "default",
+                                            textDecoration: clickableWeek ? "underline" : "none",
+                                            "&:hover": clickableWeek ? { opacity: 0.8 } : {},
+                                        }}
+                                        aria-label="ดูรายละเอียดปิดเคสสัปดาห์นี้"
+                                        onClick={() => clickableWeek && onClickWeekClosed(employee)}
+                                    >
+                                        {employee.weekClosed}
+                                    </Typography>
+                                </td>
+
+                                {/* เดือนนี้ */}
+                                <td style={{
+                                    textAlign: "center",
+                                    color: employee.monthClosed === 0 ? "#D32F2F" : "green",
+                                    fontWeight: employee.monthClosed === 0 ? "bold" : "normal",
+                                }}>
+                                    <Typography
+                                        component="span"
+                                        sx={{
+                                            cursor: clickableMonth ? "pointer" : "default",
+                                            textDecoration: clickableMonth ? "underline" : "none",
+                                            "&:hover": clickableMonth ? { opacity: 0.8 } : {},
+                                        }}
+                                        aria-label="ดูรายละเอียดปิดเคสเดือนนี้"
+                                        onClick={() => clickableMonth && onClickMonthClosed(employee)}
+                                    >
+                                        {employee.monthClosed}
+                                    </Typography>
+                                </td>
+
+                                {/* ส่งต่อเคส */}
+                                <td style={{
+                                    textAlign: "center",
+                                    color: employee.forwarded === 0 ? "#D32F2F" : "green",
+                                    fontWeight: employee.forwarded === 0 ? "bold" : "normal",
+                                }}>
+                                    {employee.forwarded}
+                                </td>
+
+                                {/* สถานะ */}
+                                <td style={{ textAlign: "center", padding: "12px" }}>
+                                    <Chip
+                                        size="sm"
+                                        variant="soft"
+                                        color={employee.isActiveToday ? "success" : "neutral"}
+                                        sx={{
+                                            fontWeight: "bold",
+                                            backgroundColor: employee.isActiveToday ? "#E8F5E8" : "#F5F5F5",
+                                            color: employee.isActiveToday ? "#2E7D32" : "#666666",
+                                        }}
+                                    >
+                                        {employee.isActiveToday ? "Active" : "Inactive"}
+                                    </Chip>
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </Table>
         </Sheet>

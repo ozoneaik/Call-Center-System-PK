@@ -1,16 +1,13 @@
-import { Box, Button, CircularProgress, Grid, Input, Sheet, Stack } from "@mui/joy";
+import { Box, Sheet } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
-import BreadcrumbsComponent from "../../Components/Breadcrumbs";
 import { Grid2 } from "@mui/material";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useEffect, useState } from "react";
 import axiosClient from "../../Axios";
-import { Search } from "@mui/icons-material";
 import UC from "./UserCase/UC";
-import AllCase from "./AllCase";
-import StatisticsCase from "./StatisticsCase";
 import AllCaseDashboard from "./UserCase/Dashboard/AllCaseDashboard";
+import TagSummaryToday from "./UserCase/TagCase/TagSummaryToday";
 AOS.init();
 
 const BreadcrumbsPath = [{ name: 'Home', path: '/หน้าหลัก' }]
@@ -44,18 +41,17 @@ export default function HomeNew() {
                         </Button>
                     </Stack>
                 </Box> */}
-                <Grid2 container spacing={2}>
+                <Grid2 container spacing={2} sx={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto', overflowX: 'hidden' }}>
                     <Grid2 size={12}>
-
-                    </Grid2>
-                    <Grid2 size={12}>
-                        <UC />
                     </Grid2>
                     <Grid2 size={12}>
                         <AllCaseDashboard />
                     </Grid2>
                     <Grid2 size={12}>
-                        <StatisticsCase />
+                        <UC />
+                    </Grid2>
+                    <Grid2 size={12}>
+                        <TagSummaryToday />
                     </Grid2>
                 </Grid2>
             </Box>
