@@ -1,117 +1,20 @@
-import {Box, Button, Divider, Input, Sheet, Stack, Typography} from "@mui/joy";
-import {ChatPageStyle} from "../../styles/ChatPageStyle";
-import {Grid2} from "@mui/material";
-import {RateList} from "./FirstCom/RateList";
-import {ActiveList} from "./FirstCom/ActiveList";
-import {useNavigate} from "react-router-dom";
-import {TableFirst} from "./FirstCom/TableFirst";
-import {listLineApi} from "../../Api/Report";
-import {useState} from "react";
-import {AlertDiaLog} from "../../Dialogs/Alert";
-import IndividualReport from "./FullReport/IndividualReport";
-import TagsReport from "./Tags/TagsReport.jsx";
+import { Box, Sheet } from "@mui/joy";
+import StatisticsCase from "../HomePages/StatisticsCase.jsx";
+import { ChatPageStyle } from "../../styles/ChatPageStyle";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
+import { Grid2 } from "@mui/material";
 
 export default function ReportPage() {
-    const navigate = useNavigate();
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
-    const [lineList, setLineList] = useState([]);
-    const [rateList, setRateList] = useState([]);
-    const [activeList, setActiveList] = useState([]);
-    const [showFullReport, setShowFullReport] = useState(false);
-    const handleSearch = async () => {
-        setShowFullReport(false);
-        const {data, status} = await listLineApi({startTime, endTime});
-        console.log('liseLine', data, status);
-        if (status === 200) {
-            setLineList(data.lineList);
-            setRateList([]);
-            setActiveList([]);
-            setShowFullReport(true);
-        } else {
-            AlertDiaLog({
-                title: data.message,
-                text: data.detail,
-                onPassed: (confirm) => console.log(confirm)
-            });
-        }
-
-    }
     return (
-        <Sheet sx={[ChatPageStyle.Layout, {height: '100dvh'}]}>
-            <Box component="main" mx={1}>
-                <Box sx={ChatPageStyle.BoxTable} mt={2}>
-                    <Stack flexDirection='row' gap={1} alignItems='center'>
-                        <Button onClick={() => navigate(-1)} size="sm">
-                            {'<'}
-                        </Button>
-                        <Typography level="h2" component="h1">รายงาน</Typography>
-                    </Stack>
-                    <Stack flexDirection='row' gap={1} alignItems='center'>
-                        <Input type='date' onChange={(e) => setStartTime(e.target.value)}/>
-                        <Typography>ถึง</Typography>
-                        <Input type='date' onChange={(e) => setEndTime(e.target.value)}/>
-                        <Button onClick={handleSearch}>ตกลง</Button>
-                    </Stack>
+        <Sheet sx={ChatPageStyle.Layout}>
+            <Box sx={ChatPageStyle.MainContent}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BreadcrumbsComponent list={[]} />
                 </Box>
-                <Sheet variant="outlined" sx={[ChatPageStyle.BoxSheet, {border: "none"}]}>
-                    <Typography level="h3" mb={2} sx={{color: '#f95a1d'}}>
-                        ดูรายงานแบบเฉพาะเจาะจง&nbsp;
-                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
-                    </Typography>
-                    {lineList.length === 0 && (
-                        <Typography sx={{color: '#f95a1d'}}>
-                            รายงานจะแสดงหลังเลือกช่วงเวลาแล้วกดตกลง
-                        </Typography>
-                    )}
-                    <Grid2 container spacing={2} mb={2}>
-                        <Grid2 size={4} maxHeight={400} sx={{overflow: 'auto'}}>
-                            {lineList.length > 0 && (
-                                <TableFirst
-                                    lineList={lineList}
-                                    startTime={startTime}
-                                    endTime={endTime}
-                                    setRateList={setRateList}
-                                    setActiveList={setActiveList}
-                                />
-                            )}
-                        </Grid2>
-                        <Grid2 size={8} maxHeight={400} sx={{overflow: 'auto'}}>
-                            {rateList.length > 0 && (
-                                <RateList rateList={rateList} setActiveList={setActiveList}/>
-                            )}
-                        </Grid2>
-                        <Grid2 size={12} maxHeight={400} sx={{overflow: 'auto'}}>
-                            {activeList && activeList.List && activeList.List.length > 0 && (
-                                <ActiveList activeList={activeList}/>
-                            )}
-                        </Grid2>
-                        <Grid2 size={12}>
-                            <Divider/>
-                        </Grid2>
-                    </Grid2>
-
-                    <Typography level="h3" mb={2} sx={{color: '#f95a1d'}}>
-                        ดูรายงานรายบุคคล&nbsp;
-                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
-                    </Typography>
-                    {showFullReport && (
-                        <Grid2 container spacing={2}>
-                            <IndividualReport startTime={startTime} endTime={endTime}/>
-                        </Grid2>
-                    )}
-                    <Typography level="h3" mb={2} sx={{color: '#f95a1d'}}>
-                        จำนวนเคสในแต่ละแท็คการจบสนทนา&nbsp;
-                        <Typography level="body-sm">({startTime} - {endTime})</Typography>
-                    </Typography>
-                    {showFullReport && (
-                        <Grid2 container spacing={2}>
-                            <TagsReport startTime={startTime} endTime={endTime}/>
-                        </Grid2>
-                    )}
-
-                </Sheet>
+                <Grid2 sx={{ mt: 2 }} >
+                    <StatisticsCase />
+                </Grid2>
             </Box>
         </Sheet>
-    )
+    );
 }

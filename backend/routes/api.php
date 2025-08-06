@@ -39,6 +39,9 @@ Route::post('/test', function (\Illuminate\Http\Request $request) {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    require __DIR__ . '/home.php';
+
     // จัดการพนักงาน
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'user']);

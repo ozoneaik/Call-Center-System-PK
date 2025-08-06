@@ -59,28 +59,28 @@ export const routes = createBrowserRouter([
                             { path: '/accessToken', element: <AccessToken /> },
                             { path: '/botManage', element: <BotPage /> },
                             { path: '/tags', element: <TagePage /> },
-                            {path : '/helpChat', element : <HelpChatList/>},
-                            {path : '/sticker', element : <StickerList/>},
-                            {path : '/announces', element : <AnnouncesList/>},
+                            { path: '/helpChat', element: <HelpChatList /> },
+                            { path: '/sticker', element: <StickerList /> },
+                            { path: '/announces', element: <AnnouncesList /> },
                         ]
                     },
-
+                    { path: '/report', element: <ReportPage /> },
                     { path: '/chatHistory', element: <ChatHistory /> },
                     { path: '/profile', element: <AuthPages /> }
                 ],
             },
             { path: '/chatHistory/detail/:custId', element: <ChatDetail /> },
-            { path: '/report', element: <ReportPage /> },
+
             {
                 path: '/select', children: [
                     { path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane /> },
                 ]
             },
-            {path: '/secret',element : <LayoutSeCreate/>}
+            { path: '/secret', element: <LayoutSeCreate /> }
         ]
     },
     { path: 'access/denied', element: <NotFoundPage /> },
     { path: 'test', element: <TestUi /> },
     { path: '*', element: <NotFoundPage /> },
-    {path : 'feedback/:custId/:rateId', element : <Feedback/>}
+    { path: 'feedback/:custId/:rateId', element: <Feedback /> }
 ])

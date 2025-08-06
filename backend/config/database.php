@@ -96,16 +96,15 @@ return [
             'search_path' => 'public',
             'sslmode' => 'prefer',
         ],
-
-        'pgsql_sub' => [
+        'pgsql_real' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL_SUB'),
-            'host' => env('DB_HOST_SUB', '127.0.0.1'),
-            'port' => env('DB_PORT_SUB', '5432'),
-            'database' => env('DB_DATABASE_SUB', 'laravel'),
-            'username' => env('DB_USERNAME_SUB', 'root'),
-            'password' => env('DB_PASSWORD_SUB', ''),
-            'charset' => env('DB_CHARSET_SUB', 'utf8'),
+            'url' => env('DB_URL_REAL'),
+            'host' => env('DB_HOST_REAL', '127.0.0.1'),
+            'port' => env('DB_PORT_REAL', '5432'),
+            'database' => env('DB_DATABASE_REAL', 'laravel'),
+            'username' => env('DB_USERNAME_REAL', 'root'),
+            'password' => env('DB_PASSWORD_REAL', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
@@ -162,7 +161,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [
