@@ -4,7 +4,10 @@ namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\PlatformAccessTokens;
+use App\Models\Rates;
 use App\Services\PusherService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class ProgressCase
@@ -58,15 +61,64 @@ class ProgressCase
                 $this->pusherService->sendNotification($customer['custId']);
                 $msg_redirect = $this->format_message($platformAccessToken['platform']);
                 $reply_token = $message['reply_token'] ?? null;
-                $bot_send_msg = $this->replyMessage->reply($msg_redirect, $platformAccessToken,$bot, $customer, $reply_token);
+                $bot_send_msg = $this->replyMessage->reply($msg_redirect, $platformAccessToken, $bot, $customer, $reply_token);
                 if (!$bot_send_msg['status']) {
                     Log::channel('webhook_main')->error($bot_send_msg['message'], [
                         'error' => $bot_send_msg['message']
                     ]);
                 } else {
-                    Log::channel('webhook_main')->info($bot_send_msg['message'], [
-                        'message' => $bot_send_msg['message']
+                    ChatHistory::query()->create([
+                        'custId' => $current_rate['custId'],
+                        'content' => 'ระบบกำลังส่งต่อให้เข้าหน้าที่ กรุณารอซักครู่',
+                        'contentType' => 'text',
+                        'sender' => json_encode($bot),
+                        'conversationRef' => $ac_latest['id'],
+                        'line_message_id' => $bot_send_msg['response']['line_message_id'] ?? null,
+                        'line_quote_token' => $bot_send_msg['response']['line_quote_token'] ?? null,
                     ]);
+                    // $this->pusherService->sendNotification($customer['custId']);
+                    // ปิดเคสบอท
+
+                    $now_time = now();
+                    $startTime = Carbon::parse($ac_latest['startTime']);
+                    $endTime = Carbon::parse($now_time);
+                    $diffInSeconds = $startTime->diffInSeconds($endTime);
+                    $hours = floor($diffInSeconds / 3600);
+                    $minutes = floor(($diffInSeconds % 3600) / 60);
+                    $seconds = $diffInSeconds % 60;
+                    $totalTime = "{$hours} ชั่วโมง {$minutes} นาที {$seconds} วินาที";
+                    $ac_latest->update([
+                        'endTime' => $now_time,
+                        'totalTime' => $totalTime,
+                    ]);
+                    // สร้างเคสใหม่ไปยังห้องแชทที่กำหนด
+                    if ($message['contentType'] === 'text') {
+                        $current_rate->update([
+                            'latestRoomId' => $platformAccessToken['room_default_id'] ?? 'ROOM99',
+                            'status' => 'pending',
+                        ]);
+                        $new_ac = ActiveConversations::query()->create([
+                            'custId' => $customer['custId'],
+                            'roomId' => $current_rate['latestRoomId'],
+                            'empCode' => $bot['empCode'],
+                            'rateRef' => $current_rate['id'],
+                            'from_empCode' => $bot['empCode'],
+                            'from_roomId' => 'ROOM00'
+                        ]);
+                    } else {
+                        $current_rate->update([
+                            'latestRoomId' => $platformAccessToken['room_default_id'] ?? 'ROOM99',
+                            'status' => 'pending',
+                        ]);
+                        $new_ac = ActiveConversations::query()->create([
+                            'custId' => $customer['custId'],
+                            'roomId' => $current_rate['latestRoomId'],
+                            'empCode' => $bot['empCode'],
+                            'rateRef' => $current_rate['id'],
+                            'from_empCode' => $bot['empCode'],
+                            'from_roomId' => 'ROOM00'
+                        ]);
+                    }
                 }
             }
         } catch (\Exception $e) {
