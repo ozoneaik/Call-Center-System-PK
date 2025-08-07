@@ -4,8 +4,6 @@ namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
-use App\Models\PlatformAccessTokens;
-use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +23,7 @@ class ProgressCase
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
         try {
+            // ถ้าห้องนี้ไม่ใช่ห้อง BOT
             if (!($current_rate['latestRoomId'] === 'ROOM00')) {
                 Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสกำลังดำเนินการอยู่');
                 $ac_latest = ActiveConversations::query()->where('custId', $current_rate['custId'])
@@ -42,7 +41,9 @@ class ProgressCase
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
                 $this->pusherService->sendNotification($current_rate['custId']);
-            } else {
+            }
+            // ถ่้าเป็นห้อง BOT
+            else {
                 Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสกำลังดำเนินการอยู่ที่ห้อง BOT');
                 $ac_latest = ActiveConversations::query()->where('custId', $current_rate['custId'])
                     ->where('rateRef', $current_rate['id'])
@@ -120,6 +121,7 @@ class ProgressCase
                         ]);
                     }
                 }
+                $this->pusherService->sendNotification($customer['custId']);
             }
         } catch (\Exception $e) {
             Log::channel('webhook_main')->error('Error in ProgressCase: ' . $e->getMessage(), [

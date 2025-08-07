@@ -159,7 +159,6 @@ class LineWebhookController extends Controller
     {
         $full_url = '';
         $endpoint = "https://api-data.line.me/v2/bot/message/$mediaId/content";
-        $header = 'Authorization: Bearer ' . $accessToken;
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,

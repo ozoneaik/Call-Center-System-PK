@@ -105,7 +105,7 @@ class NewCase
         }
     }
 
-    private function formatBotMenu($custName, $platForm, $platFrom_id)
+    public static function formatBotMenu($custName, $platForm, $platFrom_id)
     {
         $msg_bot = [];
         switch (strtoupper($platForm)) {

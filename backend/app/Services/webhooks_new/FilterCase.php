@@ -17,13 +17,15 @@ class FilterCase
     protected NewCase $newCase;
     protected ProgressCase $progressCase;
     protected PendingCase $pendingCase;
-    public function __construct(PusherService $pusherService, NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase)
+    protected SuccessCase $successCase;
+    public function __construct(PusherService $pusherService, NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
     {
         $this->pusherService = $pusherService;
         $this->BOT = User::query()->where('empCode', 'BOT')->first();
         $this->newCase = $newCase;
         $this->progressCase = $progressCase;
         $this->pendingCase = $pendingCase;
+        $this->successCase = $successCase;
     }
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดกรองเคส---------------------------------------------------';
 
@@ -52,7 +54,7 @@ class FilterCase
             } elseif ($current_rate['status'] === 'progress') {
                 $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } else {
-                $this->successCase($current_rate);
+                $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             }
             Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
             return ['status' => true, 'message' => 'กรองสำเร็จ'];
