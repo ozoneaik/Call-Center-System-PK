@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class TagMenu extends Model
 {
     use HasFactory;
-    protected $fillable = ['tagName'];
+    protected $fillable = ['tagName','group_id'];
 }

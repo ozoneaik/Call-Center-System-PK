@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('tag_menus', function (Blueprint $table) {
             $table->id();
             $table->string('tagName')->unique()->comment('ชื่อ tag');
+            $table->string('group_id')->nullable()->comment('รหัสกลุ่ม tag');
             $table->timestamps();
         });
     }
