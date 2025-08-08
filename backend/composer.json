@@ -6,10 +6,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "aws/aws-sdk-php": "^3.352",
         "laravel/framework": "^11.9",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "league/flysystem-aws-s3-v3": "^3.29",
         "linecorp/line-bot-sdk": "^11.1",
         "phpoffice/phpspreadsheet": "^4.5"
     },

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
 use App\Services\webhooks_new\FilterCase;
+use Aws\S3\S3Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Client;
@@ -51,7 +52,7 @@ class LineWebhookController extends Controller
 
                         // จัดรูปแบบข้อความก่อน
                         $message = $event['message'];
-                        $formatted_message = $this->formatMessage($message, $platform['accessToken'],$event['replyToken']);
+                        $formatted_message = $this->formatMessage($message, $platform['accessToken'], $event['replyToken']);
                         Log::channel('webhook_line_new')->info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
                         // เข้าสุ่ filterCase
@@ -124,7 +125,7 @@ class LineWebhookController extends Controller
         }
     }
 
-    private function formatMessage($message, $accessToken,$reply_token)
+    private function formatMessage($message, $accessToken, $reply_token)
     {
         $msg_type = $message['type'] ?? null;
         $msg_formated = [];
@@ -143,7 +144,7 @@ class LineWebhookController extends Controller
             $longitude = $message['longitude'];
             $location_url = 'https://www.google.com/maps/search/?api=1&q=' . $latitude . ',' . $longitude;
             $msg_formated['contentType'] = 'location';
-            $msg_formated['content'] =  'ที่อยู่ => '.$location_url;
+            $msg_formated['content'] =  'ที่อยู่ => ' . $location_url;
         } else {
             $msg_formated['contentType'] = 'text';
             $msg_formated['content'] =  'ไม่รู้จักประเภทข้อความ';
@@ -159,13 +160,16 @@ class LineWebhookController extends Controller
     {
         $full_url = '';
         $endpoint = "https://api-data.line.me/v2/bot/message/$mediaId/content";
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,
             ])->get($endpoint);
+
             if ($response->successful()) {
                 $mediaContent = $response->body();
                 $contentType = $response->header('Content-Type');
+
                 $extension = match ($contentType) {
                     'image/jpeg' => '.jpg',
                     'image/png' => '.png',
@@ -186,16 +190,23 @@ class LineWebhookController extends Controller
                     'application/vnd.openxmlformats-officedocument.presentationml.presentation' => '.pptx',
                     default => '.bin',
                 };
-                $mediaPath = 'line-files/' . $mediaId . $extension;
-                Storage::disk('public')->put($mediaPath, $mediaContent);
-                $full_url = asset('storage/' . $mediaPath);
-                return $full_url;
+
+                $mediaPath = $mediaId . $extension;
+
+                // อัปโหลดขึ้น S3 แบบ private โดยใช้ Flysystem ผ่าน Laravel Storage
+                Storage::disk('s3')->put($mediaPath, $mediaContent, [
+                    'visibility'  => 'private', // หรือ 'public'
+                    'ContentType' => 'image/png',
+                ]);
+
+                $url = Storage::disk('s3')->url($mediaPath);
+                $full_url = $url;
             } else {
-                throw new \Exception('ไม่สามารถดึงสื่อได้ (response ไม่สำเร็จ)');
+                throw new \Exception('ไม่สามารถดึงสื่อจาก LINE ได้');
             }
         } catch (\Exception $e) {
-            Log::channel('webhook_line_new')->error('ไม่สามารถดึง URL ของสื่อได้:❌ ' . $e->getMessage());
-            $full_url = 'ไม่สามารถดึง URL ของสื่อได้:';
+            Log::channel('webhook_line_new')->error('❌ ไม่สามารถดึง URL ของสื่อได้: ' . $e->getMessage());
+            $full_url = '';
         }
 
         return $full_url;
