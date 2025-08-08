@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Home\UserCase\StatisticsController;
 use App\Http\Controllers\Home\UserCase\UcClosureStatsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,9 +29,11 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/in-progress', [UcTagSummaryController::class, 'inProgressByUser']);
         Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedByUser']);
 
-        // Route::get('/users/{empCode}/tags/today',   [UcTagSummaryController::class, 'todayClosedTagsByUser']);
-        // Route::get('/users/{empCode}/tags/week',    [UcTagSummaryController::class, 'weekClosedTagsByUser']);
-        // Route::get('/users/{empCode}/tags/month',   [UcTagSummaryController::class, 'monthClosedTagsByUser']);
+        Route::get('/employee', [StatisticsController::class, 'employeeWorkloadSummary']);
+        Route::get('/employee/{empCode}/cases', [StatisticsController::class, 'getAllCasesByUser']);
+
+        Route::get('/tag-workload', [StatisticsController::class, 'tagWorkloadSummary']);
+        Route::get('/tag/{tagName}/cases', [StatisticsController::class, 'getAllCasesByTag']);
 
         Route::get('/closure-summary', [UcClosureStatsController::class, 'caseClosureTimeSummary']);
         Route::get('/closure-stats', [UcClosureStatsController::class, 'closureStats']);

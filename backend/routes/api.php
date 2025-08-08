@@ -18,6 +18,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Secret\BotRoomController;
 use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\StickerModelController;
+use App\Http\Controllers\TagGroupController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
@@ -142,6 +143,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('delete/{id}', [TagMenuController::class, 'delete']);
     });
 
+    Route::prefix('tag-group')->group(function () {
+        Route::get('/', [TagGroupController::class, 'list']);
+        Route::post('/', [TagGroupController::class, 'store']);
+        Route::put('/{id}', [TagGroupController::class, 'update']);
+        Route::delete('/{id}', [TagGroupController::class, 'delete']);
+    });
+
     //จัดการ keyword
     Route::prefix('keywords')->group(function () {
         Route::get('list', [KeywordController::class, 'list']);
@@ -204,7 +212,7 @@ Route::prefix('webhooks')->group(function () {
         Route::post('/', [FacebookController::class, 'webhookFacebook']);
     });
     Route::prefix('test')->group(function () {
-        Route::get('/facebook', [FacebookController::class,'webhook']);
+        Route::get('/facebook', [FacebookController::class, 'webhook']);
         Route::post('/facebook', function (Request $request) {
             return response()->json([
                 'message' => 'Test webhook received successfully',
@@ -227,4 +235,4 @@ Route::post('/feedback', [feedbackController::class, 'feedback']);
 require __DIR__ . '/test_only.php';
 require __DIR__ . '/webhook.php';
 
-Route::get('report', [ReportController::class,'index']);
+Route::get('report', [ReportController::class, 'index']);

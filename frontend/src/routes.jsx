@@ -28,7 +28,8 @@ import HelpChatList from "./Views/HelpChatPages/HelpChatList.jsx";
 import LayoutSeCreate from "./Views/Secret/LayoutSeCreate.jsx";
 import StickerList from "./Views/StickerPages/StickerList.jsx";
 import AnnouncesList from "./Views/AnnouncePages/AnnouncesList.jsx";
-
+import GroupPage
+    from "./Views/TagPages/GroupPage.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -59,6 +60,7 @@ export const routes = createBrowserRouter([
                             { path: '/accessToken', element: <AccessToken /> },
                             { path: '/botManage', element: <BotPage /> },
                             { path: '/tags', element: <TagePage /> },
+                            { path: '/tags/groups', element: <GroupPage /> },
                             { path: '/helpChat', element: <HelpChatList /> },
                             { path: '/sticker', element: <StickerList /> },
                             { path: '/announces', element: <AnnouncesList /> },

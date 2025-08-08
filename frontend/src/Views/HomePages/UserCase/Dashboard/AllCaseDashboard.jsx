@@ -87,8 +87,8 @@ export default function AllCaseDashboard() {
   const totalMonthTags = useMemo(() => tagsMonth.reduce((sum, r) => sum + (r.total ?? 0), 0), [tagsMonth]);
 
   return (
-    <Sheet sx={{ mt: 3 }}>
-      <Typography level="h4" mb={3}>📊 ปริมาณงานทั้งหมด (Operational Dashboard)</Typography>
+    <Sheet sx={{ mt: 1 }}>
+      <Typography level="h2" mb={3}>📊 ปริมาณงานทั้งหมด (Operational Dashboard)</Typography>
       {summary && (
         <Box>
           <Grid container spacing={2}>
