@@ -196,7 +196,7 @@ class LineWebhookController extends Controller
                 // อัปโหลดขึ้น S3 แบบ private โดยใช้ Flysystem ผ่าน Laravel Storage
                 Storage::disk('s3')->put($mediaPath, $mediaContent, [
                     'visibility'  => 'private', // หรือ 'public'
-                    'ContentType' => 'image/png',
+                    'ContentType' => $contentType,
                 ]);
 
                 $url = Storage::disk('s3')->url($mediaPath);
@@ -206,7 +206,7 @@ class LineWebhookController extends Controller
             }
         } catch (\Exception $e) {
             Log::channel('webhook_line_new')->error('❌ ไม่สามารถดึง URL ของสื่อได้: ' . $e->getMessage());
-            $full_url = '';
+            $full_url = 'ไม่สามารถดึง URL ของสื่อได้';
         }
 
         return $full_url;

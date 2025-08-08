@@ -16,11 +16,9 @@ use App\Models\User;
 use App\Services\MessageService;
 use App\Services\PusherService;
 use Carbon\Carbon;
-use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -68,18 +66,27 @@ class MessageController extends Controller
                     if (true) {
                         Log::info('ส่งไฟล์มา-------------------------------------------------------');
                         $file = $m['content'];
-                        $fileName = rand(0, 9999) . time() . '.' . $file->getClientOriginalExtension();
-                        $path = $file->storeAs('public/line-images', $fileName);
-                        // สร้าง URL ให้ frontend ใช้งาน
+                        $extension = '.' . $file->getClientOriginalExtension();
+                        $mediaId = rand(0, 9999) . time(); // สร้างชื่อไฟล์แบบสุ่ม
+                        $mediaPath = $mediaId . $extension;
 
-                        $relativePath = Storage::url(str_replace('public/', '', $path)); // /storage/line-images/xxx.jpg
-                        $fullUrl = env('APP_URL') . $relativePath;
-                        // $fullUrl = asset(Storage::url(str_replace('public/', '', $path)));
-                        Log::info('URL เต็ม = ' . $fullUrl);
-                        Log::info('APP_URL จาก config(app.url) = ' . config('app.url'));
-                        $m['content'] = $fullUrl;
-                        $storeChatHistory['content'] = $m['content'];
+                        $mediaContent = file_get_contents($file->getRealPath());
 
+                        $contentType = $file->getClientMimeType();
+
+                        // อัปโหลดไปยัง S3
+                        Storage::disk('s3')->put($mediaPath, $mediaContent, [
+                            'visibility'  => 'private',
+                            'ContentType' => $contentType,
+                        ]);
+                        $url = Storage::disk('s3')->url($mediaPath);
+
+                        // กำหนด URL ให้ใช้งาน
+                        $full_url = $url;
+
+                        // กำหนดค่าใหม่กลับไปให้ content
+                        $m['content'] = $full_url;
+                        $storeChatHistory['content'] = $full_url;
                     } else {
                         throw new \Exception('ไม่สามารถส่งไฟล์ได้');
                     }
@@ -198,7 +205,6 @@ class MessageController extends Controller
                     //ส่งข้อความรับเรื
                     $Rate = Rates::query()->where('id', $rateId)->first();
                     if ($Rate && isset($Rate->menuselect)) {
-                        
                     } else {
                     }
                     $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
