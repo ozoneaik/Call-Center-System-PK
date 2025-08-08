@@ -74,7 +74,6 @@ class StatisticsController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        // หาค่ารวมทุกแท็ก เพื่อคิด %
         $totalAll = $results->sum('total');
 
         foreach ($results as $row) {

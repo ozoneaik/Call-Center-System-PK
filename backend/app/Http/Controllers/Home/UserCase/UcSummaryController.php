@@ -3,16 +3,38 @@
 namespace App\Http\Controllers\Home\UserCase;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
 
 class UcSummaryController extends Controller
 {
-    //
-    public function index()
+    // รวมยอดต่อพนักงาน + รองรับช่วงวันที่ + หลายแท็ก
+    public function index(Request $request)
     {
-        $successResults = DB::connection("pgsql_real")->table('rates as r')
+        // ===== ช่วงวันที่ =====
+        $startDate = $request->query('start_date');
+        $endDate   = $request->query('end_date');
+
+        if ($startDate && !$endDate) $endDate = $startDate;
+        if ($endDate && !$startDate) $startDate = $endDate;
+
+        if ($startDate && $endDate) {
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end   = Carbon::parse($endDate)->endOfDay();
+        } else {
+            $start = Carbon::today()->startOfDay();
+            $end   = Carbon::today()->endOfDay();
+        }
+
+        // ===== หลายแท็ก: tag_ids[]=1&tag_ids[]=2 หรือ tag_ids=1,2 =====
+        $tagIds = $request->query('tag_ids', []);
+        if (is_string($tagIds)) {
+            $tagIds = array_filter(explode(',', $tagIds));
+        }
+
+        // ===== success ภายในช่วง (กรองแท็กได้) =====
+        $successQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -21,13 +43,19 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereDate('ac.endTime', Carbon::today())
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        if (!empty($tagIds)) {
+            $successQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $successResults = $successQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
+        // ===== progress วันนี้ตามช่วง (ไม่ผูก tag) =====
         $progressResults = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -37,14 +65,14 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereDate('r.updated_at', Carbon::today())
+            ->whereBetween('r.updated_at', [$start, $end])
             ->where('r.status', 'progress')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        $weekSuccessResults = DB::connection("pgsql_real")->table('rates as r')
+        // ===== success สัปดาห์นี้ (รองรับ tag) =====
+        $weekSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -55,12 +83,18 @@ class UcSummaryController extends Controller
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        if (!empty($tagIds)) {
+            $weekSuccessQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $weekSuccessResults = $weekSuccessQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        $monthSuccessResults = DB::connection("pgsql_real")->table('rates as r')
+        // ===== success เดือนนี้ (รองรับ tag) =====
+        $monthSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -71,11 +105,17 @@ class UcSummaryController extends Controller
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        if (!empty($tagIds)) {
+            $monthSuccessQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $monthSuccessResults = $monthSuccessQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
+        // ===== การส่งต่อเคสในช่วง (ไม่ผูก tag) =====
         $forwardedResults = DB::connection("pgsql_real")->table('active_conversations as ac')
             ->join('users as u', 'u.empCode', '=', 'ac.from_empCode')
             ->select(
@@ -85,18 +125,19 @@ class UcSummaryController extends Controller
                 'u.description as department'
             )
             ->whereNotNull('ac.from_empCode')
-            ->where('ac.from_empCode', '!=', 'BOT')
-            ->where('ac.from_empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.from_empCode', ['BOT', 'adminIT'])
+            ->whereBetween('ac.updated_at', [$start, $end])
             ->groupBy('ac.from_empCode', 'u.name', 'u.description')
             ->get();
 
         return response()->json([
-            'message' => 'Result retrieved successfully',
-            'success' => $successResults,
-            'progress' => $progressResults,
-            'weekSuccess' => $weekSuccessResults,
+            'message'      => 'Result retrieved successfully',
+            'success'      => $successResults,
+            'progress'     => $progressResults,
+            'weekSuccess'  => $weekSuccessResults,
             'monthSuccess' => $monthSuccessResults,
-            'forwarded' => $forwardedResults,
+            'forwarded'    => $forwardedResults,
+            'range'        => ['start' => $start->toDateString(), 'end' => $end->toDateString()],
         ]);
     }
 
@@ -139,11 +180,11 @@ class UcSummaryController extends Controller
             ->count();
 
         return response()->json([
-            'todaySuccess' => $totalSuccessToday,
-            'todayProgress' => $totalProgressToday,
-            'todayForwarded' => $totalForwardedToday,
-            'weekSuccess' => $totalSuccessWeek,
-            'monthSuccess' => $totalSuccessMonth,
+            'todaySuccess'    => $totalSuccessToday,
+            'todayProgress'   => $totalProgressToday,
+            'todayForwarded'  => $totalForwardedToday,
+            'weekSuccess'     => $totalSuccessWeek,
+            'monthSuccess'    => $totalSuccessMonth,
         ]);
     }
 
@@ -179,15 +220,15 @@ WITH all_events_today AS (
       AND DATE(ac.updated_at) = CURRENT_DATE
 )
 
-    SELECT \"empCode\", name, event_type, updated_at
-    FROM (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY \"empCode\" ORDER BY updated_at ASC) as rn
-        FROM all_events_today
-    ) sub
-    WHERE rn = 1
-    ORDER BY updated_at
-");
+SELECT \"empCode\", name, event_type, updated_at
+FROM (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY \"empCode\" ORDER BY updated_at ASC) as rn
+    FROM all_events_today
+) sub
+WHERE rn = 1
+ORDER BY updated_at
+        ");
 
         return response()->json([
             'message' => 'Active users retrieved successfully',

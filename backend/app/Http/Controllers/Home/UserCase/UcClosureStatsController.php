@@ -14,25 +14,23 @@ class UcClosureStatsController extends Controller
     private function durationSelectRaw(): string
     {
         return '
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 < 1) AS within_1_min,
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 >= 1 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 < 5) AS over_1_min,
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 >= 5 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 < 10) AS over_5_min,
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 >= 10 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 < 60) AS over_10_min,
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 >= 60 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 < 1440) AS over_1_hour,
-        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") / 60 >= 1440) AS over_1_day,
+        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 60)  AS within_1_min,
+        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 60
+                         AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 300) AS one_to_five_min,
+        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 300
+                         AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 600) AS five_to_ten_min,
+        COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 600) AS over_ten_min,
         COUNT(*) AS total
-        ';
+    ';
     }
 
     private function bucketLabels(): array
     {
         return [
-            'within_1_min' => '⏱ ภายใน 1 นาที',
-            'over_1_min'   => '⚡ 1-5 นาที',
-            'over_5_min'   => '🕒 5-10 นาที',
-            'over_10_min'  => '🐢 10 นาที - 1 ชั่วโมง',
-            'over_1_hour'  => '⏳ 1-24 ชั่วโมง',
-            'over_1_day'   => '🗓️ มากกว่า 1 วัน',
+            'within_1_min'   => '⏱ ภายใน 1 นาที',
+            'one_to_five_min' => '🕐 1-5 นาที',
+            'five_to_ten_min' => '🕒 5-10 นาที',
+            'over_ten_min'   => '⏰ มากกว่า 10 นาที',
         ];
     }
 
@@ -275,6 +273,42 @@ class UcClosureStatsController extends Controller
         return response()->json([
             'message' => 'สถิติการปิดเคสนอกเวลาทำการ (ช่วง 00:00-07:59 และ 17:01-23:59)',
             'data' => $results
+        ]);
+    }
+
+    public function inProgressByBusinessHours()
+    {
+        $timeExpr = 'COALESCE(ac."receiveAt", ac."startTime")';
+
+        $row = DB::connection('pgsql_real')->table('rates as r')
+            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+            ->where('r.status', 'progress')
+            ->whereDate('r.updated_at', Carbon::today())
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
+            ->selectRaw("
+            SUM(CASE WHEN ($timeExpr)::time BETWEEN '08:00:00' AND '17:00:00' THEN 1 ELSE 0 END) AS in_hours,
+            SUM(CASE WHEN ($timeExpr)::time < '08:00:00' OR ($timeExpr)::time > '17:00:00' THEN 1 ELSE 0 END) AS out_hours,
+            COUNT(*) AS total
+        ")
+            ->first();
+
+        return response()->json([
+            'in_time'  => (int)($row->in_hours  ?? 0),
+            'out_time' => (int)($row->out_hours ?? 0),
+            'total'    => (int)($row->total     ?? 0),
+        ]);
+    }
+
+    public function pendingToday()
+    {
+        $total = DB::connection('pgsql_real')
+            ->table('rates as r')
+            ->where('r.status', 'pending')
+            ->whereDate('r.updated_at', Carbon::today())
+            ->count();
+
+        return response()->json([
+            'total' => (int)$total,
         ]);
     }
 }

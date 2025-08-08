@@ -16,7 +16,7 @@ export default function EmployeeTable({
                         <th style={{ width: "40px", textAlign: "center" }}>#</th>
                         <th style={{ width: "200px", padding: "12px" }}>พนักงาน</th>
                         <th style={{ textAlign: "center" }}>ปิดเคสวันนี้</th>
-                        <th style={{ textAlign: "center" }}>กำลังดำเนินการ</th>
+                        {/* <th style={{ textAlign: "center" }}>กำลังดำเนินการ</th> */}
                         <th style={{ textAlign: "center" }}>ปิดเคสสัปดาห์นี้</th>
                         <th style={{ textAlign: "center" }}>ปิดเคสเดือนนี้</th>
                         <th style={{ textAlign: "center" }}>ส่งต่อเคส</th>
@@ -68,7 +68,7 @@ export default function EmployeeTable({
                                     </Typography>
                                 </td>
 
-                                <td style={{
+                                {/* <td style={{
                                     textAlign: "center",
                                     color: employee.inProgress === 0 ? "#D32F2F" : "green",
                                     fontWeight: employee.inProgress === 0 ? "bold" : "normal",
@@ -84,7 +84,7 @@ export default function EmployeeTable({
                                     >
                                         {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
                                     </Typography>
-                                </td>
+                                </td> */}
 
                                 {/* สัปดาห์นี้ */}
                                 <td style={{

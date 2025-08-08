@@ -1,14 +1,8 @@
-import {
-    Add
-} from "@mui/icons-material";
-import {
-    Box,
-    Button,
-    Stack,
-    Typography
-} from "@mui/joy";
+import { Add } from "@mui/icons-material";
+import { Box, Button, Stack, Typography, Sheet, Divider } from "@mui/joy";
 import { Grid2, useMediaQuery, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import axiosClient from "../../../Axios";
 
 import EmployeeCards from "./EmployeeCards";
@@ -24,17 +18,27 @@ import ForwardedModal from "./Dashboard/ClosedModals/ForwardedModal";
 
 export default function UC() {
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     const [openModal, setOpenModal] = useState(false);
-    const [filterDept, setFilterDept] = useState('');
-    const [searchName, setSearchName] = useState('');
+    const [filterDept, setFilterDept] = useState("");
+    const [searchName, setSearchName] = useState("");
     const [employees, setEmployees] = useState([]);
 
+    // วันที่
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+
+    // แท็ก
+    const [selectedTags, setSelectedTags] = useState([]);
+    const [tagOptions, setTagOptions] = useState([]);
+
+    // โมดอลต่าง ๆ
     const [openClosedToday, setOpenClosedToday] = useState(false);
     const [closedTodayLoading, setClosedTodayLoading] = useState(false);
     const [closedTodayData, setClosedTodayData] = useState([]);
     const [closedTodayDate, setClosedTodayDate] = useState("");
+    const [closedTodayRange, setClosedTodayRange] = useState({ start: "", end: "" });
     const [closedTodayUser, setClosedTodayUser] = useState(null);
 
     const [openClosedWeek, setOpenClosedWeek] = useState(false);
@@ -58,25 +62,39 @@ export default function UC() {
     const [forwardedUser, setForwardedUser] = useState(null);
     const [forwardedData, setForwardedData] = useState([]);
     const [forwardedLoading, setForwardedLoading] = useState(false);
+    const [forwardedRange, setForwardedRange] = useState({ start: "", end: "" });
 
     useEffect(() => {
-        fetchData();
+        // โหลดแท็กครั้งแรก
+        axiosClient
+            .get("home/user-case/tags")
+            .then(({ data }) => setTagOptions(data?.tags || []))
+            .catch(() => setTagOptions([]));
+
+        // โหลดข้อมูลครั้งแรก
+        fetchData({});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const fetchData = async () => {
+    const buildRangeParams = () => {
+        const params = {};
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate || startDate;
+        if (selectedTags?.length) params.tag_ids = selectedTags; // array
+        return params;
+    };
+
+    const fetchData = async (paramsOverride) => {
         try {
-            const [
-                userCaseRes,
-                activeUserRes
-            ] = await Promise.all([
-                axiosClient.get('home/user-case'),
-                axiosClient.get('home/user-case/active-users')
+            const params = paramsOverride ?? buildRangeParams();
+            const [userCaseRes, activeUserRes] = await Promise.all([
+                axiosClient.get("home/user-case", { params }),
+                axiosClient.get("home/user-case/active-users"),
             ]);
 
             const data = userCaseRes.data;
             const activeList = activeUserRes.data?.active_users_today || [];
-
-            const activeSet = new Set(activeList.map(u => u.empCode));
+            const activeSet = new Set(activeList.map((u) => u.empCode));
 
             if (data?.success && data?.progress && data?.weekSuccess && data?.monthSuccess) {
                 const mergedMap = new Map();
@@ -98,12 +116,13 @@ export default function UC() {
                                 monthClosed: 0,
                                 forwarded: 0,
                                 isActiveToday: activeSet.has(item.empCode),
-                                [field]: value
+                                [field]: value,
                             });
                         }
                     });
                 };
 
+                // รวมชุดข้อมูล
                 mergeSet(data.success, "count", "todayClosed");
                 mergeSet(data.progress, "countprogress", "inProgress");
                 mergeSet(data.weekSuccess, "countweek", "weekClosed");
@@ -120,30 +139,72 @@ export default function UC() {
             }
         } catch (error) {
             console.error(error);
-            alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+            alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
         }
     };
 
-    const filteredEmployees = employees.filter(emp => {
+    const handleApplyRange = () => {
+        if (startDate && endDate && dayjs(endDate).isBefore(dayjs(startDate))) {
+            alert("วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น");
+            return;
+        }
+        fetchData();
+    };
+
+    const handleClearRange = () => {
+        setStartDate("");
+        setEndDate("");
+        setSelectedTags([]);
+        fetchData({});
+    };
+
+    const handleChangeTags = (vals) => {
+        setSelectedTags(vals);
+        const params = {};
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate || startDate;
+        if (vals.length) params.tag_ids = vals;
+        fetchData(params);
+    };
+
+    const filteredEmployees = employees.filter((emp) => {
         const matchesDept = !filterDept || emp.department === filterDept;
-        const matchesName = !searchName || emp.name.toLowerCase().includes(searchName.toLowerCase());
+        const matchesName =
+            !searchName || emp.name.toLowerCase().includes(searchName.toLowerCase());
         return matchesDept && matchesName;
     });
 
     const departments = Array.from(
-        new Set(employees.map(emp => emp.department).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, 'th'));
+        new Set(employees.map((emp) => emp.department).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "th"));
 
+    // เปิดโมดอลต่าง ๆ
     const handleOpenClosedToday = async (emp) => {
         try {
             setClosedTodayUser(emp);
             setOpenClosedToday(true);
             setClosedTodayLoading(true);
-            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/closed-today`);
+
+            const hasRange = !!(startDate || endDate);
+            const url = hasRange
+                ? `home/user-case/users/${emp.empCode}/closed-range`
+                : `home/user-case/users/${emp.empCode}/closed-today`;
+
+            const { data } = await axiosClient.get(url, { params: buildRangeParams() });
+
             setClosedTodayData(data?.cases || []);
-            setClosedTodayDate(data?.date || "");
-        } catch (e) {
-            alert("โหลดข้อมูลปิดเคสวันนี้ไม่สำเร็จ");
+            if (hasRange) {
+                setClosedTodayRange({
+                    start: data?.range?.start || startDate || "",
+                    end: data?.range?.end || endDate || startDate || "",
+                });
+                setClosedTodayDate("");
+            } else {
+                setClosedTodayDate(data?.date || "");
+                setClosedTodayRange({ start: "", end: "" });
+            }
+        } catch {
+            alert("โหลดข้อมูลปิดเคสไม่สำเร็จ");
         } finally {
             setClosedTodayLoading(false);
         }
@@ -154,12 +215,15 @@ export default function UC() {
             setClosedWeekUser(emp);
             setOpenClosedWeek(true);
             setClosedWeekLoading(true);
+
             const { data } = await axiosClient.get(
-                `home/user-case/users/${emp.empCode}/closed-week`
+                `home/user-case/users/${emp.empCode}/closed-week`,
+                { params: buildRangeParams() }
             );
+
             setClosedWeekData(data?.cases || []);
             setClosedWeekRange(data?.range || { start: "", end: "" });
-        } catch (e) {
+        } catch {
             alert("โหลดข้อมูลปิดเคสสัปดาห์นี้ไม่สำเร็จ");
         } finally {
             setClosedWeekLoading(false);
@@ -171,10 +235,15 @@ export default function UC() {
             setClosedMonthUser(emp);
             setOpenClosedMonth(true);
             setClosedMonthLoading(true);
-            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/closed-month`);
+
+            const { data } = await axiosClient.get(
+                `home/user-case/users/${emp.empCode}/closed-month`,
+                { params: buildRangeParams() }
+            );
+
             setClosedMonthData(data?.cases || []);
             setClosedMonthRange(data?.range || { start: "", end: "" });
-        } catch (e) {
+        } catch {
             alert("โหลดข้อมูลปิดเคสเดือนนี้ไม่สำเร็จ");
         } finally {
             setClosedMonthLoading(false);
@@ -186,9 +255,13 @@ export default function UC() {
             setInProgressUser(emp);
             setOpenInProgress(true);
             setInProgressLoading(true);
-            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/in-progress`);
+
+            const { data } = await axiosClient.get(
+                `home/user-case/users/${emp.empCode}/in-progress`
+            );
+
             setInProgressRows(data?.cases || []);
-        } catch (e) {
+        } catch {
             alert("โหลดข้อมูลกำลังดำเนินการไม่สำเร็จ");
         } finally {
             setInProgressLoading(false);
@@ -200,9 +273,28 @@ export default function UC() {
             setForwardedUser(emp);
             setOpenForwardedModal(true);
             setForwardedLoading(true);
-            const { data } = await axiosClient.get(`home/user-case/users/${emp.empCode}/forwarded-today`);
+
+            const hasRange = !!(startDate || endDate);
+            const url = hasRange
+                ? `home/user-case/users/${emp.empCode}/forwarded-range`
+                : `home/user-case/users/${emp.empCode}/forwarded-today`;
+
+            const params = hasRange
+                ? { start_date: startDate, end_date: endDate || startDate }
+                : undefined;
+
+            const { data } = await axiosClient.get(url, { params });
+
             setForwardedData(data?.cases || []);
-        } catch (error) {
+            setForwardedRange(
+                hasRange
+                    ? {
+                        start: data?.range?.start || startDate || "",
+                        end: data?.range?.end || endDate || startDate || "",
+                    }
+                    : { start: "", end: "" }
+            );
+        } catch {
             alert("โหลดข้อมูลการส่งต่อเคสไม่สำเร็จ");
         } finally {
             setForwardedLoading(false);
@@ -211,25 +303,42 @@ export default function UC() {
 
     return (
         <div>
-            <Stack direction="row" justifyContent="space-between" mb={2}>
-                <Typography level="h4">พนักงานที่ทำงาน</Typography>
-            </Stack>
+            {/* ส่วนหัวใหม่ (ปุ่มอยู่เฉพาะคอลัมน์ขวา) */}
+            <Sheet
+                variant="outlined"
+                sx={{
+                    // position: "sticky",
+                    // top: 0,
+                    zIndex: 10,
+                    borderRadius: "lg",
+                    p: 1.5,
+                    mb: 2,
+                    backdropFilter: "saturate(180%) blur(6px)",
+                    backgroundColor: "background.surface",
+                }}
+            >
+                {/* แถวหัวเรื่อง */}
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography level="h4">พนักงานที่ทำงาน</Typography>
+                    {!isMobile && <Divider sx={{ mx: 2, flex: 1 }} />}
+                </Stack>
 
-            <Box mb={2}>
-                <Stack
-                    direction={isMobile ? "column" : "row"}
-                    spacing={2}
-                    alignItems={isMobile ? "stretch" : "center"}
-                    justifyContent="space-between"
-                    flexWrap="wrap"
+                {/* 3 โซน: Legend · Filter · ปุ่มรายชื่อทั้งหมด */}
+                <Box
+                    sx={{
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
+                        gap: 12,
+                        alignItems: "start",
+                    }}
                 >
-                    <Stack
-                        direction={isMobile ? "column" : "row"}
-                        spacing={2}
-                        flexWrap="wrap"
-                        sx={{ flexGrow: 0 }}
-                    >
+                    {/* ซ้าย: Legend */}
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
                         <LegendToggle />
+                    </Box>
+
+                    {/* กลาง: ฟิลเตอร์ */}
+                    <Box sx={{ minWidth: 280 }}>
                         <FilterControls
                             filterDept={filterDept}
                             setFilterDept={setFilterDept}
@@ -237,8 +346,19 @@ export default function UC() {
                             setSearchName={setSearchName}
                             departments={departments}
                             fullWidth={isMobile}
+                            startDate={startDate}
+                            endDate={endDate}
+                            setStartDate={setStartDate}
+                            setEndDate={setEndDate}
+                            onApplyRange={handleApplyRange}
+                            onClearRange={handleClearRange}
+                            selectedTags={selectedTags}
+                            onChangeTags={handleChangeTags}
+                            tagOptions={tagOptions}
                         />
-                    </Stack>
+                    </Box>
+
+                    {/* ขวา: ปุ่มรายชื่อทั้งหมด (ปุ่มเดียวที่ใช้) */}
                     <Box sx={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
                         <Button
                             size="sm"
@@ -250,36 +370,33 @@ export default function UC() {
                             แสดงรายชื่อพนักงานทั้งหมด
                         </Button>
                     </Box>
-                </Stack>
-            </Box>
+                </Box>
+            </Sheet>
 
+            {/* เนื้อหา */}
             {isMobile ? (
-                <>
-                    <LegendToggle />
-                    <Grid2 spacing={2} container sx={{ maxHeight: 490 }} overflow="auto">
-                        <EmployeeCards
-                            employees={filteredEmployees.slice(0, 4)}
-                            onClickTodayClosed={handleOpenClosedToday}
-                            onClickWeekClosed={handleOpenClosedWeek}
-                            onClickMonthClosed={handleOpenClosedMonth}
-                            onClickInProgress={handleOpenInProgress}
-                            onClickForwarded={handleOpenForwardedModal}
-                        />
-                    </Grid2>
-                </>
-            ) : (
-                <>
-                    {/* <LegendToggle /> */}
-                    <EmployeeTable employees={filteredEmployees.slice(0, 4)}
+                <Grid2 spacing={2} container sx={{ maxHeight: 490 }} overflow="auto">
+                    <EmployeeCards
+                        employees={filteredEmployees.slice(0, 4)}
                         onClickTodayClosed={handleOpenClosedToday}
                         onClickWeekClosed={handleOpenClosedWeek}
                         onClickMonthClosed={handleOpenClosedMonth}
                         onClickInProgress={handleOpenInProgress}
                         onClickForwarded={handleOpenForwardedModal}
                     />
-                </>
+                </Grid2>
+            ) : (
+                <EmployeeTable
+                    employees={filteredEmployees.slice(0, 4)}
+                    onClickTodayClosed={handleOpenClosedToday}
+                    onClickWeekClosed={handleOpenClosedWeek}
+                    onClickMonthClosed={handleOpenClosedMonth}
+                    onClickInProgress={handleOpenInProgress}
+                    onClickForwarded={handleOpenForwardedModal}
+                />
             )}
 
+            {/* โมดอลทั้งหมด */}
             <EmployeeModal
                 open={openModal}
                 onClose={() => setOpenModal(false)}
@@ -295,6 +412,15 @@ export default function UC() {
                 onClickMonthClosed={handleOpenClosedMonth}
                 onClickInProgress={handleOpenInProgress}
                 onClickForwarded={handleOpenForwardedModal}
+                startDate={startDate}
+                endDate={endDate}
+                setStartDate={setStartDate}
+                setEndDate={setEndDate}
+                onApplyRange={handleApplyRange}
+                onClearRange={handleClearRange}
+                selectedTags={selectedTags}
+                onChangeTags={handleChangeTags}
+                tagOptions={tagOptions}
             />
 
             <ClosedTodayModal
@@ -302,6 +428,7 @@ export default function UC() {
                 onClose={() => setOpenClosedToday(false)}
                 loading={closedTodayLoading}
                 date={closedTodayDate}
+                range={closedTodayRange}
                 user={closedTodayUser}
                 data={closedTodayData}
             />
@@ -338,6 +465,7 @@ export default function UC() {
                 user={forwardedUser}
                 loading={forwardedLoading}
                 data={forwardedData}
+                range={forwardedRange}
             />
         </div>
     );

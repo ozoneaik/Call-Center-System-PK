@@ -1,15 +1,9 @@
-import {
-    Modal,
-    ModalDialog,
-    Stack,
-    Typography
-} from "@mui/joy";
+import { Modal, ModalDialog, Stack, Typography, IconButton } from "@mui/joy";
 import { Grid2 } from "@mui/material";
 import FilterControls from "./Fillter/FilterControls";
 import EmployeeCards from "./EmployeeCards";
 import EmployeeTable from "./EmployeeTable";
 import { Close } from "@mui/icons-material";
-import { IconButton } from "@mui/joy";
 
 export default function EmployeeModal({
     open,
@@ -26,28 +20,46 @@ export default function EmployeeModal({
     onClickMonthClosed,
     onClickInProgress,
     onClickForwarded,
+    // date range
+    startDate,
+    endDate,
+    setStartDate,
+    setEndDate,
+    onApplyRange,
+    onClearRange,
+    // tags
+    selectedTags,
+    onChangeTags,
+    tagOptions,
 }) {
     return (
         <Modal open={open} onClose={onClose}>
-            <ModalDialog layout="center" sx={{ width: '90vw', maxHeight: '90vh', overflow: 'auto', position: 'relative' }}>
+            <ModalDialog
+                layout="center"
+                sx={{ width: "90vw", maxHeight: "90vh", overflow: "auto", position: "relative" }}
+            >
                 <IconButton
                     onClick={onClose}
                     sx={{
-                        position: 'sticky',
+                        position: "sticky",
                         top: 0,
-                        left: '100%',
-                        transform: 'translateX(-100%)',
+                        left: "100%",
+                        transform: "translateX(-100%)",
                         zIndex: 10,
-                        backgroundColor: 'background.body',
-                        borderRadius: '50%',
+                        backgroundColor: "background.body",
+                        borderRadius: "50%",
                         mt: 1,
                         mr: 1,
-                        alignSelf: 'flex-end'
+                        alignSelf: "flex-end",
                     }}
                 >
                     <Close />
                 </IconButton>
-                <Typography level="h3" mb={2}>พนักงานทั้งหมด</Typography>
+
+                <Typography level="h3" mb={2}>
+                    พนักงานทั้งหมด
+                </Typography>
+
                 <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
                     <FilterControls
                         filterDept={filterDept}
@@ -56,8 +68,18 @@ export default function EmployeeModal({
                         setSearchName={setSearchName}
                         departments={departments}
                         fullWidth={isMobile}
+                        startDate={startDate}
+                        endDate={endDate}
+                        setStartDate={setStartDate}
+                        setEndDate={setEndDate}
+                        onApplyRange={onApplyRange}
+                        onClearRange={onClearRange}
+                        selectedTags={selectedTags}
+                        onChangeTags={onChangeTags}
+                        tagOptions={tagOptions}
                     />
                 </Stack>
+
                 {isMobile ? (
                     <Grid2 spacing={2} container>
                         <EmployeeCards
@@ -70,7 +92,6 @@ export default function EmployeeModal({
                         />
                     </Grid2>
                 ) : (
-                    // <EmployeeTable employees={filteredEmployees} />
                     <EmployeeTable
                         employees={filteredEmployees}
                         onClickTodayClosed={onClickTodayClosed}

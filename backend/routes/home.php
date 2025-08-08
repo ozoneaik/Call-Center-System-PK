@@ -19,6 +19,7 @@ Route::prefix('/home')->group(function () {
 
         Route::get('/progress-detail/{empCode}', [UcProgressController::class, 'getProgressDetails']);
 
+        Route::get('/tags', [UcTagSummaryController::class, 'tags']);
         Route::get('/tag-summary-today', [UcTagSummaryController::class, 'tagSummaryToday']);
         Route::get('/today-closed-tags', [UcTagSummaryController::class, 'todayClosedTags']);
         Route::get('/week-closed-tags', [UcTagSummaryController::class, 'weekClosedTags']);
@@ -27,7 +28,12 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/closed-week', [UcTagSummaryController::class, 'closedThisWeekByUser']);
         Route::get('/users/{empCode}/closed-month', [UcTagSummaryController::class, 'closedMonthByUser']);
         Route::get('/users/{empCode}/in-progress', [UcTagSummaryController::class, 'inProgressByUser']);
-        Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedByUser']);
+        // Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedByUser']);
+        Route::get('/users/{empCode}/closed-range', [UcTagSummaryController::class, 'closedRange']);
+
+        Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedTodayByUser']);
+        Route::get('/users/{empCode}/forwarded-range', [UcTagSummaryController::class, 'forwardedRangeByUser']);
+
 
         Route::get('/employee', [StatisticsController::class, 'employeeWorkloadSummary']);
         Route::get('/employee/{empCode}/cases', [StatisticsController::class, 'getAllCasesByUser']);
@@ -40,5 +46,7 @@ Route::prefix('/home')->group(function () {
         Route::get('/closure-range-stats', [UcClosureStatsController::class, 'closureRangeStats']);
         Route::get('/after-hour-closure-stats', [UcClosureStatsController::class, 'afterHourClosureStats']);
         Route::get('/after-hour-closure-range-stats', [UcClosureStatsController::class, 'afterHourClosureRangeStats']);
+        Route::get('/in-progress-business-hours', [UcClosureStatsController::class, 'inProgressByBusinessHours']);
+        Route::get('/pending-today', [UcClosureStatsController::class, 'pendingToday']);
     });
 });

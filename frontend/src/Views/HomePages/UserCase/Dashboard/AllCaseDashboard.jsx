@@ -92,7 +92,7 @@ export default function AllCaseDashboard() {
       {summary && (
         <Box>
           <Grid container spacing={2}>
-            <Grid xs={12} sm={6} md={6}>
+            <Grid xs={12} sm={6} md={6} lg={3}>
               <InfoCard
                 title="ปิดเคสวันนี้"
                 value={summary.todaySuccess}
@@ -100,14 +100,17 @@ export default function AllCaseDashboard() {
                 onClick={handleOpenTodayTags}
               />
             </Grid>
-            <Grid xs={12} sm={6} md={6}>
+
+            {/* <Grid xs={12} sm={6} md={6}>
               <InfoCard
                 title="เคสกำลังดำเนินการวันนี้"
                 value={summary.todayProgress}
                 color={summary.todayProgress > 50 ? "#D32F2F" : "#1976D2"}
               />
-            </Grid>
-            <Grid xs={12} sm={6} md={6}>
+            </Grid> */}
+
+
+            <Grid xs={12} sm={6} md={6} lg={3}>
               <InfoCard
                 title="📅 ปิดเคสในสัปดาห์นี้"
                 value={summary.weekSuccess}
@@ -115,7 +118,8 @@ export default function AllCaseDashboard() {
                 onClick={handleOpenWeekTags}
               />
             </Grid>
-            <Grid xs={12} sm={6} md={6}>
+
+            <Grid xs={12} sm={6} md={6} lg={3}>
               <InfoCard
                 title="📆 ปิดเคสในเดือนนี้"
                 value={summary.monthSuccess}
@@ -123,13 +127,42 @@ export default function AllCaseDashboard() {
                 onClick={handleOpenMonthTags}
               />
             </Grid>
+            {/* ✅ การ์ดใหม่: ส่งต่อเคสวันนี้ */}
+            <Grid xs={12} sm={6} md={6} lg={3}>
+              <InfoCard
+                title="ส่งต่อเคสวันนี้"
+                value={summary.todayForwarded}
+                color="#8E24AA"
+              />
+            </Grid>
           </Grid>
         </Box>
       )}
 
-      <TagsTodayModal open={openTags} onClose={() => setOpenTags(false)} data={tags} loading={tagsLoading} total={totalTags} date={tagDate} />
-      <TagsWeekModal open={openWeekTags} onClose={() => setOpenWeekTags(false)} data={tagsWeek} loading={tagsWeekLoading} total={totalWeekTags} range={weekRange} />
-      <TagsMonthModal open={openMonthTags} onClose={() => setOpenMonthTags(false)} data={tagsMonth} loading={tagsMonthLoading} total={totalMonthTags} range={monthRange} />
+      <TagsTodayModal
+        open={openTags}
+        onClose={() => setOpenTags(false)}
+        data={tags}
+        loading={tagsLoading}
+        total={totalTags}
+        date={tagDate}
+      />
+      <TagsWeekModal
+        open={openWeekTags}
+        onClose={() => setOpenWeekTags(false)}
+        data={tagsWeek}
+        loading={tagsWeekLoading}
+        total={totalWeekTags}
+        range={weekRange}
+      />
+      <TagsMonthModal
+        open={openMonthTags}
+        onClose={() => setOpenMonthTags(false)}
+        data={tagsMonth}
+        loading={tagsMonthLoading}
+        total={totalMonthTags}
+        range={monthRange}
+      />
     </Sheet>
   );
 }

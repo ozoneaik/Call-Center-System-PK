@@ -5,7 +5,6 @@ import {
     Grid,
     Card,
     CardContent,
-    Sheet,
     Input,
     Box,
     Button,
@@ -19,7 +18,6 @@ import {
 import dayjs from "dayjs";
 import EmployeeWorkloadTable from "./Reports/EmployeeWorkloadTable";
 import TagWorkloadTable from "./Reports/TagWorkloadTable";
-import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import EmployeeCaseDetailModal from "./Reports/EmployeeCaseDetailModal";
 import TagCaseDetailModal from "./Reports/TagCaseDetailModal";
 
@@ -28,11 +26,9 @@ const valueDisplay = (val) => (val !== undefined ? `${val}` : "-");
 
 const BUCKET_KEYS = [
     "within_1_min",
-    "over_1_min",
-    "over_5_min",
-    "over_10_min",
-    "over_1_hour",
-    "over_1_day",
+    "one_to_five_min",
+    "five_to_ten_min",
+    "over_ten_min",
 ];
 
 function bucketsToKeyed(buckets = []) {
@@ -55,13 +51,13 @@ function bucketsToKeyed(buckets = []) {
 }
 
 const caseCategories = [
+    { label: "📊 งานทั้งหมด", key: "total", color: "#1976D2" },
     { label: "⏱ ภายใน 1 นาที", key: "within_1_min", color: "#2E7D32" },
-    { label: "⚡ มากกว่า 1 นาที", key: "over_1_min", color: "#43A047" },
-    { label: "🕒 มากกว่า 5 นาที", key: "over_5_min", color: "#FB8C00" },
-    { label: "⏰ มากกว่า 10 นาที", key: "over_10_min", color: "#FF9800" },
-    { label: "🕐 มากกว่า 1 ชั่วโมง", key: "over_1_hour", color: "#E91E63" },
-    { label: "📅 มากกว่า 1 วัน", key: "over_1_day", color: "#D32F2F" },
-    { label: "📊 รวมทั้งหมด", key: "total", color: "#1976D2" },
+    { label: "🕐 1-5 นาที", key: "one_to_five_min", color: "#43A047" },
+    { label: "🕒 5-10 นาที", key: "five_to_ten_min", color: "#FB8C00" },
+    { label: "⏰ มากกว่า 10 นาที", key: "over_ten_min", color: "#FF9800" },
+    { label: "🛠️ กำลังดำเนินการ", key: "in_progress", color: "#3949AB" },
+    { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" }, 
 ];
 
 export default function StatisticsCase() {
@@ -91,6 +87,9 @@ export default function StatisticsCase() {
     const [selectedTag, setSelectedTag] = useState(null);
     const [tagCaseRows, setTagCaseRows] = useState([]);
 
+    const [progressInOut, setProgressInOut] = useState({ in_time: 0, out_time: 0, total: 0 });
+    const [pendingTotal, setPendingTotal] = useState(0); 
+
     useEffect(() => {
         axiosClient
             .get("home/user-case/closure-stats", { params: { date: today } })
@@ -102,6 +101,25 @@ export default function StatisticsCase() {
             .catch((err) => {
                 console.error("❌ closure-stats error:", err);
                 alert("โหลดข้อมูลวันนี้ไม่สำเร็จ");
+            });
+
+        axiosClient
+            .get("home/user-case/in-progress-business-hours", { params: { today_only: 1 } })
+            .then(({ data }) => setProgressInOut({
+                in_time: data.in_time ?? 0,
+                out_time: data.out_time ?? 0,
+                total: data.total ?? 0,
+            }))
+            .catch((err) => {
+                console.error("❌ in-progress-business-hours error:", err);
+            });
+
+        axiosClient
+            .get("home/user-case/pending-today")
+            .then(({ data }) => setPendingTotal(data?.total ?? 0))
+            .catch((err) => {
+                console.error("❌ pending-today error:", err);
+                setPendingTotal(0);
             });
 
         axiosClient
@@ -228,54 +246,54 @@ export default function StatisticsCase() {
         }
     };
 
+    // ปรับให้ pending แสดงแบบ “ยอดเดียว” แม้ว่าการ์ดอื่นจะแสดงแยกซ้าย/ขวา
     const renderStatCards = (data, categories, afterHourData = null) => (
         <Grid container spacing={3} mb={4}>
-            {categories.map((item) => (
-                <Grid key={item.key} xs={12} sm={6} md={3} lg={2}>
-                    <Card
-                        variant="outlined"
-                        sx={{
-                            borderLeft: `6px solid ${item.color}`,
-                            borderRadius: 3,
-                            boxShadow: 3,
-                            transition: "transform 0.2s ease",
-                            "&:hover": {
-                                transform: "scale(1.02)",
-                                boxShadow: 6,
-                            },
-                        }}
-                    >
-                        <CardContent>
-                            <Typography
-                                level="title-md"
-                                fontWeight="lg"
-                                sx={{ textAlign: "center", mb: 1 }}
-                            >
-                                {item.label}
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
+            {categories.map((item) => {
+                const isPending = item.key === "pending";
+                const showSplit = !!afterHourData && !isPending; // split เฉพาะที่ไม่ใช่ pending
+                return (
+                    <Grid key={item.key} xs={12} sm={6} md={3} lg={2}>
+                        <Card
+                            variant="outlined"
+                            sx={{
+                                borderLeft: `6px solid ${item.color}`,
+                                borderRadius: 3,
+                                boxShadow: 3,
+                                transition: "transform 0.2s ease",
+                                "&:hover": { transform: "scale(1.02)", boxShadow: 6 },
+                            }}
+                        >
+                            <CardContent>
+                                <Typography level="title-md" fontWeight="lg" sx={{ textAlign: "center", mb: 1 }}>
+                                    {item.label}
+                                </Typography>
+                                <Divider sx={{ mb: 2 }} />
 
-                            {afterHourData ? (
-                                <Box display="flex" justifyContent="space-between">
-                                    <Box flex={1} display="flex" flexDirection="column" alignItems="center">
-                                        <Typography level="h4">{valueDisplay(data[item.key])}</Typography>
-                                        <Typography level="body-sm" color="neutral">ในเวลาทำการ</Typography>
+                                {showSplit ? (
+                                    <Box display="flex" justifyContent="space-between">
+                                        <Box flex={1} display="flex" flexDirection="column" alignItems="center">
+                                            <Typography level="h4">{valueDisplay(data[item.key])}</Typography>
+                                            <Typography level="body-sm" color="neutral">ในเวลาทำการ</Typography>
+                                        </Box>
+                                        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                                        <Box flex={1} display="flex" flexDirection="column" alignItems="center">
+                                            <Typography level="h4">{valueDisplay(afterHourData[item.key])}</Typography>
+                                            <Typography level="body-sm" color="neutral">นอกเวลาทำการ</Typography>
+                                        </Box>
                                     </Box>
-                                    <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-                                    <Box flex={1} display="flex" flexDirection="column" alignItems="center">
-                                        <Typography level="h4">{valueDisplay(afterHourData[item.key])}</Typography>
-                                        <Typography level="body-sm" color="neutral">นอกเวลาทำการ</Typography>
+                                ) : (
+                                    <Box textAlign="center">
+                                        <Typography level="h3" fontWeight="xl">
+                                            {valueDisplay(data[item.key])}
+                                        </Typography>
                                     </Box>
-                                </Box>
-                            ) : (
-                                <Box textAlign="center">
-                                    <Typography level="h3" fontWeight="xl">{valueDisplay(data[item.key])}</Typography>
-                                </Box>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
-            ))}
+                                )}
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                );
+            })}
         </Grid>
     );
 
@@ -287,9 +305,7 @@ export default function StatisticsCase() {
                         <tr>
                             <th>#</th>
                             <th>วันที่</th>
-                            {BUCKET_KEYS.map(k => (
-                                <th key={k}>{k}</th>
-                            ))}
+                            {BUCKET_KEYS.map(k => (<th key={k}>{k}</th>))}
                             <th>รวม</th>
                         </tr>
                     </thead>
@@ -298,9 +314,7 @@ export default function StatisticsCase() {
                             <tr key={row.date}>
                                 <td>{idx + 1}</td>
                                 <td>{dayjs(row.date).format("DD/MM/YYYY")}</td>
-                                {BUCKET_KEYS.map(k => (
-                                    <td key={k}>{row[k]}</td>
-                                ))}
+                                {BUCKET_KEYS.map(k => (<td key={k}>{row[k]}</td>))}
                                 <td>{row.total}</td>
                             </tr>
                         ))}
@@ -309,6 +323,9 @@ export default function StatisticsCase() {
             )}
         </Box>
     );
+
+    // รวมค่าให้พร้อมเรนเดอร์: ตัวอื่นมาจาก todayStats/afterHourStats, ส่วน pending มาเติมเพิ่ม
+    const todayWithPending = todayStats ? { ...todayStats, pending: pendingTotal } : null;
 
     return (
         <>
@@ -319,12 +336,23 @@ export default function StatisticsCase() {
                 <Button onClick={() => setShowAfterHourModal(true)} variant="outlined">🌙 ดูข้อมูลช่วงวันที่ (นอกเวลาทำการ)</Button>
             </Box>
 
-            {!todayStats || !afterHourStats ? (
+            {!todayWithPending || !afterHourStats ? (
                 <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
                     <CircularProgress size="lg" />
                 </Box>
             ) : (
-                renderStatCards(todayStats, caseCategories, afterHourStats)
+                renderStatCards(
+                    {
+                        ...todayWithPending,
+                        in_progress: progressInOut.in_time, // in-progress ยังแยกเหมือนเดิม
+                    },
+                    caseCategories,
+                    {
+                        ...afterHourStats,
+                        in_progress: progressInOut.out_time,
+                        // ไม่มี pending ฝั่งขวา -> การ์ด pending จะเรนเดอร์แบบ single
+                    }
+                )
             )}
 
             {/* Modals */}
@@ -371,6 +399,5 @@ export default function StatisticsCase() {
                 rows={tagCaseRows}
             />
         </>
-
     );
 }

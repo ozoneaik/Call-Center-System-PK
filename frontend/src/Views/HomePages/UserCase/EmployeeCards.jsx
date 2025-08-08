@@ -50,7 +50,7 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                                 onClickTodayClosed(employee)
                             }
                         />
-                        <BoxCase
+                        {/* <BoxCase
                             icon={<Autorenew />}
                             label="เคสที่กำลังดำเนินการ"
                             value={employee.inProgress}
@@ -61,7 +61,7 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                                 onClickInProgress &&
                                 onClickInProgress(employee)
                             }
-                        />
+                        /> */}
                         <BoxCase
                             icon={<DateRange />}
                             label="ปิดเคสสัปดาห์นี้"
