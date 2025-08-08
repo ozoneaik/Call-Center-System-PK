@@ -10,6 +10,7 @@ use App\Services\PusherService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use LINE\Webhook\Model\ActivatedEvent;
 
 class NewCase
 {
@@ -31,7 +32,7 @@ class NewCase
             Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสใหม่ ไม่เคยสร้างเคส');
             $now = Carbon::now();
             $keyword = $this->checkKeyword->check($message);
-            if ($keyword['status']) { // ถ้าเจอ keyword และเป็นการส่งต่อห้อง
+            if ($keyword['status']) {
                 $new_rate = Rates::query()->create([
                     'custId' => $customer['custId'],
                     'latestRoomId' => $keyword['redirectTo'],

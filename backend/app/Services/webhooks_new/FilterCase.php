@@ -63,14 +63,6 @@ class FilterCase
         }
     }
 
-    private function successCase($current_rate)
-    {
-        Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสที่เคสสำเร็จแล้ว');
-        
-    }
-
-
-
 
     private function checkParams($customer = null, $message = null, $platformAccessToken = null)
     {

@@ -3,6 +3,7 @@
 namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
+use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Services\PusherService;
 use Carbon\Carbon;
@@ -11,13 +12,11 @@ use Illuminate\Support\Facades\Log;
 class ProgressCase
 {
     protected PusherService $pusherService;
-    protected BotReplyMessage $botReplyMessage;
     protected ReplyMessage $replyMessage;
 
-    public function __construct(PusherService $pusherService, BotReplyMessage $botReplyMessage, ReplyMessage $replyMessage)
+    public function __construct(PusherService $pusherService, ReplyMessage $replyMessage)
     {
         $this->pusherService = $pusherService;
-        $this->botReplyMessage = $botReplyMessage;
         $this->replyMessage = $replyMessage;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
@@ -94,8 +93,16 @@ class ProgressCase
                     ]);
                     // สร้างเคสใหม่ไปยังห้องแชทที่กำหนด
                     if ($message['contentType'] === 'text') {
+                        $menus = BotMenu::query()->where('botTokenId', $customer['platformRef'])->get();
+                        $foward_to_room_id = $platformAccessToken['room_default_id'] ?? 'ROOM99';
+                        foreach ($menus as $menu) {
+                            if($message['content'] === $menu['menuName']) {
+                                $foward_to_room_id = $menu['roomId'];
+                                break;
+                            }
+                        }
                         $current_rate->update([
-                            'latestRoomId' => $platformAccessToken['room_default_id'] ?? 'ROOM99',
+                            'latestRoomId' => $foward_to_room_id,
                             'status' => 'pending',
                         ]);
                         $new_ac = ActiveConversations::query()->create([

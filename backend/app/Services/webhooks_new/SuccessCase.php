@@ -14,16 +14,35 @@ class SuccessCase
 
     protected PusherService $pusherService;
     protected ReplyMessage $replyMessage;
+    protected CheckKeyword $checkKeyword;
 
-    public function __construct(PusherService $pusherService, ReplyMessage $replyMessage)
+    public function __construct(PusherService $pusherService, ReplyMessage $replyMessage, CheckKeyword $checkKeyword)
     {
         $this->pusherService = $pusherService;
         $this->replyMessage = $replyMessage;
+        $this->checkKeyword = $checkKeyword;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
         // ถ้า updated_at(2025-08-07 21:23:23.000) ก่อนหน้า น้อยกว่า หรือ เท่ากับ 12 ชั่วโมง (2025-08-07 21:40:23.000)
+
         if ($current_rate['updated_at'] >= now()->subHours(12)) {
+            $keyword = $this->checkKeyword->check($message);
+            if ($keyword['status'] && !$keyword['redirectTo']) {
+                $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
+                    ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+                ChatHistory::query()->create([
+                    'custId' => $current_rate['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $latest_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
+                return;
+            }
             $new_rate = Rates::query()->create([
                 'custId' => $customer['custId'],
                 'rate' => 0,
@@ -36,6 +55,38 @@ class SuccessCase
                 'rateRef' => $new_rate['id'],
             ]);
         } else {
+
+            $keyword = $this->checkKeyword->check($message);
+
+            if ($keyword['status'] && $keyword['redirectTo']) {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'latestRoomId' => $keyword['redirectTo'],
+                    'status' => 'pending',
+                    'rate' => 0,
+                ]);
+            } elseif ($keyword['status'] && !$keyword['redirectTo']) {
+                $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
+                    ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+                ChatHistory::query()->create([
+                    'custId' => $current_rate['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $latest_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
+            } else {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'latestRoomId' => 'ROOM00',
+                    'status' => 'progress',
+                    'rate' => 0,
+                ]);
+            }
+
             $new_rate = Rates::query()->create([
                 'custId' => $customer['custId'],
                 'rate' => 0,

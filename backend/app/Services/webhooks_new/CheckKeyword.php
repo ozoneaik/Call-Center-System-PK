@@ -25,10 +25,13 @@ class CheckKeyword
             if ($foundKeyword) {
                 if (!$foundKeyword['event']) {
                     $msg_return['status'] = true;
+                     $msg_return['redirectTo'] = true;
                     $msg_return['message'] = 'เจอ keyword ที่ไม่เป็นของจบสนทนา';
                     $msg_return['redirectTo'] = $foundKeyword['redirectTo'];
                 } else {
-                    $msg_return['message'] = 'เจอ keyword ที่เป็นของจบสนทนาไปแล้ว';
+                    $msg_return['status'] = true;
+                    $msg_return['redirectTo'] = false;
+                    $msg_return['message'] = 'เจอ keyword ที่ไม่ต้องการสร้างเคสใหม่';
                 }
             }
         } else {

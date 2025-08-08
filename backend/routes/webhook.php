@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LazadaController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -17,8 +18,8 @@ Route::prefix('webhook-new')->group(function () {
 
     // สำหรับ Facebook
     Route::prefix('facebook')->group(function () {
-        Route::get('/', function () {});
-        Route::post('/', function () {});
+        Route::get('/', [FacebookController::class, 'verifyToken']);
+        Route::post('/', [FacebookController::class,'webhook']);
     });
 
     // สำหรับ Lazada
