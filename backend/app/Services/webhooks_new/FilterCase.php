@@ -13,6 +13,7 @@ class FilterCase
     protected $CUSTOMER;
     protected $PLATFORM_ACCESS_TOKEN;
     protected $BOT;
+    protected $BOT_FACEBOOK;
     protected PusherService $pusherService;
     protected NewCase $newCase;
     protected ProgressCase $progressCase;
@@ -21,7 +22,6 @@ class FilterCase
     public function __construct(PusherService $pusherService, NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
     {
         $this->pusherService = $pusherService;
-        $this->BOT = User::query()->where('empCode', 'BOT')->first();
         $this->newCase = $newCase;
         $this->progressCase = $progressCase;
         $this->pendingCase = $pendingCase;
@@ -37,8 +37,11 @@ class FilterCase
             'platformAccessToken' => json_encode($platformAccessToken, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         ]);
         try {
+
             // เช็คก่อนว่า มี $customer หรือ $message หรือ $platformAccessToken ครบทั้งสามอย่างหรือไม่
             $check_params = $this->checkParams($customer, $message, $platformAccessToken);
+            //ดึงข้อมูล BOT ของแต่ละ platform
+            $this->BOT = $this->getBotData($platformAccessToken['platform']);
             if (!$check_params['status']) throw new \Exception($check_params['message']);
             $this->MESSAGE = $message;
             $this->CUSTOMER = $customer;
@@ -81,5 +84,20 @@ class FilterCase
                 'message' => $msg_error ?? $msg_error_default
             ];
         }
+    }
+
+    private function getBotData($platform) {
+        $bot = [];
+        switch(strtoupper($platform)){
+            case 'LINE':
+                $bot = User::query()->where('empCode' , 'BOT')->first();
+                break;
+            case 'FACEBOOK':
+                $bot = User::query()->where('empCode' , 'BOT_FACEBOOK')->first();
+                break;
+            default:
+                $bot = User::query()->where('empCode' , 'BOT')->first();
+        }
+        return $bot;
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class CheckKeyword
 {
     protected $MESSAGE;
-    public function check($message = [])
+    public function check($message = [], $case = 'new')
     {
         Log::channel('webhook_main')->info('เริ่มการกรอง keyword');
         $this->MESSAGE = $message;
@@ -25,7 +25,7 @@ class CheckKeyword
             if ($foundKeyword) {
                 if (!$foundKeyword['event']) {
                     $msg_return['status'] = true;
-                     $msg_return['redirectTo'] = true;
+                    $msg_return['redirectTo'] = true;
                     $msg_return['message'] = 'เจอ keyword ที่ไม่เป็นของจบสนทนา';
                     $msg_return['redirectTo'] = $foundKeyword['redirectTo'];
                 } else {
@@ -34,6 +34,10 @@ class CheckKeyword
                     $msg_return['message'] = 'เจอ keyword ที่ไม่ต้องการสร้างเคสใหม่';
                 }
             }
+        } elseif (($this->MESSAGE['contentType'] === 'sticker') && $case === 'success') {
+            $msg_return['status'] = true;
+            $msg_return['redirectTo'] = false;
+            $msg_return['message'] = 'เจอ keyword ที่ไม่ต้องการสร้างเคสใหม่';
         } else {
             $msg_return['message'] = 'ไม่สามารถตรวจจับข้อความได้ เนื่องจากข้อความไม่ใช่ text';
         }

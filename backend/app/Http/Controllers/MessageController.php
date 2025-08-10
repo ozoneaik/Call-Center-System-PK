@@ -38,6 +38,7 @@ class MessageController extends Controller
     // ฟังก์ชั่นการส่งข้อความ
     public function send(sendMessageRequest $request): JsonResponse
     {
+        
         $detail = 'ไม่พบข้อผิดพลาด';
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];

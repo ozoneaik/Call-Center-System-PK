@@ -26,6 +26,16 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('1111'),
             ],
             [
+                'empCode' => 'BOT_FACEBOOK',
+                'name' => 'BOT_FACEBOOK',
+                'email' => 'BOT_FACEBOOK@mail.local',
+                'role' => 'BOT',
+                'roomId' => 'ROOM00',
+                'description' => 'ฉันคือ BOT_FACEBOOK',
+                'avatar' => 'https://call-center-pk.s3.ap-southeast-1.amazonaws.com/61621754792643.png',
+                'password' => Hash::make('1111'),
+            ],
+            [
                 'empCode' => 'adminIT',
                 'name' => 'adminIT',
                 'email' => 'adminIT@mail.local',

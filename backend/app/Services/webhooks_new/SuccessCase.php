@@ -27,7 +27,7 @@ class SuccessCase
         // ถ้า updated_at(2025-08-07 21:23:23.000) ก่อนหน้า น้อยกว่า หรือ เท่ากับ 12 ชั่วโมง (2025-08-07 21:40:23.000)
 
         if ($current_rate['updated_at'] >= now()->subHours(12)) {
-            $keyword = $this->checkKeyword->check($message);
+            $keyword = $this->checkKeyword->check($message,'success');
             if ($keyword['status'] && !$keyword['redirectTo']) {
                 $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
                     ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
