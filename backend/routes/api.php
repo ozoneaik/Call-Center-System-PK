@@ -7,6 +7,7 @@ use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
+use App\Http\Controllers\Chats\PushMessageController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\feedbackController;
@@ -71,7 +72,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการเกี่ยวกับแชท
     Route::prefix('messages')->group(function () {
-        Route::post('/send', [MessageController::class, 'send']);
+        // Route::post('/send', [MessageController::class, 'send']);
+        Route::post('/send', [PushMessageController::class, 'pushMessage']);
         Route::post('/reply', [MessageController::class, 'reply']);
         Route::post('/receive', [LineReceiveController::class, 'receive']);
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
