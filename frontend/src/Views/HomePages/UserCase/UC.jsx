@@ -328,7 +328,7 @@ export default function UC() {
                     sx={{
                         display: "grid",
                         gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
-                        gap: 12,
+                        gap: 3,
                         alignItems: "start",
                     }}
                 >

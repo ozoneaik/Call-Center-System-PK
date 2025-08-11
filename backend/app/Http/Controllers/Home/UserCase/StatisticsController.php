@@ -9,10 +9,76 @@ use Carbon\Carbon;
 
 class StatisticsController extends Controller
 {
-    public function employeeWorkloadSummary()
+    private function applyPlatformFilter($q, $platformId)
     {
-        $results = DB::connection('pgsql_real')
-            ->table('rates as r')
+        if (!$platformId) return $q;
+
+        return $q
+            ->join('customers as c_pf', 'c_pf.custId', '=', 'ac.custId')
+            ->join('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'c_pf.platformRef')
+            ->where('pat_pf.id', $platformId);
+    }
+
+    public function optionsPlatforms()
+    {
+        $rows = DB::connection('pgsql_real')
+            ->table('platform_access_tokens as pat')
+            ->select('pat.id', 'pat.platform', 'pat.description')
+            ->orderBy('pat.platform', 'asc')
+            ->orderBy('pat.description', 'asc')
+            ->get()
+            ->map(fn($r) => [
+                'value' => $r->id,
+                'label' => strtoupper((string)$r->platform) . ' - ' . (string)$r->description,
+                'platform' => $r->platform,
+                'description' => $r->description,
+            ])
+            ->values()
+            ->toArray();
+
+        return response()->json(['options' => $rows]);
+    }
+
+    public function optionsDepartments()
+    {
+        $rows = DB::connection('pgsql_real')
+            ->table('users as u')
+            ->whereNotIn('u.empCode', ['BOT', 'adminIT'])
+            ->whereNotIn('u.description', ['อะไรเอ้่ย', 'สำหรับทดสอบ'])
+            ->selectRaw('DISTINCT TRIM(u."description") AS description')
+            ->whereRaw("NULLIF(TRIM(u.\"description\"), '') IS NOT NULL")
+            ->orderBy('description', 'asc')
+            ->pluck('description')
+            ->map(fn($d) => ['value' => $d, 'label' => $d])
+            ->values()
+            ->toArray();
+
+        return response()->json(['options' => $rows]);
+    }
+
+    public function optionsEmployees(Request $request)
+    {
+        $dept = $request->query('dept');
+        $q = DB::connection('pgsql_real')->table('users')
+            ->whereNotIn('empCode', ['BOT', 'adminIT'])
+            ->select('empCode', 'name', 'description')
+            ->whereRaw("NULLIF(TRIM(name), '') IS NOT NULL");
+        if ($dept) $q->where('description', $dept);
+        else $q->whereRaw("NULLIF(TRIM(description), '') IS NOT NULL");
+
+        $rows = $q->orderBy('name', 'asc')->get()
+            ->map(fn($r) => ['value' => $r->empCode, 'label' => $r->name, 'department' => trim((string)$r->description)]);
+        return response()->json($rows);
+    }
+
+    // === สรุปพนักงาน (รองรับ platform/dept/empCode) ===
+    public function employeeWorkloadSummary(Request $request)
+    {
+        $platformId = $request->query('platform_id');
+        $dept       = $request->query('dept');
+        $empCode    = $request->query('empCode');
+
+        $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -26,40 +92,45 @@ class StatisticsController extends Controller
             )
             ->where('r.status', 'success')
             ->whereDate('ac.endTime', today())
-            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->groupBy('ac.empCode', 'u.name')
-            ->orderByDesc('total')
-            ->get();
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
+        if ($dept)    $q->where('u.description', $dept);
+        if ($empCode) $q->where('ac.empCode', $empCode);
+        $q = $this->applyPlatformFilter($q, $platformId);
+
+        $results = $q->groupBy('ac.empCode', 'u.name')->orderByDesc('total')->get();
         $totalAll = $results->sum('total');
 
         foreach ($results as $row) {
-            $row->percentage = round(($row->total / $totalAll) * 100, 2);
+            $row->percentage = $totalAll ? round(($row->total / $totalAll) * 100, 2) : 0.0;
 
-            $inProgress = DB::connection('pgsql_real')
-                ->table('rates as r')
+            $inProgress = DB::connection('pgsql_real')->table('rates as r')
                 ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+                ->join('users as u', 'u.empCode', '=', 'ac.empCode')
                 ->where('ac.empCode', $row->empCode)
                 ->where('r.status', 'progress')
-                ->whereDate('r.updated_at', Carbon::today())
-                ->count();
+                ->whereDate('r.updated_at', Carbon::today());
+            if ($dept) $inProgress->where('u.description', $dept);
+            $inProgress = $this->applyPlatformFilter($inProgress, $platformId);
 
-            $row->in_progress = $inProgress;
+            $row->in_progress = $inProgress->count();
         }
 
-        return response()->json([
-            'data' => $results
-        ]);
+        return response()->json(['data' => $results]);
     }
 
-    public function tagWorkloadSummary()
+    // === สรุปแท็ก (รองรับ platform/dept/empCode) ===
+    public function tagWorkloadSummary(Request $request)
     {
         $today = Carbon::today();
+        $platformId = $request->query('platform_id');
+        $dept       = $request->query('dept');
+        $empCode    = $request->query('empCode');
 
-        $results = DB::connection('pgsql_real')
-            ->table('rates as r')
+        $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
+            ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
                 DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag'),
                 DB::raw('COUNT(*) as total'),
@@ -69,93 +140,93 @@ class StatisticsController extends Controller
             )
             ->where('r.status', 'success')
             ->whereDate('ac.endTime', $today)
-            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->groupBy(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'))
-            ->orderByDesc('total')
-            ->get();
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
+        if ($dept)    $q->where('u.description', $dept);
+        if ($empCode) $q->where('ac.empCode', $empCode);
+        $q = $this->applyPlatformFilter($q, $platformId);
+
+        $results = $q->groupBy(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'))->orderByDesc('total')->get();
         $totalAll = $results->sum('total');
-
         foreach ($results as $row) {
-            $row->percent = round(($row->total / $totalAll) * 100, 2);
+            $row->percent = $totalAll ? round(($row->total / $totalAll) * 100, 2) : 0.0;
         }
-
-        return response()->json([
-            'data' => $results
-        ]);
+        return response()->json(['data' => $results]);
     }
 
-    public function getAllCasesByUser($empCode)
+    // === ของเดิม: รายการเคสตาม User/Tag (เพิ่มรองรับ filters ผ่าน query) ===
+    public function getAllCasesByUser($empCode, Request $request)
     {
+        $platformId = $request->query('platform_id');
+        $dept       = $request->query('dept');
         $today = Carbon::today();
 
-        $cases = DB::connection('pgsql_real')
-            ->table('rates as r')
+        $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
+            ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
             ->selectRaw('
-            ac.id as conversation_id,
-            r.status as status_name,
-            ac."startTime" as started_at,
-            ac."receiveAt" as accepted_at,
-            ac."endTime" as closed_at,
-            ac."roomId" as room_id,
-            ac."custId",
-            COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
-            COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
-        ')
+                ac.id as conversation_id,
+                r.status as status_name,
+                ac."startTime" as started_at,
+                ac."receiveAt" as accepted_at,
+                ac."endTime" as closed_at,
+                ac."roomId" as room_id,
+                ac."custId",
+                COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
+                COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
+            ')
             ->where('ac.empCode', $empCode)
             ->whereIn('r.status', ['success', 'cancelled', 'progress'])
-            ->where(function ($q) {
+            ->where(function ($q2) {
                 $today = now()->toDateString();
-                $q->where(function ($q) use ($today) {
-                    $q->whereIn('r.status', ['success', 'cancelled'])
-                        ->whereDate('ac.endTime', $today);
-                })->orWhere(function ($q) use ($today) {
-                    $q->where('r.status', 'progress')
-                        ->whereDate('r.updated_at', $today);
+                $q2->where(function ($q3) use ($today) {
+                    $q3->whereIn('r.status', ['success', 'cancelled'])->whereDate('ac.endTime', $today);
+                })->orWhere(function ($q3) use ($today) {
+                    $q3->where('r.status', 'progress')->whereDate('r.updated_at', $today);
                 });
-            })
-            ->orderByDesc(DB::raw('"ac"."startTime"'))
-            ->get();
+            });
+        if ($dept) $q->where('u.description', $dept);
+        $q = $this->applyPlatformFilter($q, $platformId);
 
-        return response()->json([
-            'cases' => $cases,
-        ]);
+        $cases = $q->orderByDesc(DB::raw('"ac"."startTime"'))->get();
+        return response()->json(['cases' => $cases]);
     }
 
-    public function getAllCasesByTag($tagName)
+    public function getAllCasesByTag($tagName, Request $request)
     {
         $today = Carbon::today();
+        $platformId = $request->query('platform_id');
+        $dept       = $request->query('dept');
+        $empCode    = $request->query('empCode');
 
-        $cases = DB::connection('pgsql_real')
-            ->table('rates as r')
+        $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
             ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->selectRaw('
-            ac.id as conversation_id,
-            r.status as status_name,
-            ac."startTime" as started_at,
-            ac."receiveAt" as accepted_at,
-            ac."endTime" as closed_at,
-            ac."roomId" as room_id,
-            ac."custId",
-            COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
-            u.name as employee_name,
-            COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
-        ')
+                ac.id as conversation_id,
+                r.status as status_name,
+                ac."startTime" as started_at,
+                ac."receiveAt" as accepted_at,
+                ac."endTime" as closed_at,
+                ac."roomId" as room_id,
+                ac."custId",
+                COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
+                u.name as employee_name,
+                COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
+            ')
             ->where(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'), $tagName)
             ->where('r.status', 'success')
             ->whereDate('ac.endTime', $today)
-            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->orderByDesc(DB::raw('"ac"."startTime"'))
-            ->get();
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+        if ($dept)    $q->where('u.description', $dept);
+        if ($empCode) $q->where('ac.empCode', $empCode);
+        $q = $this->applyPlatformFilter($q, $platformId);
 
-        return response()->json([
-            'cases' => $cases,
-        ]);
+        $cases = $q->orderByDesc(DB::raw('"ac"."startTime"'))->get();
+        return response()->json(['cases' => $cases]);
     }
 }

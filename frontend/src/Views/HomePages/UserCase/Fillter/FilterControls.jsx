@@ -86,14 +86,14 @@ export default function FilterControls({
                         defaultValue={searchName}
                         onChange={(e) => debouncedSearch(e.target.value)}
                         startDecorator={<Search fontSize="small" />}
-                        sx={{ minWidth: 140, width: 140, flexShrink: 0 }}
+                        sx={{ minWidth: 180, width: 180, flexShrink: 0 }}
                     />
                     <Select
                         size="sm"
                         placeholder="แผนก"
                         value={filterDept}
                         onChange={(_, v) => setFilterDept(v || "")}
-                        sx={{ minWidth: 100, width: 100, flexShrink: 0 }}
+                        sx={{ minWidth: 140, width: 140, flexShrink: 0 }}
                     >
                         <Option value="">ทั้งหมด</Option>
                         {departments.map((dept) => (
@@ -105,7 +105,7 @@ export default function FilterControls({
                         options={options} value={valueOptions}
                         getOptionLabel={(opt) => opt.label}
                         onChange={(_, newValues) => onChangeTags(newValues.map(v => v.id))}
-                        sx={{ minWidth: 100, width: 130, flexShrink: 0 }}
+                        sx={{ minWidth: 180, width: 180, flexShrink: 0 }}
                     />
                     <Input
                         type="date" size="sm" value={startDate}
@@ -264,7 +264,7 @@ export default function FilterControls({
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 slotProps={{ input: { max: endDate || undefined } }}
-                                sx={{ flex: 1 }}
+                                sx={{ flex: 1, minWidth: 160 }}
                             />
                             <Input
                                 type="date"
@@ -272,7 +272,7 @@ export default function FilterControls({
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                                 slotProps={{ input: { min: startDate || undefined } }}
-                                sx={{ flex: 1 }}
+                                sx={{ flex: 1, minWidth: 160 }}
                             />
                         </Stack>
 

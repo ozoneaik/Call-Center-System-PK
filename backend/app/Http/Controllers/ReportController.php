@@ -337,7 +337,7 @@ class ReportController extends Controller
 
 
 
-
+    //ตัวอย่าง
     public function index(Request $request)
     {
         if (isset($request['export'])) {
@@ -346,7 +346,7 @@ class ReportController extends Controller
             $export = null;
         }
         // ดึงข้อมูลเคสหลักที่มีสถานะ success ในช่วงเดือนกรกฎาคม 2025
-        $main_case = DB::connection('pgsql_sub')->table('rates')
+        $main_case = DB::connection('pgsql_real')->table('rates')
             ->where('rates.status', 'success')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
@@ -360,7 +360,7 @@ class ReportController extends Controller
         $rate_ids = $main_case->pluck('id')->toArray();
 
         // ดึงข้อมูลเคสย่อยทั้งหมดที่เกี่ยวข้องในครั้งเดียว
-        $sub_cases = DB::connection('pgsql_sub')->table('active_conversations')
+        $sub_cases = DB::connection('pgsql_real')->table('active_conversations')
             ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
             ->leftJoin('users as from_emp', 'from_emp.empCode', '=', 'active_conversations.from_empCode')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'active_conversations.roomId')

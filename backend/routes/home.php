@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Home\UserCase\ExportExcelController;
 use App\Http\Controllers\Home\UserCase\StatisticsController;
 use App\Http\Controllers\Home\UserCase\UcClosureStatsController;
 use Illuminate\Http\Request;
@@ -34,19 +35,30 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedTodayByUser']);
         Route::get('/users/{empCode}/forwarded-range', [UcTagSummaryController::class, 'forwardedRangeByUser']);
 
-
-        Route::get('/employee', [StatisticsController::class, 'employeeWorkloadSummary']);
         Route::get('/employee/{empCode}/cases', [StatisticsController::class, 'getAllCasesByUser']);
 
-        Route::get('/tag-workload', [StatisticsController::class, 'tagWorkloadSummary']);
         Route::get('/tag/{tagName}/cases', [StatisticsController::class, 'getAllCasesByTag']);
 
-        Route::get('/closure-summary', [UcClosureStatsController::class, 'caseClosureTimeSummary']);
+        Route::get('/options/platforms', [StatisticsController::class, 'optionsPlatforms']);
+        Route::get('/options/departments', [StatisticsController::class, 'optionsDepartments']);
+        Route::get('/options/employees',   [StatisticsController::class, 'optionsEmployees']);
+
+        Route::get('/tag-workload', [StatisticsController::class, 'tagWorkloadSummary']);
+        Route::get('/employee', [StatisticsController::class, 'employeeWorkloadSummary']);
+
         Route::get('/closure-stats', [UcClosureStatsController::class, 'closureStats']);
         Route::get('/closure-range-stats', [UcClosureStatsController::class, 'closureRangeStats']);
         Route::get('/after-hour-closure-stats', [UcClosureStatsController::class, 'afterHourClosureStats']);
         Route::get('/after-hour-closure-range-stats', [UcClosureStatsController::class, 'afterHourClosureRangeStats']);
         Route::get('/in-progress-business-hours', [UcClosureStatsController::class, 'inProgressByBusinessHours']);
+        Route::get('/closure-summary', [UcClosureStatsController::class, 'caseClosureTimeSummary']);
         Route::get('/pending-today', [UcClosureStatsController::class, 'pendingToday']);
+
+        Route::get('/export/closure-range.xlsx', [ExportExcelController::class, 'exportClosureRangeExcel']);
+        Route::get('/export/after-hour-range.xlsx', [ExportExcelController::class, 'exportAfterHourRangeExcel']);
+        Route::get(
+            '/export/detailed-cases.xlsx',
+            [ExportExcelController::class, 'exportDetailedCasesRangeExcel']
+        );
     });
 });

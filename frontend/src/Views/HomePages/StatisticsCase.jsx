@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../../Axios";
 import {
-    Typography,
-    Grid,
-    Card,
-    CardContent,
-    Input,
-    Box,
-    Button,
-    Modal,
-    ModalDialog,
-    ModalClose,
-    Table,
-    CircularProgress,
-    Divider,
+    Typography, Grid, Card, CardContent, Input, Box, Button,
+    Modal, ModalDialog, ModalClose, Table, CircularProgress, Divider,
+    Select, Option, FormLabel, FormControl, Chip, Stack, Sheet, Alert,
+    ChipDelete
 } from "@mui/joy";
 import dayjs from "dayjs";
 import EmployeeWorkloadTable from "./Reports/EmployeeWorkloadTable";
@@ -21,32 +12,20 @@ import TagWorkloadTable from "./Reports/TagWorkloadTable";
 import EmployeeCaseDetailModal from "./Reports/EmployeeCaseDetailModal";
 import TagCaseDetailModal from "./Reports/TagCaseDetailModal";
 
-// Helper
 const valueDisplay = (val) => (val !== undefined ? `${val}` : "-");
-
-const BUCKET_KEYS = [
-    "within_1_min",
-    "one_to_five_min",
-    "five_to_ten_min",
-    "over_ten_min",
-];
+const BUCKET_KEYS = ["within_1_min", "one_to_five_min", "five_to_ten_min", "over_ten_min"];
 
 function bucketsToKeyed(buckets = []) {
-    const inMap = {};
-    const outMap = {};
-    const totalMap = {};
-
+    const inMap = {}, outMap = {}, totalMap = {};
     BUCKET_KEYS.forEach((k, i) => {
         const b = buckets[i] || { in_time: 0, out_time: 0, total_case: 0 };
         inMap[k] = b.in_time ?? 0;
         outMap[k] = b.out_time ?? 0;
         totalMap[k] = b.total_case ?? 0;
     });
-
     inMap.total = BUCKET_KEYS.reduce((s, k) => s + (inMap[k] ?? 0), 0);
     outMap.total = BUCKET_KEYS.reduce((s, k) => s + (outMap[k] ?? 0), 0);
     totalMap.total = BUCKET_KEYS.reduce((s, k) => s + (totalMap[k] ?? 0), 0);
-
     return { inMap, outMap, totalMap };
 }
 
@@ -57,8 +36,35 @@ const caseCategories = [
     { label: "🕒 5-10 นาที", key: "five_to_ten_min", color: "#FB8C00" },
     { label: "⏰ มากกว่า 10 นาที", key: "over_ten_min", color: "#FF9800" },
     { label: "🛠️ กำลังดำเนินการ", key: "in_progress", color: "#3949AB" },
-    { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" }, 
+    { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" },
 ];
+
+/** ดาวน์โหลดไฟล์ Excel จาก API (อ่านชื่อไฟล์จาก Content-Disposition ถ้ามี) */
+async function downloadExcel(url, params = {}) {
+    try {
+        const resp = await axiosClient.get(url, { params, responseType: "blob" });
+        let filename = "export.xlsx";
+        const cd = resp.headers?.["content-disposition"] || resp.headers?.["Content-Disposition"];
+        if (cd) {
+            const m = /filename\*?=(?:UTF-8'')?"?([^\";]+)"?/i.exec(cd);
+            if (m?.[1]) filename = decodeURIComponent(m[1]);
+        }
+        const blob = new Blob([resp.data], {
+            type: resp.data?.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const link = document.createElement("a");
+        const objectUrl = URL.createObjectURL(blob);
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+        console.error("Export Excel failed:", err);
+        alert("Export Excel ไม่สำเร็จ");
+    }
+}
 
 export default function StatisticsCase() {
     const [today] = useState(dayjs().format("YYYY-MM-DD"));
@@ -75,24 +81,73 @@ export default function StatisticsCase() {
 
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
-
     const [afterHourStartDate, setAfterHourStartDate] = useState(today);
     const [afterHourEndDate, setAfterHourEndDate] = useState(today);
 
     const [openEmpModal, setOpenEmpModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [empCaseRows, setEmpCaseRows] = useState([]);
-
     const [openTagModal, setOpenTagModal] = useState(false);
     const [selectedTag, setSelectedTag] = useState(null);
     const [tagCaseRows, setTagCaseRows] = useState([]);
 
     const [progressInOut, setProgressInOut] = useState({ in_time: 0, out_time: 0, total: 0 });
-    const [pendingTotal, setPendingTotal] = useState(0); 
+    const [pendingTotal, setPendingTotal] = useState(0);
+
+    // ===== ฟิลเตอร์ =====
+    const [filterPlatform, setFilterPlatform] = useState("");
+    const [filterDept, setFilterDept] = useState("");
+    const [filterEmp, setFilterEmp] = useState("");
+
+    const [platformOptions, setPlatformOptions] = useState([]);
+    const [deptOptions, setDeptOptions] = useState([]);
+    const [empOptions, setEmpOptions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
+        setIsLoading(true);
+        (async () => {
+            const [p1, p2, p3] = await Promise.allSettled([
+                axiosClient.get("home/user-case/options/platforms"),
+                axiosClient.get("home/user-case/options/departments"),
+                axiosClient.get("home/user-case/options/employees", { params: { dept: "" } }),
+            ]);
+            const asArray = (d) => (Array.isArray(d) ? d : d?.options ?? []);
+
+            if (p1.status === "fulfilled") setPlatformOptions(asArray(p1.value.data)); else setPlatformOptions([]);
+            if (p2.status === "fulfilled") setDeptOptions(asArray(p2.value.data)); else setDeptOptions([]);
+            if (p3.status === "fulfilled") setEmpOptions(asArray(p3.value.data)); else setEmpOptions([]);
+            setIsLoading(false);
+        })();
+    }, []);
+
+    // เมื่อเปลี่ยนแผนก ให้รีเฟรชพนักงาน
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await axiosClient.get("home/user-case/options/employees", {
+                    params: { dept: filterDept || "" },
+                });
+                const asArray = (d) => (Array.isArray(d) ? d : d?.options ?? []);
+                const list = asArray(data);
+                setEmpOptions(list);
+                if (filterEmp && !list.some((e) => e.value === filterEmp)) setFilterEmp("");
+            } catch (e) {
+                console.error("reload employees failed", e);
+            }
+        })();
+    }, [filterDept]);
+
+    // โหลดข้อมูลหลัก (ผูก filters)
+    useEffect(() => {
+        const baseParams = {
+            platform_id: filterPlatform || undefined,
+            dept: filterDept || undefined,
+            empCode: filterEmp || undefined,
+        };
+
         axiosClient
-            .get("home/user-case/closure-stats", { params: { date: today } })
+            .get("home/user-case/closure-stats", { params: { date: today, ...baseParams } })
             .then(({ data }) => {
                 const { inMap, outMap } = bucketsToKeyed(data.current || []);
                 setTodayStats(inMap);
@@ -104,26 +159,21 @@ export default function StatisticsCase() {
             });
 
         axiosClient
-            .get("home/user-case/in-progress-business-hours", { params: { today_only: 1 } })
+            .get("home/user-case/in-progress-business-hours", { params: { today_only: 1, ...baseParams } })
             .then(({ data }) => setProgressInOut({
                 in_time: data.in_time ?? 0,
                 out_time: data.out_time ?? 0,
                 total: data.total ?? 0,
             }))
-            .catch((err) => {
-                console.error("❌ in-progress-business-hours error:", err);
-            });
+            .catch((err) => console.error("❌ in-progress-business-hours error:", err));
 
         axiosClient
-            .get("home/user-case/pending-today")
+            .get("home/user-case/pending-today", { params: baseParams })
             .then(({ data }) => setPendingTotal(data?.total ?? 0))
-            .catch((err) => {
-                console.error("❌ pending-today error:", err);
-                setPendingTotal(0);
-            });
+            .catch((err) => { console.error("❌ pending-today error:", err); setPendingTotal(0); });
 
         axiosClient
-            .get("home/user-case/employee")
+            .get("home/user-case/employee", { params: baseParams })
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     name: item.name,
@@ -137,19 +187,15 @@ export default function StatisticsCase() {
                     onClickDetail: async (row) => {
                         setSelectedUser(row);
                         try {
-                            const { data } = await axiosClient.get(`/home/user-case/employee/${row.empCode}/cases`);
+                            const { data } = await axiosClient.get(`/home/user-case/employee/${row.empCode}/cases`, { params: baseParams });
                             const rows = (data.cases || []).map((c) => ({
                                 conversation_id: c.conversation_id,
                                 status_name: c.status_name,
                                 customer_name: c.customer_name,
                                 room_name: c.room_id ?? "-",
                                 start_time: dayjs(c.started_at).format("DD/MM/YYYY HH:mm"),
-                                accept_time: c.accepted_at
-                                    ? dayjs(c.accepted_at).format("DD/MM/YYYY HH:mm")
-                                    : "-",
-                                end_time: c.closed_at
-                                    ? dayjs(c.closed_at).format("DD/MM/YYYY HH:mm")
-                                    : "-",
+                                accept_time: c.accepted_at ? dayjs(c.accepted_at).format("DD/MM/YYYY HH:mm") : "-",
+                                end_time: c.closed_at ? dayjs(c.closed_at).format("DD/MM/YYYY HH:mm") : "-",
                                 tag_name: c.tag_name,
                                 custId: c.custId,
                             }));
@@ -169,7 +215,7 @@ export default function StatisticsCase() {
             });
 
         axiosClient
-            .get("home/user-case/tag-workload")
+            .get("home/user-case/tag-workload", { params: baseParams })
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     tag: item.tag,
@@ -180,7 +226,7 @@ export default function StatisticsCase() {
                     over10: item.over_ten_min,
                     onClickDetail: async (row) => {
                         try {
-                            const { data } = await axiosClient.get(`/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`);
+                            const { data } = await axiosClient.get(`/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`, { params: baseParams });
                             const rows = (data.cases || []).map((c) => ({
                                 customer_name: c.customer_name,
                                 room_id: c.room_id ?? "-",
@@ -197,7 +243,7 @@ export default function StatisticsCase() {
                             console.error("❌ Load tag cases failed", err);
                             alert("โหลดข้อมูลเคสตามแท็กไม่สำเร็จ");
                         }
-                    }
+                    },
                 }));
                 setTagStats(rows);
             })
@@ -205,21 +251,20 @@ export default function StatisticsCase() {
                 console.error("❌ tagWorkloadSummary error:", err);
                 alert("โหลดข้อมูลแท็กไม่สำเร็จ");
             });
-    }, [today]);
-
+    }, [today, filterPlatform, filterDept, filterEmp]);
 
     const fetchRangeStats = async () => {
+        const params = {
+            start_date: startDate, end_date: endDate,
+            platform_id: filterPlatform || undefined,
+            dept: filterDept || undefined,
+            empCode: filterEmp || undefined,
+        };
         try {
-            const { data } = await axiosClient.get(
-                "home/user-case/closure-range-stats",
-                { params: { start_date: startDate, end_date: endDate } }
-            );
+            const { data } = await axiosClient.get("home/user-case/closure-range-stats", { params });
             const rows = (data.data || []).map((d) => {
                 const { totalMap } = bucketsToKeyed(d.buckets || []);
-                return {
-                    date: d.date,
-                    ...totalMap,
-                };
+                return { date: d.date, ...totalMap };
             });
             setRangeStats(rows);
         } catch (err) {
@@ -229,16 +274,14 @@ export default function StatisticsCase() {
     };
 
     const fetchAfterHourRangeStats = async () => {
+        const params = {
+            start_date: afterHourStartDate, end_date: afterHourEndDate,
+            platform_id: filterPlatform || undefined,
+            dept: filterDept || undefined,
+            empCode: filterEmp || undefined,
+        };
         try {
-            const { data } = await axiosClient.get(
-                "home/user-case/after-hour-closure-range-stats",
-                {
-                    params: {
-                        start_date: afterHourStartDate,
-                        end_date: afterHourEndDate,
-                    },
-                }
-            );
+            const { data } = await axiosClient.get("home/user-case/after-hour-closure-range-stats", { params });
             setAfterHourRangeStats(data.data || []);
         } catch (err) {
             console.error("❌ after-hour-closure-range-stats error:", err);
@@ -246,14 +289,61 @@ export default function StatisticsCase() {
         }
     };
 
-    // ปรับให้ pending แสดงแบบ “ยอดเดียว” แม้ว่าการ์ดอื่นจะแสดงแยกซ้าย/ขวา
+    // ---------- Export Handlers ----------
+    const buildBusinessExportParams = () => ({
+        start_date: startDate,
+        end_date: endDate,
+        platform_id: filterPlatform || undefined,
+        dept: filterDept || undefined,
+        empCode: filterEmp || undefined,
+    });
+
+    const buildAfterHourExportParams = () => ({
+        start_date: afterHourStartDate,
+        end_date: afterHourEndDate,
+        platform_id: filterPlatform || undefined,
+        dept: filterDept || undefined,
+        empCode: filterEmp || undefined,
+    });
+
+    const fmtRange = (start, end) =>
+        `${dayjs(start).format("DD/MM/YYYY")} - ${dayjs(end).format("DD/MM/YYYY")}`;
+
+    const onExportBusiness = () =>
+        downloadExcel("home/user-case/export/closure-range.xlsx", buildBusinessExportParams());
+
+    const onExportAfterHour = () =>
+        downloadExcel("home/user-case/export/after-hour-range.xlsx", buildAfterHourExportParams());
+
+    const onExportDetailed = () =>
+        downloadExcel("home/user-case/export/detailed-cases.xlsx", buildBusinessExportParams());
+    // ------------------------------------
+
+    const clearFilters = () => {
+        setFilterDept("");
+        setFilterEmp("");
+        setFilterPlatform("");
+    };
+
+    const getActiveFiltersCount = () => {
+        let count = 0;
+        if (filterDept) count++;
+        if (filterEmp) count++;
+        if (filterPlatform) count++;
+        return count;
+    };
+
+    const CARD_MIN_HEIGHT = { xs: 160, sm: 180, md: 190 };
+    const VALUE_ZONE_MIN = { xs: 68, sm: 76, md: 84 };
+
     const renderStatCards = (data, categories, afterHourData = null) => (
-        <Grid container spacing={3} mb={4}>
+        <Grid container spacing={3} mb={4} alignItems="stretch">
             {categories.map((item) => {
                 const isPending = item.key === "pending";
-                const showSplit = !!afterHourData && !isPending; // split เฉพาะที่ไม่ใช่ pending
+                const showSplit = !!afterHourData && !isPending;
+
                 return (
-                    <Grid key={item.key} xs={12} sm={6} md={3} lg={2}>
+                    <Grid key={item.key} xs={12} sm={6} md={3} lg={2} sx={{ display: "flex" }}>
                         <Card
                             variant="outlined"
                             sx={{
@@ -262,33 +352,44 @@ export default function StatisticsCase() {
                                 boxShadow: 3,
                                 transition: "transform 0.2s ease",
                                 "&:hover": { transform: "scale(1.02)", boxShadow: 6 },
+                                display: "flex",
+                                flexDirection: "column",
+                                height: "100%",
+                                minHeight: CARD_MIN_HEIGHT,
+                                width: "100%",
                             }}
                         >
-                            <CardContent>
-                                <Typography level="title-md" fontWeight="lg" sx={{ textAlign: "center", mb: 1 }}>
-                                    {item.label}
-                                </Typography>
-                                <Divider sx={{ mb: 2 }} />
+                            <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 36, textAlign: "center" }}>
+                                    <Typography level="title-md" fontWeight="lg">
+                                        {item.label}
+                                    </Typography>
+                                </Box>
 
-                                {showSplit ? (
-                                    <Box display="flex" justifyContent="space-between">
-                                        <Box flex={1} display="flex" flexDirection="column" alignItems="center">
-                                            <Typography level="h4">{valueDisplay(data[item.key])}</Typography>
-                                            <Typography level="body-sm" color="neutral">ในเวลาทำการ</Typography>
+                                <Divider />
+
+                                <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: VALUE_ZONE_MIN }}>
+                                    {showSplit ? (
+                                        <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", width: "100%", columnGap: 1 }}>
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                                <Typography level="h4">{valueDisplay(data[item.key])}</Typography>
+                                                <Typography level="body-sm" color="neutral">ในเวลา</Typography>
+                                            </Box>
+
+                                            <Divider orientation="vertical" />
+
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                                <Typography level="h4">{valueDisplay(afterHourData[item.key])}</Typography>
+                                                <Typography level="body-sm" color="neutral">นอกเวลา</Typography>
+                                            </Box>
                                         </Box>
-                                        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-                                        <Box flex={1} display="flex" flexDirection="column" alignItems="center">
-                                            <Typography level="h4">{valueDisplay(afterHourData[item.key])}</Typography>
-                                            <Typography level="body-sm" color="neutral">นอกเวลาทำการ</Typography>
+                                    ) : (
+                                        <Box sx={{ textAlign: "center" }}>
+                                            <Typography level="h3" fontWeight="xl">{valueDisplay(data[item.key])}</Typography>
+                                            <Box sx={{ height: 4 }} />
                                         </Box>
-                                    </Box>
-                                ) : (
-                                    <Box textAlign="center">
-                                        <Typography level="h3" fontWeight="xl">
-                                            {valueDisplay(data[item.key])}
-                                        </Typography>
-                                    </Box>
-                                )}
+                                    )}
+                                </Box>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -303,9 +404,8 @@ export default function StatisticsCase() {
                 <Table variant="outlined" hoverRow stickyHeader sx={{ minWidth: 850 }}>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>วันที่</th>
-                            {BUCKET_KEYS.map(k => (<th key={k}>{k}</th>))}
+                            <th>#</th><th>วันที่</th>
+                            {BUCKET_KEYS.map((k) => <th key={k}>{k}</th>)}
                             <th>รวม</th>
                         </tr>
                     </thead>
@@ -314,7 +414,7 @@ export default function StatisticsCase() {
                             <tr key={row.date}>
                                 <td>{idx + 1}</td>
                                 <td>{dayjs(row.date).format("DD/MM/YYYY")}</td>
-                                {BUCKET_KEYS.map(k => (<td key={k}>{row[k]}</td>))}
+                                {BUCKET_KEYS.map((k) => <td key={k}>{row[k]}</td>)}
                                 <td>{row.total}</td>
                             </tr>
                         ))}
@@ -324,35 +424,300 @@ export default function StatisticsCase() {
         </Box>
     );
 
-    // รวมค่าให้พร้อมเรนเดอร์: ตัวอื่นมาจาก todayStats/afterHourStats, ส่วน pending มาเติมเพิ่ม
     const todayWithPending = todayStats ? { ...todayStats, pending: pendingTotal } : null;
 
     return (
-        <>
-            <Typography level="h2" mb={4}>📊 สถิติการปิดเคส ({dayjs().format("DD/MM/YYYY")})</Typography>
+        <Box sx={{ p: 3, pt: 0 }}>
+            <Typography level="h2" mb={2}>📊 สถิติการปิดเคส </Typography>
 
-            <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-                <Button onClick={() => setShowModal(true)} variant="outlined">📅 ดูข้อมูลช่วงวันที่ (ในเวลาทำการ)</Button>
-                <Button onClick={() => setShowAfterHourModal(true)} variant="outlined">🌙 ดูข้อมูลช่วงวันที่ (นอกเวลาทำการ)</Button>
-            </Box>
+            {/* Filter Section - Single Row Layout */}
+            <Sheet variant="outlined" sx={{
+                p: 3, mb: 3, borderRadius: 'lg',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                border: '1px solid', borderColor: 'divider', boxShadow: 'sm'
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography level="title-lg" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        🔍 ตัวกรองข้อมูล
+                        {getActiveFiltersCount() > 0 && <Chip size="sm" color="primary" variant="soft">{getActiveFiltersCount()} ตัวกรอง</Chip>}
+                        {isLoading && <CircularProgress size="sm" />}
+                    </Typography>
+                    <Typography level="body-sm" color="neutral">
+                        อัปเดตล่าสุด: {dayjs().format("DD/MM/YYYY HH:mm:ss")}
+                    </Typography>
+                </Box>
+
+                {/* Single Row Filter Layout */}
+                <Box sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 2,
+                    alignItems: 'flex-end',
+                    '@media (max-width: 1200px)': {
+                        flexDirection: 'column',
+                        gap: 2
+                    }
+                }}>
+                    {/* Filter Controls */}
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexWrap: 'nowrap',
+                        minWidth: 0,
+                        flex: 1,
+                        alignItems: 'flex-end', // จัดให้อยู่ล่างสุดเท่ากัน
+                        '@media (max-width: 900px)': {
+                            flexWrap: 'wrap',
+                            width: '100%'
+                        }
+                    }}>
+                        {/* Department */}
+                        <FormControl sx={{ minWidth: 140 }}>
+                            <FormLabel sx={{
+                                fontSize: '0.875rem',
+                                height: '40px', // กำหนดความสูงให้เท่ากัน
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}>
+                                🏢 แผนก
+                            </FormLabel>
+                            <Select
+                                size="sm"
+                                placeholder="ทั้งหมด"
+                                value={filterDept}
+                                onChange={(e, value) => setFilterDept(value || "")}
+                                loading={isLoading}
+                                sx={{ backgroundColor: 'background.body' }}
+                            >
+                                <Option value="">ทั้งหมด</Option>
+                                {deptOptions.map((dept) => (
+                                    <Option key={dept.value} value={dept.value}>{dept.label}</Option>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        {/* Employee */}
+                        <FormControl sx={{ minWidth: 140 }}>
+                            <FormLabel sx={{
+                                fontSize: '0.875rem',
+                                height: '40px', // กำหนดความสูงให้เท่ากัน
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}>
+                                👤 พนักงาน
+                            </FormLabel>
+                            <Select
+                                size="sm"
+                                placeholder="ทั้งหมด"
+                                value={filterEmp}
+                                onChange={(e, value) => setFilterEmp(value || "")}
+                                disabled={!filterDept}
+                                sx={{ backgroundColor: 'background.body' }}
+                            >
+                                <Option value="">ทั้งหมด</Option>
+                                {empOptions
+                                    .filter((emp) => !filterDept || emp.department === filterDept)
+                                    .map((emp) => (
+                                        <Option key={emp.value} value={emp.value}>{emp.label}</Option>
+                                    ))}
+                            </Select>
+                        </FormControl>
+
+                        {/* Platform */}
+                        <FormControl sx={{ minWidth: 140 }}>
+                            <FormLabel sx={{
+                                fontSize: '0.875rem',
+                                height: '40px', // กำหนดความสูงให้เท่ากัน
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}>
+                                📱 แพลตฟอร์ม
+                            </FormLabel>
+                            <Select
+                                size="sm"
+                                placeholder="ทั้งหมด"
+                                value={filterPlatform}
+                                onChange={(e, value) => setFilterPlatform(value || "")}
+                                loading={isLoading}
+                                sx={{ backgroundColor: 'background.body' }}
+                            >
+                                <Option value="">ทั้งหมด</Option>
+                                {platformOptions.map((platform) => (
+                                    <Option key={platform.value} value={platform.value}>{platform.label}</Option>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        {/* Action Buttons */}
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            flexShrink: 0,
+                            '@media (max-width: 900px)': {
+                                width: '100%',
+                                justifyContent: 'stretch'
+                            }
+                        }}>
+                            <Button
+                                size="sm"
+                                variant="solid"
+                                color="primary"
+                                onClick={() => window.location.reload()}
+                                startDecorator="🔄"
+                                sx={{ '@media (max-width: 900px)': { flex: 1 } }}
+                            >
+                                รีเฟรช
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outlined"
+                                color="neutral"
+                                onClick={clearFilters}
+                                disabled={getActiveFiltersCount() === 0}
+                                startDecorator="🗑️"
+                                sx={{ '@media (max-width: 900px)': { flex: 1 } }}
+                            >
+                                ล้าง
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => setShowModal(true)}
+                                variant="outlined"
+                                color="info"
+                                startDecorator="📅"
+                                sx={{ '@media (max-width: 900px)': { flex: 1 } }}
+                            >
+                                ช่วงวันที่
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => setShowAfterHourModal(true)}
+                                variant="outlined"
+                                color="warning"
+                                startDecorator="🌙"
+                                sx={{ '@media (max-width: 900px)': { flex: 1 } }}
+                            >
+                                นอกเวลา
+                            </Button>
+                        </Box>
+
+                        {/* Date Range */}
+                        <FormControl sx={{ minWidth: 200 }}>
+                            <FormLabel sx={{
+                                fontSize: '0.875rem',
+                                height: '40px', 
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}>
+                                📅 ช่วงวันที่ & Export รายการเคส
+                            </FormLabel>
+                            <Box sx={{
+                                display: 'flex',
+                                gap: 1,
+                            }}>
+                                <Input
+                                    type="date"
+                                    size="sm"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    sx={{ minWidth: 120 }}
+                                />
+                                <Typography level="body-sm">—</Typography>
+                                <Input
+                                    type="date"
+                                    size="sm"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    sx={{ minWidth: 120 }}
+                                />
+                                <Button
+                                    size="sm"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={onExportDetailed}
+                                    startDecorator="📥"
+                                    disabled={!startDate || !endDate || dayjs(endDate).isBefore(dayjs(startDate))}
+                                    sx={{ minWidth: 80 }}
+                                >
+                                    Export
+                                </Button>
+                            </Box>
+                        </FormControl>
+                    </Box>
+
+
+                </Box>
+
+                {/* Active Filters */}
+                {getActiveFiltersCount() > 0 && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                        <Typography level="body-sm" color="neutral" sx={{ mb: 1 }}>
+                            ตัวกรองที่เลือก:
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                            {filterDept && (
+                                <Chip variant="soft" color="primary" endDecorator={
+                                    <ChipDelete aria-label="ลบตัวกรองแผนก" onClick={() => { setFilterDept(""); setFilterEmp(""); }} onDelete={() => { setFilterDept(""); setFilterEmp(""); }} />
+                                }>
+                                    🏢 {deptOptions.find(d => d.value === filterDept)?.label || filterDept}
+                                </Chip>
+                            )}
+
+                            {filterEmp && (
+                                <Chip variant="soft" color="primary" endDecorator={
+                                    <ChipDelete aria-label="ลบตัวกรองพนักงาน" onClick={() => setFilterEmp("")} onDelete={() => setFilterEmp("")} />
+                                }>
+                                    👤 {empOptions.find(e => e.value === filterEmp)?.label || filterEmp}
+                                </Chip>
+                            )}
+
+                            {filterPlatform && (
+                                <Chip variant="soft" color="primary" endDecorator={
+                                    <ChipDelete aria-label="ลบตัวกรองแพลตฟอร์ม" onClick={() => setFilterPlatform("")} onDelete={() => setFilterPlatform("")} />
+                                }>
+                                    📱 {platformOptions.find(p => p.value === filterPlatform)?.label || filterPlatform}
+                                </Chip>
+                            )}
+                        </Stack>
+                    </Box>
+                )}
+            </Sheet>
+
+            {/* Quick Stats Summary */}
+            {todayWithPending && (
+                <Box sx={{
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    gap: 2, p: 2, mb: 3, backgroundColor: 'background.level1',
+                    borderRadius: 'lg', border: '1px solid', borderColor: 'divider',
+                    flexWrap: 'wrap'
+                }}>
+                    <Typography level="body-sm" color="neutral" fontWeight="lg">📊 สรุปวันนี้:</Typography>
+                    <Chip variant="soft" color="success" size="md">ปิดแล้ว {todayWithPending.total || 0} เคส</Chip>
+                    <Chip variant="soft" color="warning" size="md">กำลังดำเนินการ {progressInOut.in_time || 0} เคส</Chip>
+                    <Chip variant="soft" color="neutral" size="md">รอรับ {pendingTotal || 0} เคส</Chip>
+                </Box>
+            )}
 
             {!todayWithPending || !afterHourStats ? (
-                <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 4 }}>
                     <CircularProgress size="lg" />
+                    <Typography level="body-sm" color="neutral" sx={{ mt: 2 }}>
+                        กำลังโหลดข้อมูล...
+                    </Typography>
                 </Box>
             ) : (
-                renderStatCards(
-                    {
-                        ...todayWithPending,
-                        in_progress: progressInOut.in_time, // in-progress ยังแยกเหมือนเดิม
-                    },
-                    caseCategories,
-                    {
-                        ...afterHourStats,
-                        in_progress: progressInOut.out_time,
-                        // ไม่มี pending ฝั่งขวา -> การ์ด pending จะเรนเดอร์แบบ single
-                    }
-                )
+                <>
+                    {getActiveFiltersCount() > 0 && (
+                        <Alert color="info" variant="soft" sx={{ mb: 3, borderRadius: 'lg' }} startDecorator="ℹ️">
+                            ข้อมูลที่แสดงถูกกรองตามเงื่อนไขที่เลือก - คลิกปุ่ม "ล้าง" เพื่อดูข้อมูลทั้งหมด
+                        </Alert>
+                    )}
+                    {renderStatCards(
+                        { ...todayWithPending, in_progress: progressInOut.in_time },
+                        caseCategories,
+                        { ...afterHourStats, in_progress: progressInOut.out_time }
+                    )}
+                </>
             )}
 
             {/* Modals */}
@@ -361,9 +726,13 @@ export default function StatisticsCase() {
                     <ModalClose />
                     <Typography level="h5" mb={2}>📆 เลือกช่วงวันที่ (ในเวลาทำการ)</Typography>
                     <Grid container spacing={2}>
-                        <Grid xs={6}><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></Grid>
-                        <Grid xs={6}><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></Grid>
-                        <Grid xs={12}><Button onClick={fetchRangeStats}>🔍 ค้นหา</Button></Grid>
+                        <Grid xs={6}><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></Grid>
+                        <Grid xs={6}><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></Grid>
+                        <Grid xs={12} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                            <Button onClick={fetchRangeStats}>🔍 ค้นหา</Button>
+                            <Button color="success" variant="soft" onClick={onExportBusiness}>📤 Export สรุปรายวัน</Button>
+                            <Button color="primary" variant="solid" onClick={onExportDetailed}>📥 Export รายการเคส (ละเอียด)</Button>
+                        </Grid>
                     </Grid>
                     {renderRangeTable(rangeStats)}
                 </ModalDialog>
@@ -374,30 +743,22 @@ export default function StatisticsCase() {
                     <ModalClose />
                     <Typography level="h5" mb={2}>🌙 เลือกช่วงวันที่ (นอกเวลาทำการ)</Typography>
                     <Grid container spacing={2}>
-                        <Grid xs={6}><Input type="date" value={afterHourStartDate} onChange={e => setAfterHourStartDate(e.target.value)} /></Grid>
-                        <Grid xs={6}><Input type="date" value={afterHourEndDate} onChange={e => setAfterHourEndDate(e.target.value)} /></Grid>
-                        <Grid xs={12}><Button onClick={fetchAfterHourRangeStats}>🔍 ค้นหา</Button></Grid>
+                        <Grid xs={6}><Input type="date" value={afterHourStartDate} onChange={(e) => setAfterHourStartDate(e.target.value)} /></Grid>
+                        <Grid xs={6}><Input type="date" value={afterHourEndDate} onChange={(e) => setAfterHourEndDate(e.target.value)} /></Grid>
+                        <Grid xs={12} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                            <Button onClick={fetchAfterHourRangeStats}>🔍 ค้นหา</Button>
+                            <Button color="success" variant="soft" onClick={onExportAfterHour}>📤 Export สรุปนอกเวลา</Button>
+                        </Grid>
                     </Grid>
                     {renderRangeTable(afterHourRangeStats)}
                 </ModalDialog>
             </Modal>
 
-            {/* Tables */}
             <EmployeeWorkloadTable rows={employeeStats} />
             <TagWorkloadTable rows={tagStats} />
 
-            <EmployeeCaseDetailModal
-                open={openEmpModal}
-                onClose={() => setOpenEmpModal(false)}
-                user={selectedUser}
-                rows={empCaseRows}
-            />
-            <TagCaseDetailModal
-                open={openTagModal}
-                onClose={() => setOpenTagModal(false)}
-                tag={selectedTag}
-                rows={tagCaseRows}
-            />
-        </>
+            <EmployeeCaseDetailModal open={openEmpModal} onClose={() => setOpenEmpModal(false)} user={selectedUser} rows={empCaseRows} />
+            <TagCaseDetailModal open={openTagModal} onClose={() => setOpenTagModal(false)} tag={selectedTag} rows={tagCaseRows} />
+        </Box>
     );
 }

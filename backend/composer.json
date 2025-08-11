@@ -11,7 +11,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "linecorp/line-bot-sdk": "^11.1",
-        "phpoffice/phpspreadsheet": "^4.5"
+        "phpoffice/phpspreadsheet": "^5.0"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^2.1",

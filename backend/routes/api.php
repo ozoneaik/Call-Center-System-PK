@@ -170,6 +170,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('activeList', [ReportController::class, 'activeList']);
         Route::get('fullReport', [ReportController::class, 'FullReport']);
         Route::get('tagReports', [ReportController::class, 'TagReport']);
+
+        Route::get('reportExcel', [ReportController::class, 'index']);
     });
 
     // จัดการข้อมูลส่วนตัว
