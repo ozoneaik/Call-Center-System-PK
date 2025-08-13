@@ -8,6 +8,7 @@ import axiosClient from "../../Axios";
 import UC from "./UserCase/UC";
 import AllCaseDashboard from "./UserCase/Dashboard/AllCaseDashboard";
 import TagSummaryToday from "./UserCase/TagCase/TagSummaryToday";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs";
 AOS.init();
 
 const BreadcrumbsPath = [{ name: 'Home', path: '/หน้าหลัก' }]
@@ -16,7 +17,7 @@ export default function HomeNew() {
     const [topEmp, setTopEmp] = useState();
     const [loading, setLoading] = useState(false);
     useEffect(() => {
-        fetchData().finally(() => setLoading(false));
+        fetchData().finally(() =>setLoading(false));
     }, []);
     const fetchData = async () => {
         setLoading(true);
@@ -41,6 +42,9 @@ export default function HomeNew() {
                         </Button>
                     </Stack>
                 </Box> */}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BreadcrumbsComponent list={[{ name: 'หน้ารายงาน' }, { name: 'หน้าหลัก' }]} />
+                </Box>
                 <Grid2 container spacing={2} sx={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto', overflowX: 'hidden' }}>
                     <Grid2 size={12}>
                     </Grid2>

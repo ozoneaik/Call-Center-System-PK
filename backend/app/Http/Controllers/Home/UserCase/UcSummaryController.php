@@ -3,16 +3,79 @@
 namespace App\Http\Controllers\Home\UserCase;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
 
 class UcSummaryController extends Controller
 {
-    //
-    public function index()
+    private function applyCommonFilters($q, Request $request)
     {
-        $successResults = DB::connection("pgsql_real")->table('rates as r')
+        $dept       = trim((string) $request->query('dept', ''));
+        $empCode    = trim((string) $request->query('empCode', ''));
+        $platformId = trim((string) $request->query('platform_id', ''));
+
+        if ($dept !== '') {
+            $joins = property_exists($q, 'joins') ? $q->joins : [];
+            $hasUsersJoin = collect($joins ?? [])->contains(function ($j) {
+                return isset($j->table) && $j->table === 'users as u';
+            });
+            if (!$hasUsersJoin) {
+                $q->join('users as u', 'u.empCode', '=', 'ac.empCode');
+            }
+            $q->whereRaw('TRIM(u."description") = ?', [$dept]);
+        }
+
+        if ($empCode !== '') {
+            $q->where('ac.empCode', $empCode);
+        }
+
+        if ($platformId !== '') {
+            $q->where('ac.roomId', $platformId);
+        }
+
+        return $q;
+    }
+
+    public function optionsDepartments()
+    {
+        $rows = DB::connection('pgsql_real')
+            ->table('users as u')
+            ->whereNotIn('u.empCode', ['BOT', 'adminIT'])
+            ->selectRaw('DISTINCT TRIM(u."description") AS description')
+            ->whereRaw('NULLIF(TRIM(u."description"), \'\') IS NOT NULL')
+            ->orderBy('description', 'asc')
+            ->pluck('description') 
+            ->map(fn($d) => ['value' => $d, 'label' => $d])
+            ->values()
+            ->toArray();
+
+        return response()->json(['options' => $rows]);
+    }
+
+    public function index(Request $request)
+    {
+        // ===== ช่วงวันที่ =====
+        $startDate = $request->query('start_date');
+        $endDate   = $request->query('end_date');
+
+        if ($startDate && !$endDate) $endDate = $startDate;
+        if ($endDate && !$startDate) $startDate = $endDate;
+
+        if ($startDate && $endDate) {
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end   = Carbon::parse($endDate)->endOfDay();
+        } else {
+            $start = Carbon::today()->startOfDay();
+            $end   = Carbon::today()->endOfDay();
+        }
+
+        $tagIds = $request->query('tag_ids', []);
+        if (is_string($tagIds)) {
+            $tagIds = array_filter(explode(',', $tagIds));
+        }
+
+        $successQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -21,13 +84,21 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereDate('ac.endTime', Carbon::today())
+            ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        $this->applyCommonFilters($successQuery, $request);
+
+        if (!empty($tagIds)) {
+            $successQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $successResults = $successQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
+        // ===== progress ช่วงวันที่ (ไม่ผูก tag) + ฟิลเตอร์ร่วม =====
         $progressResults = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -37,14 +108,18 @@ class UcSummaryController extends Controller
                 'u.name as user_name',
                 'u.description as department'
             )
-            ->whereDate('r.updated_at', Carbon::today())
+            ->whereBetween('r.updated_at', [$start, $end])
             ->where('r.status', 'progress')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        $this->applyCommonFilters($progressResults, $request);
+
+        $progressResults = $progressResults
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        $weekSuccessResults = DB::connection("pgsql_real")->table('rates as r')
+        // ===== success สัปดาห์นี้ (รองรับ tag + ฟิลเตอร์ร่วม) =====
+        $weekSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -55,12 +130,20 @@ class UcSummaryController extends Controller
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        $this->applyCommonFilters($weekSuccessQuery, $request);
+
+        if (!empty($tagIds)) {
+            $weekSuccessQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $weekSuccessResults = $weekSuccessQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        $monthSuccessResults = DB::connection("pgsql_real")->table('rates as r')
+        // ===== success เดือนนี้ (รองรับ tag + ฟิลเตอร์ร่วม) =====
+        $monthSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
@@ -71,11 +154,19 @@ class UcSummaryController extends Controller
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->where('r.status', 'success')
-            ->where('ac.empCode', '!=', 'BOT')
-            ->where('ac.empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        $this->applyCommonFilters($monthSuccessQuery, $request);
+
+        if (!empty($tagIds)) {
+            $monthSuccessQuery->whereIn('r.tag', $tagIds);
+        }
+
+        $monthSuccessResults = $monthSuccessQuery
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
+        // ===== การส่งต่อเคสในช่วง (ไม่ผูก tag + ฟิลเตอร์ร่วม) =====
         $forwardedResults = DB::connection("pgsql_real")->table('active_conversations as ac')
             ->join('users as u', 'u.empCode', '=', 'ac.from_empCode')
             ->select(
@@ -85,21 +176,31 @@ class UcSummaryController extends Controller
                 'u.description as department'
             )
             ->whereNotNull('ac.from_empCode')
-            ->where('ac.from_empCode', '!=', 'BOT')
-            ->where('ac.from_empCode', '!=', 'adminIT')
+            ->whereNotIn('ac.from_empCode', ['BOT', 'adminIT'])
+            ->whereBetween('ac.updated_at', [$start, $end]);
+
+        // ฟิลเตอร์ร่วม (ตรงนี้ alias ของพนักงานเป็น ac.from_empCode แล้ว แต่ applyCommonFilters ยังใช้ ac.empCode)
+        // ถ้าต้องการกรองตาม empCode ของ "ผู้ส่งต่อ" ให้เพิ่มเองตามจริง หรือปล่อยให้กรองเฉพาะแผนก/แพลตฟอร์ม
+        $this->applyCommonFilters($forwardedResults, $request);
+
+        $forwardedResults = $forwardedResults
             ->groupBy('ac.from_empCode', 'u.name', 'u.description')
             ->get();
 
         return response()->json([
-            'message' => 'Result retrieved successfully',
-            'success' => $successResults,
-            'progress' => $progressResults,
-            'weekSuccess' => $weekSuccessResults,
+            'message'      => 'Result retrieved successfully',
+            'success'      => $successResults,
+            'progress'     => $progressResults,
+            'weekSuccess'  => $weekSuccessResults,
             'monthSuccess' => $monthSuccessResults,
-            'forwarded' => $forwardedResults,
+            'forwarded'    => $forwardedResults,
+            'range'        => ['start' => $start->toDateString(), 'end' => $end->toDateString()],
         ]);
     }
 
+    /**
+     * รวมยอดแบบสั้น (ใช้ในหน้า dashboard ตัวเลขรวม)
+     */
     public function summary()
     {
         $today = Carbon::today();
@@ -139,11 +240,11 @@ class UcSummaryController extends Controller
             ->count();
 
         return response()->json([
-            'todaySuccess' => $totalSuccessToday,
-            'todayProgress' => $totalProgressToday,
-            'todayForwarded' => $totalForwardedToday,
-            'weekSuccess' => $totalSuccessWeek,
-            'monthSuccess' => $totalSuccessMonth,
+            'todaySuccess'    => $totalSuccessToday,
+            'todayProgress'   => $totalProgressToday,
+            'todayForwarded'  => $totalForwardedToday,
+            'weekSuccess'     => $totalSuccessWeek,
+            'monthSuccess'    => $totalSuccessMonth,
         ]);
     }
 
@@ -178,20 +279,54 @@ WITH all_events_today AS (
       AND ac.\"from_empCode\" NOT IN ('BOT', 'adminIT')
       AND DATE(ac.updated_at) = CURRENT_DATE
 )
-
-    SELECT \"empCode\", name, event_type, updated_at
-    FROM (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY \"empCode\" ORDER BY updated_at ASC) as rn
-        FROM all_events_today
-    ) sub
-    WHERE rn = 1
-    ORDER BY updated_at
-");
+SELECT \"empCode\", name, event_type, updated_at
+FROM (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY \"empCode\" ORDER BY updated_at ASC) as rn
+    FROM all_events_today
+) sub
+WHERE rn = 1
+ORDER BY updated_at
+        ");
 
         return response()->json([
             'message' => 'Active users retrieved successfully',
             'active_users_today' => $activeUsers
+        ]);
+    }
+
+    /**
+     * กำลังดำเนินการ (แบบนิยามเดิม): status = 'progress' & r.updated_at = วันนี้
+     * + แยกใน/นอกเวลาทำการด้วยเวลา receiveAt (fallback เป็น startTime)
+     * + รองรับฟิลเตอร์แผนก/พนักงาน/แพลตฟอร์ม
+     *
+     * ช่วงเวลาในทำการ: 08:00:00–17:00:00 (17:00:00 ยังนับเป็นในเวลา)
+     */
+    public function inProgressByBusinessHours(Request $request)
+    {
+        $timeExpr = 'COALESCE(ac."receiveAt", ac."startTime")';
+
+        $q = DB::connection('pgsql_real')->table('rates as r')
+            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+            ->where('r.status', 'progress')
+            ->whereDate('r.updated_at', Carbon::today())
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        $this->applyCommonFilters($q, $request);
+
+        $row = $q->selectRaw("
+            SUM(CASE WHEN ($timeExpr)::time >= '08:00:00'
+                      AND ($timeExpr)::time <= '17:00:00' THEN 1 ELSE 0 END) AS in_hours,
+            SUM(CASE WHEN ($timeExpr)::time <  '08:00:00'
+                      OR  ($timeExpr)::time >  '17:00:00' THEN 1 ELSE 0 END) AS out_hours,
+            COUNT(*) AS total
+        ")
+            ->first();
+
+        return response()->json([
+            'in_time'  => (int)($row->in_hours  ?? 0),
+            'out_time' => (int)($row->out_hours ?? 0),
+            'total'    => (int)($row->total     ?? 0),
         ]);
     }
 }

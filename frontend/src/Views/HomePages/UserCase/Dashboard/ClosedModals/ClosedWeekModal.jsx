@@ -9,17 +9,28 @@ import {
   LinearProgress
 } from "@mui/joy";
 import useResponsiveModal from "./useResponsiveModal";
+import dayjs from "dayjs";
 
-export default function ClosedWeekModal({ open, onClose, loading, data, range, user }) {
-  // const modalSx = useResponsiveModal();
+const formatDateTime = (val) => (val ? dayjs(val).format("DD/MM/YYYY HH:mm:ss") : "-");
+
+const tagColor = (name) => {
+  if (!name) return "neutral";
+  const n = String(name).toLowerCase();
+  if (n.includes("ร้องเรียน")) return "danger";
+  if (n.includes("ประกัน")) return "primary";
+  if (n.includes("แจ้งเรื่อง") || n.includes("สอบถาม")) return "warning";
+  return "neutral";
+};
+
+export default function ClosedWeekModal({ open, onClose, loading, data = [], range, user }) {
+  const modalSx = useResponsiveModal();
+  const hasRows = Array.isArray(data) && data.length > 0;
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalDialog 
-      // sx={modalSx}
-      >
+      <ModalDialog sx={modalSx}>
         <ModalClose />
-        <Typography level="h4" mb={1}>
+        <Typography level="h4" mb={0.5}>
           ปิดเคสสัปดาห์นี้ {range?.start && range?.end ? `(${range.start} - ${range.end})` : ""}
         </Typography>
         <Typography level="body-sm" mb={2}>
@@ -29,44 +40,53 @@ export default function ClosedWeekModal({ open, onClose, loading, data, range, u
         {loading ? (
           <Box>
             <LinearProgress />
-            <Typography level="body-sm" mt={1}>
-              กำลังโหลดข้อมูล...
-            </Typography>
+            <Typography level="body-sm" mt={1}>กำลังโหลดข้อมูล...</Typography>
           </Box>
         ) : (
           <Box sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 520 }}>
             <Table
               stickyHeader
               hoverRow
+              variant="outlined"
+              size="sm"
               sx={{
-                "& th, & td": {
-                  fontSize: "0.75rem",
-                  padding: "6px 8px",
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
+                minWidth: 780,
+                "& th": { whiteSpace: "nowrap" },
+                "& th, & td": { fontSize: "0.85rem", padding: "8px 10px" },
+                "& td.truncate": {
+                  maxWidth: 260,
                   overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 },
               }}
             >
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', paddingLeft: 12, whiteSpace: 'nowrap' }}>ชื่อลูกค้า</th>
-                  <th style={{ width: 230, textAlign: 'left', whiteSpace: 'nowrap' }}>ปิดเมื่อไหร่</th>
-                  <th style={{ width: 200, textAlign: 'center', whiteSpace: 'nowrap' }}>แท็กที่ปิด</th>
+                  <th style={{ width: 60, textAlign: "center" }}>#</th>
+                  <th style={{ width: 260, textAlign: "left" }}>ชื่อลูกค้า</th>
+                  <th style={{ width: 230, textAlign: "left" }}>ปิดเมื่อไหร่</th>
+                  <th style={{ width: 220, textAlign: "center" }}>แท็กที่ปิด</th>
                 </tr>
               </thead>
               <tbody>
-                {Array.isArray(data) && data.length > 0 ? (
-                  data.map((row) => (
-                    <tr key={row.conversation_id}>
-                      <td style={{ paddingLeft: 12 }}>
+                {hasRows ? (
+                  data.map((row, idx) => (
+                    <tr key={row.conversation_id ?? `${row.custId}-${idx}`}>
+                      <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                      <td className="truncate" title={row.customer_name || "-"}>
                         {row.customer_name || "-"}
                       </td>
-                      <td style={{ textAlign: "left" }}>
-                        {row.closed_at ? new Date(row.closed_at).toLocaleString() : "-"}
+                      <td className="truncate" title={formatDateTime(row.closed_at)}>
+                        {formatDateTime(row.closed_at)}
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <Chip size="sm" variant="soft">
+                        <Chip
+                          size="sm"
+                          variant="soft"
+                          color={tagColor(row.tag_name)}
+                          title={row.tag_name || "ไม่ระบุแท็ก"}
+                        >
                           {row.tag_name || "ไม่ระบุแท็ก"}
                         </Chip>
                       </td>
@@ -74,7 +94,7 @@ export default function ClosedWeekModal({ open, onClose, loading, data, range, u
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={2} style={{ textAlign: "center", padding: 16 }}>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 20 }}>
                       ไม่พบรายการปิดเคสสัปดาห์นี้
                     </td>
                   </tr>

@@ -13,7 +13,7 @@
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.29",
         "linecorp/line-bot-sdk": "^11.1",
-        "phpoffice/phpspreadsheet": "^4.5"
+        "phpoffice/phpspreadsheet": "^5.0"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^2.1",

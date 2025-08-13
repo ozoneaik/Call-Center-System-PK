@@ -40,3 +40,39 @@ export const deleteTagApi = async ({id}) => {
         return ErrorResponse(error);
     }
 }
+
+export const listTagGroupsApi = async () => {
+    try {
+        const { data, status } = await axiosClient.get("/tag-group/list");
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const deleteTagGroupApi = async ({ id }) => {
+    try {
+        const { data, status } = await axiosClient.delete(`/tag-group/delete/${id}`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const storeTagGroupApi = async (payload) => {
+  try {
+    const { data, status } = await axiosClient.post("/tag-group", payload);
+    return { data, status };
+  } catch (error) {
+    return ErrorResponse(error);
+  }
+};
+
+export const updateTagGroupApi = async (payload) => {
+    try {
+        const { data, status } = await axiosClient.put(`/tag-group/update/${payload.id}`, payload);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};

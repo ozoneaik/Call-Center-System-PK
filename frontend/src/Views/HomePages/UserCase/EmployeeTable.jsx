@@ -1,4 +1,5 @@
 import { Avatar, Box, Chip, Sheet, Stack, Table, Typography } from "@mui/joy";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function EmployeeTable({
     employees,
@@ -7,8 +8,21 @@ export default function EmployeeTable({
     onClickMonthClosed,
     onClickInProgress,
     onClickForwarded,
+    onOpenAllEmployees,
 }) {
+    const { user } = useAuth();
+
+    const isAdmin = (u) =>
+        ["admin", "superadmin"].includes(String(u?.role || "").toLowerCase());
+
+    const visibleEmployees = isAdmin(user)
+        ? employees
+        : employees.filter((e) => String(e.empCode) === String(user?.empCode));
+
+    if (!user || visibleEmployees.length === 0) return <></>;
+
     return (
+        
         <Sheet variant="outlined" sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 490 }}>
             <Table stickyHeader hoverRow>
                 <thead>
@@ -16,7 +30,7 @@ export default function EmployeeTable({
                         <th style={{ width: "40px", textAlign: "center" }}>#</th>
                         <th style={{ width: "200px", padding: "12px" }}>พนักงาน</th>
                         <th style={{ textAlign: "center" }}>ปิดเคสวันนี้</th>
-                        <th style={{ textAlign: "center" }}>กำลังดำเนินการ</th>
+                        {/* <th style={{ textAlign: "center" }}>กำลังดำเนินการ</th> */}
                         <th style={{ textAlign: "center" }}>ปิดเคสสัปดาห์นี้</th>
                         <th style={{ textAlign: "center" }}>ปิดเคสเดือนนี้</th>
                         <th style={{ textAlign: "center" }}>ส่งต่อเคส</th>
@@ -24,17 +38,13 @@ export default function EmployeeTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {employees.map((employee, index) => {
-                        const clickableToday =
-                            employee.todayClosed > 0 && typeof onClickTodayClosed === "function";
-                        const clickableWeek =
-                            employee.weekClosed > 0 && typeof onClickWeekClosed === "function";
-                        const clickableMonth =
-                            employee.monthClosed > 0 && typeof onClickMonthClosed === "function";
-                        const clickableInProgress =
-                            employee.inProgress > 0 && typeof onClickInProgress === "function";
-                        const clickableForwarded =
-                            employee.forwarded > 0 && typeof onClickForwarded === "function";
+                    {visibleEmployees.map((employee, index) => {
+                        const clickableToday = employee.todayClosed > 0 && typeof onClickTodayClosed === "function";
+                        const clickableWeek = employee.weekClosed > 0 && typeof onClickWeekClosed === "function";
+                        const clickableMonth = employee.monthClosed > 0 && typeof onClickMonthClosed === "function";
+                        const clickableInProgress = employee.inProgress > 0 && typeof onClickInProgress === "function";
+                        const clickableForwarded = employee.forwarded > 0 && typeof onClickForwarded === "function";
+
                         return (
                             <tr key={employee.id}>
                                 <td style={{ textAlign: "center" }}>{index + 1}</td>
@@ -65,24 +75,6 @@ export default function EmployeeTable({
                                         onClick={() => clickableToday && onClickTodayClosed(employee)}
                                     >
                                         {employee.todayClosed}
-                                    </Typography>
-                                </td>
-
-                                <td style={{
-                                    textAlign: "center",
-                                    color: employee.inProgress === 0 ? "#D32F2F" : "green",
-                                    fontWeight: employee.inProgress === 0 ? "bold" : "normal",
-                                }}>
-                                    <Typography
-                                        component="span"
-                                        sx={{
-                                            cursor: clickableInProgress ? "pointer" : "default",
-                                            textDecoration: clickableInProgress ? "underline" : "none",
-                                            "&:hover": clickableInProgress ? { opacity: 0.8 } : {},
-                                        }}
-                                        onClick={() => clickableInProgress && onClickInProgress(employee)}
-                                    >
-                                        {employee.inProgress > 50 ? `${employee.inProgress} ⚠️` : employee.inProgress}
                                     </Typography>
                                 </td>
 
@@ -134,10 +126,11 @@ export default function EmployeeTable({
                                 }}>
                                     <Typography
                                         component="span"
-                                        sx={{ cursor: clickableForwarded ? 'pointer' : 'default',
-                                            textDecoration: clickableForwarded ? 'underline' : 'none',
+                                        sx={{
+                                            cursor: clickableForwarded ? "pointer" : "default",
+                                            textDecoration: clickableForwarded ? "underline" : "none",
                                             "&:hover": clickableForwarded ? { opacity: 0.8 } : {},
-                                         }}
+                                        }}
                                         onClick={() => clickableForwarded && onClickForwarded(employee)}
                                     >
                                         {employee.forwarded}
