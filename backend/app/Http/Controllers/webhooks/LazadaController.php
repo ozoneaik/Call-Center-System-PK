@@ -145,33 +145,51 @@ class LazadaController extends Controller
         $contentData = json_decode($data['content'] ?? '{}', true);
         $result = ['content' => '[ไม่สามารถระบุประเภทข้อความได้]', 'contentType' => 'unknown'];
 
-        if (($data['template_id'] ?? null) == 10006 && isset($contentData['title'])) {
-            $result['content'] = "[ลูกค้าส่งข้อมูลสินค้า: " . $contentData['title'] . "]";
+        $templateId = $data['template_id'] ?? null;
+        $msgType    = $data['type'] ?? null;
+
+        // ✅ จับวิดีโอจาก template_id=6 หรือมี videoId/videoKey
+        $videoId  = $contentData['videoId']  ?? $contentData['video_id'] ?? null;
+        $videoKey = $contentData['videoKey'] ?? null;
+
+        if ($templateId == 6 || $msgType == 6 || $videoId || $videoKey) {
+            $videoUrl = \App\Services\webhooks\LazadaMessageService::resolveVideoUrl($videoId, $videoKey);
+            if ($videoUrl) {
+                $result['content'] = \App\Services\webhooks\LazadaMessageService::storeMedia($videoUrl, 'video');
+                $result['contentType'] = 'video';
+                return $result;
+            }
+            // ถ้าดึง URL ไม่ได้ ให้ตกลงมาใช้ thumbnail แต่ยังคง contentType เป็น 'video' เพื่อให้ UI เรนเดอร์ <video>
+            if (isset($contentData['imgUrl']) || isset($contentData['img_url'])) {
+                $thumb = $contentData['imgUrl'] ?? $contentData['img_url'];
+                $result['content'] = \App\Services\webhooks\LazadaMessageService::storeMedia($thumb, 'image');
+                $result['contentType'] = 'video'; // บอก UI ว่านี่คือวิดีโอ (แค่โชว์ภาพแทนชั่วคราว)
+                return $result;
+            }
+        }
+
+        // การ์ดสินค้า
+        if ($templateId == 10006 && isset($contentData['title'])) {
+            $result['content'] = "[ลูกค้าส่งข้อมูลสินค้า: {$contentData['title']}]";
             $result['contentType'] = 'card';
             return $result;
         }
 
-        $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'] ?? null;
-        if ($imageUrl) {
-            $result['content'] = LazadaMessageService::storeMedia($imageUrl);
+        // รูปภาพ
+        if (isset($contentData['imgUrl']) || isset($contentData['img_url'])) {
+            $imageUrl = $contentData['imgUrl'] ?? $contentData['img_url'];
+            $result['content'] = \App\Services\webhooks\LazadaMessageService::storeMedia($imageUrl, 'image');
             $result['contentType'] = 'image';
             return $result;
         }
 
+        // ข้อความ
         if (isset($contentData['txt'])) {
             $result['content'] = $contentData['txt'];
             $result['contentType'] = 'text';
             return $result;
         }
 
-        $videoUrl = $contentData['media_url'] ?? null;
-        if ($videoUrl && ($data['type'] ?? 0) == 6) {
-            $result['content'] = LazadaMessageService::storeMedia($videoUrl);
-            $result['contentType'] = 'video';
-            return $result;
-        }
-
-        $templateId = $data['template_id'] ?? null;
         if (in_array($templateId, [3, 4, 5])) {
             $result['content'] = '[ลูกค้าส่ง Sticker/Card/Order]';
             $result['contentType'] = 'card';

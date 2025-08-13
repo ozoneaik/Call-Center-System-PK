@@ -47,7 +47,7 @@ class LazadaMessageService
     private function sendVideoWithFallback(string $custId, string $videoPath): void
     {
         Log::channel('lazada_webhook_log')->info("📹 Attempting video upload with fallback", ['path' => $videoPath]);
-        
+
         try {
             self::sendVideo($custId, $videoPath);
         } catch (\Exception $e) {
@@ -55,10 +55,10 @@ class LazadaMessageService
                 'error' => $e->getMessage()
             ]);
             $publicVideoUrl = $this->convertPathToPublicUrl($videoPath);
-            
+
             $fallbackMessage = "🎥 วิดีโอที่ส่งมา: " . $publicVideoUrl . "\n\nขออภัยที่ไม่สามารถส่งวิดีโอโดยตรงได้ กรุณาคลิกลิงก์เพื่อดูวิดีโอค่ะ";
             self::sendReply($custId, $fallbackMessage);
-            
+
             Log::channel('lazada_webhook_log')->info("✅ Video fallback message sent successfully");
         }
     }
@@ -72,7 +72,7 @@ class LazadaMessageService
     {
         $relativePath = str_replace(storage_path('app/'), '', $localPath);
         $relativePath = str_replace('public/', '', $relativePath);
-        
+
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
         return $baseUrl . '/storage/' . $relativePath;
     }
@@ -88,7 +88,7 @@ class LazadaMessageService
         $params = ['session_id' => $sessionId, 'template_id' => 1, 'txt' => $replyText];
         self::executePostRequest($apiPath, $params);
     }
-    
+
     /**
      * Send an image using a public URL.
      * @param string $sessionId
@@ -102,7 +102,7 @@ class LazadaMessageService
             'session_id'   => $sessionId,
             'template_id'  => 3,
             'img_url'      => $imageUrl,
-            'width'        => 600, 
+            'width'        => 600,
             'height'       => 600,
         ];
         self::executePostRequest($apiPath, $params);
@@ -117,7 +117,7 @@ class LazadaMessageService
     public static function sendVideo(string $sessionId, string $videoPath): void
     {
         Log::channel('lazada_webhook_log')->info("📹 Starting video send process", ['path' => $videoPath]);
-        
+
         if (!file_exists($videoPath)) {
             throw new \Exception("Video file does not exist at path: " . $videoPath);
         }
@@ -128,7 +128,7 @@ class LazadaMessageService
 
         try {
             $videoId = self::uploadVideo($videoPath);
-            
+
             if (!$videoId) {
                 self::markVideoUploadAsProblematic();
                 throw new \Exception("Failed to upload video to Lazada. Check logs for details (e.g., 'InsufficientPermission').");
@@ -137,14 +137,15 @@ class LazadaMessageService
             self::sendVideoMessage($sessionId, $videoId);
 
             Log::channel('lazada_webhook_log')->info("✅ Video sent successfully", [
-                'video_id' => $videoId, 'session_id' => $sessionId
+                'video_id' => $videoId,
+                'session_id' => $sessionId
             ]);
-
         } catch (\Exception $e) {
             Log::channel('lazada_webhook_log')->error('❌ Error during sendVideo process', [
-                'error' => $e->getMessage(), 'path' => $videoPath
+                'error' => $e->getMessage(),
+                'path' => $videoPath
             ]);
-            throw $e; 
+            throw $e;
         }
     }
 
@@ -158,7 +159,7 @@ class LazadaMessageService
     {
         $cacheKey = 'lazada_video_upload_disabled';
         cache()->put($cacheKey, true, now()->addHour());
-        
+
         Log::channel('lazada_webhook_log')->warning("📹 Video upload disabled temporarily due to repeated failures");
     }
 
@@ -168,16 +169,16 @@ class LazadaMessageService
         if ($videoId) {
             return $videoId;
         }
-        
+
         $videoId = self::tryGeneralMediaUpload($videoPath);
         if ($videoId) {
             return $videoId;
         }
-        
+
         Log::channel('lazada_webhook_log')->error('❌ All video upload approaches failed');
         return null;
     }
-    
+
     private static function tryDirectVideoUpload(string $videoPath): ?string
     {
         $apiPath = '/media/video/block/upload';
@@ -185,7 +186,9 @@ class LazadaMessageService
 
         try {
             $response = Http::attach(
-                'video', file_get_contents($videoPath), basename($videoPath)
+                'video',
+                file_get_contents($videoPath),
+                basename($videoPath)
             )->post(env('LAZADA_API_URL', 'https://api.lazada.co.th/rest') . $apiPath, $signedParams);
 
             $jsonResponse = $response->json();
@@ -207,7 +210,7 @@ class LazadaMessageService
             return null;
         }
     }
-    
+
     private static function tryGeneralMediaUpload(string $videoPath): ?string
     {
         $apiPath = '/media/upload';
@@ -215,7 +218,9 @@ class LazadaMessageService
 
         try {
             $response = Http::attach(
-                'file', file_get_contents($videoPath), basename($videoPath)
+                'file',
+                file_get_contents($videoPath),
+                basename($videoPath)
             )->post(env('LAZADA_API_URL', 'https://api.lazada.co.th/rest') . $apiPath, $signedParams);
 
             $jsonResponse = $response->json();
@@ -274,7 +279,7 @@ class LazadaMessageService
                 $stringToSign .= $key . $value;
             }
         }
-        
+
         $params['sign'] = strtoupper(hash_hmac('sha256', $stringToSign, env('LAZADA_APP_SECRET')));
         return $params;
     }
@@ -320,16 +325,15 @@ class LazadaMessageService
         try {
             $response = Http::get($apiUrl . $apiPath, $signedParams);
             $jsonResponse = $response->json();
-            
+
             if ($response->successful() && isset($jsonResponse['code']) && $jsonResponse['code'] == '0') {
                 $customerName = $jsonResponse['data']['buyer_nick'] ?? 'ลูกค้า';
                 Log::channel('lazada_webhook_log')->info('✅ Successfully fetched customer info', ['name' => $customerName]);
                 return $customerName;
             } else {
-                 Log::channel('lazada_webhook_log')->error("❌ API call failed for path: {$apiPath}", ['response' => $jsonResponse]);
-                 return 'ลูกค้า';
+                Log::channel('lazada_webhook_log')->error("❌ API call failed for path: {$apiPath}", ['response' => $jsonResponse]);
+                return 'ลูกค้า';
             }
-
         } catch (\Exception $e) {
             Log::channel('lazada_webhook_log')->error('❌ Failed to get customer info', ['error' => $e->getMessage()]);
             return 'ลูกค้า';
@@ -341,44 +345,92 @@ class LazadaMessageService
      * @param ?string $mediaUrl
      * @return string
      */
-    public static function storeMedia(?string $mediaUrl): string
+    public static function storeMedia(?string $mediaUrl, string $expectedType = 'auto'): string
     {
-        if (!$mediaUrl) {
-            return '[ไม่พบ URL ของมีเดีย]';
-        }
+        if (!$mediaUrl) return '[ไม่พบ URL ของมีเดีย]';
+
         try {
-            $response = Http::get($mediaUrl);
-            if ($response->failed()) {
-                Log::error('❌ Failed to download Lazada media', ['url' => $mediaUrl, 'status' => $response->status()]);
-                throw new \Exception("Failed to download media from URL: " . $mediaUrl);
-            }
+            $response = \Illuminate\Support\Facades\Http::withOptions(['stream' => true])->get($mediaUrl);
+            if ($response->failed()) throw new \Exception("Failed to download media from URL: " . $mediaUrl);
 
             $contentType = $response->header('Content-Type');
+            $pathInfo    = parse_url($mediaUrl, PHP_URL_PATH) ?? '';
+            $lowerPath   = strtolower($pathInfo);
 
-            $extension = match ($contentType) {
+            // ค่าเริ่มต้นตาม expectedType
+            $extension = $expectedType === 'video' ? '.mp4' : ($expectedType === 'image' ? '.jpg' : '.bin');
+
+            // เดาจาก URL ก่อน
+            foreach (['.mp4', '.mov', '.webm', '.jpg', '.jpeg', '.png', '.gif', '.webp'] as $ext) {
+                if (str_ends_with($lowerPath, $ext)) {
+                    $extension = $ext === '.jpeg' ? '.jpg' : $ext;
+                    break;
+                }
+            }
+
+            // แล้วค่อย map จาก Content-Type
+            $map = [
                 'image/jpeg' => '.jpg',
-                'image/png'  => '.png',
-                'image/gif'  => '.gif',
+                'image/png' => '.png',
+                'image/gif' => '.gif',
                 'image/webp' => '.webp',
-                'video/mp4'  => '.mp4',
-                default      => '.jpg',
-            };
+                'video/mp4' => '.mp4',
+                'video/quicktime' => '.mov',
+                'video/webm' => '.webm',
+            ];
+            if ($contentType && isset($map[$contentType])) $extension = $map[$contentType];
 
-            $mediaContent = $response->body();
             $relativePath = 'lazada-media/' . uniqid('lzd_', true) . $extension;
-            Storage::disk('public')->put($relativePath, $mediaContent);
-            
-            $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
-            $publicUrl = $baseUrl . '/storage/' . $relativePath;
+            $stream = $response->toPsrResponse()->getBody();
+            \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, $stream);
 
-            Log::channel('lazada_webhook_log')->info("✅ Stored incoming Lazada media successfully: {$publicUrl}");
-            return $publicUrl;
+            $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+            return $baseUrl . '/storage/' . $relativePath;
         } catch (\Exception $e) {
-            Log::channel('lazada_webhook_log')->error('Error in storeMedia: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::channel('lazada_webhook_log')->error('Error in storeMedia: ' . $e->getMessage(), [
+                'url' => $mediaUrl,
+                'expected' => $expectedType,
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
             return 'ไม่สามารถบันทึกไฟล์มีเดียได้';
+        }
+    }
+
+    public static function resolveVideoUrl(?string $videoId, ?string $videoKey = null): ?string
+    {
+        try {
+            if (!$videoId && $videoKey) {
+                // บาง payload ให้ videoKey อย่างเดียว — ถ้ามีวิธี map เป็น videoId ของระบบคุณ ให้ทำที่นี่
+            }
+            if (!$videoId) return null;
+
+            $apiPath = '/media/video/get';
+            $params  = ['video_id' => $videoId];
+
+            $signed  = self::buildAndSignRequest($apiPath, $params);
+            $apiUrl  = env('LAZADA_API_URL', 'https://api.lazada.co.th/rest');
+
+            $resp = \Illuminate\Support\Facades\Http::get($apiUrl . $apiPath, $signed);
+            $json = $resp->json();
+
+            if ($resp->successful() && isset($json['code']) && $json['code'] == '0') {
+                // เอกสารระบุจะมี url/play_url/cover ฯลฯ (ชื่อฟิลด์อาจต่างตาม region)
+                $url = $json['data']['video_url']
+                    ?? $json['data']['play_url']
+                    ?? $json['data']['url']
+                    ?? null;
+
+                return $url ?: null;
+            }
+
+            \Illuminate\Support\Facades\Log::channel('lazada_webhook_log')
+                ->warning('GET /media/video/get failed', ['resp' => $json]);
+            return null;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::channel('lazada_webhook_log')
+                ->error('resolveVideoUrl exception', ['error' => $e->getMessage()]);
+            return null;
         }
     }
 }
