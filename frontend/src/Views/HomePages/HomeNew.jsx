@@ -17,7 +17,7 @@ export default function HomeNew() {
     const [topEmp, setTopEmp] = useState();
     const [loading, setLoading] = useState(false);
     useEffect(() => {
-        fetchData().finally(() => setLoading(false));
+        fetchData().finally(() =>setLoading(false));
     }, []);
     const fetchData = async () => {
         setLoading(true);

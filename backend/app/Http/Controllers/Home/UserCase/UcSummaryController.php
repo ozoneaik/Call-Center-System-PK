@@ -9,23 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class UcSummaryController extends Controller
 {
-    /**
-     * ใช้กรองร่วม: แผนก / พนักงาน / แพลตฟอร์ม
-     * - dept: ใช้ u.description (trim เทียบ)
-     * - empCode: ใช้ ac.empCode
-     * - platform_id: ตัวอย่างผูกกับ ac.roomId (ถ้าของจริงอยู่คอลัมน์อื่น ปรับตรงนี้)
-     */
     private function applyCommonFilters($q, Request $request)
     {
         $dept       = trim((string) $request->query('dept', ''));
         $empCode    = trim((string) $request->query('empCode', ''));
         $platformId = trim((string) $request->query('platform_id', ''));
 
-        // ถ้าเลือกแผนก ต้องมี join users (บางคิวรี่อาจ join แล้ว)
         if ($dept !== '') {
             $joins = property_exists($q, 'joins') ? $q->joins : [];
             $hasUsersJoin = collect($joins ?? [])->contains(function ($j) {
-                // $j->table เป็น string เช่น 'users as u'
                 return isset($j->table) && $j->table === 'users as u';
             });
             if (!$hasUsersJoin) {
@@ -38,21 +30,13 @@ class UcSummaryController extends Controller
             $q->where('ac.empCode', $empCode);
         }
 
-        // ตัวอย่าง platform ผูกกับ roomId (ถ้า schema จริงต่างจากนี้ แก้ตรงนี้)
         if ($platformId !== '') {
             $q->where('ac.roomId', $platformId);
-            // หรือถ้าอยู่ที่ rates: $q->where('r.platform_id', $platformId);
         }
 
         return $q;
     }
 
-    /**
-     * Endpoint: ตัวเลือกแผนก
-     * - ตัดช่องว่างตั้งแต่ SQL
-     * - DISTINCT และ ORDER BY ในฐานข้อมูล
-     * - คืน { options: [{value,label}, ...] }
-     */
     public function optionsDepartments()
     {
         $rows = DB::connection('pgsql_real')
@@ -61,7 +45,7 @@ class UcSummaryController extends Controller
             ->selectRaw('DISTINCT TRIM(u."description") AS description')
             ->whereRaw('NULLIF(TRIM(u."description"), \'\') IS NOT NULL')
             ->orderBy('description', 'asc')
-            ->pluck('description') // => ["ขายของออนไลน์","บริการหลังการขาย",...]
+            ->pluck('description') 
             ->map(fn($d) => ['value' => $d, 'label' => $d])
             ->values()
             ->toArray();
@@ -69,9 +53,6 @@ class UcSummaryController extends Controller
         return response()->json(['options' => $rows]);
     }
 
-    /**
-     * รวมยอดต่อพนักงาน + รองรับช่วงวันที่ + หลายแท็ก (+ ฟิลเตอร์แผนก/พนักงาน/แพลตฟอร์ม)
-     */
     public function index(Request $request)
     {
         // ===== ช่วงวันที่ =====
@@ -89,13 +70,11 @@ class UcSummaryController extends Controller
             $end   = Carbon::today()->endOfDay();
         }
 
-        // ===== หลายแท็ก: tag_ids[]=1&tag_ids[]=2 หรือ tag_ids=1,2 =====
         $tagIds = $request->query('tag_ids', []);
         if (is_string($tagIds)) {
             $tagIds = array_filter(explode(',', $tagIds));
         }
 
-        // ===== success ภายในช่วง (กรองแท็ก/ฟิลเตอร์ร่วม) =====
         $successQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -269,9 +248,6 @@ class UcSummaryController extends Controller
         ]);
     }
 
-    /**
-     * รายชื่อผู้ใช้งานที่ active วันนี้ (เหตุการณ์แรกสุดของวัน: progress/success/forwarded)
-     */
     public function activeUsersToday()
     {
         $activeUsers = DB::connection('pgsql_real')->select("
@@ -324,7 +300,7 @@ ORDER BY updated_at
      * + แยกใน/นอกเวลาทำการด้วยเวลา receiveAt (fallback เป็น startTime)
      * + รองรับฟิลเตอร์แผนก/พนักงาน/แพลตฟอร์ม
      *
-     * ช่วงเวลาในทำการ: 08:00:00–16:59:59 (17:00:00 นับเป็นนอกเวลา)
+     * ช่วงเวลาในทำการ: 08:00:00–17:00:00 (17:00:00 ยังนับเป็นในเวลา)
      */
     public function inProgressByBusinessHours(Request $request)
     {
@@ -339,12 +315,12 @@ ORDER BY updated_at
         $this->applyCommonFilters($q, $request);
 
         $row = $q->selectRaw("
-                SUM(CASE WHEN ($timeExpr)::time >= '08:00:00'
-                          AND ($timeExpr)::time <  '17:00:00' THEN 1 ELSE 0 END) AS in_hours,
-                SUM(CASE WHEN ($timeExpr)::time <  '08:00:00'
-                          OR  ($timeExpr)::time >= '17:00:00' THEN 1 ELSE 0 END) AS out_hours,
-                COUNT(*) AS total
-            ")
+            SUM(CASE WHEN ($timeExpr)::time >= '08:00:00'
+                      AND ($timeExpr)::time <= '17:00:00' THEN 1 ELSE 0 END) AS in_hours,
+            SUM(CASE WHEN ($timeExpr)::time <  '08:00:00'
+                      OR  ($timeExpr)::time >  '17:00:00' THEN 1 ELSE 0 END) AS out_hours,
+            COUNT(*) AS total
+        ")
             ->first();
 
         return response()->json([

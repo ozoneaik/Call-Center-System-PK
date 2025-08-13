@@ -1,4 +1,3 @@
-import { Add } from "@mui/icons-material";
 import { Box, Button, Stack, Typography, Sheet, Divider } from "@mui/joy";
 import { Grid2, useMediaQuery, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -204,7 +203,6 @@ export default function UC() {
                 setClosedTodayRange({ start: "", end: "" });
             }
         } catch {
-            alert("โหลดข้อมูลปิดเคสไม่สำเร็จ");
         } finally {
             setClosedTodayLoading(false);
         }
@@ -224,7 +222,6 @@ export default function UC() {
             setClosedWeekData(data?.cases || []);
             setClosedWeekRange(data?.range || { start: "", end: "" });
         } catch {
-            alert("โหลดข้อมูลปิดเคสสัปดาห์นี้ไม่สำเร็จ");
         } finally {
             setClosedWeekLoading(false);
         }
@@ -244,7 +241,6 @@ export default function UC() {
             setClosedMonthData(data?.cases || []);
             setClosedMonthRange(data?.range || { start: "", end: "" });
         } catch {
-            alert("โหลดข้อมูลปิดเคสเดือนนี้ไม่สำเร็จ");
         } finally {
             setClosedMonthLoading(false);
         }
@@ -262,7 +258,6 @@ export default function UC() {
 
             setInProgressRows(data?.cases || []);
         } catch {
-            alert("โหลดข้อมูลกำลังดำเนินการไม่สำเร็จ");
         } finally {
             setInProgressLoading(false);
         }
@@ -295,7 +290,6 @@ export default function UC() {
                     : { start: "", end: "" }
             );
         } catch {
-            alert("โหลดข้อมูลการส่งต่อเคสไม่สำเร็จ");
         } finally {
             setForwardedLoading(false);
         }
@@ -303,12 +297,9 @@ export default function UC() {
 
     return (
         <div>
-            {/* ส่วนหัวใหม่ (ปุ่มอยู่เฉพาะคอลัมน์ขวา) */}
             <Sheet
                 variant="outlined"
                 sx={{
-                    // position: "sticky",
-                    // top: 0,
                     zIndex: 10,
                     borderRadius: "lg",
                     p: 1.5,
@@ -323,53 +314,26 @@ export default function UC() {
                     {!isMobile && <Divider sx={{ mx: 2, flex: 1 }} />}
                 </Stack>
 
-                {/* 3 โซน: Legend · Filter · ปุ่มรายชื่อทั้งหมด */}
-                <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
-                        gap: 3,
-                        alignItems: "start",
-                    }}
-                >
-                    {/* ซ้าย: Legend */}
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <LegendToggle />
-                    </Box>
-
-                    {/* กลาง: ฟิลเตอร์ */}
-                    <Box sx={{ minWidth: 280 }}>
-                        <FilterControls
-                            filterDept={filterDept}
-                            setFilterDept={setFilterDept}
-                            searchName={searchName}
-                            setSearchName={setSearchName}
-                            departments={departments}
-                            fullWidth={isMobile}
-                            startDate={startDate}
-                            endDate={endDate}
-                            setStartDate={setStartDate}
-                            setEndDate={setEndDate}
-                            onApplyRange={handleApplyRange}
-                            onClearRange={handleClearRange}
-                            selectedTags={selectedTags}
-                            onChangeTags={handleChangeTags}
-                            tagOptions={tagOptions}
-                        />
-                    </Box>
-
-                    {/* ขวา: ปุ่มรายชื่อทั้งหมด (ปุ่มเดียวที่ใช้) */}
-                    <Box sx={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
-                        <Button
-                            size="sm"
-                            variant="plain"
-                            startDecorator={<Add />}
-                            onClick={() => setOpenModal(true)}
-                            fullWidth={isMobile}
-                        >
-                            แสดงรายชื่อพนักงานทั้งหมด
-                        </Button>
-                    </Box>
+                {/* ฟิลเตอร์ (ปุ่มรายชื่อทั้งหมด ถูกย้ายไปภายใน FilterControls) */}
+                <Box sx={{ minWidth: 280 }}>
+                    <FilterControls
+                        filterDept={filterDept}
+                        setFilterDept={setFilterDept}
+                        searchName={searchName}
+                        setSearchName={setSearchName}
+                        departments={departments}
+                        fullWidth={isMobile}
+                        startDate={startDate}
+                        endDate={endDate}
+                        setStartDate={setStartDate}
+                        setEndDate={setEndDate}
+                        onApplyRange={handleApplyRange}
+                        onClearRange={handleClearRange}
+                        selectedTags={selectedTags}
+                        onChangeTags={handleChangeTags}
+                        tagOptions={tagOptions}
+                        onOpenAllEmployees={() => setOpenModal(true)}   // <<<< ส่ง handler เข้าไป
+                    />
                 </Box>
             </Sheet>
 

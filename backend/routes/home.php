@@ -18,7 +18,7 @@ Route::prefix('/home')->group(function () {
         Route::get('/summary', [UcSummaryController::class, 'summary']);
         Route::get('/active-users', [UcSummaryController::class, 'activeUsersToday']);
 
-        Route::get('/progress-detail/{empCode}', [UcProgressController::class, 'getProgressDetails']);
+        // Route::get('/progress-detail/{empCode}', [UcProgressController::class, 'getProgressDetails']);
 
         Route::get('/tags', [UcTagSummaryController::class, 'tags']);
         Route::get('/tag-summary-today', [UcTagSummaryController::class, 'tagSummaryToday']);
@@ -59,6 +59,11 @@ Route::prefix('/home')->group(function () {
         Route::get(
             '/export/detailed-cases.xlsx',
             [ExportExcelController::class, 'exportDetailedCasesRangeExcel']
+        );
+
+        Route::get(
+            '/export/detailed-cases-intime.xlsx',
+            [ExportExcelController::class, 'exportDetailedCasesRangeInTimeExcel']
         );
     });
 });

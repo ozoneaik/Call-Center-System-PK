@@ -24,6 +24,7 @@ class StatisticsController extends Controller
         $rows = DB::connection('pgsql_real')
             ->table('platform_access_tokens as pat')
             ->select('pat.id', 'pat.platform', 'pat.description')
+            ->whereNotIn('pat.description', ['ChatBot', 'OZONEAIK'])  
             ->orderBy('pat.platform', 'asc')
             ->orderBy('pat.description', 'asc')
             ->get()
@@ -71,7 +72,6 @@ class StatisticsController extends Controller
         return response()->json($rows);
     }
 
-    // === สรุปพนักงาน (รองรับ platform/dept/empCode) ===
     public function employeeWorkloadSummary(Request $request)
     {
         $platformId = $request->query('platform_id');
@@ -107,19 +107,19 @@ class StatisticsController extends Controller
             $inProgress = DB::connection('pgsql_real')->table('rates as r')
                 ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
                 ->join('users as u', 'u.empCode', '=', 'ac.empCode')
-                ->where('ac.empCode', $row->empCode)
                 ->where('r.status', 'progress')
-                ->whereDate('r.updated_at', Carbon::today());
+                ->where('ac.empCode', $row->empCode)
+                ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
+                ->whereDate('ac.receiveAt', Carbon::today());
+
             if ($dept) $inProgress->where('u.description', $dept);
             $inProgress = $this->applyPlatformFilter($inProgress, $platformId);
 
-            $row->in_progress = $inProgress->count();
+            $row->in_progress = (int) $inProgress->count();
         }
-
         return response()->json(['data' => $results]);
     }
 
-    // === สรุปแท็ก (รองรับ platform/dept/empCode) ===
     public function tagWorkloadSummary(Request $request)
     {
         $today = Carbon::today();
@@ -154,7 +154,6 @@ class StatisticsController extends Controller
         return response()->json(['data' => $results]);
     }
 
-    // === ของเดิม: รายการเคสตาม User/Tag (เพิ่มรองรับ filters ผ่าน query) ===
     public function getAllCasesByUser($empCode, Request $request)
     {
         $platformId = $request->query('platform_id');

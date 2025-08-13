@@ -33,7 +33,6 @@ class UcClosureStatsController extends Controller
         return $q;
     }
 
-    /** ใช้ความต่าง end-start ในการจัด bucket ระยะเวลา */
     private function durationSelectRaw(): string
     {
         return '
@@ -115,8 +114,6 @@ class UcClosureStatsController extends Controller
     /* ========================= End helpers ========================= */
 
 
-    /* ========================= Endpoints ========================= */
-
     public function closureStats(Request $request)
     {
         $date       = $request->input('date') ?? Carbon::today()->toDateString();
@@ -176,49 +173,51 @@ class UcClosureStatsController extends Controller
         ]);
     }
 
-    /** รายช่วงวัน (ในเวลา: DATE(start) / นอกเวลา: business_date(start)) */
     public function closureRangeStats(Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+
         $start      = Carbon::parse($request->input('start_date'))->startOfDay();
         $end        = Carbon::parse($request->input('end_date'))->endOfDay();
 
-        $col   = $this->startExpr();
-        $bdate = $this->businessDateExpr($col);
+        $filterCol = 'ac."endTime"';
 
-        // ในเวลาทำการ
+        $startCol  = $this->startExpr(); // COALESCE(receiveAt, startTime)
+
         $inRows = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->whereBetween(DB::raw($col), [$start, $end]);
+            ->whereBetween(DB::raw($filterCol), [$start, $end]);
+
         $inRows = $this->applyUserFilters($inRows, $dept, $empCode);
         $inRows = $this->applyPlatformFilter($inRows, $platformId);
-        $inRows = $this->applyInHours($inRows, $col)
-            ->selectRaw("DATE($col) as date, " . $this->durationSelectRaw())
-            ->groupBy(DB::raw("DATE($col)"))
-            ->orderBy(DB::raw("DATE($col)"))
+
+        $inRows = $this->applyInHours($inRows, $startCol) // แยก in โดยดูจากเวลาเริ่ม
+            ->selectRaw("DATE($filterCol) as date, " . $this->durationSelectRaw())
+            ->groupBy(DB::raw("DATE($filterCol)"))
+            ->orderBy(DB::raw("DATE($filterCol)"))
             ->get()
             ->keyBy('date');
 
-        // นอกเวลา (รวมอาทิตย์) — group ตาม business_date
         $outRows = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->where('r.status', 'success')
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->whereBetween(DB::raw($col), [$start, $end]);
+            ->whereBetween(DB::raw($filterCol), [$start, $end]);
+
         $outRows = $this->applyUserFilters($outRows, $dept, $empCode);
         $outRows = $this->applyPlatformFilter($outRows, $platformId);
-        $outRows = $this->applyOutHours($outRows, $col)
-            ->selectRaw("$bdate as date, " . $this->durationSelectRaw())
-            ->groupBy(DB::raw('date'))
-            ->orderBy(DB::raw('date'))
+
+        $outRows = $this->applyOutHours($outRows, $startCol)
+            ->selectRaw("DATE($filterCol) as date, " . $this->durationSelectRaw())
+            ->groupBy(DB::raw("DATE($filterCol)"))
+            ->orderBy(DB::raw("DATE($filterCol)"))
             ->get()
             ->keyBy('date');
 
-        // รวม payload รายวัน (ให้รูปแบบตรงกับ frontend)
         $cursor  = $start->copy();
         $payload = [];
         while ($cursor->lte($end)) {
@@ -234,7 +233,6 @@ class UcClosureStatsController extends Controller
         ]);
     }
 
-    /** รายช่วงวัน (เฉพาะนอกเวลา) — คืน format: [{ date, within_1_min, ... , total }] */
     public function afterHourClosureRangeStats(Request $request)
     {
         $platformId = $request->query('platform_id');
@@ -260,36 +258,34 @@ class UcClosureStatsController extends Controller
 
         $rows = $q->get();
 
-        // frontend เดิม expect { data: [...] } และใช้ field ชื่อ date
         return response()->json([
             'message' => 'สถิติการปิดเคสนอกเวลาทำการ',
             'data'    => $rows,
         ]);
     }
 
-    /** นับเคส progress วันนี้ (ตัดสินใน/นอกเวลา จากเวลาเริ่มงาน) */
     public function inProgressByBusinessHours(Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
 
-        $col = $this->startExpr(); // ใช้เวลาเริ่มงาน
+        $col = 'ac."receiveAt"';
 
         $row = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->where('r.status', 'progress')
-            ->whereDate('r.updated_at', Carbon::today())
+            ->whereDate('ac.receiveAt', Carbon::today())
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
         $row = $this->applyUserFilters($row, $dept, $empCode);
         $row = $this->applyPlatformFilter($row, $platformId);
 
         $row = $row->selectRaw("
-            SUM(CASE WHEN ($col)::time BETWEEN '08:00:00' AND '17:00:00' AND EXTRACT(DOW FROM $col)::int <> 0 THEN 1 ELSE 0 END) AS in_hours,
-            SUM(CASE WHEN (($col)::time < '08:00:00' OR ($col)::time > '17:00:00' OR EXTRACT(DOW FROM $col)::int = 0) THEN 1 ELSE 0 END) AS out_hours,
-            COUNT(*) AS total
-        ")->first();
+        SUM(CASE WHEN ($col)::time BETWEEN '08:00:00' AND '17:00:00' AND EXTRACT(DOW FROM $col)::int <> 0 THEN 1 ELSE 0 END) AS in_hours,
+        SUM(CASE WHEN (($col)::time < '08:00:00' OR ($col)::time > '17:00:00' OR EXTRACT(DOW FROM $col)::int = 0) THEN 1 ELSE 0 END) AS out_hours,
+        COUNT(*) AS total
+    ")->first();
 
         return response()->json([
             'in_time' => (int)($row->in_hours ?? 0),
@@ -298,7 +294,6 @@ class UcClosureStatsController extends Controller
         ]);
     }
 
-    /** รอรับงานวันนี้ (อิงสถานะ pending เดิม) — ไม่ต้องเปลี่ยน logic เวลา */
     public function pendingToday(Request $request)
     {
         $platformId = $request->query('platform_id');
@@ -307,7 +302,7 @@ class UcClosureStatsController extends Controller
 
         $q = DB::connection('pgsql_real')->table('rates as r')
             ->where('r.status', 'pending')
-            ->whereDate('r.updated_at', Carbon::today())
+            ->whereDate('r.created_at', Carbon::today())
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id');
 
         if ($dept) {

@@ -26,7 +26,7 @@ export default function TagSummaryToday() {
                 setTotalClosed(total);
                 setLoading(false);
             }).catch(() => {
-                alert("โหลดข้อมูลแท็กไม่สําเร็จ");
+                // alert("โหลดข้อมูลแท็กไม่สําเร็จ");
                 setLoading(false);
             });
     }, []);

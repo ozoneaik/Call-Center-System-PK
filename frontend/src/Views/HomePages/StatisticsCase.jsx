@@ -13,7 +13,7 @@ import EmployeeCaseDetailModal from "./Reports/EmployeeCaseDetailModal";
 import TagCaseDetailModal from "./Reports/TagCaseDetailModal";
 
 const valueDisplay = (val) => (val !== undefined ? `${val}` : "-");
-const BUCKET_KEYS = ["within_1_min", "one_to_five_min", "five_to_ten_min", "over_ten_min"];
+const BUCKET_KEYS = ["ภายใน 1 นาที", "1-5 นาที", "5-10 นาที", "มากกว่า 10 นาที"];
 
 function bucketsToKeyed(buckets = []) {
     const inMap = {}, outMap = {}, totalMap = {};
@@ -31,17 +31,20 @@ function bucketsToKeyed(buckets = []) {
 
 const caseCategories = [
     { label: "📊 งานทั้งหมด", key: "total", color: "#1976D2" },
-    { label: "⏱ ภายใน 1 นาที", key: "within_1_min", color: "#2E7D32" },
-    { label: "🕐 1-5 นาที", key: "one_to_five_min", color: "#43A047" },
-    { label: "🕒 5-10 นาที", key: "five_to_ten_min", color: "#FB8C00" },
-    { label: "⏰ มากกว่า 10 นาที", key: "over_ten_min", color: "#FF9800" },
+    { label: "⏱ ภายใน 1 นาที", key: "ภายใน 1 นาที", color: "#2E7D32" },
+    { label: "🕐 1-5 นาที", key: "1-5 นาที", color: "#43A047" },
+    { label: "🕒 5-10 นาที", key: "5-10 นาที", color: "#FB8C00" },
+    { label: "⏰ มากกว่า 10 นาที", key: "มากกว่า 10 นาที", color: "#FF9800" },
     { label: "🛠️ กำลังดำเนินการ", key: "in_progress", color: "#3949AB" },
     { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" },
 ];
 
 /** ดาวน์โหลดไฟล์ Excel จาก API (อ่านชื่อไฟล์จาก Content-Disposition ถ้ามี) */
-async function downloadExcel(url, params = {}) {
+/** ดาวน์โหลดไฟล์ Excel จาก API + รองรับ onStart/onDone สำหรับ loading */
+async function downloadExcel(url, params = {}, opts = {}) {
+    const { onStart, onDone } = opts;
     try {
+        onStart && onStart();
         const resp = await axiosClient.get(url, { params, responseType: "blob" });
         let filename = "export.xlsx";
         const cd = resp.headers?.["content-disposition"] || resp.headers?.["Content-Disposition"];
@@ -63,6 +66,8 @@ async function downloadExcel(url, params = {}) {
     } catch (err) {
         console.error("Export Excel failed:", err);
         alert("Export Excel ไม่สำเร็จ");
+    } finally {
+        onDone && onDone();
     }
 }
 
@@ -103,6 +108,8 @@ export default function StatisticsCase() {
     const [deptOptions, setDeptOptions] = useState([]);
     const [empOptions, setEmpOptions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         setIsLoading(true);
@@ -155,7 +162,7 @@ export default function StatisticsCase() {
             })
             .catch((err) => {
                 console.error("❌ closure-stats error:", err);
-                alert("โหลดข้อมูลวันนี้ไม่สำเร็จ");
+                // alert("โหลดข้อมูลวันนี้ไม่สำเร็จ");
             });
 
         axiosClient
@@ -203,7 +210,7 @@ export default function StatisticsCase() {
                             setOpenEmpModal(true);
                         } catch (err) {
                             console.error("❌ Load all user cases failed", err);
-                            alert("ไม่สามารถโหลดข้อมูลเคสทั้งหมดของพนักงานได้");
+                            // alert("ไม่สามารถโหลดข้อมูลเคสทั้งหมดของพนักงานได้");
                         }
                     },
                 }));
@@ -211,7 +218,7 @@ export default function StatisticsCase() {
             })
             .catch((err) => {
                 console.error("❌ employeeWorkloadSummary error:", err);
-                alert("โหลดข้อมูลพนักงานไม่สำเร็จ");
+                // alert("โหลดข้อมูลพนักงานไม่สำเร็จ");
             });
 
         axiosClient
@@ -241,7 +248,7 @@ export default function StatisticsCase() {
                             setOpenTagModal(true);
                         } catch (err) {
                             console.error("❌ Load tag cases failed", err);
-                            alert("โหลดข้อมูลเคสตามแท็กไม่สำเร็จ");
+                            // alert("โหลดข้อมูลเคสตามแท็กไม่สำเร็จ");
                         }
                     },
                 }));
@@ -249,7 +256,7 @@ export default function StatisticsCase() {
             })
             .catch((err) => {
                 console.error("❌ tagWorkloadSummary error:", err);
-                alert("โหลดข้อมูลแท็กไม่สำเร็จ");
+                // alert("โหลดข้อมูลแท็กไม่สำเร็จ");
             });
     }, [today, filterPlatform, filterDept, filterEmp]);
 
@@ -269,9 +276,19 @@ export default function StatisticsCase() {
             setRangeStats(rows);
         } catch (err) {
             console.error("❌ closure-range-stats error:", err);
-            alert("โหลดข้อมูลช่วงวันที่ไม่สำเร็จ");
+            // alert("โหลดข้อมูลช่วงวันที่ไม่สำเร็จ");
         }
     };
+
+    const mapAfterHourRows = (rows = []) =>
+        (rows || []).map(r => ({
+            date: r.date,
+            "ภายใน 1 นาที": r.within_1_min ?? 0,
+            "1-5 นาที": r.one_to_five_min ?? 0,
+            "5-10 นาที": r.five_to_ten_min ?? 0,
+            "มากกว่า 10 นาที": r.over_ten_min ?? 0,
+            total: r.total ?? 0,
+        }));
 
     const fetchAfterHourRangeStats = async () => {
         const params = {
@@ -282,15 +299,23 @@ export default function StatisticsCase() {
         };
         try {
             const { data } = await axiosClient.get("home/user-case/after-hour-closure-range-stats", { params });
-            setAfterHourRangeStats(data.data || []);
+            setAfterHourRangeStats(mapAfterHourRows(data.data));
         } catch (err) {
             console.error("❌ after-hour-closure-range-stats error:", err);
-            alert("โหลดข้อมูลช่วงวันที่นอกเวลาทำการไม่สำเร็จ");
+            // alert("โหลดข้อมูลช่วงวันที่นอกเวลาทำการไม่สำเร็จ");
         }
     };
 
     // ---------- Export Handlers ----------
     const buildBusinessExportParams = () => ({
+        start_date: startDate,
+        end_date: endDate,
+        platform_id: filterPlatform || undefined,
+        dept: filterDept || undefined,
+        empCode: filterEmp || undefined,
+    });
+
+    const buildBusinessExportIntimeParams = () => ({
         start_date: startDate,
         end_date: endDate,
         platform_id: filterPlatform || undefined,
@@ -316,7 +341,18 @@ export default function StatisticsCase() {
         downloadExcel("home/user-case/export/after-hour-range.xlsx", buildAfterHourExportParams());
 
     const onExportDetailed = () =>
-        downloadExcel("home/user-case/export/detailed-cases.xlsx", buildBusinessExportParams());
+        downloadExcel(
+            "home/user-case/export/detailed-cases.xlsx",
+            buildBusinessExportParams(),
+            { onStart: () => setExporting(true), onDone: () => setExporting(false) }
+        );
+
+    const onExportDetailedIntime = () =>
+        downloadExcel(
+            "home/user-case/export/detailed-cases-intime.xlsx",
+            buildBusinessExportIntimeParams(),
+            { onStart: () => setExporting(true), onDone: () => setExporting(false) }
+        );
     // ------------------------------------
 
     const clearFilters = () => {
@@ -415,7 +451,7 @@ export default function StatisticsCase() {
                                 <td>{idx + 1}</td>
                                 <td>{dayjs(row.date).format("DD/MM/YYYY")}</td>
                                 {BUCKET_KEYS.map((k) => <td key={k}>{row[k]}</td>)}
-                                <td>{row.total}</td>
+                                <td>{valueDisplay(row.total)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -579,15 +615,18 @@ export default function StatisticsCase() {
                             >
                                 ล้าง
                             </Button>
+                        </Box>
+
+                        <Box sx={{ display: "flex", flexDirection: "row", gap: 1 }}>
                             <Button
                                 size="sm"
                                 onClick={() => setShowModal(true)}
                                 variant="outlined"
-                                color="info"
+                                color="primary"
                                 startDecorator="📅"
                                 sx={{ '@media (max-width: 900px)': { flex: 1 } }}
                             >
-                                ช่วงวันที่
+                                ในเวลา
                             </Button>
                             <Button
                                 size="sm"
@@ -600,26 +639,23 @@ export default function StatisticsCase() {
                                 นอกเวลา
                             </Button>
                         </Box>
-
                         {/* Date Range */}
                         <FormControl sx={{ minWidth: 200 }}>
                             <FormLabel sx={{
                                 fontSize: '0.875rem',
-                                height: '40px', 
+                                height: '40px',
                                 display: 'flex',
                                 alignItems: 'center'
                             }}>
                                 📅 ช่วงวันที่ & Export รายการเคส
                             </FormLabel>
-                            <Box sx={{
-                                display: 'flex',
-                                gap: 1,
-                            }}>
+                            <Box sx={{ display: "flex", flexDirection: "row", gap: 1, flexWrap: "wrap" }}>
                                 <Input
                                     type="date"
                                     size="sm"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
+                                    placeholder="เริ่มวันที่"
                                     sx={{ minWidth: 120 }}
                                 />
                                 <Typography level="body-sm">—</Typography>
@@ -628,6 +664,7 @@ export default function StatisticsCase() {
                                     size="sm"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
+                                    placeholder="สิ้นสุดวันที่"
                                     sx={{ minWidth: 120 }}
                                 />
                                 <Button
@@ -636,16 +673,14 @@ export default function StatisticsCase() {
                                     variant="solid"
                                     onClick={onExportDetailed}
                                     startDecorator="📥"
-                                    disabled={!startDate || !endDate || dayjs(endDate).isBefore(dayjs(startDate))}
+                                    disabled={exporting || !startDate || !endDate || dayjs(endDate).isBefore(dayjs(startDate))}
                                     sx={{ minWidth: 80 }}
                                 >
-                                    Export
+                                    {exporting ? "กำลังสร้าง..." : "Export"}
                                 </Button>
                             </Box>
                         </FormControl>
                     </Box>
-
-
                 </Box>
 
                 {/* Active Filters */}
@@ -730,8 +765,9 @@ export default function StatisticsCase() {
                         <Grid xs={6}><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></Grid>
                         <Grid xs={12} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                             <Button onClick={fetchRangeStats}>🔍 ค้นหา</Button>
-                            <Button color="success" variant="soft" onClick={onExportBusiness}>📤 Export สรุปรายวัน</Button>
-                            <Button color="primary" variant="solid" onClick={onExportDetailed}>📥 Export รายการเคส (ละเอียด)</Button>
+                            {/* <Button color="success" variant="soft" onClick={onExportBusiness}>📤 Export สรุปรายวัน</Button> */}
+                            <Button color="primary" variant="solid" onClick={onExportDetailedIntime}
+                                disabled={exporting || !startDate || !endDate || dayjs(endDate).isBefore(dayjs(startDate))} sx={{ minWidth: 80 }}>{exporting ? "กำลังสร้าง..." : "Export"}</Button>
                         </Grid>
                     </Grid>
                     {renderRangeTable(rangeStats)}
@@ -747,10 +783,22 @@ export default function StatisticsCase() {
                         <Grid xs={6}><Input type="date" value={afterHourEndDate} onChange={(e) => setAfterHourEndDate(e.target.value)} /></Grid>
                         <Grid xs={12} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                             <Button onClick={fetchAfterHourRangeStats}>🔍 ค้นหา</Button>
-                            <Button color="success" variant="soft" onClick={onExportAfterHour}>📤 Export สรุปนอกเวลา</Button>
+                            {/* <Button color="success" variant="soft" onClick={onExportAfterHour}>📤 Export สรุปนอกเวลา</Button> */}
                         </Grid>
                     </Grid>
                     {renderRangeTable(afterHourRangeStats)}
+                </ModalDialog>
+            </Modal>
+
+            <Modal open={exporting}>
+                <ModalDialog sx={{ p: 3, width: 360, textAlign: "center" }}>
+                    <CircularProgress size="lg" />
+                    <Typography level="title-md" sx={{ mt: 2 }}>
+                        กำลังสร้างไฟล์ Excel...
+                    </Typography>
+                    <Typography level="body-sm" color="neutral" sx={{ mt: 1 }}>
+                        โปรดรอสักครู่ ขนาดข้อมูลมีผลต่อระยะเวลา
+                    </Typography>
                 </ModalDialog>
             </Modal>
 

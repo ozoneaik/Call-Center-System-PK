@@ -109,21 +109,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ===== helper สรุป tag ต่อ user ตามช่วง =====
-    private function tagSummaryByUserRange($start, $end, string $empCode)
-    {
-        return DB::connection('pgsql_real')->table('rates as r')
-            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-            ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-            ->whereBetween('ac.endTime', [$start, $end])
-            ->where('r.status', 'success')
-            ->where('ac.empCode', $empCode)
-            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-            ->selectRaw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') AS tag_name, COUNT(*) AS total')
-            ->groupBy(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'))
-            ->orderByDesc('total');
-    }
-
     // ===== รายการปิดเคสของ user (รองรับหลายแท็ก) =====
     public function closedTodayByUser(Request $request, string $empCode)
     {

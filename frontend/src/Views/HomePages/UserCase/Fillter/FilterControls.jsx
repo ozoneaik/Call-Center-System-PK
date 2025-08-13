@@ -2,7 +2,7 @@ import {
     Sheet, Stack, Box, Divider, Drawer, ModalClose,
     Select, Option, Button, Input, Autocomplete, Chip, IconButton, Tooltip, Typography
 } from "@mui/joy";
-import { Search, Clear, Today, DateRange, FilterAltOff, FilterList } from "@mui/icons-material";
+import { Search, Clear, Today, DateRange, FilterAltOff, FilterList, Add } from "@mui/icons-material";
 import { useMemo, useState } from "react";
 
 function useDebounce(fn, delay = 250) {
@@ -22,6 +22,7 @@ export default function FilterControls({
     onApplyRange, onClearRange,
     selectedTags = [], onChangeTags = () => { },
     tagOptions = [],
+    onOpenAllEmployees = () => { },        // <<< เพิ่ม prop สำหรับเปิดโมดอลรายชื่อทั้งหมด
 }) {
     const options = (tagOptions || []).map(t => ({ id: String(t.id), label: t.tagName || String(t.id) }));
     const valueOptions = options.filter(o => selectedTags.includes(o.id));
@@ -66,7 +67,7 @@ export default function FilterControls({
     if (!fullWidth) {
         // ===== Desktop layout =====
         return (
-            <Sheet variant="outlined" sx={{ p: 1.5, borderRadius: "lg" }}>
+            <Sheet sx={{ p: 1 }}>
                 <Stack
                     direction="row"
                     spacing={1}
@@ -124,10 +125,27 @@ export default function FilterControls({
                         <Tooltip title="สัปดาห์นี้"><IconButton size="sm" variant="plain" onClick={applyThisWeek}><DateRange fontSize="small" /></IconButton></Tooltip>
                         <Tooltip title="เดือนนี้"><IconButton size="sm" variant="plain" onClick={applyThisMonth}><DateRange fontSize="small" /></IconButton></Tooltip>
                     </Stack>
+
                     <Divider orientation="vertical" sx={{ flexShrink: 0 }} />
+
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
                         <Button size="sm" variant="solid" onClick={onApplyRange}>ใช้ตัวกรอง</Button>
                         <Button size="sm" variant="soft" color="neutral" onClick={onClearRange} startDecorator={<FilterAltOff fontSize="small" />}></Button>
+                    </Stack>
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ flexShrink: 0, ml: 'auto' }} // ดันไปขวาสุด
+                    >
+                        <Button
+                            size="sm"
+                            variant="solid"
+                            startDecorator={<Add />}
+                            onClick={onOpenAllEmployees}
+                        >
+                            แสดงรายชื่อพนักงานทั้งหมด
+                        </Button>
                     </Stack>
                 </Stack>
 
@@ -172,7 +190,7 @@ export default function FilterControls({
     return (
         <>
             {/* Toolbar mobile */}
-            <Sheet variant="outlined" sx={{ p: 1, borderRadius: "lg" }}>
+            <Sheet sx={{ p: 1, borderRadius: "lg" }}>
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Input
                         size="sm"
@@ -184,6 +202,15 @@ export default function FilterControls({
                     />
                     <Button size="sm" variant="soft" startDecorator={<FilterList />} onClick={() => setOpenDrawer(true)}>
                         ตัวกรอง
+                    </Button>
+                    {/* ปุ่มรายชื่อทั้งหมด บน toolbar มือถือ */}
+                    <Button
+                        size="sm"
+                        variant="plain"
+                        startDecorator={<Add />}
+                        onClick={onOpenAllEmployees}
+                    >
+                        ทั้งหมด
                     </Button>
                 </Stack>
 
@@ -226,7 +253,7 @@ export default function FilterControls({
                 onClose={() => setOpenDrawer(false)}
                 slotProps={{ content: { sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16 } } }}
             >
-                <Sheet variant="soft" sx={{ p: 1.5, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                <Sheet sx={{ p: 1.5, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                         <Typography level="title-md">ตัวกรอง</Typography>
                         <ModalClose />
@@ -316,6 +343,7 @@ export default function FilterControls({
                             </>
                         )}
 
+                        {/* แถวปุ่ม action ของ Drawer */}
                         <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
                             <Button fullWidth size="sm" variant="solid" onClick={() => { onApplyRange?.(); setOpenDrawer(false); }}>
                                 ใช้ตัวกรอง
@@ -324,6 +352,17 @@ export default function FilterControls({
                                 ล้าง
                             </Button>
                         </Stack>
+                        {/* ปุ่มรายชื่อทั้งหมดใน Drawer */}
+                        <Button
+                            fullWidth
+                            size="sm"
+                            variant="solid"
+                            startDecorator={<Add />}
+                            onClick={() => { onOpenAllEmployees(); setOpenDrawer(false); }}
+                        >
+                            แสดงรายชื่อพนักงานทั้งหมด
+                        </Button>
+
                     </Stack>
                 </Sheet>
             </Drawer>
