@@ -138,7 +138,7 @@ export default function UC() {
             }
         } catch (error) {
             console.error(error);
-            alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+            // console.log("เกิดข้อผิดพลาดในการโหลดข้อมูล");
         }
     };
 

@@ -33,7 +33,8 @@ export default function AllCaseDashboard() {
     axiosClient
       .get("home/user-case/summary")
       .then(({ data }) => setSummary(data))
-      .catch(() => alert("โหลดข้อมูลไม่สำเร็จ"));
+      .catch(() =>
+        console.error("โหลดข้อมูลไม่สำเร็จ"));
   }, []);
 
   const statusColor = (val, good, warn) => {
@@ -52,7 +53,7 @@ export default function AllCaseDashboard() {
         setTags(data?.tags ?? []);
         setTagDate(data?.date ?? "");
       })
-      .catch(() => alert("โหลดแท็กวันนี้ไม่สำเร็จ"))
+      .catch(() => console.error("โหลดแท็กวันนี้ไม่สำเร็จ"))
       .finally(() => setTagsLoading(false));
   };
 
@@ -65,7 +66,7 @@ export default function AllCaseDashboard() {
         setTagsWeek(data.tags);
         setWeekRange(data.range);
       })
-      .catch(() => alert("โหลดแท็กของสัปดาห์นี้ไม่สำเร็จ"))
+      .catch(() => console.error("โหลดแท็กของสัปดาห์นี้ไม่สำเร็จ"))
       .finally(() => setTagsWeekLoading(false));
   };
 
@@ -78,7 +79,7 @@ export default function AllCaseDashboard() {
         setTagsMonth(data.tags);
         setMonthRange(data.range);
       })
-      .catch(() => alert("โหลดแท็กของเดือนนี้ไม่สำเร็จ"))
+      .catch(() => console.error("โหลดแท็กของเดือนนี้ไม่สำเร็จ"))
       .finally(() => setTagsMonthLoading(false));
   };
 

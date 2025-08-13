@@ -12,7 +12,7 @@ export default function AllCase() {
     useEffect(() => {
         axiosClient.get("home/user-case/summary")
             .then(({ data }) => setSummary(data))
-            .catch(() => alert("ไม่สามารถโหลดข้อมูลได้"));
+            .catch(() => console.error("ไม่สามารถโหลดข้อมูลได้"));
     }, []);
 
     return (
