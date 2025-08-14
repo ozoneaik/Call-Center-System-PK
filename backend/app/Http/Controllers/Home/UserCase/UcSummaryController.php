@@ -55,7 +55,6 @@ class UcSummaryController extends Controller
 
     public function index(Request $request)
     {
-        // ===== ช่วงวันที่ =====
         $startDate = $request->query('start_date');
         $endDate   = $request->query('end_date');
 
@@ -98,7 +97,6 @@ class UcSummaryController extends Controller
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        // ===== progress ช่วงวันที่ (ไม่ผูก tag) + ฟิลเตอร์ร่วม =====
         $progressResults = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -118,7 +116,6 @@ class UcSummaryController extends Controller
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        // ===== success สัปดาห์นี้ (รองรับ tag + ฟิลเตอร์ร่วม) =====
         $weekSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -142,7 +139,6 @@ class UcSummaryController extends Controller
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        // ===== success เดือนนี้ (รองรับ tag + ฟิลเตอร์ร่วม) =====
         $monthSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
@@ -166,7 +162,6 @@ class UcSummaryController extends Controller
             ->groupBy('ac.empCode', 'u.name', 'u.description')
             ->get();
 
-        // ===== การส่งต่อเคสในช่วง (ไม่ผูก tag + ฟิลเตอร์ร่วม) =====
         $forwardedResults = DB::connection("pgsql_real")->table('active_conversations as ac')
             ->join('users as u', 'u.empCode', '=', 'ac.from_empCode')
             ->select(
@@ -179,8 +174,6 @@ class UcSummaryController extends Controller
             ->whereNotIn('ac.from_empCode', ['BOT', 'adminIT'])
             ->whereBetween('ac.updated_at', [$start, $end]);
 
-        // ฟิลเตอร์ร่วม (ตรงนี้ alias ของพนักงานเป็น ac.from_empCode แล้ว แต่ applyCommonFilters ยังใช้ ac.empCode)
-        // ถ้าต้องการกรองตาม empCode ของ "ผู้ส่งต่อ" ให้เพิ่มเองตามจริง หรือปล่อยให้กรองเฉพาะแผนก/แพลตฟอร์ม
         $this->applyCommonFilters($forwardedResults, $request);
 
         $forwardedResults = $forwardedResults
@@ -198,9 +191,6 @@ class UcSummaryController extends Controller
         ]);
     }
 
-    /**
-     * รวมยอดแบบสั้น (ใช้ในหน้า dashboard ตัวเลขรวม)
-     */
     public function summary()
     {
         $today = Carbon::today();
@@ -295,13 +285,6 @@ ORDER BY updated_at
         ]);
     }
 
-    /**
-     * กำลังดำเนินการ (แบบนิยามเดิม): status = 'progress' & r.updated_at = วันนี้
-     * + แยกใน/นอกเวลาทำการด้วยเวลา receiveAt (fallback เป็น startTime)
-     * + รองรับฟิลเตอร์แผนก/พนักงาน/แพลตฟอร์ม
-     *
-     * ช่วงเวลาในทำการ: 08:00:00–17:00:00 (17:00:00 ยังนับเป็นในเวลา)
-     */
     public function inProgressByBusinessHours(Request $request)
     {
         $timeExpr = 'COALESCE(ac."receiveAt", ac."startTime")';

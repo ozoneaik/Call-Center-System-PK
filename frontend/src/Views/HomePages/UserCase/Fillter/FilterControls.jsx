@@ -55,13 +55,21 @@ export default function FilterControls({
         const e = sunday.toISOString().slice(0, 10);
         setStartDate(s); setEndDate(e); onApplyRange?.();
     };
+    
+    const formatDateLocal = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    };
+
     const applyThisMonth = () => {
         const now = new Date();
         const first = new Date(now.getFullYear(), now.getMonth(), 1);
         const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const s = first.toISOString().slice(0, 10);
-        const e = last.toISOString().slice(0, 10);
-        setStartDate(s); setEndDate(e); onApplyRange?.();
+        setStartDate(formatDateLocal(first));
+        setEndDate(formatDateLocal(last));
+        onApplyRange?.();
     };
 
     if (!fullWidth) {

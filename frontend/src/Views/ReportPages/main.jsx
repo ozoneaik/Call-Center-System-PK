@@ -1,9 +1,8 @@
 import { Box, Sheet } from "@mui/joy";
-import StatisticsCase from "../HomePages/StatisticsCase.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { Grid2 } from "@mui/material";
-
+import StatisticsCase from "../HomePages/StatisticsCase/index.jsx";
 export default function ReportPage() {
     return (
         <Sheet sx={ChatPageStyle.Layout}>

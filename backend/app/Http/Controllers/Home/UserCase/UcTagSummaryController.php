@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class UcTagSummaryController extends Controller
 {
-    // ดึงรายการแท็กทั้งหมด
     public function tags()
     {
         $rows = DB::connection('pgsql_real')->table('tag_menus')
@@ -22,7 +21,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ==== ของเดิม (สรุปแท็กวันนี้/สัปดาห์/เดือน) ยังใช้ได้เหมือนเดิม ====
     public function tagSummaryToday()
     {
         $today = Carbon::today();
@@ -219,7 +217,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // โหมดช่วงวันแบบยืดหยุ่น (ใช้กับหน้า/โมดอลเมื่อเลือกช่วง)
     public function closedRange(Request $request, $empCode)
     {
         $start = $request->query('start_date');
@@ -254,7 +251,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ====== ของเดิมอื่น ๆ ======
     public function inProgressByUser(string $empCode)
     {
         $today = Carbon::today();
@@ -283,7 +279,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ✅ เพิ่ม: ส่งต่อเคส "วันนี้"
     public function forwardedTodayByUser(string $empCode)
     {
         $start = Carbon::today()->startOfDay();
@@ -313,7 +308,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ✅ เพิ่ม: ส่งต่อเคส "ตามช่วงวันที่"
     public function forwardedRangeByUser(Request $request, string $empCode)
     {
         $start = $request->query('start_date');
@@ -349,7 +343,6 @@ class UcTagSummaryController extends Controller
         ]);
     }
 
-    // ของเดิม: ส่งต่อเคสทั้งหมด (ไม่กรองวัน)
     public function forwardedByUser(string $empCode)
     {
         $rows = DB::connection('pgsql_real')->table('active_conversations as ac')

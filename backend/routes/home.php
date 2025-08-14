@@ -53,6 +53,8 @@ Route::prefix('/home')->group(function () {
         Route::get('/in-progress-business-hours', [UcClosureStatsController::class, 'inProgressByBusinessHours']);
         Route::get('/closure-summary', [UcClosureStatsController::class, 'caseClosureTimeSummary']);
         Route::get('/pending-today', [UcClosureStatsController::class, 'pendingToday']);
+        Route::get('/after-hour-closed-cases', [UcClosureStatsController::class, 'afterHourClosedCases']);
+        Route::get('/in-hour-closed-cases', [UcClosureStatsController::class, 'inHourClosedCases']);
 
         Route::get('/export/closure-range.xlsx', [ExportExcelController::class, 'exportClosureRangeExcel']);
         Route::get('/export/after-hour-range.xlsx', [ExportExcelController::class, 'exportAfterHourRangeExcel']);

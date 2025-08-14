@@ -34,7 +34,7 @@ export default function EmployeeTable({
                         <th style={{ textAlign: "center" }}>ปิดเคสสัปดาห์นี้</th>
                         <th style={{ textAlign: "center" }}>ปิดเคสเดือนนี้</th>
                         <th style={{ textAlign: "center" }}>ส่งต่อเคส</th>
-                        <th style={{ width: "100px", textAlign: "center" }}>สถานะ</th>
+                        {/* <th style={{ width: "100px", textAlign: "center" }}>สถานะ</th> */}
                     </tr>
                 </thead>
                 <tbody>
@@ -137,7 +137,7 @@ export default function EmployeeTable({
                                     </Typography>
                                 </td>
 
-                                {/* สถานะ */}
+                                {/* สถานะ
                                 <td style={{ textAlign: "center", padding: "12px" }}>
                                     <Chip
                                         size="sm"
@@ -151,7 +151,7 @@ export default function EmployeeTable({
                                     >
                                         {employee.isActiveToday ? "Active" : "Inactive"}
                                     </Chip>
-                                </td>
+                                </td> */}
                             </tr>
                         );
                     })}

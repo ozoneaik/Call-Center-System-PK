@@ -19,7 +19,7 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                                 <Chip size="sm" variant="soft">
                                     {employee.department}
                                 </Chip>
-                                <Chip
+                                {/* <Chip
                                     size="sm"
                                     variant="soft"
                                     color={employee.isActiveToday ? 'success' : 'neutral'}
@@ -30,7 +30,7 @@ export default function EmployeeCards({ employees, onClickTodayClosed, onClickWe
                                     }}
                                 >
                                     {employee.isActiveToday ? 'Active' : 'Inactive'}
-                                </Chip>
+                                </Chip> */}
                             </Box>
                         </Stack>
                     </Box>

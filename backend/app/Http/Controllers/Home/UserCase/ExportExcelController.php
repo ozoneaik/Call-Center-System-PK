@@ -73,7 +73,8 @@ class ExportExcelController extends Controller
                 ->from('active_conversations as ac')
                 ->whereColumn('ac.rateRef', 'rates.id')
                 ->whereNotNull('ac.endTime')
-                ->whereBetween('ac.endTime', [$start, $end]);
+                ->whereBetween('ac.endTime', [$start, $end])
+                ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
             if ($dept)    $q->join('users as u_f', 'u_f.empCode', '=', 'ac.empCode')->where('u_f.description', $dept);
             if ($empCode) $q->where('ac.empCode', $empCode);
@@ -88,7 +89,8 @@ class ExportExcelController extends Controller
             $q->select(DB::raw(1))
                 ->from('active_conversations as ac')
                 ->whereColumn('ac.rateRef', 'rates.id')
-                ->whereBetween(DB::raw('ac."receiveAt"'), [$start, $end]);
+                ->whereBetween(DB::raw('ac."receiveAt"'), [$start, $end])
+                ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
             if ($dept)    $q->join('users as u_f', 'u_f.empCode', '=', 'ac.empCode')->where('u_f.description', $dept);
             if ($empCode) $q->where('ac.empCode', $empCode);
@@ -155,6 +157,7 @@ class ExportExcelController extends Controller
             ->leftJoin('users as from_emp', 'from_emp.empCode', '=', 'ac.from_empCode')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'ac.roomId')
             ->leftJoin('chat_rooms as from_chat_room', 'from_chat_room.roomId', '=', 'ac.from_roomId')
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->when($dept, fn($q) => $q->leftJoin('users as u_f', 'u_f.empCode', '=', 'ac.empCode')
                 ->where('u_f.description', $dept))
             ->when($empCode, fn($q) => $q->where('ac.empCode', $empCode))
@@ -180,7 +183,7 @@ class ExportExcelController extends Controller
                     })
                     ->orWhere(function ($w) use ($start, $end) {
                         $w->where('r.status', 'progress')
-                            ->whereBetween(DB::raw('ac."receiveAt"'), [$start, $end]); // << แก้จุดพัง
+                            ->whereBetween(DB::raw('ac."receiveAt"'), [$start, $end]);
                     });
             })
             ->select(
@@ -430,7 +433,9 @@ class ExportExcelController extends Controller
                 ->from('active_conversations as ac')
                 ->whereColumn('ac.rateRef', 'rates.id')
                 ->whereNotNull('ac.endTime')
-                ->whereBetween('ac.endTime', [$start, $end]);
+                ->whereBetween('ac.endTime', [$start, $end])
+                ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
 
             if ($dept) {
                 $q->join('users as u_f', 'u_f.empCode', '=', 'ac.empCode')
@@ -477,6 +482,7 @@ class ExportExcelController extends Controller
             ->whereIn('ac.rateRef', $rateIds)
             ->whereNotNull('ac.endTime')
             ->whereBetween('ac.endTime', [$start, $end])
+            ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->select(
                 'ac.*',
                 'users.name as empName',
@@ -575,7 +581,6 @@ class ExportExcelController extends Controller
         $sheet->fromArray($headers, null, 'A1');
         $sheet->getStyle('A1:U1')->getFont()->setBold(true);
 
-        // ➤ เลิก AutoSize: ใช้ความกว้างคงที่
         $colWidths = [
             'A' => 12,
             'B' => 24,
