@@ -15,7 +15,8 @@ const caseCategories = [
     { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" },
 ];
 
-export function QuickSummary({ todayWithPending, progressInOut, pendingTotal, afterHourCount = 0, onClickAfterHourToday, inHourCount = 0, onClickInHourToday }) {
+export function QuickSummary({ todayWithPending, progressInOut, pendingTotal, afterHourCount = 0, onClickAfterHourToday, inHourCount = 0, onClickInHourToday, onClickProgressInHourToday,
+    onClickProgressAfterHourToday }) {
     if (!todayWithPending) return null;
     return (
         <Box sx={{
@@ -31,8 +32,25 @@ export function QuickSummary({ todayWithPending, progressInOut, pendingTotal, af
                     🌙 นอกเวลา {afterHourCount || 0} เคส
                 </Chip>
             </Tooltip>
-            <Chip variant="soft" color="warning" size="md">กำลังดำเนินการ {progressInOut.in_time || 0} เคส</Chip>
-            <Chip variant="soft" color="neutral" size="md">รอรับ {pendingTotal || 0} เคส</Chip>
+            <Chip
+                variant="soft"
+                color="warning"
+                size="md"
+                onClick={onClickProgressInHourToday}
+                sx={{ cursor: 'pointer' }}
+            >
+                🛠️ กำลังดำเนินการ  {progressInOut.in_time || 0} เคส
+            </Chip>
+            {/* <Chip
+                variant="soft"
+                color="warning"
+                size="md"
+                onClick={onClickProgressAfterHourToday}
+                sx={{ cursor: 'pointer' }}
+            >
+                🛠️ กำลังดำเนินการ (นอกเวลา) {progressInOut.out_time || 0} เคส
+            </Chip> */}
+            <Chip variant="soft" color="second" size="md">รอรับ {pendingTotal || 0} เคส</Chip>
         </Box>
     );
 }
@@ -76,7 +94,7 @@ export default function StatCards({ data, afterHourData, showFilterInfoAlert = f
                             key={item.key}
                             variant="outlined"
                             sx={{
-                                flex: `0 0 ${CARD_WIDTH}px`, 
+                                flex: `0 0 ${CARD_WIDTH}px`,
                                 scrollSnapAlign: "start",
                                 borderLeft: `6px solid ${item.color}`,
                                 borderRadius: 3,

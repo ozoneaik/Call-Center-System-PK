@@ -15,6 +15,7 @@ import TagCaseDetailModal from "../Reports/TagCaseDetailModal";
 
 import { bucketsToKeyed, downloadExcel, valueDisplay } from "./helpers";
 import AfterHourListModal from "./AfterHourListModal";
+import InProgressListModal from "./InProgressListModal";
 
 export default function StatisticsCase() {
     const [today] = useState(dayjs().format("YYYY-MM-DD"));
@@ -72,6 +73,61 @@ export default function StatisticsCase() {
     const [selectedTag, setSelectedTag] = useState(null);
     const [tagCaseRows, setTagCaseRows] = useState([]);
 
+    const [showProgInModal, setShowProgInModal] = useState(false);
+    const [showProgOutModal, setShowProgOutModal] = useState(false);
+
+    const [progList, setProgList] = useState([]);
+    const [progLoading, setProgLoading] = useState(false);
+    const [progPage, setProgPage] = useState(1);
+    const [progPerPage, setProgPerPage] = useState(50);
+    const [progTotal, setProgTotal] = useState(0);
+    const [progHours, setProgHours] = useState("in");
+
+    const fetchProgressList = async ({
+        s = today,
+        e = today,
+        page = progPage,
+        perPage = progPerPage,
+        hours = progHours, // in/out/all
+    } = {}) => {
+        const params = {
+            start_date: s,
+            end_date: e,
+            page,
+            per_page: perPage,
+            hours,
+            platform_id: filterPlatform || undefined,
+            dept: filterDept || undefined,
+            empCode: filterEmp || undefined,
+        };
+        try {
+            setProgLoading(true);
+            const { data } = await axiosClient.get("home/user-case/in-progress-cases", { params });
+            setProgList(data?.data || []);
+            setProgTotal(data?.pagination?.total || 0);
+        } catch (e) {
+            console.error("❌ in-progress-cases error:", e);
+            setProgList([]);
+            setProgTotal(0);
+        } finally {
+            setProgLoading(false);
+        }
+    };
+
+    const openProgressInToday = async () => {
+        setProgHours("in");
+        setProgPage(1);
+        await fetchProgressList({ s: today, e: today, page: 1, hours: "in" });
+        setShowProgInModal(true);
+    };
+
+    const openProgressOutToday = async () => {
+        setProgHours("out");
+        setProgPage(1);
+        await fetchProgressList({ s: today, e: today, page: 1, hours: "out" });
+        setShowProgOutModal(true);
+    };
+
     useEffect(() => {
         setIsLoading(true);
         (async () => {
@@ -102,7 +158,7 @@ export default function StatisticsCase() {
                 console.error("reload employees failed", e);
             }
         })();
-    }, [filterDept]); 
+    }, [filterDept]);
 
     useEffect(() => {
         const baseParams = {
@@ -205,7 +261,7 @@ export default function StatisticsCase() {
                 setTagStats(rows);
             })
             .catch((err) => console.error("❌ tagWorkloadSummary error:", err));
-    }, [today, filterPlatform, filterDept, filterEmp]); 
+    }, [today, filterPlatform, filterDept, filterEmp]);
 
     const todayWithPending = todayStats ? { ...todayStats, pending: pendingTotal } : null;
     const showFilterInfoAlert = !!(filterPlatform || filterDept || filterEmp);
@@ -220,7 +276,7 @@ export default function StatisticsCase() {
         }, { onStart: () => setExporting(true), onDone: () => setExporting(false) });
 
     const afterHourCount = afterHourStats?.total ?? 0;
-    const inHourCount = todayStats?.total ?? 0; 
+    const inHourCount = todayStats?.total ?? 0;
     const fetchAfterHourList = async ({
         s = afterHourStartDate,
         e = afterHourEndDate,
@@ -303,7 +359,7 @@ export default function StatisticsCase() {
     };
 
     return (
-        <Box sx={{ p: 3, pt: 0 }}>
+        <Box sx={{ p: 0, pt: 0 }}>
             <Typography level="h2" mb={2}>📊 สถิติการปิดเคส </Typography>
 
             <FilterBar
@@ -330,6 +386,8 @@ export default function StatisticsCase() {
                 onClickAfterHourToday={openAfterHourTodayList}
                 inHourCount={inHourCount}
                 onClickInHourToday={openInHourTodayList}
+                onClickProgressInHourToday={openProgressInToday}
+                onClickProgressAfterHourToday={openProgressOutToday}
             />
 
             {!todayWithPending || !afterHourStats ? (
@@ -417,6 +475,36 @@ export default function StatisticsCase() {
                 onChangePage={(p) => { setIhPage(p); fetchInHourList({ page: p }); }}
                 onChangePerPage={(pp) => { setIhPerPage(pp); setIhPage(1); fetchInHourList({ page: 1, perPage: pp }); }}
             />
+
+            <InProgressListModal
+                open={showProgInModal}
+                onClose={() => setShowProgInModal(false)}
+                title="🛠️ กำลังดำเนินการ"
+                rows={progList}
+                loading={progLoading}
+                page={progPage}
+                perPage={progPerPage}
+                total={progTotal}
+                hours={progHours}
+                setHours={(h) => { setProgHours(h); setProgPage(1); fetchProgressList({ page: 1, hours: h }); }}
+                onChangePage={(p) => { setProgPage(p); fetchProgressList({ page: p }); }}
+                onChangePerPage={(pp) => { setProgPerPage(pp); setProgPage(1); fetchProgressList({ page: 1, perPage: pp }); }}
+            />
+
+            {/* <InProgressListModal
+                open={showProgOutModal}
+                onClose={() => setShowProgOutModal(false)}
+                title="🛠️ กำลังดำเนินการ (นอกเวลา)"
+                rows={progList}
+                loading={progLoading}
+                page={progPage}
+                perPage={progPerPage}
+                total={progTotal}
+                hours={progHours}
+                setHours={(h) => { setProgHours(h); setProgPage(1); fetchProgressList({ page: 1, hours: h }); }}
+                onChangePage={(p) => { setProgPage(p); fetchProgressList({ page: p }); }}
+                onChangePerPage={(pp) => { setProgPerPage(pp); setProgPage(1); fetchProgressList({ page: 1, perPage: pp }); }}
+            /> */}
 
             <Modal open={exporting}>
                 <ModalDialog sx={{ p: 3, width: 360, textAlign: "center" }}>
