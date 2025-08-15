@@ -16,6 +16,10 @@ return new class extends Migration
             $table->string('group_id')->unique();
             $table->string('group_name');
             $table->string('group_description')->nullable();
+            $table->string('created_by_user_id')->nullable();
+            $table->string('updated_by_user_id')->nullable();
+            $table->string('deleted__by_user_id')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }
