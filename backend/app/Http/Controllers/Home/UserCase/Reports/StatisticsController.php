@@ -24,7 +24,7 @@ class StatisticsController extends Controller
         $rows = DB::connection('pgsql_real')
             ->table('platform_access_tokens as pat')
             ->select('pat.id', 'pat.platform', 'pat.description')
-            ->whereNotIn('pat.description', ['ChatBot', 'OZONEAIK'])  
+            ->whereNotIn('pat.description', ['ChatBot', 'OZONEAIK'])
             ->orderBy('pat.platform', 'asc')
             ->orderBy('pat.description', 'asc')
             ->get()
@@ -72,52 +72,99 @@ class StatisticsController extends Controller
         return response()->json($rows);
     }
 
+    private function applyPlatformFilterAlias($q, $platformId, $acAlias = 'ac')
+    {
+        if (!$platformId) return $q;
+
+        return $q
+            ->join("customers as c_pf_$acAlias", "c_pf_$acAlias.custId", '=', DB::raw("\"$acAlias\".\"custId\""))
+            ->join("platform_access_tokens as pat_pf_$acAlias", "pat_pf_$acAlias.id", '=', "c_pf_$acAlias.platformRef")
+            ->where("pat_pf_$acAlias.id", $platformId);
+    }
+
     public function employeeWorkloadSummary(Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $today      = Carbon::today('Asia/Bangkok')->toDateString();
 
-        $q = DB::connection('pgsql_real')->table('rates as r')
-            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-            ->join('users as u', 'u.empCode', '=', 'ac.empCode')
-            ->select(
-                'ac.empCode',
-                'u.name',
-                DB::raw('COUNT(*) as total'),
-                DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 60) as within_1_min'),
-                DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 60 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 300) as one_to_five_min'),
-                DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 300 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 600) as five_to_ten_min'),
-                DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 600) as over_ten_min')
-            )
-            ->where('r.status', 'success')
-            ->whereDate('ac.endTime', today())
-            ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+        $successAgg = DB::connection('pgsql_real')->table('rates as r_s')
+            ->join('active_conversations as ac_s', 'ac_s.rateRef', '=', 'r_s.id')
+            ->leftJoin('users as u_s', 'u_s.empCode', '=', 'ac_s.empCode')
+            ->when($dept, fn($q) => $q->where('u_s.description', $dept))
+            ->where('r_s.status', 'success')
+            ->whereDate('ac_s.endTime', $today)
+            ->whereNotIn('ac_s.empCode', ['BOT', 'adminIT']);
 
-        if ($dept)    $q->where('u.description', $dept);
-        if ($empCode) $q->where('ac.empCode', $empCode);
-        $q = $this->applyPlatformFilter($q, $platformId);
+        $successAgg = $this->applyPlatformFilterAlias($successAgg, $platformId, 'ac_s');
 
-        $results = $q->groupBy('ac.empCode', 'u.name')->orderByDesc('total')->get();
-        $totalAll = $results->sum('total');
+        $successAgg = $successAgg
+            ->groupBy('ac_s.empCode')
+            ->selectRaw('
+            ac_s."empCode" as "empCode",
+            COUNT(*) as total_success,
+            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 60) as within_1_min,
+            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 60 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 300) as one_to_five_min,
+            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 300 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 600) as five_to_ten_min,
+            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 600) as over_ten_min
+        ');
 
-        foreach ($results as $row) {
-            $row->percentage = $totalAll ? round(($row->total / $totalAll) * 100, 2) : 0.0;
+        $progressAgg = DB::connection('pgsql_real')->table('rates as r_p')
+            ->join('active_conversations as ac_p', 'ac_p.rateRef', '=', 'r_p.id')
+            ->leftJoin('users as u_p', 'u_p.empCode', '=', 'ac_p.empCode')
+            ->when($dept, fn($q) => $q->where('u_p.description', $dept))
+            ->where('r_p.status', 'progress')
+            ->whereDate('ac_p.receiveAt', $today)
+            ->whereNotIn('ac_p.empCode', ['BOT', 'adminIT']);
 
-            $inProgress = DB::connection('pgsql_real')->table('rates as r')
-                ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-                ->join('users as u', 'u.empCode', '=', 'ac.empCode')
-                ->where('r.status', 'progress')
-                ->where('ac.empCode', $row->empCode)
-                ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
-                ->whereDate('ac.receiveAt', Carbon::today());
+        $progressAgg = $this->applyPlatformFilterAlias($progressAgg, $platformId, 'ac_p');
 
-            if ($dept) $inProgress->where('u.description', $dept);
-            $inProgress = $this->applyPlatformFilter($inProgress, $platformId);
+        $progressAgg = $progressAgg
+            ->groupBy('ac_p.empCode')
+            ->selectRaw('
+            ac_p."empCode" as "empCode",
+            COUNT(*) as in_progress
+        ');
 
-            $row->in_progress = (int) $inProgress->count();
+        $base = DB::connection('pgsql_real')->table('users as u')
+            ->selectRaw('
+            u."empCode",
+            u."name",
+            COALESCE(s.total_success, 0) as total,
+            COALESCE(s.within_1_min, 0) as within_1_min,
+            COALESCE(s.one_to_five_min, 0) as one_to_five_min,
+            COALESCE(s.five_to_ten_min, 0) as five_to_ten_min,
+            COALESCE(s.over_ten_min, 0) as over_ten_min,
+            COALESCE(p.in_progress, 0) as in_progress
+        ')
+            ->leftJoinSub($successAgg, 's', 's.empCode', '=', 'u.empCode')
+            ->leftJoinSub($progressAgg, 'p', 'p.empCode', '=', 'u.empCode')
+            ->whereNotIn('u.empCode', ['BOT', 'adminIT'])
+            ->when($dept, fn($q) => $q->where('u.description', $dept))
+            ->when($empCode, fn($q) => $q->where('u.empCode', $empCode))
+            ->whereRaw('NULLIF(TRIM(u."name"), \'\') IS NOT NULL');
+
+        $rows = $base
+            ->where(function ($q) {
+                $q->whereRaw('COALESCE(s.total_success,0) > 0')
+                    ->orWhereRaw('COALESCE(p.in_progress,0) > 0');
+            })
+            ->orderByDesc('total')
+            ->orderByDesc('in_progress')
+            ->get();
+
+        $totalAllSuccess = $rows->sum('total');
+        foreach ($rows as $row) {
+            $row->percentage      = $totalAllSuccess ? round(($row->total / $totalAllSuccess) * 100, 2) : 0.0;
+            $row->total           = (int) $row->total;
+            $row->one_to_five_min = (int) $row->one_to_five_min;
+            $row->five_to_ten_min = (int) $row->five_to_ten_min;
+            $row->over_ten_min    = (int) $row->over_ten_min;
+            $row->in_progress     = (int) $row->in_progress;
         }
-        return response()->json(['data' => $results]);
+
+        return response()->json(['data' => $rows]);
     }
 
     public function tagWorkloadSummary(Request $request)

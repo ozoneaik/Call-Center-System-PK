@@ -88,26 +88,28 @@ export default function AfterHourListModal({
                     >
                         <thead>
                             <tr>
-                                <th>#</th>
+                                <th style={{ width: 60 }}>#</th>
                                 <th>ลูกค้า</th>
                                 <th>พนักงาน</th>
                                 <th>ห้อง</th>
                                 <th>รับเมื่อ</th>
                                 <th>ปิดเมื่อ</th>
-                                <th>ช่วงเวลาปิด</th>
+                                <th className="wrap">ช่วงเวลาปิด</th>
                                 <th className="wrap">แท็ก</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rows.map((r, idx) => (
                                 <tr key={r.conversation_id}>
-                                    <td>{idx + 1}</td>
+                                    <td style={{ width: 60 }}>{idx + 1}</td>
                                     <td style={{ textAlign: 'left' }}>{r.customer_name}</td>
                                     <td>{r.employee_name}</td>
                                     <td style={{ textAlign: 'left' }}>{r.roomName}</td>
                                     <td>{dayjs(r.accepted_at).format('DD/MM/YYYY HH:mm')}</td>
                                     <td>{dayjs(r.endTime).format('DD/MM/YYYY HH:mm')}</td>
-                                    <td>{r.close_range_label} ({r.duration_secs}s)</td>
+                                    <td className="wrap">
+                                        {r.duration_bucket} ({r.duration_mins} นาที)
+                                    </td>
                                     <td className="wrap">{r.tag_name}</td>
                                 </tr>
                             ))}
@@ -127,6 +129,7 @@ export default function AfterHourListModal({
                         <Button size="sm" disabled={page >= totalPages} onClick={() => onChangePage(page + 1)}>ถัดไป</Button>
                     </Box>
                 </Box>
+                
             </ModalDialog>
         </Modal>
     );

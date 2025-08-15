@@ -61,13 +61,11 @@ class ExportExcelController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
 
-        // success = ปิดในช่วง, pending = สร้างในช่วง, progress = รับเรื่องในช่วง (receiveAt เคร่งครัด)
         $statusesWant = ['success', 'pending', 'progress'];
         $wantSuccess  = in_array('success', $statusesWant, true);
         $wantPending  = in_array('pending', $statusesWant, true);
         $wantProgress = in_array('progress', $statusesWant, true);
 
-        // subquery: ปิดในช่วง (สำหรับ success)
         $closedExists = function ($q) use ($start, $end, $dept, $empCode, $platformId) {
             $q->select(DB::raw(1))
                 ->from('active_conversations as ac')
@@ -101,7 +99,6 @@ class ExportExcelController extends Controller
             }
         };
 
-        // 1) main cases
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
@@ -150,7 +147,11 @@ class ExportExcelController extends Controller
         $mainCases = $mainQuery->orderBy('rates.id', 'desc')->get();
         $rateIds   = $mainCases->pluck('id')->toArray();
 
-        $secsExpr = 'GREATEST(EXTRACT(EPOCH FROM (COALESCE(ac."startTime", ac."receiveAt") - r."created_at")), 0)';
+        // ✅ ใช้ accepted_at และ close_minutes แยกกัน
+        $acceptedExpr    = 'COALESCE(ac."receiveAt", ac."startTime")';
+        $acceptSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";
+        $closeSecsExpr   = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";
+
         $subCases = DB::connection('pgsql_real')->table('active_conversations as ac')
             ->join('rates as r', 'r.id', '=', 'ac.rateRef')
             ->leftJoin('users', 'users.empCode', '=', 'ac.empCode')
@@ -176,10 +177,7 @@ class ExportExcelController extends Controller
                 })
                     ->orWhere(function ($w) use ($start, $end) {
                         $w->where('r.status', 'pending')
-                            ->where(function ($z) use ($start, $end) {
-                                $z->whereBetween(DB::raw('COALESCE(ac."startTime", ac."receiveAt")'), [$start, $end])
-                                    ->orWhereBetween('ac.created_at', [$start, $end]);
-                            });
+                            ->whereBetween(DB::raw('COALESCE(ac."startTime", ac."receiveAt")'), [$start, $end]);
                     })
                     ->orWhere(function ($w) use ($start, $end) {
                         $w->where('r.status', 'progress')
@@ -192,14 +190,14 @@ class ExportExcelController extends Controller
                 'from_emp.name as from_empName',
                 DB::raw('chat_rooms."roomName" as "roomName"'),
                 DB::raw('from_chat_room."roomName" as "from_roomName"'),
-                DB::raw('COALESCE(ac."startTime", ac."receiveAt") as accepted_at'),
+                DB::raw("$acceptedExpr as accepted_at"),
                 DB::raw(
-                    "FLOOR(($secsExpr)/86400)::int || ' วัน ' || " .
-                        "FLOOR(MOD(($secsExpr), 86400)/3600)::int || ' ชั่วโมง ' || " .
-                        "FLOOR(MOD(($secsExpr), 3600)/60)::int || ' นาที ' || " .
-                        "FLOOR(MOD(($secsExpr), 60))::int || ' วินาที' as accept_hhmmss"
+                    "FLOOR(($acceptSecsExpr)/86400)::int || ' วัน ' || 
+                     FLOOR(MOD(($acceptSecsExpr), 86400)/3600)::int || ' ชั่วโมง ' || 
+                     FLOOR(MOD(($acceptSecsExpr), 3600)/60)::int || ' นาที ' || 
+                     FLOOR(MOD(($acceptSecsExpr), 60))::int || ' วินาที' as accept_hhmmss"
                 ),
-                DB::raw("FLOOR(($secsExpr) / 60)::int as close_minutes")
+                DB::raw("FLOOR(($closeSecsExpr) / 60)::int as close_minutes")
             )
             ->get()
             ->groupBy('rateRef');
@@ -428,6 +426,7 @@ class ExportExcelController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
 
+        // เงื่อนไข: เคสปิดสำเร็จในช่วงเวลา
         $closedExists = function ($q) use ($start, $end, $dept, $empCode) {
             $q->select(DB::raw(1))
                 ->from('active_conversations as ac')
@@ -435,7 +434,6 @@ class ExportExcelController extends Controller
                 ->whereNotNull('ac.endTime')
                 ->whereBetween('ac.endTime', [$start, $end])
                 ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
-
 
             if ($dept) {
                 $q->join('users as u_f', 'u_f.empCode', '=', 'ac.empCode')
@@ -446,6 +444,7 @@ class ExportExcelController extends Controller
             }
         };
 
+        // main เคส (rate) ที่ปิดสำเร็จในช่วง
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->where('rates.status', 'success')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
@@ -460,6 +459,7 @@ class ExportExcelController extends Controller
             )
             ->orderBy('rates.id', 'desc');
 
+        // filter platform (หากเลือก)
         if ($platformId) {
             $mainQuery->leftJoin('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'customers.platformRef')
                 ->where('pat_pf.id', $platformId);
@@ -468,8 +468,12 @@ class ExportExcelController extends Controller
         $mainCases = $mainQuery->get();
         $rateIds   = $mainCases->pluck('id')->toArray();
 
-        $secsExpr = 'GREATEST(EXTRACT(EPOCH FROM (COALESCE(ac."startTime", ac."receiveAt") - r."created_at")), 0)';
+        // ====== จุดแก้หลัก: แยก accepted_at / acceptSecsExpr / closeSecsExpr ======
+        $acceptedExpr   = 'COALESCE(ac."receiveAt", ac."startTime")';
+        $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";                  // created_at -> accepted_at
+        $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";                   // accepted_at -> endTime
 
+        // sub เคส (active_conversations) ที่เกี่ยวข้อง
         $subCases = DB::connection('pgsql_real')->table('active_conversations as ac')
             ->join('rates as r', 'r.id', '=', 'ac.rateRef')
             ->leftJoin('users', 'users.empCode', '=', 'ac.empCode')
@@ -489,18 +493,19 @@ class ExportExcelController extends Controller
                 'from_emp.name as from_empName',
                 DB::raw('chat_rooms."roomName" as "roomName"'),
                 DB::raw('from_chat_room."roomName" as "from_roomName"'),
-                DB::raw('COALESCE(ac."startTime", ac."receiveAt") as accepted_at'),
+                DB::raw("$acceptedExpr as accepted_at"),
                 DB::raw(
-                    "FLOOR(($secsExpr)/86400)::int || ' วัน ' || " .
-                        "FLOOR(MOD(($secsExpr), 86400)/3600)::int || ' ชั่วโมง ' || " .
-                        "FLOOR(MOD(($secsExpr), 3600)/60)::int || ' นาที ' || " .
-                        "FLOOR(MOD(($secsExpr), 60))::int || ' วินาที' as accept_hhmmss"
+                    "FLOOR(($acceptSecsExpr)/86400)::int || ' วัน ' ||
+                 FLOOR(MOD(($acceptSecsExpr), 86400)/3600)::int || ' ชั่วโมง ' ||
+                 FLOOR(MOD(($acceptSecsExpr), 3600)/60)::int || ' นาที ' ||
+                 FLOOR(MOD(($acceptSecsExpr), 60))::int || ' วินาที' as accept_hhmmss"
                 ),
-                DB::raw("FLOOR(($secsExpr) / 60)::int as close_minutes")
+                DB::raw("FLOOR(($closeSecsExpr) / 60)::int as close_minutes")
             )
             ->get()
             ->groupBy('rateRef');
 
+        // รวม totalTime ต่อ rate (โค้ดเดิม)
         foreach ($mainCases as $k => $rate) {
             $current = $subCases->get($rate->id, collect());
             $totalH = 0;
@@ -532,9 +537,9 @@ class ExportExcelController extends Controller
                     $totalM += (int)$m;
                     $totalS += (int)$s;
 
-                    $current[$idx]->tagName = ($sub->id == $latestSubId) ? ($rate->tagName ?? 'ไม่ระบุแท็ก') : 'ส่งต่อ';
-                    $current[$idx]->close_minutes = isset($sub->close_minutes) ? (int)$sub->close_minutes : 0;
-                    $current[$idx]->close_bucket  = $this->bucketCloseMinutes($current[$idx]->close_minutes);
+                    $current[$idx]->tagName        = ($sub->id == $latestSubId) ? ($rate->tagName ?? 'ไม่ระบุแท็ก') : 'ส่งต่อ';
+                    $current[$idx]->close_minutes  = isset($sub->close_minutes) ? (int)$sub->close_minutes : 0;
+                    $current[$idx]->close_bucket   = $this->bucketCloseMinutes($current[$idx]->close_minutes);
 
                     if (empty($sub->totalTime)) {
                         $current[$idx]->totalTime = $this->humanizeSeconds(($h * 3600) + ($m * 60) + $s);
@@ -543,14 +548,15 @@ class ExportExcelController extends Controller
             }
 
             $totalM += intdiv($totalS, 60);
-            $totalS = $totalS % 60;
+            $totalS %= 60;
             $totalH += intdiv($totalM, 60);
-            $totalM = $totalM % 60;
+            $totalM %= 60;
 
             $rate->totalTime = "{$totalH} ชั่วโมง {$totalM} นาที {$totalS} วินาที";
             $rate->sub_case  = $current;
         }
 
+        // สร้างไฟล์ Excel (เหมือนเดิม)
         $headers = [
             'ID เคสหลัก',
             'ชื่อลูกค้า',
@@ -580,34 +586,6 @@ class ExportExcelController extends Controller
         $sheet->setTitle('DetailedCases');
         $sheet->fromArray($headers, null, 'A1');
         $sheet->getStyle('A1:U1')->getFont()->setBold(true);
-
-        $colWidths = [
-            'A' => 12,
-            'B' => 24,
-            'C' => 12,
-            'D' => 12,
-            'E' => 24,
-            'F' => 18,
-            'G' => 20,
-            'H' => 14,
-            'I' => 12,
-            'J' => 20,
-            'K' => 22,
-            'L' => 22,
-            'M' => 16,
-            'N' => 22,
-            'O' => 20,
-            'P' => 20,
-            'Q' => 20,
-            'R' => 16,
-            'S' => 18,
-            'T' => 20,
-            'U' => 24
-        ];
-        foreach ($colWidths as $col => $w) {
-            $sheet->getColumnDimension($col)->setAutoSize(false);
-            $sheet->getColumnDimension($col)->setWidth($w);
-        }
 
         $r = 2;
         foreach ($mainCases as $rate) {
@@ -684,9 +662,9 @@ class ExportExcelController extends Controller
             }
             $writer->save('php://output');
         }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type'  => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
+            'Pragma'        => 'no-cache',
         ]);
     }
 }

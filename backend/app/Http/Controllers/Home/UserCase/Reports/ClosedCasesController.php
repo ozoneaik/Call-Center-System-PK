@@ -83,7 +83,7 @@ class ClosedCasesController extends Controller
             ac."receiveAt",
             COALESCE(ac."receiveAt", ac."startTime") AS accepted_at,
             ac."endTime",
-            FLOOR(GREATEST(EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")), 0))::int AS duration_secs,
+            FLOOR(GREATEST(EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) / 60, 0))::int AS duration_mins,
             CASE
                 WHEN EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) <= 60    THEN \'ภายใน 1 นาที\'
                 WHEN EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) <= 300   THEN \'1-5 นาที\'
@@ -179,7 +179,7 @@ class ClosedCasesController extends Controller
             ac."receiveAt",
             COALESCE(ac."receiveAt", ac."startTime") AS accepted_at,
             ac."endTime",
-            FLOOR(GREATEST(EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")), 0))::int AS duration_secs,
+            FLOOR(GREATEST(EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) / 60, 0))::int AS duration_mins,
             CASE
                 WHEN EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) <= 60    THEN \'ภายใน 1 นาที\'
                 WHEN EXTRACT(EPOCH FROM (ac."endTime" - ac."startTime")) <= 300   THEN \'1-5 นาที\'
