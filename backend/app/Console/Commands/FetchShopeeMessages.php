@@ -63,7 +63,7 @@ class FetchShopeeMessages extends Command
                 }
             }
             $this->info('Finished fetching Shopee messages.');
-            sleep(10);
+            sleep(20);
         }
         return 0;
     }

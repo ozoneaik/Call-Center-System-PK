@@ -228,29 +228,25 @@ Route::prefix('webhooks')->group(function () {
     Route::get('/facebook', [FacebookController::class, 'webhook']);
     Route::post('/facebook', [FacebookController::class, 'webhookFacebook']);
 
-    //http://localhost:8000/api/webhooks/shopee
-    //https://e0c2e59fd590.ngrok-free.app/api/webhooks/shopee
     Route::post('/lazada', [LazadaController::class, 'handleWebhook']);
     Route::get('/lazada-new/callback', [LazadaNewController::class, 'handleCallback']);
     Route::post('/lazada/refresh-token', [LazadaNewController::class, 'refreshToken']);
     Route::get('/lazada/token/check-expiry/{seller_id}', [LazadaNewController::class, 'checkTokenExpiry']);
+
+    Route::post('/lazada/sign', [LazadaController::class, 'sign'])
+        ->middleware('throttle:60,1'); // กันยิงถี่เกินไป
+    Route::post('/lazada/test-send-video', [LazadaController::class, 'sendVideoTest']);
+
     // Route::get('/lazada/seller-info', [LazadaSellerController::class, 'getSellerInfo']);
 
     //https://e0c2e59fd590.ngrok-free.app/api/webhooks/tiktok/callback?code=TESTCODE123&state=xyz
-    //http://localhost:8000/api/webhooks/tiktok/callback
     Route::get('/tiktok/callback', [TiktokTokenController::class, 'getAccessToken']);
 
     //http://localhost:8000/api/webhooks/tiktok/refresh/4gPXdwAAAAB7HWd9mn6rjsgcvelGBum-Qct-Jg2XItHDSi0TDI7wbw
     Route::get('/tiktok/refresh/{open_id}', [TiktokTokenController::class, 'refreshAccessToken']);
-
-    // === Route สำหรับดึงข้อมูลร้านค้า ===
-    //http://localhost:8000/api/webhooks/tiktok/get-shops
     Route::get('/tiktok/get-shops', [TikTokShopController::class, 'getAuthorizedShops']);
-
-    //http://localhost:8000/api/webhooks/tiktok/order-detail
     Route::get('/tiktok/order-detail', [TikTokShopController::class, 'getOrderDetail']);
 
-    //http://localhost:8000/api/webhooks/tiktok/conversations
     Route::prefix('tiktok')->group(function () {
         // Existing routesw
         Route::get('/authorized-shops', [TikTokShopController::class, 'getAuthorizedShops']);

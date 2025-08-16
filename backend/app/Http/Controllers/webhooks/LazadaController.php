@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
 
 class LazadaController extends Controller
 {
@@ -327,5 +328,83 @@ class LazadaController extends Controller
             }
         }
         return false;
+    }
+
+    public function sign(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'api_path'             => ['required', 'string', 'starts_with:/'],
+            'params'               => ['nullable', 'array'],
+            'include_access_token' => ['nullable', 'boolean'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation error',
+                'errors'  => $v->errors(),
+            ], 422);
+        }
+
+        $apiPath  = $request->input('api_path');
+        $params   = $request->input('params', []);
+        $withTok  = $request->boolean('include_access_token', true);
+
+        $commonParams = [
+            'app_key'     => env('LAZADA_APP_KEY'),
+            'sign_method' => 'sha256',
+            'timestamp'   => (int) round(microtime(true) * 1000),
+        ];
+
+        if ($withTok) {
+            $commonParams['access_token'] = env('LAZADA_ACCESS_TOKEN');
+        }
+
+        // รวมและเรียงคีย์
+        $merged = array_merge($commonParams, $params);
+        ksort($merged);
+
+        // Build stringToSign = apiPath + (key + value ... เฉพาะ scalar)
+        $stringToSign = $apiPath;
+        foreach ($merged as $key => $value) {
+            if (is_scalar($value)) {
+                $stringToSign .= $key . (string) $value;
+            }
+        }
+
+        // สร้าง sign
+        $secret = env('LAZADA_APP_SECRET');
+        $merged['sign'] = strtoupper(hash_hmac('sha256', $stringToSign, $secret));
+
+        return response()->json([
+            'status'        => true,
+            'api_path'      => $apiPath,
+            'signed_params' => $merged,
+        ]);
+    }
+
+    public function sendVideoTest(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|string',
+            'video' => 'required|file|mimetypes:video/mp4,video/quicktime,video/webm|max:51200', // <= 50MB
+        ]);
+
+        // เก็บไฟล์ลง storage ชั่วคราว
+        $path = $request->file('video')->store('tmp_lazada_videos', 'local');
+        $fullPath = storage_path('app/' . $path);
+
+        try {
+            LazadaMessageService::sendVideo($request->input('session_id'), $fullPath);
+            return response()->json([
+                'status' => true,
+                'message' => 'Video sent successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
