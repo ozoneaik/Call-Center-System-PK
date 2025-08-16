@@ -41,7 +41,7 @@ class FilterCase
             // เช็คก่อนว่า มี $customer หรือ $message หรือ $platformAccessToken ครบทั้งสามอย่างหรือไม่
             $check_params = $this->checkParams($customer, $message, $platformAccessToken);
             //ดึงข้อมูล BOT ของแต่ละ platform
-            $this->BOT = $this->getBotData($platformAccessToken['platform']);
+            $this->BOT = User::query()->where('empCode', 'BOT')->first();
             if (!$check_params['status']) throw new \Exception($check_params['message']);
             $this->MESSAGE = $message;
             $this->CUSTOMER = $customer;
@@ -51,16 +51,16 @@ class FilterCase
             $current_rate = Rates::query()->where('custId', $customer['custId'])
                 ->orderBy('id', 'desc')->first();
             if (!$current_rate) {
-                $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+                $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'pending') {
-                $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+                $case = $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } elseif ($current_rate['status'] === 'progress') {
-                $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+                $case = $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             } else {
-                $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+                $case = $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
             }
             Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
-            return ['status' => true, 'message' => 'กรองสำเร็จ'];
+            return ['status' => true, 'case' => $case];
         } catch (\Exception $e) {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -84,20 +84,5 @@ class FilterCase
                 'message' => $msg_error ?? $msg_error_default
             ];
         }
-    }
-
-    private function getBotData($platform) {
-        $bot = [];
-        switch(strtoupper($platform)){
-            case 'LINE':
-                $bot = User::query()->where('empCode' , 'BOT')->first();
-                break;
-            case 'FACEBOOK':
-                $bot = User::query()->where('empCode' , 'BOT_FACEBOOK')->first();
-                break;
-            default:
-                $bot = User::query()->where('empCode' , 'BOT')->first();
-        }
-        return $bot;
     }
 }

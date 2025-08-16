@@ -7,27 +7,23 @@ use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class SuccessCase
 {
 
     protected PusherService $pusherService;
-    protected ReplyMessage $replyMessage;
     protected CheckKeyword $checkKeyword;
 
-    public function __construct(PusherService $pusherService, ReplyMessage $replyMessage, CheckKeyword $checkKeyword)
+    public function __construct(PusherService $pusherService, CheckKeyword $checkKeyword)
     {
         $this->pusherService = $pusherService;
-        $this->replyMessage = $replyMessage;
         $this->checkKeyword = $checkKeyword;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
-        // ถ้า updated_at(2025-08-07 21:23:23.000) ก่อนหน้า น้อยกว่า หรือ เท่ากับ 12 ชั่วโมง (2025-08-07 21:40:23.000)
-
+        // ถ้าเคสก่อนหน้าผ่านมาภายใน 12 ชั่วโมง
         if ($current_rate['updated_at'] >= now()->subHours(12)) {
-            $keyword = $this->checkKeyword->check($message,'success');
+            $keyword = $this->checkKeyword->check($message, 'success');
             if ($keyword['status'] && !$keyword['redirectTo']) {
                 $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
                     ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
@@ -41,31 +37,93 @@ class SuccessCase
                     'line_quote_token' => $message['line_quote_token'] ?? null,
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
-                return;
+                return ['status' => true, 'send_to_cust' => false];
+            } else {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'rate' => 0,
+                    'latestRoomId' => $current_rate['latestRoomId'],
+                    'status' => 'pending',
+                ]);
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'rateRef' => $new_rate['id'],
+                ]);
+                ChatHistory::query()->create([
+                    'custId' => $current_rate['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $new_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
+                $this->pusherService->sendNotification($customer['custId']);
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'sended',
+                    'type_message' => 'reply',
+                    'messages' => [['content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่', 'contentType' => 'text']],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
             }
-            $new_rate = Rates::query()->create([
-                'custId' => $customer['custId'],
-                'rate' => 0,
-                'latestRoomId' => $current_rate['latestRoomId'],
-                'status' => 'pending',
-            ]);
-            $new_ac = ActiveConversations::query()->create([
-                'custId' => $customer['custId'],
-                'roomId' => $new_rate['latestRoomId'],
-                'rateRef' => $new_rate['id'],
-            ]);
-        } else {
+        }
+        // ถ้าเคสก่อนหน้าผ่านมาเกิน 12 ชั่วโมง
+        else {
 
             $keyword = $this->checkKeyword->check($message);
 
-            if ($keyword['status'] && $keyword['redirectTo']) {
+            if ($keyword['status'] && $keyword['redirectTo_status']) {
                 $new_rate = Rates::query()->create([
                     'custId' => $customer['custId'],
                     'latestRoomId' => $keyword['redirectTo'],
                     'status' => 'pending',
                     'rate' => 0,
                 ]);
-            } elseif ($keyword['status'] && !$keyword['redirectTo']) {
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'receiveAt' => null,
+                    'startTime' => null,
+                    'empCode' => $bot['empCode'],
+                    'rateRef' => $new_rate['id']
+                ]);
+                ChatHistory::query()->create([
+                    'custId' => $customer['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $new_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
+                $this->pusherService->sendNotification($customer['custId']);
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'normal',
+                    'type_message' => 'reply',
+                    'messages' => [
+                        [
+                            'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                            'contentType' => 'text'
+                        ]
+                    ],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
+            } elseif ($keyword['status'] && !$keyword['redirectTo_status']) {
                 $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
                     ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
                 ChatHistory::query()->create([
@@ -85,92 +143,45 @@ class SuccessCase
                     'status' => 'progress',
                     'rate' => 0,
                 ]);
-            }
-
-            $new_rate = Rates::query()->create([
-                'custId' => $customer['custId'],
-                'rate' => 0,
-                'latestRoomId' => 'ROOM00',
-                'status' => 'progress',
-            ]);
-            $new_ac = ActiveConversations::query()->create([
-                'custId' => $customer['custId'],
-                'roomId' => $new_rate['latestRoomId'],
-                'rateRef' => $new_rate['id'],
-                'receiveAt' => Carbon::now(),
-                'startTime' => Carbon::now(),
-                'empCode' => $bot['empCode'],
-            ]);
-        }
-        $new_chat = ChatHistory::query()->create([
-            'custId' => $customer['custId'],
-            'content' => $message['content'],
-            'contentType' => $message['contentType'],
-            'sender' => json_encode($customer),
-            'conversationRef' => $new_ac['id'],
-            'line_message_id' => $message['line_message_id'] ?? null,
-            'line_quote_token' => $message['line_quote_token'] ?? null,
-            'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
-        ]);
-        $this->pusherService->sendNotification($customer['custId']);
-
-        if ($current_rate['updated_at'] >= now()->subHours(12)) {
-            $msg_bot = [];
-            $reply_token = $message['reply_token'];
-            switch (strtoupper($platformAccessToken['platform'])) {
-                case 'LINE':
-                    $msg_bot[0]['text'] = 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่';
-                    $msg_bot[0]['type'] = 'text';
-                    break;
-                default:
-                    $msg_bot['content'] = 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่';
-                    $msg_bot['contentType'] = 'text';
-                    break;
-            }
-            $bot_send_msg = $this->replyMessage->reply($msg_bot, $platformAccessToken, $customer, $bot, $reply_token);
-
-            if (!$bot_send_msg['status']) {
-                Log::channel('webhook_main')->error($bot_send_msg['message'], [
-                    'error' => $bot_send_msg['message']
-                ]);
-            } else {
-                ChatHistory::query()->create([
-                    'custId' => $current_rate['custId'],
-                    'content' => 'ระบบกำลังส่งต่อให้เข้าหน้าที่ กรุณารอซักครู่',
-                    'contentType' => 'text',
-                    'sender' => json_encode($bot),
-                    'conversationRef' => $new_ac['id'],
-                    'line_message_id' => $bot_send_msg['response']['line_message_id'] ?? null,
-                    'line_quote_token' => $bot_send_msg['response']['line_quote_token'] ?? null,
-                ]);
-            }
-            $this->pusherService->sendNotification($customer['custId']);
-        } else {
-            $msg_bot = NewCase::formatBotMenu($customer['custName'], $platformAccessToken['platform'], $platformAccessToken['id']);
-            $reply_message = $this->replyMessage->reply($msg_bot, $platformAccessToken, $customer, $bot, $message['reply_token']);
-            if ($reply_message['status']) {
-                Log::channel('webhook_main')->info('ส่งข้อความตอบกลับสำเร็จ', [
-                    'response' => $reply_message['response'],
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'receiveAt' => Carbon::now(),
+                    'startTime' => Carbon::now(),
+                    'empCode' => $bot['empCode'],
+                    'rateRef' => $new_rate['id']
                 ]);
                 ChatHistory::query()->create([
                     'custId' => $customer['custId'],
-                    'content' => $msg_bot[0]['text'],
-                    'contentType' => 'text',
-                    'sender' => json_encode($bot),
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
                     'conversationRef' => $new_ac['id'],
-                ]);
-                ChatHistory::query()->create([
-                    'custId' => $customer['custId'],
-                    'content' => 'บอทได้ทำงานส่งเมนูไปยังลูกค้าแล้ว',
-                    'contentType' => 'text',
-                    'sender' => json_encode($bot),
-                    'conversationRef' => $new_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
                 $this->pusherService->sendNotification($customer['custId']);
-            } else {
-                Log::channel('webhook_main')->error('ไม่สามารถส่งข้อความตอบกลับได้', [
-                    'error' => $reply_message['message']
-                ]);
+                $content = "สวัสดีคุณ" . $customer['custName'];
+                $content = $content . "เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น";
+                $content = $content . "กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'menu',
+                    'type_message' => 'reply',
+                    'messages' => [
+                        [
+                            'content' => $content,
+                            'contentType' => 'text'
+                        ]
+                    ],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
             }
         }
     }

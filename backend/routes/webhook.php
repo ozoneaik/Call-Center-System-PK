@@ -28,10 +28,6 @@ Route::prefix('webhook-new')->group(function () {
         Route::post('/', [LazadaController::class,'webhookPOST']);
     });
 
-
-    // https://auth.lazada.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://a3d070ef0e5a.ngrok-free.app/api/webhook-new/lazada&client_id=132189
-
-
     // สำหรับ Shopee
     Route::prefix('shopee')->group(function () {
         Route::post('/', function () {});
