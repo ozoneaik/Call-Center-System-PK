@@ -13,7 +13,6 @@ import CheckAdmin from "./Components/CheckAdmin.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistoryPages/ChatHistory.jsx";
 import BotPage from "./Views/BotPages/main.jsx";
-import TagePage from "./Views/TagPages/main.jsx";
 import Users from "./Views/UserPages/main.jsx";
 import AccessToken from "./Views/TokenPages/main.jsx";
 import ReportPage from "./Views/ReportPages/main.jsx";
@@ -30,6 +29,11 @@ import StickerList from "./Views/StickerPages/StickerList.jsx";
 import AnnouncesList from "./Views/AnnouncePages/AnnouncesList.jsx";
 import GroupPage
     from "./Views/TagPages/GroupPage.jsx";
+import CreateTagPage from "./Views/TagPages/TagMenu/CreateTagPage.jsx";
+import EditTagPage from "./Views/TagPages/TagMenu/EditTagPage.jsx";
+import TagPage from "./Views/TagPages/TagMenu/main.jsx";
+import CreateGroupPage from "./Views/TagPages/CreateGroupPage.jsx";
+import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -59,8 +63,15 @@ export const routes = createBrowserRouter([
                             { path: '/users', element: <Users /> },
                             { path: '/accessToken', element: <AccessToken /> },
                             { path: '/botManage', element: <BotPage /> },
-                            { path: '/tags', element: <TagePage /> },
+                            
+                            { path: '/tags', element: <TagPage /> },
+                            { path: '/tags/create', element: <CreateTagPage /> },
+                            { path: '/tags/:id/edit', element: <EditTagPage /> },
+
                             { path: '/tags/groups', element: <GroupPage /> },
+                            { path: '/tags/groups/create', element: <CreateGroupPage /> },
+                            { path: '/tags/groups/:id/edit', element: <EditGroupPage /> },
+
                             { path: '/helpChat', element: <HelpChatList /> },
                             { path: '/sticker', element: <StickerList /> },
                             { path: '/announces', element: <AnnouncesList /> },

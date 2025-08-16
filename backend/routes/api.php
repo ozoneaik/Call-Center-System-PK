@@ -139,17 +139,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // จัดการ Tag
     Route::prefix('tags')->group(function () {
-        Route::get('list', [TagMenuController::class, 'list']);
-        Route::post('store', [TagMenuController::class, 'store']);
-        Route::put('update', [TagMenuController::class, 'update']);
-        Route::delete('delete/{id}', [TagMenuController::class, 'delete']);
+        Route::get('/', [TagMenuController::class, 'list']);             // GET /tags
+        Route::post('/', [TagMenuController::class, 'store']);           // POST /tags
+        Route::put('{id}', [TagMenuController::class, 'update']);        // PUT /tags/{id}
+        Route::delete('{id}', [TagMenuController::class, 'delete']);     // DELETE /tags/{id}
+        Route::post('{id}/restore', [TagMenuController::class, 'restore']);
+        Route::delete('{id}/force', [TagMenuController::class, 'forceDelete']);
     });
 
     Route::prefix('tag-group')->group(function () {
-        Route::get('/', [TagGroupController::class, 'list']);
-        Route::post('/', [TagGroupController::class, 'store']);
-        Route::put('/{id}', [TagGroupController::class, 'update']);
-        Route::delete('/{id}', [TagGroupController::class, 'delete']);
+        Route::get('/', [TagGroupController::class, 'index']);              // GET /api/tag-group
+        Route::get('{id}', [TagGroupController::class, 'show']);            // GET /api/tag-group/{id}
+        Route::post('/', [TagGroupController::class, 'store']);             // POST /api/tag-group
+        Route::match(['put', 'patch'], '{id}', [TagGroupController::class, 'update']); // PUT/PATCH /api/tag-group/{id}
+        Route::delete('{id}', [TagGroupController::class, 'destroy']);      // DELETE /api/tag-group/{id}
+
+        // SoftDeletes helpers
+        Route::patch('{id}/restore', [TagGroupController::class, 'restore']); // PATCH /api/tag-group/{id}/restore
+        Route::delete('{id}/force', [TagGroupController::class, 'forceDelete']); // DELETE /api/tag-group/{id}/force
     });
 
     //จัดการ keyword

@@ -5,96 +5,239 @@ namespace App\Http\Controllers;
 use App\Models\TagGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class TagGroupController extends Controller
 {
-    //
-    public function list(): JsonResponse
+    /**
+     * GET /tag-group
+     * ฟิลเตอร์ที่รองรับ:
+     * - q: ค้นหาใน group_name / group_description
+     * - group_id: partial match
+     * - created_by: partial match (created_by_user_id)
+     * - updated_by: partial match (updated_by_user_id)
+     * - with_trashed: 1 แสดงรวมที่ลบแล้ว
+     * - only_trashed: 1 แสดงเฉพาะที่ลบแล้ว
+     * - per_page: ขนาดหน้า (ค่าเริ่มต้น 15)
+     */
+    public function index(Request $request): JsonResponse
     {
-        try {
-            $groups = TagGroup::all();
-            return response()->json([
-                'message' => 'โหลดกลุ่มแท็กสำเร็จ',
-                'detail' => '',
-                'list' => $groups,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'เกิดข้อผิดพลาด',
-                'detail' => $e->getMessage(),
-                'list' => [],
-            ], 500);
+        $q = TagGroup::query();
+
+        // trashed scopes
+        if ($request->boolean('only_trashed')) {
+            $q->onlyTrashed();
+        } elseif ($request->boolean('with_trashed')) {
+            $q->withTrashed();
         }
+
+        // keyword search
+        if ($kw = $request->get('q')) {
+            $q->where(function ($qq) use ($kw) {
+                $qq->where('group_name', 'ilike', "%{$kw}%")
+                    ->orWhere('group_description', 'ilike', "%{$kw}%");
+            });
+        }
+
+        if ($gid = $request->get('group_id')) {
+            $q->where('group_id', 'ilike', "%{$gid}%");
+        }
+
+        if ($created = $request->get('created_by')) {
+            $q->where('created_by_user_id', 'ilike', "%{$created}%");
+        }
+
+        if ($updated = $request->get('updated_by')) {
+            $q->where('updated_by_user_id', 'ilike', "%{$updated}%");
+        }
+
+        // order ล่าสุดอยู่ก่อน
+        $q->orderByDesc('created_at');
+
+        $perPage = (int) ($request->get('per_page', 15)) ?: 15;
+        $paginator = $q->paginate($perPage);
+
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'List tag groups',
+            'data' => $paginator->items(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
     }
 
+    /**
+     * GET /tag-group/{id}
+     */
+    public function show(int $id): JsonResponse
+    {
+        $tagGroup = TagGroup::withTrashed()->findOrFail($id);
+
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'Show tag group',
+            'data' => $tagGroup,
+        ]);
+    }
+
+    /**
+     * POST /tag-group
+     * ต้องส่ง: group_id (unique), group_name
+     * ออปชัน: group_description
+     */
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
-            'group_name' => 'required|string|max:255',
-            'group_description' => 'nullable|string',
+        $validated = $request->validate([
+            'group_id' => [
+                'required',
+                'string',
+                'max:50',
+                // unique โดยไม่นับเรคอร์ดที่ถูก soft delete (whereNull deleted_at)
+                Rule::unique('tag_groups', 'group_id')->whereNull('deleted_at'),
+            ],
+            'group_name' => ['required', 'string', 'max:255'],
+            'group_description' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $userId = (string) (Auth::id() ?? $request->user()?->id ?? '');
+
+        $tagGroup = TagGroup::create([
+            'group_id' => $validated['group_id'],
+            'group_name' => $validated['group_name'],
+            'group_description' => $validated['group_description'] ?? null,
+            'created_by_user_id' => $userId,
+            'updated_by_user_id' => $userId,
+        ]);
+
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'Tag group created',
+            'data' => $tagGroup,
+        ], 201);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        // debug log แบบเดียวกับ TagMenuController (ถ้าต้องการ)
+        Log::info('=== TAG-GROUP UPDATE DEBUG ===', [
+            'id' => $id,
+            'request_all' => $request->all(),
+        ]);
+
+        $status = 400;
+        $detail = 'ไม่พบข้อผิดพลาด';
+
+        // เผื่อบางที่อยาก validate รวม id
+        $request->merge(['id' => $id]);
+
+        $validated = $request->validate([
+            'id' => ['required', 'integer', 'exists:tag_groups,id'],
+
+            // อนุญาตอัปเดตทีละบางฟิลด์: ถ้าส่งมาก็ต้องไม่ว่าง
+            'group_id' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('tag_groups', 'group_id')
+                    ->whereNull('deleted_at')
+                    ->ignore($id),
+            ],
+            'group_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'group_description' => ['nullable', 'string', 'max:1000'],
         ]);
 
         try {
-            $group = TagGroup::create([
-                'group_name' => $request->group_name,
-                'group_description' => $request->group_description,
-            ]);
+            $tagGroup = TagGroup::withTrashed()->findOrFail($id);
 
-            return response()->json([
-                'message' => 'สร้างกลุ่มแท็กสำเร็จ',
-                'detail' => '',
-                'group' => $group,
-            ], 200);
+            $actor   = Auth::user();
+            $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
+
+            // เอาเฉพาะฟิลด์ที่ "ส่งมา" จริง ๆ (เหมือนแนว TagMenuController)
+            $payload = [
+                'updated_by_user_id' => $actorId,
+            ];
+            if ($request->has('group_id')) {
+                $payload['group_id'] = $validated['group_id'];
+            }
+            if ($request->has('group_name')) {
+                $payload['group_name'] = $validated['group_name'];
+            }
+            // group_description อนุญาต null ได้
+            if ($request->has('group_description')) {
+                $payload['group_description'] = $validated['group_description'] ?? null;
+            }
+
+            // อัปเดตด้วย fill/update (ต้องตั้ง $fillable ใน Model)
+            $tagGroup->update($payload);
+
+            $status  = 200;
+            $message = 'อัปเดตสำเร็จ';
         } catch (\Exception $e) {
+            $detail  = $e->getMessage();
+            $message = 'เกิดข้อผิดพลาด';
+        } finally {
             return response()->json([
-                'message' => 'เกิดข้อผิดพลาดในการสร้างกลุ่มแท็ก',
-                'detail' => $e->getMessage(),
-            ], 500);
+                'message' => $message ?? 'เกิดข้อผิดพลาด',
+                'detail'  => $detail,
+                // 🔁 ให้คีย์ชื่อ "group" เหมือนฝั่ง Tag/Service ที่คุณใช้ (จะได้ไม่ต้องแก้ UI เยอะ)
+                'group'   => isset($tagGroup) ? $tagGroup->fresh() : null,
+            ], $status);
         }
     }
 
-    public function update(Request $request, $id): JsonResponse
+    /**
+     * DELETE /tag-group/{id}  (Soft delete)
+     */
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'group_name' => 'required|string|max:255',
-            'group_description' => 'nullable|string',
+        $tagGroup = TagGroup::findOrFail($id);
+
+        // บันทึกคนลบก่อนลบ (ฟิลด์ deleted__by_user_id ของคุณสะกดมี double underscore)
+        $userId = (string) (Auth::id() ?? $request->user()?->id ?? '');
+        $tagGroup->deleted__by_user_id = $userId;
+        $tagGroup->save();
+
+        $tagGroup->delete();
+
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'Tag group soft-deleted',
         ]);
-
-        try {
-            $group = TagGroup::findOrFail($id);
-            $group->update([
-                'group_name' => $request->group_name,
-                'group_description' => $request->group_description,
-            ]);
-
-            return response()->json([
-                'message' => 'อัปเดตกลุ่มแท็กสำเร็จ',
-                'detail' => '',
-                'group' => $group,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'เกิดข้อผิดพลาดในการอัปเดตกลุ่มแท็ก',
-                'detail' => $e->getMessage(),
-            ], 500);
-        }
     }
 
-    public function delete($id): JsonResponse
+    /**
+     * PATCH /tag-group/{id}/restore  (กู้คืน)
+     */
+    public function restore(int $id): JsonResponse
     {
-        try {
-            $group = TagGroup::findOrFail($id);
-            $group->delete();
+        $tagGroup = TagGroup::onlyTrashed()->findOrFail($id);
+        $tagGroup->restore();
 
-            return response()->json([
-                'message' => 'ลบกลุ่มแท็กสำเร็จ',
-                'detail' => '',
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'เกิดข้อผิดพลาดในการลบกลุ่มแท็ก',
-                'detail' => $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'Tag group restored',
+            'data' => $tagGroup->fresh(),
+        ]);
+    }
+
+    /**
+     * DELETE /tag-group/{id}/force  (ลบถาวร)
+     */
+    public function forceDelete(int $id): JsonResponse
+    {
+        $tagGroup = TagGroup::withTrashed()->findOrFail($id);
+        $tagGroup->forceDelete();
+
+        return response()->json([
+            'message' => 'success',
+            'detail' => 'Tag group permanently deleted',
+        ]);
     }
 }

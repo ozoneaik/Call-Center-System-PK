@@ -18,4 +18,10 @@ class TagGroup extends Model
         'updated_by_user_id',
         'deleted__by_user_id',
     ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
 }
