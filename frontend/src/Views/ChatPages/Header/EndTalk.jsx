@@ -1,6 +1,6 @@
 import Typography from "@mui/joy/Typography";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
-import { Button, Checkbox, Modal, ModalClose, Sheet } from "@mui/joy";
+import { Button, Checkbox, Modal, ModalClose, Sheet, Stack, Textarea } from "@mui/joy";
 import DoneIcon from '@mui/icons-material/Done';
 import { useState } from "react";
 import { endTalkApi } from "../../../Api/Messages.js";
@@ -66,7 +66,8 @@ const ModalEndTalk = (props) => {
                         จบการสนทนา <Typography fontSize={12} textColor='#ccc'>รหัสอ้างอิง
                             R{rateId}_AC{activeId}</Typography>
                     </Typography>
-                    <Typography id="modal-desc" textColor="text.tertiary">
+                    <Stack spacing={2}>
+                        <Typography id="modal-desc" textColor="text.tertiary">
                         ระบุ tag
                     </Typography>
                     <Select placeholder="Choose one…" sx={{ mb: 1 }} onChange={(event, value) => setSelectTag(value)}>
@@ -86,9 +87,13 @@ const ModalEndTalk = (props) => {
                         <br />
                         พักการสนทนาชั่วคราว แทน
                     </Alert>
+
+                    <Textarea minRows={4} placeholder="เพิ่มหมายเหตุสำหรับการจบสนทนา"/>
                     <Typography>
                         กด "ตกลง" เพื่อจบการสนทนา (หากคุณต้องการส่งต่อกรุณากดที่ปุ่ม "ส่งต่อไปยัง" แทน)
                     </Typography>
+                    </Stack>
+                    
                     <Box sx={{ display: 'flex', justifyContent: 'end', gap: 1 }}>
                         <Button loading={loading} disabled={!selectTag} onClick={() => endTalk()}>ตกลง</Button>
                     </Box>
