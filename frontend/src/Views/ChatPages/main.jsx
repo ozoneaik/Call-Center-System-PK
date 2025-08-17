@@ -295,6 +295,7 @@ export default function MainChat() {
                         component="main"
                         className="MainContent"
                         sx={{
+                            backgroundColor: 'background.body',
                             p: 2,
                             flex: 1,
                             display: 'flex',
