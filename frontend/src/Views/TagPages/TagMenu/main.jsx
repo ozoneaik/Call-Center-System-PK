@@ -10,11 +10,8 @@ import {
     Select,
     Option,
     Checkbox,
-    Stack,
     Chip,
     IconButton,
-    FormControl,
-    FormLabel,
 } from "@mui/joy";
 import { useEffect, useMemo, useState } from "react";
 import BreadcrumbsComponent from "../../../Components/Breadcrumbs.jsx";
@@ -23,6 +20,7 @@ import {
     listTagsApi,
     restoreTagApi,
     forceDeleteTagApi,
+    listTagGroupOptionsApi,
 } from "../../../Api/Tags.js";
 import RestoreRounded from "@mui/icons-material/RestoreRounded";
 import DeleteForeverRounded from "@mui/icons-material/DeleteForeverRounded";
@@ -84,14 +82,38 @@ export default function TagPage() {
 
     // filter states
     const [filterName, setFilterName] = useState("");
-    const [filterGroup, setFilterGroup] = useState("");
+    const [filterGroupId, setFilterGroupId] = useState(""); // ใช้ค่า value ของ option
     const [filterCreatedBy, setFilterCreatedBy] = useState("");
     const [filterUpdatedBy, setFilterUpdatedBy] = useState("");
     const [filterRequireNote, setFilterRequireNote] = useState(""); // '', 'true', 'false'
     const [filterStatus, setFilterStatus] = useState(""); // '', 'active', 'deleted'
 
+    // group options (normalized เป็น {value, label, raw})
+    const [groupOptions, setGroupOptions] = useState([]);
+    const [loadingGroups, setLoadingGroups] = useState(false);
+
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            setLoadingGroups(true);
+            const { data, status } = await listTagGroupOptionsApi();
+            if (status === 200) {
+                const rawList = data?.options || data?.list || data || [];
+                const normalized = rawList.map((it) => {
+                    // ถ้าเป็นรูป {value,label,raw} อยู่แล้ว ก็ใช้ต่อได้เลย
+                    if (it && "value" in it && "label" in it) return it;
+                    // แปลงจาก {group_id, name, ...}
+                    const groupId = String(it?.group_id ?? "");
+                    const label = it?.name ? `${it.name} (${groupId})` : groupId;
+                    return { value: groupId, label, raw: it };
+                });
+                setGroupOptions(normalized);
+            }
+            setLoadingGroups(false);
+        })();
     }, []);
 
     const fetchData = async () => {
@@ -106,15 +128,13 @@ export default function TagPage() {
                 ? (t.tagName || "").toLowerCase().includes(filterName.toLowerCase())
                 : true;
 
-            /** ⬇️ หาได้ทั้งจาก group_id และชื่อกลุ่ม (t.group?.name) */
-            const byGroup = filterGroup
-                ? String(t.group_id || "")
-                    .toLowerCase()
-                    .includes(filterGroup.toLowerCase()) ||
-                String(t.group?.name || "")
-                    .toLowerCase()
-                    .includes(filterGroup.toLowerCase())
-                : true;
+            // กรองด้วย group_id ที่เลือกจาก Select
+            const byGroup =
+                filterGroupId === ""
+                    ? true
+                    : filterGroupId === "__NULL__"
+                        ? !t.group_id
+                        : String(t.group_id || "") === String(filterGroupId);
 
             const createdDisplay = String(
                 t.created_by_name || t.created_by_user_id || ""
@@ -145,14 +165,12 @@ export default function TagPage() {
                         ? !t.deleted_at
                         : !!t.deleted_at;
 
-            return (
-                byName && byGroup && byCreated && byUpdated && byRequire && byStatus
-            );
+            return byName && byGroup && byCreated && byUpdated && byRequire && byStatus;
         });
     }, [
         tags,
         filterName,
-        filterGroup,
+        filterGroupId,
         filterCreatedBy,
         filterUpdatedBy,
         filterRequireNote,
@@ -311,9 +329,7 @@ export default function TagPage() {
                         <Typography level="title-sm">ตัวกรอง</Typography>
                     </Box>
 
-                    <Box
-                        sx={{ px: 1.5, py: 1.5, overflowX: "auto", minHeight: 60 }}
-                    >
+                    <Box sx={{ px: 1.5, py: 1.5, overflowX: "auto", minHeight: 60 }}>
                         <Box
                             sx={{
                                 display: "flex",
@@ -366,13 +382,22 @@ export default function TagPage() {
                                 >
                                     Group
                                 </Typography>
-                                <Input
+                                <Select
                                     size="sm"
-                                    value={filterGroup}
-                                    onChange={(e) => setFilterGroup(e.target.value)}
-                                    placeholder="เช่น สแปม / A / B / PROD01"
-                                    sx={{ minHeight: 32 }}
-                                />
+                                    value={filterGroupId}
+                                    onChange={(_, v) => setFilterGroupId(v ?? "")}
+                                    disabled={loadingGroups}
+                                    sx={{ minHeight: 32, minWidth: 200 }}
+                                    placeholder={loadingGroups ? "กำลังโหลด..." : "เลือกกลุ่ม"}
+                                >
+                                    <Option value="">ทั้งหมด</Option>
+                                    <Option value="__NULL__">(ไม่มี Group)</Option>
+                                    {groupOptions.map((opt) => (
+                                        <Option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </Option>
+                                    ))}
+                                </Select>
                             </Box>
 
                             {/* Created By */}
@@ -501,7 +526,7 @@ export default function TagPage() {
                                     startDecorator={<ClearAllRounded />}
                                     onClick={() => {
                                         setFilterName("");
-                                        setFilterGroup("");
+                                        setFilterGroupId("");
                                         setFilterCreatedBy("");
                                         setFilterUpdatedBy("");
                                         setFilterRequireNote("");
@@ -614,7 +639,6 @@ export default function TagPage() {
                             ลบถาวร
                         </Button>
                     </Box>
-
                 </Sheet>
 
                 {/* Table */}
