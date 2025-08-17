@@ -4,7 +4,6 @@ namespace App\Services\webhooks_new;
 
 use App\Models\Rates;
 use App\Models\User;
-use App\Services\PusherService;
 use Illuminate\Support\Facades\Log;
 
 class FilterCase
@@ -14,14 +13,12 @@ class FilterCase
     protected $PLATFORM_ACCESS_TOKEN;
     protected $BOT;
     protected $BOT_FACEBOOK;
-    protected PusherService $pusherService;
     protected NewCase $newCase;
     protected ProgressCase $progressCase;
     protected PendingCase $pendingCase;
     protected SuccessCase $successCase;
-    public function __construct(PusherService $pusherService, NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
+    public function __construct( NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
     {
-        $this->pusherService = $pusherService;
         $this->newCase = $newCase;
         $this->progressCase = $progressCase;
         $this->pendingCase = $pendingCase;

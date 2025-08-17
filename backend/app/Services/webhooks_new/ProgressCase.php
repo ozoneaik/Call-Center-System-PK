@@ -38,7 +38,6 @@ class ProgressCase
             // ถ้าห้องนี้ไม่ใช่ห้อง BOT
             if (!($current_rate['latestRoomId'] === 'ROOM00')) {
                 Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสกำลังดำเนินการอยู่');
-                $this->pusherService->sendNotification($current_rate['custId']);
                 return [
                     'status' => true,
                     'send_to_cust' => false,

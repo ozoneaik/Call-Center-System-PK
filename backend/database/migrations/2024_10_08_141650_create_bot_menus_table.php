@@ -16,6 +16,7 @@ return new class extends Migration
             $table->integer('botTokenId')->comment('ไอดี accessToken');
             $table->string('menuName')->comment('ชื่อรายการเมนู');
             $table->string('roomId')->nullable()->comment('ห้องแชท');
+            $table->integer('menu_number')->nullable()->comment('ลําดับเมนู');
             $table->timestamps();
         });
     }
