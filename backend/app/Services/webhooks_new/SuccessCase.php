@@ -24,7 +24,7 @@ class SuccessCase
         // ถ้าเคสก่อนหน้าผ่านมาภายใน 12 ชั่วโมง
         if ($current_rate['updated_at'] >= now()->subHours(12)) {
             $keyword = $this->checkKeyword->check($message, 'success');
-            if ($keyword['status'] && !$keyword['redirectTo']) {
+            if ($keyword['status'] && !$keyword['redirectTo_status']) {
                 $latest_ac = ActiveConversations::query()->where('custId', $current_rate['custId'])
                     ->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
                 ChatHistory::query()->create([
