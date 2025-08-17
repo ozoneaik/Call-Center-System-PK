@@ -26,6 +26,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
+use App\Models\TagGroup;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -148,6 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('tag-group')->group(function () {
+        Route::get('options', [TagGroupController::class, 'options']);
         Route::get('/', [TagGroupController::class, 'index']);              // GET /api/tag-group
         Route::get('{id}', [TagGroupController::class, 'show']);            // GET /api/tag-group/{id}
         Route::post('/', [TagGroupController::class, 'store']);             // POST /api/tag-group
@@ -157,6 +159,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // SoftDeletes helpers
         Route::patch('{id}/restore', [TagGroupController::class, 'restore']); // PATCH /api/tag-group/{id}/restore
         Route::delete('{id}/force', [TagGroupController::class, 'forceDelete']); // DELETE /api/tag-group/{id}/force
+
     });
 
     //จัดการ keyword

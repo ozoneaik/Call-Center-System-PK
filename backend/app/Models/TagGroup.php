@@ -24,4 +24,10 @@ class TagGroup extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    // ใช้กับความสัมพันธ์ย้อนกลับ (optional)
+    public function tags()
+    {
+        return $this->hasMany(TagMenu::class, 'group_id', 'group_id');
+    }
 }

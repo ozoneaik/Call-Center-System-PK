@@ -25,7 +25,6 @@ import {
   Divider,
   Checkbox
 } from "@mui/joy";
-import Grid from "@mui/material/Grid2";
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -101,7 +100,6 @@ export default function GroupPage() {
       const timer = setTimeout(() => setFlash(null), 5000);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -160,7 +158,6 @@ export default function GroupPage() {
     );
   };
 
-  // Handle delete actions
   const onDelete = (ids, force = false) => {
     if (!ids?.length) return;
     const selectedGroups = filtered.filter(g => ids.includes(g.id));
@@ -267,9 +264,10 @@ export default function GroupPage() {
         </Box>
 
         {/* Filter Card */}
+        {/* Filter Card */}
         <Sheet
           variant="outlined"
-          sx={{ mb: 1.5, p: 0, borderRadius: "lg", borderColor: "divider", overflow: "hidden" }}
+          sx={{ mb: 1.5, p: 0, borderRadius: "lg", borderColor: "divider", overflow: "visible" }} // ← visible กันโดนคลิป
         >
           <Box
             sx={{
@@ -286,17 +284,23 @@ export default function GroupPage() {
             <Typography level="title-sm">ตัวกรอง</Typography>
           </Box>
 
-          <Box sx={{ px: 1.5, py: 1, overflowX: "auto" }}>
+          <Box sx={{ px: 1.5, py: { xs: 1.25, md: 1 }, overflowX: "visible" }}>
             <Box
               sx={{
                 display: "flex",
-                flexWrap: "nowrap",      // ❗️ไม่ตัดบรรทัด
-                alignItems: "end",
+                flexWrap: { xs: "wrap", md: "nowrap" },            // ← มือถือให้ตัดบรรทัด
+                alignItems: { xs: "stretch", md: "end" },          // ← มือถือให้ยืดเต็ม
                 gap: 1,
-                minWidth: 1060,          // ปรับตามจำนวนฟิลด์
+                minWidth: { md: 1060, xs: "auto" },                // ← ยกเลิก minWidth บนมือถือ
               }}
             >
-              <FormControl sx={{ minWidth: 260, flexShrink: 0 }}>
+              {/* ชื่อกลุ่ม / คำอธิบาย */}
+              <FormControl
+                sx={{
+                  minWidth: { md: 260 },
+                  flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "0 0 auto" },
+                }}
+              >
                 <FormLabel>ค้นหาชื่อกลุ่ม / คำอธิบาย</FormLabel>
                 <Input
                   size="sm"
@@ -307,7 +311,13 @@ export default function GroupPage() {
                 />
               </FormControl>
 
-              <FormControl sx={{ minWidth: 200, flexShrink: 0 }}>
+              {/* Group ID */}
+              <FormControl
+                sx={{
+                  minWidth: { md: 200 },
+                  flex: { xs: "1 1 48%", sm: "1 1 calc(50% - 8px)", md: "0 0 auto" },
+                }}
+              >
                 <FormLabel>Group ID</FormLabel>
                 <Input
                   size="sm"
@@ -317,7 +327,13 @@ export default function GroupPage() {
                 />
               </FormControl>
 
-              <FormControl sx={{ minWidth: 200, flexShrink: 0 }}>
+              {/* Created By */}
+              <FormControl
+                sx={{
+                  minWidth: { md: 200 },
+                  flex: { xs: "1 1 48%", sm: "1 1 calc(50% - 8px)", md: "0 0 auto" },
+                }}
+              >
                 <FormLabel>Created By</FormLabel>
                 <Input
                   size="sm"
@@ -327,7 +343,13 @@ export default function GroupPage() {
                 />
               </FormControl>
 
-              <FormControl sx={{ minWidth: 200, flexShrink: 0 }}>
+              {/* Updated By */}
+              <FormControl
+                sx={{
+                  minWidth: { md: 200 },
+                  flex: { xs: "1 1 48%", sm: "1 1 calc(50% - 8px)", md: "0 0 auto" },
+                }}
+              >
                 <FormLabel>Updated By</FormLabel>
                 <Input
                   size="sm"
@@ -337,7 +359,13 @@ export default function GroupPage() {
                 />
               </FormControl>
 
-              <FormControl sx={{ minWidth: 160, flexShrink: 0 }}>
+              {/* สถานะ */}
+              <FormControl
+                sx={{
+                  minWidth: { md: 160 },
+                  flex: { xs: "1 1 48%", sm: "1 1 calc(50% - 8px)", md: "0 0 auto" },
+                }}
+              >
                 <FormLabel>สถานะ</FormLabel>
                 <Select
                   size="sm"
@@ -350,8 +378,8 @@ export default function GroupPage() {
                 </Select>
               </FormControl>
 
-              {/* ตัวดันซ้าย-ขวาให้ปุ่มไปชิดขวา */}
-              <Box sx={{ flex: 1 }} />
+              {/* ดันพื้นที่ + ปุ่ม */}
+              <Box sx={{ flex: { xs: "1 1 100%", md: 1 } }} />
 
               <Button
                 variant="outlined"
@@ -364,9 +392,9 @@ export default function GroupPage() {
                   setFilterCreatedBy("");
                   setFilterUpdatedBy("");
                   setFilterStatus("");
-                  fetchData(); // โหลดใหม่แบบค่าเริ่มต้น
+                  fetchData();
                 }}
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, width: { xs: "50%", sm: "auto" } }}  
               >
                 ล้างตัวกรอง
               </Button>
@@ -375,7 +403,7 @@ export default function GroupPage() {
                 size="sm"
                 startDecorator={<RefreshIcon />}
                 onClick={fetchData}
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, width: { xs: "50%", sm: "auto" } }}   
               >
                 รีเฟรช
               </Button>

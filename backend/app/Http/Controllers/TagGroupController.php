@@ -94,31 +94,27 @@ class TagGroupController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'group_id' => [
-                'required',
-                'string',
-                'max:50',
-                // unique โดยไม่นับเรคอร์ดที่ถูก soft delete (whereNull deleted_at)
-                Rule::unique('tag_groups', 'group_id')->whereNull('deleted_at'),
-            ],
-            'group_name' => ['required', 'string', 'max:255'],
+            'group_id'          => ['required', 'string', 'max:50', Rule::unique('tag_groups', 'group_id')->whereNull('deleted_at')],
+            'group_name'        => ['required', 'string', 'max:255'],
             'group_description' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $userId = (string) (Auth::id() ?? $request->user()?->id ?? '');
+        // ✅ เหมือน TagMenu: ใช้ empCode ก่อน ถ้าไม่มีค่อย fallback เป็น id
+        $actor   = Auth::user();
+        $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
 
         $tagGroup = TagGroup::create([
-            'group_id' => $validated['group_id'],
-            'group_name' => $validated['group_name'],
-            'group_description' => $validated['group_description'] ?? null,
-            'created_by_user_id' => $userId,
-            'updated_by_user_id' => $userId,
+            'group_id'            => $validated['group_id'],
+            'group_name'          => $validated['group_name'],
+            'group_description'   => $validated['group_description'] ?? null,
+            'created_by_user_id'  => $actorId,
+            'updated_by_user_id'  => $actorId,
         ]);
 
         return response()->json([
             'message' => 'success',
-            'detail' => 'Tag group created',
-            'data' => $tagGroup,
+            'detail'  => 'Tag group created',
+            'data'    => $tagGroup,
         ], 201);
     }
 
@@ -199,16 +195,18 @@ class TagGroupController extends Controller
     {
         $tagGroup = TagGroup::findOrFail($id);
 
-        // บันทึกคนลบก่อนลบ (ฟิลด์ deleted__by_user_id ของคุณสะกดมี double underscore)
-        $userId = (string) (Auth::id() ?? $request->user()?->id ?? '');
-        $tagGroup->deleted__by_user_id = $userId;
+        // ✅ บันทึกคนลบเป็น empCode ด้วย
+        $actor   = Auth::user();
+        $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
+
+        $tagGroup->deleted__by_user_id = $actorId;
         $tagGroup->save();
 
         $tagGroup->delete();
 
         return response()->json([
             'message' => 'success',
-            'detail' => 'Tag group soft-deleted',
+            'detail'  => 'Tag group soft-deleted',
         ]);
     }
 
@@ -239,5 +237,30 @@ class TagGroupController extends Controller
             'message' => 'success',
             'detail' => 'Tag group permanently deleted',
         ]);
+    }
+
+    public function options()
+    {
+        // ดึงรายการกลุ่มที่ยังไม่ถูกลบ (ถ้าต้องการรวม soft-deleted ให้เอา whereNull ออก)
+        $groups = TagGroup::query()
+            ->select('id', 'group_id', 'group_name', 'group_description', 'deleted_at')
+            ->whereNull('deleted_at')
+            ->orderBy('group_name')
+            ->get();
+
+        // map เป็น options สำหรับ dropdown หน้าเว็บ
+        return $groups->map(function ($g) {
+            return [
+                'value' => $g->group_id,
+                'label' => $g->group_name . ' (' . $g->group_id . ')',
+                'raw'   => [
+                    'id'          => $g->id,
+                    'group_id'    => $g->group_id,
+                    'name'        => $g->group_name,
+                    'description' => $g->group_description,
+                    'deleted_at'  => $g->deleted_at,
+                ],
+            ];
+        });
     }
 }

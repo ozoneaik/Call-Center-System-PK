@@ -104,7 +104,6 @@ export default function CreateGroupPage() {
                     Save
                 </Button>
             </Box>
-
             <Sheet
                 variant="outlined"
                 sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
@@ -118,7 +117,6 @@ export default function CreateGroupPage() {
                             placeholder="เช่น A, B, PROD"
                         />
                     </FormControl>
-
                     <FormControl required>
                         <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
                         <Input
@@ -127,7 +125,6 @@ export default function CreateGroupPage() {
                             placeholder="เช่น สแปม, ประกัน, FAQ"
                         />
                     </FormControl>
-
                     <FormControl>
                         <FormLabel sx={{ fontSize: 16 }}>คำอธิบาย</FormLabel>
                         <Textarea
@@ -137,10 +134,7 @@ export default function CreateGroupPage() {
                             placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
                         />
                     </FormControl>
-
                     <Divider />
-
-                    {/* Created By (display only) */}
                     <FormControl>
                         <FormLabel sx={{ fontSize: 16 }}>Created By</FormLabel>
                         <Input value={createdByDisplay || "-"} disabled variant="plain" />

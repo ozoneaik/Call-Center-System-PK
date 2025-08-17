@@ -18,6 +18,7 @@ class TagMenuController extends Controller
         $this->tagService = $tagService;
     }
 
+    /** GET /tags */
     public function list(Request $request): JsonResponse
     {
         $status = 400;
@@ -41,7 +42,6 @@ class TagMenuController extends Controller
                 'group'        => $validated['group'] ?? null,
                 'created_by'   => $validated['created_by'] ?? null,
                 'updated_by'   => $validated['updated_by'] ?? null,
-                // true/false/null เท่านั้น
                 'require_note' => isset($validated['require_note'])
                     ? filter_var($validated['require_note'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE)
                     : null,
@@ -56,11 +56,10 @@ class TagMenuController extends Controller
             ];
 
             $list = $this->tagService->list($filters);
-            if ($list['status']) {
-                $status = 200;
-            } else {
+            if (!$list['status']) {
                 throw new \Exception($list['message']);
             }
+            $status  = 200;
             $message = $list['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -74,6 +73,7 @@ class TagMenuController extends Controller
         }
     }
 
+    /** POST /tags */
     public function store(Request $request): JsonResponse
     {
         $status = 400;
@@ -81,27 +81,26 @@ class TagMenuController extends Controller
 
         $validated = $request->validate([
             'tagName'      => ['required', 'string', 'max:255', 'unique:tag_menus,tagName'],
-            'group_id'     => ['nullable', 'string', 'max:255'],
-            'require_note' => ['nullable', 'boolean'], // ตรวจรูปแบบเท่านั้น
+            'group_id'     => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::exists('tag_groups', 'group_id')->where(fn($q) => $q->whereNull('deleted_at')),
+            ],
+            'require_note' => ['nullable', 'boolean'],
         ]);
 
         try {
             $actor   = Auth::user();
             $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
 
-            // แก้ไขวิธีการแปลงค่า require_note
+            // normalize require_note
             $requireNote = null;
             if ($request->has('require_note')) {
-                $rawValue = $request->input('require_note');
-
-                // แปลงค่าให้ชัดเจน
-                if (is_bool($rawValue)) {
-                    $requireNote = $rawValue;
-                } else if (is_string($rawValue)) {
-                    $requireNote = in_array(strtolower($rawValue), ['true', '1'], true);
-                } else if (is_numeric($rawValue)) {
-                    $requireNote = (bool)(int)$rawValue;
-                }
+                $raw = $request->input('require_note');
+                if (is_bool($raw))        $requireNote = $raw;
+                elseif (is_string($raw))  $requireNote = in_array(strtolower($raw), ['true', '1'], true);
+                elseif (is_numeric($raw)) $requireNote = (bool)(int)$raw;
             }
 
             $payload = [
@@ -110,18 +109,12 @@ class TagMenuController extends Controller
                 'created_by_user_id' => $actorId,
                 'updated_by_user_id' => $actorId,
             ];
-
-            // ใส่เฉพาะเมื่อมีค่า
-            if ($requireNote !== null) {
-                $payload['require_note'] = $requireNote;
-            }
+            if ($requireNote !== null) $payload['require_note'] = $requireNote;
 
             $res = $this->tagService->store($payload);
-            if ($res['status']) {
-                $status = 200;
-            } else {
-                throw new \Exception($res['message']);
-            }
+            if (!$res['status']) throw new \Exception($res['message']);
+
+            $status  = 200;
             $message = $res['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -134,10 +127,7 @@ class TagMenuController extends Controller
         }
     }
 
-    /**
-     * PUT /tags/{id}
-     * รองรับการอัปเดตทุกฟิลด์ (unique tagName แบบ ignore id)
-     */
+    /** PUT /tags/{id} */
     public function update(Request $request, int $id): JsonResponse
     {
         Log::info('=== UPDATE DEBUG ===', [
@@ -146,14 +136,20 @@ class TagMenuController extends Controller
             'require_note_type' => gettype($request->input('require_note')),
             'has_require_note' => $request->has('require_note'),
         ]);
+
         $status = 400;
         $detail = 'ไม่พบข้อผิดพลาด';
         $request->merge(['id' => $id]);
 
         $validated = $request->validate([
-            'id'       => ['required', 'integer', 'exists:tag_menus,id'],
-            'tagName'  => ['required', 'string', 'max:255', Rule::unique('tag_menus', 'tagName')->ignore($id)],
-            'group_id' => ['nullable', 'string', 'max:255'],
+            'id'          => ['required', 'integer', 'exists:tag_menus,id'],
+            'tagName'     => ['required', 'string', 'max:255', Rule::unique('tag_menus', 'tagName')->ignore($id)],
+            'group_id'    => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::exists('tag_groups', 'group_id')->where(fn($q) => $q->whereNull('deleted_at')),
+            ],
             'require_note' => ['nullable', 'boolean'],
         ]);
 
@@ -161,19 +157,13 @@ class TagMenuController extends Controller
             $actor   = Auth::user();
             $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
 
-            // แก้ไขวิธีการแปลงค่า require_note
+            // normalize require_note
             $requireNote = null;
             if ($request->has('require_note')) {
-                $rawValue = $request->input('require_note');
-
-                // แปลงค่าให้ชัดเจน
-                if (is_bool($rawValue)) {
-                    $requireNote = $rawValue;
-                } else if (is_string($rawValue)) {
-                    $requireNote = in_array(strtolower($rawValue), ['true', '1'], true);
-                } else if (is_numeric($rawValue)) {
-                    $requireNote = (bool)(int)$rawValue;
-                }
+                $raw = $request->input('require_note');
+                if (is_bool($raw))        $requireNote = $raw;
+                elseif (is_string($raw))  $requireNote = in_array(strtolower($raw), ['true', '1'], true);
+                elseif (is_numeric($raw)) $requireNote = (bool)(int)$raw;
             }
 
             $payload = [
@@ -181,17 +171,12 @@ class TagMenuController extends Controller
                 'group_id'           => $validated['group_id'] ?? null,
                 'updated_by_user_id' => $actorId,
             ];
-
-            if ($requireNote !== null) {
-                $payload['require_note'] = $requireNote;
-            }
+            if ($requireNote !== null) $payload['require_note'] = $requireNote;
 
             $res = $this->tagService->update($id, $payload);
-            if ($res['status']) {
-                $status = 200;
-            } else {
-                throw new \Exception($res['message']);
-            }
+            if (!$res['status']) throw new \Exception($res['message']);
+
+            $status  = 200;
             $message = $res['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -204,10 +189,7 @@ class TagMenuController extends Controller
         }
     }
 
-    /**
-     * DELETE /tags/{id}
-     * ใช้ SoftDelete
-     */
+    /** DELETE /tags/{id} (SoftDelete) */
     public function delete($id): JsonResponse
     {
         $status = 400;
@@ -216,15 +198,12 @@ class TagMenuController extends Controller
         try {
             $actor   = Auth::user();
             $actorId = $actor?->empCode ?? (string) $actor?->id ?? null;
+            $this->tagService->markDeletedBy((int) $id, $actorId);
 
-            $this->tagService->markDeletedBy((int)$id, $actorId);
+            $res = $this->tagService->delete((int) $id);
+            if (!$res['status']) throw new \Exception($res['message']);
 
-            $res = $this->tagService->delete((int)$id);
-            if ($res['status']) {
-                $status = 200;
-            } else {
-                throw new \Exception($res['message']);
-            }
+            $status  = 200;
             $message = $res['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -237,6 +216,7 @@ class TagMenuController extends Controller
         }
     }
 
+    /** POST /tags/{id}/restore */
     public function restore(int $id): JsonResponse
     {
         $status = 400;
@@ -244,11 +224,9 @@ class TagMenuController extends Controller
 
         try {
             $res = $this->tagService->restore($id);
-            if ($res['status']) {
-                $status = 200;
-            } else {
-                throw new \Exception($res['message']);
-            }
+            if (!$res['status']) throw new \Exception($res['message']);
+
+            $status  = 200;
             $message = $res['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();
@@ -261,6 +239,7 @@ class TagMenuController extends Controller
         }
     }
 
+    /** DELETE /tags/{id}/force */
     public function forceDelete(int $id): JsonResponse
     {
         $status = 400;
@@ -268,11 +247,9 @@ class TagMenuController extends Controller
 
         try {
             $res = $this->tagService->forceDelete($id);
-            if ($res['status']) {
-                $status = 200;
-            } else {
-                throw new \Exception($res['message']);
-            }
+            if (!$res['status']) throw new \Exception($res['message']);
+
+            $status  = 200;
             $message = $res['message'];
         } catch (\Exception $e) {
             $detail = $e->getMessage();

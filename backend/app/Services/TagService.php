@@ -3,233 +3,187 @@
 namespace App\Services;
 
 use App\Models\TagMenu;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class TagService
 {
-    public function list(array $filters = []): array
+    /** ========= Presenter กลาง เพื่อคงรูป JSON ให้สม่ำเสมอ ========= */
+    private function presentTag(TagMenu $t): array
     {
-        try {
-            $q = TagMenu::query()->select([
-                'id',
-                'tagName',
-                'group_id',
-                'require_note',
-                'created_by_user_id',
-                'updated_by_user_id',
-                'deleted_by_user_id',
-                'created_at',
-                'updated_at',
-                'deleted_at',
-            ]);
+        $g = $t->group;
 
-            // Trashed scope
-            $withTrashed = (bool)($filters['with_trashed'] ?? false);
-            $onlyTrashed = (bool)($filters['only_trashed'] ?? false);
+        return [
+            'id'                  => $t->id,
+            'tagName'             => $t->tagName,
+            'group_id'            => $t->group_id,
+            'require_note'        => (bool) ($t->require_note ?? false),
+            'created_by_user_id'  => $t->created_by_user_id,
+            'updated_by_user_id'  => $t->updated_by_user_id,
+            'deleted_by_user_id'  => $t->deleted_by_user_id,
+            'deleted_at'          => $t->deleted_at,
+            'created_at'          => $t->created_at,
+            'updated_at'          => $t->updated_at,
 
-            if ($onlyTrashed) {
-                $q->onlyTrashed();
-            } elseif ($withTrashed) {
-                $q->withTrashed();
-            }
+            'group' => $g ? [
+                'id'          => $g->id,
+                'group_id'    => $g->group_id,
+                'name'        => $g->group_name,
+                'description' => $g->group_description,
+                'deleted_at'  => $g->deleted_at,
+            ] : null,
+        ];
+    }
 
-            // Filters
-            if (!empty($filters['name'])) {
-                $name = trim($filters['name']);
-                $q->where('tagName', 'ILIKE', "%{$name}%");
-            }
+    /** ========= List ========= */
+    public function list(array $filters): array
+    {
+        $q = TagMenu::query()->with([
+            'group:id,group_id,group_name,group_description,deleted_at',
+        ]);
 
-            if (!empty($filters['group'])) {
-                $group = trim($filters['group']);
-                $q->where('group_id', 'ILIKE', "%{$group}%");
-            }
+        // soft-delete filter
+        if (!empty($filters['only_trashed'])) {
+            $q->onlyTrashed();
+        } elseif (!empty($filters['with_trashed'])) {
+            $q->withTrashed();
+        }
 
-            if (!empty($filters['created_by'])) {
-                $createdBy = trim($filters['created_by']);
-                $q->where('created_by_user_id', 'ILIKE', "%{$createdBy}%");
-            }
+        // keyword on tagName
+        if ($kw = $filters['name'] ?? null) {
+            // ILIKE สำหรับ Postgres; ถ้าใช้ MySQL ให้เปลี่ยนเป็น like
+            $q->where('tagName', 'ILIKE', "%{$kw}%");
+        }
 
-            if (!empty($filters['updated_by'])) {
-                $updatedBy = trim($filters['updated_by']);
-                $q->where('updated_by_user_id', 'ILIKE', "%{$updatedBy}%");
-            }
+        // filter group by group_id หรือ group_name
+        if ($grp = $filters['group'] ?? null) {
+            $q->where(function ($qq) use ($grp) {
+                $qq->where('group_id', 'ILIKE', "%{$grp}%")
+                    ->orWhereHas('group', function ($gq) use ($grp) {
+                        $gq->where('group_name', 'ILIKE', "%{$grp}%");
+                    });
+            });
+        }
 
-            // กรอง require_note เฉพาะเมื่อมีค่า (true/false) ไม่ใช่ null
-            if (array_key_exists('require_note', $filters) && $filters['require_note'] !== null) {
-                $q->where('require_note', (bool)$filters['require_note']);
-            }
+        if ($created = $filters['created_by'] ?? null) {
+            $q->where('created_by_user_id', 'ILIKE', "%{$created}%");
+        }
 
-            $q->orderBy('id', 'asc');
+        if ($updated = $filters['updated_by'] ?? null) {
+            $q->where('updated_by_user_id', 'ILIKE', "%{$updated}%");
+        }
 
-            // Pagination (optional)
-            $page    = isset($filters['page']) ? max(1, (int)$filters['page']) : null;
-            $perPage = isset($filters['per_page']) ? max(1, min(200, (int)$filters['per_page'])) : null;
+        if (array_key_exists('require_note', $filters) && $filters['require_note'] !== null) {
+            $q->where('require_note', (bool) $filters['require_note']);
+        }
 
-            if ($page && $perPage) {
-                /** @var LengthAwarePaginator $p */
-                $p = $q->paginate($perPage, ['*'], 'page', $page);
-                return [
-                    'status'  => true,
-                    'message' => 'สำเร็จ',
-                    'list'    => $p->items(),
-                    'meta'    => [
-                        'current_page' => $p->currentPage(),
-                        'per_page'     => $p->perPage(),
-                        'total'        => $p->total(),
-                        'last_page'    => $p->lastPage(),
-                    ],
-                ];
-            }
+        $page    = $filters['page'] ?? null;
+        $perPage = $filters['per_page'] ?? 20;
 
-            $rows = $q->get();
+        if ($page) {
+            $paginator = $q->orderBy('id', 'desc')->paginate($perPage);
+            $items = collect($paginator->items())
+                ->map(fn($t) => $this->presentTag($t))
+                ->all();
 
             return [
                 'status'  => true,
-                'message' => 'สำเร็จ',
-                'list'    => $rows,
-                'meta'    => null,
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'status'  => false,
-                'message' => $e->getMessage(),
-                'list'    => [],
-                'meta'    => null,
+                'message' => 'success',
+                'list'    => $items,
+                'meta'    => [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page'     => $paginator->perPage(),
+                    'total'        => $paginator->total(),
+                    'last_page'    => $paginator->lastPage(),
+                ],
             ];
         }
+
+        $rows = $q->orderBy('id', 'desc')->get();
+
+        return [
+            'status'  => true,
+            'message' => 'success',
+            'list'    => $rows->map(fn($t) => $this->presentTag($t))->all(),
+            'meta'    => null,
+        ];
     }
 
+    /** ========= Store ========= */
     public function store(array $payload): array
     {
-        DB::beginTransaction();
-        try {
-            $tag = new TagMenu();
-            $tag->tagName            = $payload['tagName'];
-            $tag->group_id           = $payload['group_id'] ?? null;
+        return DB::transaction(function () use ($payload) {
+            $t = TagMenu::create($payload);
+            $t->load('group:id,group_id,group_name,group_description,deleted_at');
 
-            if (array_key_exists('require_note', $payload) && $payload['require_note'] !== null) {
-                $tag->require_note = (bool)$payload['require_note'];
-            }
-
-            $tag->created_by_user_id = $payload['created_by_user_id'] ?? null;
-            $tag->updated_by_user_id = $payload['updated_by_user_id'] ?? null;
-            $tag->save();
-
-            DB::commit();
-            return ['status' => true, 'message' => 'บันทึกสำเร็จ', 'tag' => $tag->fresh()];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return ['status' => false, 'message' => $e->getMessage(), 'tag' => null];
-        }
+            return [
+                'status'  => true,
+                'message' => 'created',
+                'tag'     => $this->presentTag($t),
+            ];
+        });
     }
 
-
+    /** ========= Update ========= */
     public function update(int $id, array $payload): array
     {
-        DB::beginTransaction();
-        try {
-            $tag = TagMenu::withTrashed()->findOrFail($id);
-            $tag->tagName  = $payload['tagName'];
-            $tag->group_id = $payload['group_id'] ?? null;
+        return DB::transaction(function () use ($id, $payload) {
+            $t = TagMenu::findOrFail($id);
+            $t->fill($payload)->save();
+            $t->load('group:id,group_id,group_name,group_description,deleted_at');
 
-            if (array_key_exists('require_note', $payload) && $payload['require_note'] !== null) {
-                $tag->require_note = (bool)$payload['require_note'];
-            }
-
-            if (array_key_exists('updated_by_user_id', $payload)) {
-                $tag->updated_by_user_id = $payload['updated_by_user_id'];
-            }
-
-            $tag->save();
-
-            DB::commit();
-            return ['status' => true, 'message' => 'อัปเดตสำเร็จ', 'tag' => $tag->fresh()];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return ['status' => false, 'message' => $e->getMessage(), 'tag' => null];
-        }
+            return [
+                'status'  => true,
+                'message' => 'updated',
+                'tag'     => $this->presentTag($t),
+            ];
+        });
     }
 
+    /** ========= Delete (Soft) ========= */
+    public function delete(int $id): array
+    {
+        $t = TagMenu::findOrFail($id);
+        $t->delete();
+
+        return [
+            'status'  => true,
+            'message' => 'deleted',
+            'list'    => [], // ถ้าต้องการส่ง list ใหม่ให้ไปเรียก list() แยก
+        ];
+    }
+
+    /** ========= Restore ========= */
+    public function restore(int $id): array
+    {
+        $t = TagMenu::withTrashed()->findOrFail($id);
+        $t->restore();
+
+        return [
+            'status'  => true,
+            'message' => 'restored',
+            'tag'     => $this->presentTag($t->load('group')),
+        ];
+    }
+
+    /** ========= Force Delete ========= */
+    public function forceDelete(int $id): array
+    {
+        $t = TagMenu::withTrashed()->findOrFail($id);
+        $t->forceDelete();
+
+        return [
+            'status'  => true,
+            'message' => 'force_deleted',
+        ];
+    }
+
+    /** ========= Mark Deleted By ========= */
     public function markDeletedBy(int $id, ?string $actorId): void
     {
         if ($actorId === null) return;
-        TagMenu::whereKey($id)->update(['deleted_by_user_id' => $actorId]);
-    }
 
-    /**
-     * ลบแบบ Soft Delete
-     */
-    public function delete(int $id): array
-    {
-        DB::beginTransaction();
-        try {
-            /** @var TagMenu $tag */
-            $tag = TagMenu::findOrFail($id);
-            $tag->delete(); // soft delete
-
-            DB::commit();
-
-            return [
-                'status'  => true,
-                'message' => 'ลบสำเร็จ',
-                'list'    => [],
-            ];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return [
-                'status'  => false,
-                'message' => $e->getMessage(),
-                'list'    => [],
-            ];
-        }
-    }
-
-    public function restore(int $id): array
-    {
-        DB::beginTransaction();
-        try {
-            /** @var TagMenu $tag */
-            $tag = TagMenu::onlyTrashed()->findOrFail($id);
-            $tag->restore();
-
-            DB::commit();
-
-            return [
-                'status'  => true,
-                'message' => 'กู้คืนสำเร็จ',
-                'tag'     => $tag->fresh(),
-            ];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return [
-                'status'  => false,
-                'message' => $e->getMessage(),
-                'tag'     => null,
-            ];
-        }
-    }
-
-    public function forceDelete(int $id): array
-    {
-        DB::beginTransaction();
-        try {
-            /** @var TagMenu $tag */
-            $tag = TagMenu::withTrashed()->findOrFail($id);
-            $tag->forceDelete();
-
-            DB::commit();
-
-            return [
-                'status'  => true,
-                'message' => 'ลบถาวรสำเร็จ',
-            ];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return [
-                'status'  => false,
-                'message' => $e->getMessage(),
-            ];
-        }
+        TagMenu::query()
+            ->where('id', $id)
+            ->update(['deleted_by_user_id' => $actorId]);
     }
 }

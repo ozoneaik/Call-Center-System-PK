@@ -1,4 +1,3 @@
-// src/Views/TagPages/EditTagPage.jsx
 import {
     Box,
     Sheet,
@@ -18,12 +17,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { profileApi } from "../../../Api/Auth.js";
-import { updateTagsApi, deleteTagApi, listTagsApi } from "../../../Api/Tags.js";
+import {
+    updateTagsApi,
+    deleteTagApi,
+    listTagsApi,
+    listTagGroupOptionsApi, // ⬅️ NEW
+} from "../../../Api/Tags.js";
 
 const toBool = (v) => v === true || v === "true" || v === 1 || v === "1";
 const toStr = (v) => (v == null ? "" : String(v));
 const pick = (...vals) => {
-    for (const v of vals) if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+    for (const v of vals)
+        if (v !== undefined && v !== null && String(v).trim() !== "")
+            return String(v);
     return "";
 };
 
@@ -87,16 +93,27 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
     const [updatedByDisplay, setUpdatedByDisplay] = useState("-");
     const [currentUserName, setCurrentUserName] = useState("");
 
-    // groups
-    const defaultGroupOptions = useMemo(
-        () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((c) => ({ value: c, label: c })),
-        []
-    );
-    const [groupOptions, setGroupOptions] = useState(
-        groupOptionsProp?.length ? groupOptionsProp : defaultGroupOptions
-    );
+    // groups (⬇️ ดึงจาก API จริง)
+    const [groupOptions, setGroupOptions] = useState([]);
     useEffect(() => {
-        if (groupOptionsProp?.length) setGroupOptions(groupOptionsProp);
+        let ignore = false;
+        (async () => {
+            try {
+                if (groupOptionsProp?.length) {
+                    setGroupOptions(groupOptionsProp);
+                } else {
+                    const { data, status } = await listTagGroupOptionsApi();
+                    if (!ignore && status === 200 && Array.isArray(data)) {
+                        setGroupOptions(data);
+                    }
+                }
+            } catch {
+                /* ignore */
+            }
+        })();
+        return () => {
+            ignore = true;
+        };
     }, [groupOptionsProp]);
 
     // profile (for updated-by fallback)
@@ -106,7 +123,13 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
             try {
                 const { data, status } = await profileApi();
                 if (!ignore && status === 200) {
-                    const name = pick(data?.real_name, data?.name, data?.empCode, data?.user?.name, data?.user?.empCode);
+                    const name = pick(
+                        data?.real_name,
+                        data?.name,
+                        data?.empCode,
+                        data?.user?.name,
+                        data?.user?.empCode
+                    );
                     setCurrentUserName(name);
                     if (!updatedByDisplay || updatedByDisplay === "-") {
                         setUpdatedByDisplay(name || "-");
@@ -130,7 +153,9 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
             try {
                 const { data, status } = await listTagsApi();
                 if (!ignore && status === 200 && Array.isArray(data?.list)) {
-                    const found = data.list.find((x) => Number(x.id) === Number(idFromRoute));
+                    const found = data.list.find(
+                        (x) => Number(x.id) === Number(idFromRoute)
+                    );
                     if (found) {
                         setTag(found);
                         setTagName(toStr(found.tagName));
@@ -180,7 +205,14 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
 
         if (status === 200) {
             const updated = data?.tag || {};
-            setUpdatedByDisplay(pick(updated.updated_by_name, updated.updated_by_user_id, currentUserName, updatedByDisplay));
+            setUpdatedByDisplay(
+                pick(
+                    updated.updated_by_name,
+                    updated.updated_by_user_id,
+                    currentUserName,
+                    updatedByDisplay
+                )
+            );
             setTag((prev) => ({ ...(prev || {}), ...updated }));
         }
 
@@ -261,13 +293,9 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                     <FormControl required>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <FormLabel sx={{ fontSize: 16 }}>Require Note</FormLabel>
-                            <RequireNotePreviewChip value={(requireNote || "false")} />
+                            <RequireNotePreviewChip value={requireNote || "false"} />
                         </Box>
-                        <RequireNoteSelector
-                            value={requireNote}
-                            onChange={setRequireNote}
-                            disabled={loading}
-                        />
+                        <RequireNoteSelector value={requireNote} onChange={setRequireNote} disabled={loading} />
                     </FormControl>
 
                     {/* Group */}
@@ -285,6 +313,15 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                                 </Option>
                             ))}
                         </Select>
+
+                        {/* (ไม่บังคับ) Preview ชื่อกลุ่ม */}
+                        {(tag?.group?.name || tag?.group_id) && (
+                            <Typography level="body-sm" sx={{ color: "neutral.500", mt: 0.5 }}>
+                                {tag?.group?.name
+                                    ? `ชื่อกลุ่ม: ${tag.group.name} (${tag.group.group_id})`
+                                    : `รหัสกลุ่ม: ${tag.group_id}`}
+                            </Typography>
+                        )}
                     </FormControl>
 
                     <Divider />

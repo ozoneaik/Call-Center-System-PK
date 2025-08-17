@@ -62,7 +62,6 @@ export default function EditGroupPage() {
   const [loading, setLoading] = useState(!fromState);
   const [saving, setSaving] = useState(false);
 
-  // who am I (for Updated By fallback)
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -82,10 +81,8 @@ export default function EditGroupPage() {
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // load group if necessary
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -102,7 +99,6 @@ export default function EditGroupPage() {
           setDeletedAt(g.deleted_at || null);
         }
       } catch {
-        /* ignore */
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -112,18 +108,16 @@ export default function EditGroupPage() {
     };
   }, [fromState, id]);
 
-  // fill displays from group
   useEffect(() => {
     if (!group) return;
     setCreatedByDisplay(pick(group.created_by_name, group.created_by_user_id, "-"));
     setUpdatedByDisplay(pick(group.updated_by_name, group.updated_by_user_id, updatedByDisplay));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group]);
 
   const onBack = () => navigate(-1);
 
   const onUpdate = async () => {
-    if (saving) return; // กันดับเบิลคลิก
+    if (saving) return;
     if (!group_id.trim()) {
       return AlertDiaLog({ icon: "error", title: "กรอก Group ID", text: "" });
     }

@@ -1,4 +1,3 @@
-// src/Views/TagPages/CreateTagPage.jsx
 import {
     Box,
     Sheet,
@@ -16,7 +15,7 @@ import {
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { storeTagsApi } from "../../../Api/Tags.js";
+import { storeTagsApi, listTagGroupOptionsApi } from "../../../Api/Tags.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { profileApi } from "../../../Api/Auth.js";
 
@@ -75,17 +74,27 @@ export default function CreateTagPage({
     // current user
     const [currentUserName, setCurrentUserName] = useState(currentUserNameProp || "-");
 
-    // groups
-    const defaultGroups = useMemo(
-        () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((c) => ({ value: c, label: c })),
-        []
-    );
-    const [groupOptions, setGroupOptions] = useState(
-        groupOptionsProp?.length ? groupOptionsProp : defaultGroups
-    );
-
+    // groups (⬇️ ดึงจาก API จริง)
+    const [groupOptions, setGroupOptions] = useState([]);
     useEffect(() => {
-        if (groupOptionsProp?.length) setGroupOptions(groupOptionsProp);
+        let ignore = false;
+        (async () => {
+            try {
+                if (groupOptionsProp?.length) {
+                    setGroupOptions(groupOptionsProp);
+                } else {
+                    const { data, status } = await listTagGroupOptionsApi();
+                    if (!ignore && status === 200 && Array.isArray(data)) {
+                        setGroupOptions(data);
+                    }
+                }
+            } catch {
+                /* ignore */
+            }
+        })();
+        return () => {
+            ignore = true;
+        };
     }, [groupOptionsProp]);
 
     // load profile for Created By
@@ -116,7 +125,11 @@ export default function CreateTagPage({
             return AlertDiaLog({ icon: "error", title: "กรอก Tag Name", text: "" });
         }
         if (requireNote !== "true" && requireNote !== "false") {
-            return AlertDiaLog({ icon: "error", title: "เลือก Require Note (ต้องมี/ไม่ต้องมี)", text: "" });
+            return AlertDiaLog({
+                icon: "error",
+                title: "เลือก Require Note (ต้องมี/ไม่ต้องมี)",
+                text: "",
+            });
         }
         if (!groupId) {
             return AlertDiaLog({ icon: "error", title: "เลือก Group", text: "" });
@@ -162,7 +175,11 @@ export default function CreateTagPage({
             </Box>
             <Sheet
                 variant="outlined"
-                sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
+                sx={{
+                    borderRadius: "sm",
+                    p: { xs: 2, md: 3 },
+                    borderColor: "neutral.outlinedBorder",
+                }}
             >
                 <Stack spacing={2.5} sx={{ maxWidth: 720, mx: { md: "auto" } }}>
                     {/* Tag Name */}
@@ -177,7 +194,13 @@ export default function CreateTagPage({
 
                     {/* Require Note as Chips + preview */}
                     <FormControl required>
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                            }}
+                        >
                             <FormLabel sx={{ fontSize: 16 }}>Require Note</FormLabel>
                             <RequireNotePreviewChip value={requireNote || "false"} />
                         </Box>
@@ -187,7 +210,11 @@ export default function CreateTagPage({
                     {/* Group */}
                     <FormControl required>
                         <FormLabel sx={{ fontSize: 16 }}>Group</FormLabel>
-                        <Select placeholder="เลือกกลุ่ม" value={groupId} onChange={(_, v) => setGroupId(v ?? "")}>
+                        <Select
+                            placeholder="เลือกกลุ่ม"
+                            value={groupId}
+                            onChange={(_, v) => setGroupId(v ?? "")}
+                        >
                             {groupOptions.map((g) => (
                                 <Option key={g.value} value={g.value}>
                                     {g.label}

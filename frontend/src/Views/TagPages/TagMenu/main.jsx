@@ -1,4 +1,3 @@
-// src/Views/TagPages/TagPage.jsx
 import { ChatPageStyle } from "../../../styles/ChatPageStyle.js";
 import {
     Box,
@@ -40,7 +39,6 @@ import SearchRounded from "@mui/icons-material/SearchRounded";
 
 const BreadcrumbsPath = [{ name: "จัดการ Tag การสนทนา" }, { name: "รายละเอียด" }];
 
-// === Small UI helpers ===
 function RequireNoteChip({ value }) {
     const isTrue = !!value;
     return (
@@ -56,16 +54,20 @@ function RequireNoteChip({ value }) {
     );
 }
 
-function GroupChip({ groupId }) {
-    if (!groupId)
+function GroupChip({ group }) {
+    if (!group?.group_id && !group?.name) {
         return (
             <Typography level="body-sm" sx={{ color: "neutral.500" }}>
                 -
             </Typography>
         );
+    }
+    const text = group?.name
+        ? `${group.name} (${group.group_id || "-"})`
+        : `Group: ${group.group_id}`;
     return (
         <Chip size="sm" variant="outlined" color="primary" sx={{ fontWeight: 600 }}>
-            Group: {groupId}
+            {text}
         </Chip>
     );
 }
@@ -104,8 +106,14 @@ export default function TagPage() {
                 ? (t.tagName || "").toLowerCase().includes(filterName.toLowerCase())
                 : true;
 
+            /** ⬇️ หาได้ทั้งจาก group_id และชื่อกลุ่ม (t.group?.name) */
             const byGroup = filterGroup
-                ? String(t.group_id || "").toLowerCase().includes(filterGroup.toLowerCase())
+                ? String(t.group_id || "")
+                    .toLowerCase()
+                    .includes(filterGroup.toLowerCase()) ||
+                String(t.group?.name || "")
+                    .toLowerCase()
+                    .includes(filterGroup.toLowerCase())
                 : true;
 
             const createdDisplay = String(
@@ -137,7 +145,9 @@ export default function TagPage() {
                         ? !t.deleted_at
                         : !!t.deleted_at;
 
-            return byName && byGroup && byCreated && byUpdated && byRequire && byStatus;
+            return (
+                byName && byGroup && byCreated && byUpdated && byRequire && byStatus
+            );
         });
     }, [
         tags,
@@ -281,11 +291,10 @@ export default function TagPage() {
                         p: 0,
                         borderRadius: "lg",
                         borderColor: "divider",
-                        overflow: "visible",  // เปลี่ยนจาก "hidden" เป็น "visible"
-                        minHeight: "auto"     // เพิ่ม minHeight
+                        overflow: "visible",
+                        minHeight: "auto",
                     }}
                 >
-                    {/* Header */}
                     <Box
                         sx={{
                             px: 2,
@@ -302,26 +311,33 @@ export default function TagPage() {
                         <Typography level="title-sm">ตัวกรอง</Typography>
                     </Box>
 
-                    {/* Filter Content */}
-                    <Box sx={{
-                        px: 1.5,
-                        py: 1.5,           // เพิ่ม padding
-                        overflowX: "auto",
-                        minHeight: 60      // กำหนด minHeight ชัดเจน
-                    }}>
+                    <Box
+                        sx={{ px: 1.5, py: 1.5, overflowX: "auto", minHeight: 60 }}
+                    >
                         <Box
                             sx={{
                                 display: "flex",
                                 flexWrap: "nowrap",
-                                alignItems: "flex-end",  // เปลี่ยนจาก "end" เป็น "flex-end"
-                                gap: 1.5,               // เพิ่ม gap
+                                alignItems: "flex-end",
+                                gap: 1.5,
                                 minWidth: 1260,
-                                height: "auto",         // เพิ่ม height auto
+                                height: "auto",
                             }}
                         >
                             {/* ค้นหาชื่อแท็ก */}
-                            <Box sx={{ minWidth: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 220,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     ค้นหาชื่อแท็ก
                                 </Typography>
                                 <Input
@@ -335,22 +351,44 @@ export default function TagPage() {
                             </Box>
 
                             {/* Group */}
-                            <Box sx={{ minWidth: 180, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 180,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     Group
                                 </Typography>
                                 <Input
                                     size="sm"
                                     value={filterGroup}
                                     onChange={(e) => setFilterGroup(e.target.value)}
-                                    placeholder="เช่น A / B หรือรหัสกลุ่ม"
+                                    placeholder="เช่น สแปม / A / B / PROD01"
                                     sx={{ minHeight: 32 }}
                                 />
                             </Box>
 
                             {/* Created By */}
-                            <Box sx={{ minWidth: 180, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 180,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     Created By
                                 </Typography>
                                 <Input
@@ -363,8 +401,19 @@ export default function TagPage() {
                             </Box>
 
                             {/* Updated By */}
-                            <Box sx={{ minWidth: 180, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 180,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     Updated By
                                 </Typography>
                                 <Input
@@ -377,8 +426,19 @@ export default function TagPage() {
                             </Box>
 
                             {/* Require Note */}
-                            <Box sx={{ minWidth: 160, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 160,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     Require Note
                                 </Typography>
                                 <Select
@@ -394,8 +454,19 @@ export default function TagPage() {
                             </Box>
 
                             {/* สถานะ */}
-                            <Box sx={{ minWidth: 160, flexShrink: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography level="body-sm" sx={{ fontSize: "0.75rem", fontWeight: 500 }}>
+                            <Box
+                                sx={{
+                                    minWidth: 160,
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography
+                                    level="body-sm"
+                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
+                                >
                                     สถานะ
                                 </Typography>
                                 <Select
@@ -414,13 +485,15 @@ export default function TagPage() {
                             <Box sx={{ flex: 1, minWidth: 20 }} />
 
                             {/* Action Buttons */}
-                            <Box sx={{
-                                display: "flex",
-                                gap: 1,
-                                flexShrink: 0,
-                                alignItems: "flex-end",
-                                height: "fit-content"
-                            }}>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexShrink: 0,
+                                    alignItems: "flex-end",
+                                    height: "fit-content",
+                                }}
+                            >
                                 <Button
                                     variant="outlined"
                                     color="neutral"
@@ -542,11 +615,6 @@ export default function TagPage() {
                         </Button>
                     </Box>
 
-                    {selectedRows.length > 0 && (
-                        <Chip variant="soft" color="neutral">
-                            เลือก {selectedRows.length} รายการ
-                        </Chip>
-                    )}
                 </Sheet>
 
                 {/* Table */}
@@ -561,7 +629,9 @@ export default function TagPage() {
                     ) : filtered.length === 0 ? (
                         <Box sx={{ p: 4, textAlign: "center", color: "neutral.500" }}>
                             <Typography level="title-md">ไม่พบรายการที่ตรงกับตัวกรอง</Typography>
-                            <Typography level="body-sm">ลองปรับตัวกรองหรือกดรีเฟรชอีกครั้ง</Typography>
+                            <Typography level="body-sm">
+                                ลองปรับตัวกรองหรือกดรีเฟรชอีกครั้ง
+                            </Typography>
                         </Box>
                     ) : (
                         <Table
@@ -579,7 +649,8 @@ export default function TagPage() {
                                     <th style={{ width: 48 }}>
                                         <Checkbox
                                             checked={
-                                                filtered.length > 0 && selectedRows.length === filtered.length
+                                                filtered.length > 0 &&
+                                                selectedRows.length === filtered.length
                                             }
                                             indeterminate={
                                                 selectedRows.length > 0 &&
@@ -591,7 +662,7 @@ export default function TagPage() {
                                     <th style={{ width: 70 }}>ID</th>
                                     <th style={{ width: 280 }}>Tag Name</th>
                                     <th style={{ width: 160 }}>Require Note</th>
-                                    <th style={{ width: 160 }}>Group</th>
+                                    <th style={{ width: 240 }}>Group</th>
                                     <th style={{ width: 120 }}>Status</th>
                                     <th style={{ width: 220 }}>Created By</th>
                                     <th style={{ width: 220 }}>Updated By</th>
@@ -620,7 +691,8 @@ export default function TagPage() {
                                             <RequireNoteChip value={r.require_note} />
                                         </td>
                                         <td>
-                                            <GroupChip groupId={r.group_id} />
+                                            {/* ⬇️ ใช้ group object ถ้ามี; ถ้าไม่มี fallback group_id */}
+                                            <GroupChip group={r.group || { group_id: r.group_id }} />
                                         </td>
                                         <td>
                                             <Chip
@@ -628,7 +700,11 @@ export default function TagPage() {
                                                 variant="soft"
                                                 color={r.deleted_at ? "danger" : "success"}
                                                 startDecorator={r.deleted_at ? "●" : "○"}
-                                                sx={{ fontWeight: 600, minWidth: 80, justifyContent: "center" }}
+                                                sx={{
+                                                    fontWeight: 600,
+                                                    minWidth: 80,
+                                                    justifyContent: "center",
+                                                }}
                                             >
                                                 {r.deleted_at ? "ลบแล้ว" : "ใช้งาน"}
                                             </Chip>
