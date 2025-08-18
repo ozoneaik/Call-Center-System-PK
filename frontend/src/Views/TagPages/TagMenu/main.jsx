@@ -34,8 +34,10 @@ import DeleteRounded from "@mui/icons-material/DeleteRounded";
 import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
 import ClearAllRounded from "@mui/icons-material/ClearAllRounded";
 import SearchRounded from "@mui/icons-material/SearchRounded";
+import KeyboardArrowUpRounded from "@mui/icons-material/KeyboardArrowUpRounded";
+import KeyboardArrowDownRounded from "@mui/icons-material/KeyboardArrowDownRounded";
 
-const BreadcrumbsPath = [{ name: "จัดการ Tag การสนทนา" }, { name: "รายละเอียด" }];
+const BreadcrumbsPath = [{ name: "จัดการ Tag Menu การสนทนา" }, { name: "Tag Menu" }, { name: "รายละเอียด" }];
 
 function RequireNoteChip({ value }) {
     const isTrue = !!value;
@@ -52,20 +54,37 @@ function RequireNoteChip({ value }) {
     );
 }
 
-function GroupChip({ group }) {
+function GroupChip({ group, permanentlyDeleted = false }) {
+    // ไม่มีทั้ง group object และ group_id
     if (!group?.group_id && !group?.name) {
-        return (
-            <Typography level="body-sm" sx={{ color: "neutral.500" }}>
-                -
-            </Typography>
-        );
+        return <Typography level="body-sm" sx={{ color: "neutral.500" }}>-</Typography>;
     }
-    const text = group?.name
+
+    const isSoftDeleted = !!group?.deleted_at;
+    const isPermanent = !isSoftDeleted && permanentlyDeleted;
+
+    const label = group?.name
         ? `${group.name} (${group.group_id || "-"})`
         : `Group: ${group.group_id}`;
+
+    const showDanger = isSoftDeleted || isPermanent;
+
     return (
-        <Chip size="sm" variant="outlined" color="primary" sx={{ fontWeight: 600 }}>
-            {text}
+        <Chip
+            size="sm"
+            variant={showDanger ? "soft" : "outlined"}
+            color={showDanger ? "danger" : "primary"}
+            sx={{ fontWeight: 600 }}
+            title={
+                isSoftDeleted
+                    ? "กลุ่มนี้ถูกลบชั่วคราว (Soft Delete)"
+                    : isPermanent
+                        ? "กลุ่มนี้ถูกลบถาวร (Force Delete)"
+                        : undefined
+            }
+        >
+            {label}
+            {isSoftDeleted ? " — กลุ่มถูกลบชั่วคราว" : isPermanent ? " — กลุ่มถูกลบถาวร" : ""}
         </Chip>
     );
 }
@@ -87,10 +106,13 @@ export default function TagPage() {
     const [filterUpdatedBy, setFilterUpdatedBy] = useState("");
     const [filterRequireNote, setFilterRequireNote] = useState(""); // '', 'true', 'false'
     const [filterStatus, setFilterStatus] = useState(""); // '', 'active', 'deleted'
+    // ✅ ดีฟอลต์: ซ่อนรายการที่ Group ถูกลบ (ทั้งชั่วคราว/ถาวร)
+    const [filterGroupDeletion, setFilterGroupDeletion] = useState("exclude"); // 'exclude' | '' | 'soft' | 'permanent' | 'any'
 
     // group options (normalized เป็น {value, label, raw})
     const [groupOptions, setGroupOptions] = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(false);
+    const [filtersOpen, setFiltersOpen] = useState(true);
 
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
@@ -136,20 +158,11 @@ export default function TagPage() {
                         ? !t.group_id
                         : String(t.group_id || "") === String(filterGroupId);
 
-            const createdDisplay = String(
-                t.created_by_name || t.created_by_user_id || ""
-            ).toLowerCase();
-            const updatedDisplay = String(
-                t.updated_by_name || t.updated_by_user_id || ""
-            ).toLowerCase();
+            const createdDisplay = String(t.created_by_name || t.created_by_user_id || "").toLowerCase();
+            const updatedDisplay = String(t.updated_by_name || t.updated_by_user_id || "").toLowerCase();
 
-            const byCreated = filterCreatedBy
-                ? createdDisplay.includes(filterCreatedBy.toLowerCase())
-                : true;
-
-            const byUpdated = filterUpdatedBy
-                ? updatedDisplay.includes(filterUpdatedBy.toLowerCase())
-                : true;
+            const byCreated = filterCreatedBy ? createdDisplay.includes(filterCreatedBy.toLowerCase()) : true;
+            const byUpdated = filterUpdatedBy ? updatedDisplay.includes(filterUpdatedBy.toLowerCase()) : true;
 
             const byRequire =
                 filterRequireNote === ""
@@ -165,7 +178,32 @@ export default function TagPage() {
                         ? !t.deleted_at
                         : !!t.deleted_at;
 
-            return byName && byGroup && byCreated && byUpdated && byRequire && byStatus;
+            // ✅ สถานะ Group ของแท็กที่อ้างอิง
+            const isSoftDeletedGroup = !!(t.group?.deleted_at);
+            const isPermanentlyDeletedGroup = !isSoftDeletedGroup && !t.group && !!t.group_id;
+
+            const byGroupDeletion =
+                filterGroupDeletion === "exclude"
+                    ? (!isSoftDeletedGroup && !isPermanentlyDeletedGroup) // ✅ แสดงเฉพาะ group ปกติ
+                    : filterGroupDeletion === ""
+                        ? true
+                        : filterGroupDeletion === "soft"
+                            ? isSoftDeletedGroup
+                            : filterGroupDeletion === "permanent"
+                                ? isPermanentlyDeletedGroup
+                                : filterGroupDeletion === "any"
+                                    ? (isSoftDeletedGroup || isPermanentlyDeletedGroup)
+                                    : true;
+
+            return (
+                byName &&
+                byGroup &&
+                byCreated &&
+                byUpdated &&
+                byRequire &&
+                byStatus &&
+                byGroupDeletion
+            );
         });
     }, [
         tags,
@@ -175,6 +213,7 @@ export default function TagPage() {
         filterUpdatedBy,
         filterRequireNote,
         filterStatus,
+        filterGroupDeletion,
     ]);
 
     // ✅ อ้างอิง filtered หลังนิยามแล้วเท่านั้น
@@ -310,9 +349,11 @@ export default function TagPage() {
                         borderRadius: "lg",
                         borderColor: "divider",
                         overflow: "visible",
+                        position: "relative",
                         minHeight: "auto",
                     }}
                 >
+                    {/* Header */}
                     <Box
                         sx={{
                             px: 2,
@@ -326,197 +367,153 @@ export default function TagPage() {
                         }}
                     >
                         <FilterAltRounded />
-                        <Typography level="title-sm">ตัวกรอง</Typography>
+                        <Typography level="title-sm" sx={{ flex: 1 }}>
+                            ตัวกรอง
+                        </Typography>
+
+                        <IconButton
+                            variant="plain"
+                            color="neutral"
+                            onClick={() => setFiltersOpen((v) => !v)}
+                            sx={{ ml: "auto" }}
+                            aria-label={filtersOpen ? "ซ่อนตัวกรอง" : "แสดงตัวกรอง"}
+                        >
+                            {filtersOpen ? <KeyboardArrowUpRounded /> : <KeyboardArrowDownRounded />}
+                        </IconButton>
                     </Box>
 
-                    <Box sx={{ px: 1.5, py: 1.5, overflowX: "auto", minHeight: 60 }}>
+                    {/* Content */}
+                    <Box sx={{ display: filtersOpen ? "block" : "none", px: 1.5, py: 1.5 }}>
+                        {/* Grid: label,input,label,input ต่อแถว */}
                         <Box
                             sx={{
-                                display: "flex",
-                                flexWrap: "nowrap",
-                                alignItems: "flex-end",
-                                gap: 1.5,
-                                minWidth: 1260,
-                                height: "auto",
+                                display: "grid",
+                                alignItems: "center",
+                                columnGap: 2,
+                                rowGap: 1.5,
+                                // md ขึ้นไป: 4 คอลัมน์ = label(คงที่) input(ยืด) label(คงที่) input(ยืด)
+                                // xs/sm: คอลัมน์เดียว (label อยู่บรรทัดก่อน input)
+                                gridTemplateColumns: {
+                                    xs: "1fr",
+                                    md: "170px minmax(260px, 1fr) 170px minmax(260px, 1fr)",
+                                },
+                                gridAutoRows: "minmax(32px, auto)",
                             }}
                         >
-                            {/* ค้นหาชื่อแท็ก */}
-                            <Box
-                                sx={{
-                                    minWidth: 220,
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
+                            {/* แถว 1 */}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                ค้นหาชื่อแท็ก
+                            </Typography>
+                            <Input
+                                size="sm"
+                                value={filterName}
+                                onChange={(e) => setFilterName(e.target.value)}
+                                placeholder="เช่น ปิดงาน, โอนต่อ…"
+                                startDecorator={<SearchRounded />}
+                                sx={{ minHeight: 32 }}
+                            />
+
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                Group
+                            </Typography>
+                            <Select
+                                size="sm"
+                                value={filterGroupId}
+                                onChange={(_, v) => setFilterGroupId(v ?? "")}
+                                disabled={loadingGroups}
+                                sx={{ minHeight: 32, width: "100%" }}
+                                placeholder={loadingGroups ? "กำลังโหลด..." : "เลือกกลุ่ม"}
+                                slotProps={{ listbox: { sx: { zIndex: 1300 } } }}
                             >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    ค้นหาชื่อแท็ก
-                                </Typography>
-                                <Input
-                                    size="sm"
-                                    value={filterName}
-                                    onChange={(e) => setFilterName(e.target.value)}
-                                    placeholder="เช่น ปิดงาน, โอนต่อ…"
-                                    startDecorator={<SearchRounded />}
-                                    sx={{ minHeight: 32 }}
-                                />
-                            </Box>
+                                <Option value="">ทั้งหมด</Option>
+                                <Option value="__NULL__">(ไม่มี Group)</Option>
+                                {groupOptions.map((opt) => (
+                                    <Option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </Option>
+                                ))}
+                            </Select>
 
-                            {/* Group */}
-                            <Box
-                                sx={{
-                                    minWidth: 180,
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
+                            {/* แถว 2 */}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                สถานะ Group (ที่แท็กอ้างอิง)
+                            </Typography>
+                            <Select
+                                size="sm"
+                                value={filterGroupDeletion}
+                                onChange={(_, v) => setFilterGroupDeletion(v ?? "exclude")}
+                                sx={{ minHeight: 32 }}
+                                slotProps={{ listbox: { sx: { zIndex: 1300 } } }}
                             >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    Group
-                                </Typography>
-                                <Select
-                                    size="sm"
-                                    value={filterGroupId}
-                                    onChange={(_, v) => setFilterGroupId(v ?? "")}
-                                    disabled={loadingGroups}
-                                    sx={{ minHeight: 32, minWidth: 200 }}
-                                    placeholder={loadingGroups ? "กำลังโหลด..." : "เลือกกลุ่ม"}
-                                >
-                                    <Option value="">ทั้งหมด</Option>
-                                    <Option value="__NULL__">(ไม่มี Group)</Option>
-                                    {groupOptions.map((opt) => (
-                                        <Option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Box>
+                                <Option value="exclude">เฉพาะ Group ปกติ</Option>
+                                <Option value="">ทั้งหมด</Option>
+                                <Option value="soft">กลุ่มถูกลบชั่วคราว (Soft)</Option>
+                                <Option value="permanent">กลุ่มถูกลบถาวร (Permanent)</Option>
+                                <Option value="any">มีการลบ (Soft/Perm)</Option>
+                            </Select>
 
-                            {/* Created By */}
-                            <Box
-                                sx={{
-                                    minWidth: 180,
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                Require Note
+                            </Typography>
+                            <Select
+                                size="sm"
+                                value={filterRequireNote}
+                                onChange={(_, v) => setFilterRequireNote(v ?? "")}
+                                sx={{ minHeight: 32 }}
+                                slotProps={{ listbox: { sx: { zIndex: 1300 } } }}
                             >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    Created By
-                                </Typography>
-                                <Input
-                                    size="sm"
-                                    value={filterCreatedBy}
-                                    onChange={(e) => setFilterCreatedBy(e.target.value)}
-                                    placeholder="ชื่อผู้สร้าง"
-                                    sx={{ minHeight: 32 }}
-                                />
-                            </Box>
+                                <Option value="">ทั้งหมด</Option>
+                                <Option value="true">ต้องมีบันทึก</Option>
+                                <Option value="false">ไม่ต้องมี</Option>
+                            </Select>
 
-                            {/* Updated By */}
-                            <Box
-                                sx={{
-                                    minWidth: 180,
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
+                            {/* แถว 3 */}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                สถานะ
+                            </Typography>
+                            <Select
+                                size="sm"
+                                value={filterStatus}
+                                onChange={(_, v) => setFilterStatus(v ?? "")}
+                                sx={{ minHeight: 32 }}
+                                slotProps={{ listbox: { sx: { zIndex: 1300 } } }}
                             >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    Updated By
-                                </Typography>
-                                <Input
-                                    size="sm"
-                                    value={filterUpdatedBy}
-                                    onChange={(e) => setFilterUpdatedBy(e.target.value)}
-                                    placeholder="ชื่อผู้แก้ไข"
-                                    sx={{ minHeight: 32 }}
-                                />
-                            </Box>
+                                <Option value="">ทั้งหมด</Option>
+                                <Option value="active">ใช้งาน</Option>
+                                <Option value="deleted">ลบแล้ว</Option>
+                            </Select>
 
-                            {/* Require Note */}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                Created By
+                            </Typography>
+                            <Input
+                                size="sm"
+                                value={filterCreatedBy}
+                                onChange={(e) => setFilterCreatedBy(e.target.value)}
+                                placeholder="ชื่อผู้สร้าง"
+                                sx={{ minHeight: 32 }}
+                            />
+
+                            {/* แถว 4 */}
+                            <Typography level="body-sm" sx={{ fontWeight: 600, textAlign: { md: "right" } }}>
+                                Updated By
+                            </Typography>
+                            <Input
+                                size="sm"
+                                value={filterUpdatedBy}
+                                onChange={(e) => setFilterUpdatedBy(e.target.value)}
+                                placeholder="ชื่อผู้แก้ไข"
+                                sx={{ minHeight: 32 }}
+                            />
+
+                            {/* แถวปุ่ม (เต็มแถว) */}
                             <Box
                                 sx={{
-                                    minWidth: 160,
-                                    flexShrink: 0,
+                                    gridColumn: "1 / -1",
                                     display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
-                            >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    Require Note
-                                </Typography>
-                                <Select
-                                    size="sm"
-                                    value={filterRequireNote}
-                                    onChange={(_, v) => setFilterRequireNote(v ?? "")}
-                                    sx={{ minHeight: 32 }}
-                                >
-                                    <Option value="">ทั้งหมด</Option>
-                                    <Option value="true">ต้องมีบันทึก</Option>
-                                    <Option value="false">ไม่ต้องมี</Option>
-                                </Select>
-                            </Box>
-
-                            {/* สถานะ */}
-                            <Box
-                                sx={{
-                                    minWidth: 160,
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                }}
-                            >
-                                <Typography
-                                    level="body-sm"
-                                    sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                                >
-                                    สถานะ
-                                </Typography>
-                                <Select
-                                    size="sm"
-                                    value={filterStatus}
-                                    onChange={(_, v) => setFilterStatus(v ?? "")}
-                                    sx={{ minHeight: 32 }}
-                                >
-                                    <Option value="">ทั้งหมด</Option>
-                                    <Option value="active">ใช้งาน</Option>
-                                    <Option value="deleted">ลบแล้ว</Option>
-                                </Select>
-                            </Box>
-
-                            {/* Spacer */}
-                            <Box sx={{ flex: 1, minWidth: 20 }} />
-
-                            {/* Action Buttons */}
-                            <Box
-                                sx={{
-                                    display: "flex",
+                                    justifyContent: "flex-end",
                                     gap: 1,
-                                    flexShrink: 0,
-                                    alignItems: "flex-end",
-                                    height: "fit-content",
+                                    pt: 0.5,
                                 }}
                             >
                                 <Button
@@ -531,6 +528,7 @@ export default function TagPage() {
                                         setFilterUpdatedBy("");
                                         setFilterRequireNote("");
                                         setFilterStatus("");
+                                        setFilterGroupDeletion("exclude"); // ดีฟอลต์
                                     }}
                                     sx={{ minHeight: 32, whiteSpace: "nowrap" }}
                                 >
@@ -716,7 +714,10 @@ export default function TagPage() {
                                         </td>
                                         <td>
                                             {/* ⬇️ ใช้ group object ถ้ามี; ถ้าไม่มี fallback group_id */}
-                                            <GroupChip group={r.group || { group_id: r.group_id }} />
+                                            <GroupChip
+                                                group={r.group || { group_id: r.group_id }}
+                                                permanentlyDeleted={!r.group && !!r.group_id}
+                                            />
                                         </td>
                                         <td>
                                             <Chip

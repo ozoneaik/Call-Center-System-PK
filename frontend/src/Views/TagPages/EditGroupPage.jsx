@@ -16,7 +16,15 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { profileApi } from "../../Api/Auth.js";
-import { getTagGroupApi, updateTagGroupApi } from "../../Api/TagGroups.js";
+import { getTagGroupApi, restoreTagGroupApi, updateTagGroupApi } from "../../Api/TagGroups.js";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
+import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
+
+const BreadcrumbsPath = [
+  { name: "จัดการกลุ่ม Tag การสนทนา" },
+  { name: "Tags Groups" },
+  { name: "Edit Group" },
+];
 
 const pick = (...vals) => {
   for (const v of vals) if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
@@ -83,6 +91,7 @@ export default function EditGroupPage() {
     };
   }, []);
 
+  //กันกรณีเข้าตรงด้วย URL: ถ้าข้อมูลถูกลบ ต้องกู้คืนก่อนจึงจะแก้ไขได้
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -92,21 +101,49 @@ export default function EditGroupPage() {
         const { status, data } = await getTagGroupApi(id);
         if (!ignore && status === 200 && data?.data) {
           const g = data.data;
-          setGroup(g);
-          setGroupId(g.group_id || "");
-          setGroupName(g.group_name || "");
-          setGroupDescription(g.group_description || "");
-          setDeletedAt(g.deleted_at || null);
+          if (g.deleted_at) {
+            AlertDiaLog({
+              icon: "warning",
+              title: "กลุ่มนี้ถูกลบแล้ว",
+              text: "ต้องกู้คืนก่อนจึงจะแก้ไขได้ ต้องการกู้คืนตอนนี้หรือไม่?",
+              onPassed: async (confirm) => {
+                if (!confirm) {
+                  navigate("/tags/groups", {
+                    state: { flash: { type: "danger", message: "ไม่สามารถแก้ไขรายการที่ถูกลบได้" } },
+                  });
+                  return;
+                }
+                const { status: rs } = await restoreTagGroupApi(id);
+                if (rs === 200) {
+                  const { data: re } = await getTagGroupApi(id);
+                  const ng = re?.data ?? g;
+                  setGroup(ng);
+                  setGroupId(ng.group_id || "");
+                  setGroupName(ng.group_name || "");
+                  setGroupDescription(ng.group_description || "");
+                  setDeletedAt(null);
+                } else {
+                  navigate("/tags/groups", {
+                    state: { flash: { type: "danger", message: "กู้คืนไม่สำเร็จ" } },
+                  });
+                }
+              },
+            });
+          } else {
+            setGroup(g);
+            setGroupId(g.group_id || "");
+            setGroupName(g.group_name || "");
+            setGroupDescription(g.group_description || "");
+            setDeletedAt(null);
+          }
         }
       } catch {
       } finally {
         if (!ignore) setLoading(false);
       }
     })();
-    return () => {
-      ignore = true;
-    };
-  }, [fromState, id]);
+    return () => { ignore = true; };
+  }, [fromState, id, navigate]);
 
   useEffect(() => {
     if (!group) return;
@@ -123,6 +160,15 @@ export default function EditGroupPage() {
     }
     if (!group_name.trim()) {
       return AlertDiaLog({ icon: "error", title: "กรอกชื่อกลุ่ม", text: "" });
+    }
+
+    if (deleted_at) {
+      AlertDiaLog({
+        icon: "warning",
+        title: "ไม่สามารถอัปเดตได้",
+        text: "กลุ่มนี้ถูกลบอยู่ ต้องกู้คืนก่อนจึงจะแก้ไขได้",
+      });
+      return;
     }
 
     setSaving(true);
@@ -174,78 +220,87 @@ export default function EditGroupPage() {
   };
 
   return (
-    <Sheet sx={{ maxWidth: 920, mx: "auto", p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-        <Typography level="h2" component="h1" sx={{ flex: 1 }}>
-          แก้ไข Group การสนทนา
-        </Typography>
-        {deleted_at && <Chip color="danger" variant="soft" size="sm">ลบแล้ว</Chip>}
-      </Box>
+    <Sheet sx={ChatPageStyle.Layout}>
+      <Box component="main" sx={ChatPageStyle.MainContent}>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <BreadcrumbsComponent list={BreadcrumbsPath} />
+        </Box>
+        {/* Header */}
+        <Box sx={[ChatPageStyle.BoxTable, { alignItems: "center", gap: 1 }]}>
+          <Box sx={{ flex: 1 }}>
+            <Typography level="h2" component="h1" sx={{ flex: 1 }}>
+              แก้ไข Group การสนทนา
+            </Typography>
+            {deleted_at && <Chip color="danger" variant="soft" size="sm">ลบแล้ว</Chip>}
+          </Box>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+          <Button
+            variant="plain"
+            startDecorator={<ArrowBackIosNewIcon fontSize="sm" />}
+            onClick={onBack}
+            sx={{ px: 0 }}
+          >
+            กลับ
+          </Button>
+          <Button
+            variant="soft"
+            color="warning"
+            onClick={onUpdate}
+            loading={saving || loading}
+            disabled={!!deleted_at} // ✅ กันอัปเดตซ้ำระดับปุ่ม (เผื่อกรณีหลุด)
+          >
+            Update
+          </Button>
+        </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-        <Button
-          variant="plain"
-          startDecorator={<ArrowBackIosNewIcon fontSize="sm" />}
-          onClick={onBack}
-          sx={{ px: 0 }}
+        <Sheet
+          variant="outlined"
+          sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
         >
-          กลับ
-        </Button>
-        <Button variant="soft" color="warning" onClick={onUpdate} loading={saving || loading}>
-          Update
-        </Button>
+          <Stack spacing={2.5} sx={{ maxWidth: 720, mx: { md: "auto" } }}>
+            <FormControl required>
+              <FormLabel sx={{ fontSize: 16 }}>Group ID</FormLabel>
+              <Input
+                value={group_id}
+                placeholder="เช่น A, B, PROD"
+                disabled
+                variant="plain"
+              />
+            </FormControl>
+            <FormControl required>
+              <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
+              <Input
+                value={group_name}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="เช่น สแปม, ประกัน, FAQ"
+                disabled={loading}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel sx={{ fontSize: 16 }}>คำอธิบาย</FormLabel>
+              <Textarea
+                minRows={3}
+                value={group_description}
+                onChange={(e) => setGroupDescription(e.target.value)}
+                placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+                disabled={loading || !!deleted_at}
+              />
+            </FormControl>
+            <Divider />
+            {/* Display-only */}
+            <FormControl>
+              <FormLabel sx={{ fontSize: 16 }}>Created By</FormLabel>
+              <Input value={createdByDisplay || "-"} disabled variant="plain" />
+            </FormControl>
+            <FormControl>
+              <FormLabel sx={{ fontSize: 16 }}>Updated By</FormLabel>
+              <Input value={updatedByDisplay || "-"} disabled variant="plain" />
+            </FormControl>
+          </Stack>
+        </Sheet>
       </Box>
-
-      <Sheet
-        variant="outlined"
-        sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
-      >
-        <Stack spacing={2.5} sx={{ maxWidth: 720, mx: { md: "auto" } }}>
-          <FormControl required>
-            <FormLabel sx={{ fontSize: 16 }}>Group ID</FormLabel>
-            <Input
-              value={group_id}
-              placeholder="เช่น A, B, PROD"
-              disabled
-              variant="plain"
-            />
-          </FormControl>
-
-          <FormControl required>
-            <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
-            <Input
-              value={group_name}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="เช่น สแปม, ประกัน, FAQ"
-              disabled={loading}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel sx={{ fontSize: 16 }}>คำอธิบาย</FormLabel>
-            <Textarea
-              minRows={3}
-              value={group_description}
-              onChange={(e) => setGroupDescription(e.target.value)}
-              placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
-              disabled={loading}
-            />
-          </FormControl>
-
-          <Divider />
-
-          {/* Display-only */}
-          <FormControl>
-            <FormLabel sx={{ fontSize: 16 }}>Created By</FormLabel>
-            <Input value={createdByDisplay || "-"} disabled variant="plain" />
-          </FormControl>
-          <FormControl>
-            <FormLabel sx={{ fontSize: 16 }}>Updated By</FormLabel>
-            <Input value={updatedByDisplay || "-"} disabled variant="plain" />
-          </FormControl>
-        </Stack>
-      </Sheet>
     </Sheet>
   );
 }

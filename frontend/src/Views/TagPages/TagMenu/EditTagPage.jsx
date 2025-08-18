@@ -95,6 +95,12 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
 
     // groups (⬇️ ดึงจาก API จริง)
     const [groupOptions, setGroupOptions] = useState([]);
+    const isGroupDeleted = !!(tag?.group?.deleted_at);
+
+    const softDeleted = !!(tag?.group?.deleted_at);
+    const permanentlyDeleted = !softDeleted && !tag?.group && !!tag?.group_id;
+    const groupDeletedOrMissing = softDeleted || permanentlyDeleted;
+
     useEffect(() => {
         let ignore = false;
         (async () => {
@@ -256,7 +262,8 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                     แก้ไขแท็กการสนทนา
                 </Typography>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
                 <Button
                     variant="plain"
                     startDecorator={<ArrowBackIosNewIcon fontSize="sm" />}
@@ -265,6 +272,35 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                 >
                     กลับ
                 </Button>
+
+                {groupDeletedOrMissing && (tag?.group?.name || tag?.group_id) && (
+                    <Box
+                        sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: "md",
+                            border: "1px solid",
+                            borderColor: "danger.solidBg",
+                            bgcolor: "danger.softBg",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                            flexGrow: 1,
+                            minWidth: 0,
+                        }}
+                    >
+                        <Typography level="body-sm" sx={{ color: "neutral.700" }} noWrap>
+                            {tag?.group?.name
+                                ? `ชื่อกลุ่ม: ${tag.group.name} (${tag.group.group_id})`
+                                : `รหัสกลุ่ม: ${tag.group_id}`}
+                        </Typography>
+
+                        <Typography level="body-sm" sx={{ color: "danger.solidBg", fontWeight: 600 }} noWrap>
+                            {softDeleted ? "กลุ่มนี้ถูกลบชั่วคราว" : "กลุ่มนี้ถูกลบถาวร"} โปรดเลือกกรุ๊ปใหม่แล้วกดอัปเดต
+                        </Typography>
+                    </Box>
+                )}
+
                 <Button variant="soft" color="warning" onClick={onUpdate} disabled={loading}>
                     Update
                 </Button>
@@ -302,6 +338,8 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                     <FormControl required>
                         <FormLabel sx={{ fontSize: 16 }}>Group</FormLabel>
                         <Select
+                            color={(softDeleted || permanentlyDeleted) ? "danger" : "neutral"}
+                            variant={(softDeleted || permanentlyDeleted) ? "outlined" : "soft"}
                             placeholder="เลือกกลุ่ม"
                             value={groupId}
                             onChange={(_, v) => setGroupId(v ?? "")}
@@ -314,14 +352,14 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                             ))}
                         </Select>
 
-                        {/* (ไม่บังคับ) Preview ชื่อกลุ่ม */}
+                        {/* (ไม่บังคับ) Preview ชื่อกลุ่ม
                         {(tag?.group?.name || tag?.group_id) && (
                             <Typography level="body-sm" sx={{ color: "neutral.500", mt: 0.5 }}>
                                 {tag?.group?.name
                                     ? `ชื่อกลุ่ม: ${tag.group.name} (${tag.group.group_id})`
                                     : `รหัสกลุ่ม: ${tag.group_id}`}
                             </Typography>
-                        )}
+                        )} */}
                     </FormControl>
 
                     <Divider />
@@ -337,6 +375,6 @@ export default function EditTagPage({ groupOptions: groupOptionsProp }) {
                     </FormControl>
                 </Stack>
             </Sheet>
-        </Sheet>
+        </Sheet >
     );
 }

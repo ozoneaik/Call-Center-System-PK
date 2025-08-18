@@ -16,6 +16,14 @@ import { useNavigate } from "react-router-dom";
 import { storeTagGroupApi } from "../../Api/TagGroups.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { profileApi } from "../../Api/Auth.js";
+import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
+import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
+
+const BreadcrumbsPath = [
+    { name: "จัดการกลุ่ม Tag การสนทนา" },
+    { name: "Tags Groups" },
+    { name: "Create Group" },
+];
 
 const pickName = (o) =>
     o?.real_name || o?.name || o?.empCode || o?.user?.name || o?.user?.empCode || "-";
@@ -83,64 +91,70 @@ export default function CreateGroupPage() {
     };
 
     return (
-        <Sheet sx={{ maxWidth: 920, mx: "auto", p: { xs: 2, md: 3 } }}>
-            {/* Header */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                <Typography level="h2" component="h1" sx={{ flex: 1 }}>
-                    สร้าง Group การสนทนา
-                </Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                <Button
-                    variant="plain"
-                    startDecorator={<ArrowBackIosNewIcon fontSize="sm" />}
-                    onClick={onBack}
-                    sx={{ px: 0 }}
+        <Sheet sx={ChatPageStyle.Layout}>
+            <Box component="main" sx={ChatPageStyle.MainContent}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <BreadcrumbsComponent list={BreadcrumbsPath} />
+                </Box>
+                {/* Header */}
+                <Box sx={[ChatPageStyle.BoxTable, { alignItems: "center", gap: 1 }]}>
+                    <Box sx={{ flex: 1 }}>
+                        <Typography level="h2" component="h1">
+                            สร้าง Group การสนทนา
+                        </Typography>
+                    </Box>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+                    <Button
+                        variant="plain"
+                        startDecorator={<ArrowBackIosNewIcon fontSize="sm" />}
+                        onClick={onBack}
+                        sx={{ px: 0 }}
+                    >
+                        กลับ
+                    </Button>
+                    <Button variant="solid" onClick={onSave} loading={saving}>
+                        Save
+                    </Button>
+                </Box>
+                <Sheet
+                    variant="outlined"
+                    sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
                 >
-                    กลับ
-                </Button>
-                <Button variant="solid" onClick={onSave} loading={saving}>
-                    Save
-                </Button>
+                    <Stack spacing={2.5} sx={{ maxWidth: 720, mx: { md: "auto" } }}>
+                        <FormControl required>
+                            <FormLabel sx={{ fontSize: 16 }}>Group ID</FormLabel>
+                            <Input
+                                value={group_id}
+                                onChange={(e) => setGroupId(e.target.value)}
+                                placeholder="เช่น A, B, PROD"
+                            />
+                        </FormControl>
+                        <FormControl required>
+                            <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
+                            <Input
+                                value={group_name}
+                                onChange={(e) => setGroupName(e.target.value)}
+                                placeholder="เช่น สแปม, ประกัน, FAQ"
+                            />
+                        </FormControl>
+                        <FormControl>
+                            <FormLabel sx={{ fontSize: 16 }}>คำอธิบาย</FormLabel>
+                            <Textarea
+                                minRows={3}
+                                value={group_description}
+                                onChange={(e) => setGroupDescription(e.target.value)}
+                                placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+                            />
+                        </FormControl>
+                        <Divider />
+                        <FormControl>
+                            <FormLabel sx={{ fontSize: 16 }}>Created By</FormLabel>
+                            <Input value={createdByDisplay || "-"} disabled variant="plain" />
+                        </FormControl>
+                    </Stack>
+                </Sheet>
             </Box>
-            <Sheet
-                variant="outlined"
-                sx={{ borderRadius: "sm", p: { xs: 2, md: 3 }, borderColor: "neutral.outlinedBorder" }}
-            >
-                <Stack spacing={2.5} sx={{ maxWidth: 720, mx: { md: "auto" } }}>
-                    <FormControl required>
-                        <FormLabel sx={{ fontSize: 16 }}>Group ID</FormLabel>
-                        <Input
-                            value={group_id}
-                            onChange={(e) => setGroupId(e.target.value)}
-                            placeholder="เช่น A, B, PROD"
-                        />
-                    </FormControl>
-                    <FormControl required>
-                        <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
-                        <Input
-                            value={group_name}
-                            onChange={(e) => setGroupName(e.target.value)}
-                            placeholder="เช่น สแปม, ประกัน, FAQ"
-                        />
-                    </FormControl>
-                    <FormControl>
-                        <FormLabel sx={{ fontSize: 16 }}>คำอธิบาย</FormLabel>
-                        <Textarea
-                            minRows={3}
-                            value={group_description}
-                            onChange={(e) => setGroupDescription(e.target.value)}
-                            placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
-                        />
-                    </FormControl>
-                    <Divider />
-                    <FormControl>
-                        <FormLabel sx={{ fontSize: 16 }}>Created By</FormLabel>
-                        <Input value={createdByDisplay || "-"} disabled variant="plain" />
-                    </FormControl>
-                </Stack>
-            </Sheet>
         </Sheet>
     );
 }
