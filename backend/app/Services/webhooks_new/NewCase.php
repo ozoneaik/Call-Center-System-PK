@@ -8,20 +8,16 @@ use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use LINE\Webhook\Model\ActivatedEvent;
 
 class NewCase
 {
 
     protected CheckKeyword $checkKeyword;
-    protected ReplyMessage $replyMessage;
     protected PusherService $pusherService;
 
-    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService, ReplyMessage $replyMessage)
+    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService)
     {
-        $this->replyMessage = $replyMessage;
         $this->checkKeyword = $checkKeyword;
         $this->pusherService = $pusherService;
     }
@@ -31,6 +27,8 @@ class NewCase
         try {
             Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสใหม่ ไม่เคยสร้างเคส');
             $now = Carbon::now();
+
+            // เช็คข้อความลูกค้าว่าตรงตาม keyword หรือไม่ ถ้าตรงให้่ส่งไปยังห้องนั้นๆ
             $keyword = $this->checkKeyword->check($message);
             if ($keyword['status']) {
                 $new_rate = Rates::query()->create([
@@ -71,33 +69,46 @@ class NewCase
             $msg_bot = [];
 
 
+            // เช็คว่า อยู่ห้องไหน ถ้าอยู่ห้องบอท ให้ ส่งเมนูไป ถ้าไม่ใช่ ให้ส่งข้อความ ระบบได้ส่งให้เจ้าหน้าที่กรุณารอสักครู่
             if ($new_rate['latestRoomId'] === 'ROOM00') {
-                $msg_bot = $this->formatBotMenu($customer['custName'], $platformAccessToken['platform'], $platformAccessToken['id']);
-                $reply_message = $this->replyMessage->reply($msg_bot, $platformAccessToken, $customer, $bot, $message['reply_token']);
-                if ($reply_message['status']) {
-                    Log::channel('webhook_main')->info('ส่งข้อความตอบกลับสำเร็จ', [
-                        'response' => $reply_message['response'],
-                    ]);
-                    ChatHistory::query()->create([
-                        'custId' => $customer['custId'],
-                        'content' => $msg_bot[0]['text'],
-                        'contentType' => 'text',
-                        'sender' => json_encode($bot),
-                        'conversationRef' => $new_ac['id'],
-                    ]);
-                    ChatHistory::query()->create([
-                        'custId' => $customer['custId'],
-                        'content' => 'บอทได้ทำงานส่งเมนูไปยังลูกค้าแล้ว',
-                        'contentType' => 'text',
-                        'sender' => json_encode($bot),
-                        'conversationRef' => $new_ac['id'],
-                    ]);
-                    $this->pusherService->sendNotification($customer['custId']);
-                } else {
-                    Log::channel('webhook_main')->error('ไม่สามารถส่งข้อความตอบกลับได้', [
-                        'error' => $reply_message['message']
-                    ]);
-                }
+                $content = "สวัสดีคุณ" . $customer['custName'];
+                $content = $content . "เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น";
+                $content = $content . "กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'menu',
+                    'type_message' => 'reply',
+                    'messages' => [
+                        [
+                            'content' => $content,
+                            'contentType' => 'text'
+                        ]
+                    ],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
+            } else {
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'sended',
+                    'type_message' => 'reply',
+                    'messages' => [
+                        [
+                            'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                            'contentType' => 'text'
+                        ]
+                    ],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
             }
             Log::channel('webhook_main')->info('สร้างเคสใหม่สำเร็จ');
         } catch (\Exception $e) {

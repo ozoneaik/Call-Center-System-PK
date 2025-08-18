@@ -153,6 +153,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                             <th style={{ width: 240, padding: '12px 6px' }}>เวลา</th>
                             <th style={{ width: 140, padding: '12px 6px' }}>จากห้องแชท</th>
                             <th style={{ width: 80, padding: '12px 6px' }}></th>
+                            
                         </tr>
                     </thead>
                     <tbody>

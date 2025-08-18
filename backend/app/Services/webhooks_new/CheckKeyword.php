@@ -13,7 +13,7 @@ class CheckKeyword
     {
         Log::channel('webhook_main')->info('เริ่มการกรอง keyword');
         $this->MESSAGE = $message;
-        $msg_return = ['status' => false, 'message' => 'ไม่ตรงใน keyword', 'redirectTo' => null];
+        $msg_return = ['status' => false, 'message' => 'ไม่ตรงใน keyword', 'redirectTo_status' => false];
 
         if ($this->MESSAGE['contentType'] === 'text') {
             $allKeywords = Keyword::all(); // ดึง keyword ทั้งหมด
@@ -25,18 +25,18 @@ class CheckKeyword
             if ($foundKeyword) {
                 if (!$foundKeyword['event']) {
                     $msg_return['status'] = true;
-                    $msg_return['redirectTo'] = true;
+                    $msg_return['redirectTo_status'] = true;
                     $msg_return['message'] = 'เจอ keyword ที่ไม่เป็นของจบสนทนา';
                     $msg_return['redirectTo'] = $foundKeyword['redirectTo'];
                 } else {
                     $msg_return['status'] = true;
-                    $msg_return['redirectTo'] = false;
+                    $msg_return['redirectTo_status'] = false;
                     $msg_return['message'] = 'เจอ keyword ที่ไม่ต้องการสร้างเคสใหม่';
                 }
             }
         } elseif (($this->MESSAGE['contentType'] === 'sticker') && $case === 'success') {
             $msg_return['status'] = true;
-            $msg_return['redirectTo'] = false;
+            $msg_return['redirectTo_status'] = false;
             $msg_return['message'] = 'เจอ keyword ที่ไม่ต้องการสร้างเคสใหม่';
         } else {
             $msg_return['message'] = 'ไม่สามารถตรวจจับข้อความได้ เนื่องจากข้อความไม่ใช่ text';
