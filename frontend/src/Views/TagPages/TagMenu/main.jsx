@@ -1,27 +1,8 @@
 import { ChatPageStyle } from "../../../styles/ChatPageStyle.js";
-import {
-    Box,
-    Sheet,
-    Typography,
-    Button,
-    CircularProgress,
-    Table,
-    Input,
-    Select,
-    Option,
-    Checkbox,
-    Chip,
-    IconButton,
-} from "@mui/joy";
+import { Box, Sheet, Typography, Button, CircularProgress, Table, Input, Select, Option, Checkbox, Chip, IconButton, } from "@mui/joy";
 import { useEffect, useMemo, useState } from "react";
 import BreadcrumbsComponent from "../../../Components/Breadcrumbs.jsx";
-import {
-    deleteTagApi,
-    listTagsApi,
-    restoreTagApi,
-    forceDeleteTagApi,
-    listTagGroupOptionsApi,
-} from "../../../Api/Tags.js";
+import { deleteTagApi, listTagsApi, restoreTagApi, forceDeleteTagApi, listTagGroupOptionsApi, } from "../../../Api/Tags.js";
 import RestoreRounded from "@mui/icons-material/RestoreRounded";
 import DeleteForeverRounded from "@mui/icons-material/DeleteForeverRounded";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
@@ -106,7 +87,6 @@ export default function TagPage() {
     const [filterUpdatedBy, setFilterUpdatedBy] = useState("");
     const [filterRequireNote, setFilterRequireNote] = useState(""); // '', 'true', 'false'
     const [filterStatus, setFilterStatus] = useState(""); // '', 'active', 'deleted'
-    // ✅ ดีฟอลต์: ซ่อนรายการที่ Group ถูกลบ (ทั้งชั่วคราว/ถาวร)
     const [filterGroupDeletion, setFilterGroupDeletion] = useState("exclude"); // 'exclude' | '' | 'soft' | 'permanent' | 'any'
 
     // group options (normalized เป็น {value, label, raw})
@@ -384,15 +364,12 @@ export default function TagPage() {
 
                     {/* Content */}
                     <Box sx={{ display: filtersOpen ? "block" : "none", px: 1.5, py: 1.5 }}>
-                        {/* Grid: label,input,label,input ต่อแถว */}
                         <Box
                             sx={{
                                 display: "grid",
                                 alignItems: "center",
                                 columnGap: 2,
                                 rowGap: 1.5,
-                                // md ขึ้นไป: 4 คอลัมน์ = label(คงที่) input(ยืด) label(คงที่) input(ยืด)
-                                // xs/sm: คอลัมน์เดียว (label อยู่บรรทัดก่อน input)
                                 gridTemplateColumns: {
                                     xs: "1fr",
                                     md: "170px minmax(260px, 1fr) 170px minmax(260px, 1fr)",
