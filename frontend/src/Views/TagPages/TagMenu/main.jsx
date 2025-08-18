@@ -639,13 +639,14 @@ export default function TagPage() {
                             sx={{
                                 "--Table-headerUnderlineThickness": "1px",
                                 "--TableCell-paddingX": "12px",
-                                minWidth: 1100,
-                                "& thead th": { bgcolor: "background.level1" },
+                                minWidth: "100%",         
+                                tableLayout: "auto",      
+                                "& thead th": { bgcolor: "background.level1", whiteSpace: "nowrap" },
                             }}
                         >
                             <thead>
                                 <tr>
-                                    <th style={{ width: 48 }}>
+                                    <th>
                                         <Checkbox
                                             checked={
                                                 filtered.length > 0 &&
@@ -658,15 +659,15 @@ export default function TagPage() {
                                             onChange={(e) => toggleSelectAll(e.target.checked)}
                                         />
                                     </th>
-                                    <th style={{ width: 70 }}>ID</th>
-                                    <th style={{ width: 280 }}>Tag Name</th>
-                                    <th style={{ width: 160 }}>Require Note</th>
-                                    <th style={{ width: 240 }}>Group</th>
-                                    <th style={{ width: 120 }}>Status</th>
-                                    <th style={{ width: 220 }}>Created By</th>
-                                    <th style={{ width: 220 }}>Updated By</th>
-                                    <th style={{ width: 200 }}>Created at</th>
-                                    <th style={{ width: 200 }}>Updated at</th>
+                                    <th>ID</th>
+                                    <th>Tag Name</th>
+                                    <th>Require Note</th>
+                                    <th>Group</th>
+                                    <th>Status</th>
+                                    <th>Created By</th>
+                                    <th>Updated By</th>
+                                    <th>Created at</th>
+                                    <th>Updated at</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -686,11 +687,8 @@ export default function TagPage() {
                                         </td>
                                         <td>{r.id}</td>
                                         <td style={{ fontWeight: 700 }}>{r.tagName}</td>
+                                        <td><RequireNoteChip value={r.require_note} /></td>
                                         <td>
-                                            <RequireNoteChip value={r.require_note} />
-                                        </td>
-                                        <td>
-                                            {/* ⬇️ ใช้ group object ถ้ามี; ถ้าไม่มี fallback group_id */}
                                             <GroupChip
                                                 group={r.group || { group_id: r.group_id }}
                                                 permanentlyDeleted={!r.group && !!r.group_id}

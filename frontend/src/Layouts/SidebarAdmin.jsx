@@ -21,6 +21,8 @@ import {
   CircleNotifications,
   AdminPanelSettings,
   KeyboardArrowDown as KeyboardArrowDownIcon,
+  LabelOutlined,
+  SubdirectoryArrowRight,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
@@ -119,16 +121,12 @@ export const SidebarAdmin = ({ pathname, user }) => (
 
       <ListItem nested>
         <Toggler
-          defaultExpanded={
-            pathname === "/tags" || pathname === "/tags/groups"
-          }
+          defaultExpanded={pathname === "/tags" || pathname === "/tags/groups"}
           renderToggle={({ open, setOpen }) => (
             <ListItemButton onClick={() => setOpen(!open)}>
               <LocalOffer />
               <ListItemContent>
-                <Typography level="title-sm">
-                  จัดการ tag การจบสนทนา
-                </Typography>
+                <Typography level="title-sm">จัดการ Tag จบสนทนา</Typography>
               </ListItemContent>
               <KeyboardArrowDownIcon
                 sx={{
@@ -141,15 +139,22 @@ export const SidebarAdmin = ({ pathname, user }) => (
         >
           <List sx={{ gap: 0.5 }}>
             <ListItem component={Link} to="/tags">
-              <ListItemButton selected={pathname === "/tags"}>
-                <Typography level="body-sm">จัดการ Tag การสนทนา</Typography>
+              <ListItemButton
+                selected={pathname === "/tags"}
+                sx={{ pl: 5 }}
+              >
+                <LabelOutlined fontSize="small" sx={{ mr: 0 }} />
+                <Typography level="body-sm">จัดการ Tag Menu</Typography>
               </ListItemButton>
             </ListItem>
+
             <ListItem component={Link} to="/tags/groups">
-              <ListItemButton selected={pathname === "/tags/groups"}>
-                <Typography level="body-sm">
-                  จัดการ Group การสนทนา
-                </Typography>
+              <ListItemButton
+                selected={pathname === "/tags/groups"}
+                sx={{ pl: 5 }}
+              >
+                <SubdirectoryArrowRight fontSize="small" sx={{ mr: 0 }} />
+                <Typography level="body-sm">จัดการ Tag Group</Typography>
               </ListItemButton>
             </ListItem>
           </List>

@@ -10,6 +10,7 @@ import {
   Textarea,
   Divider,
   Chip,
+  FormHelperText,
 } from "@mui/joy";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import { profileApi } from "../../Api/Auth.js";
 import { getTagGroupApi, restoreTagGroupApi, updateTagGroupApi } from "../../Api/TagGroups.js";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
+import { listTagGroupsApi } from "../../Api/TagGroups.js";
 
 const BreadcrumbsPath = [
   { name: "จัดการกลุ่ม Tag การสนทนา" },
@@ -69,6 +71,11 @@ export default function EditGroupPage() {
   // loading flags
   const [loading, setLoading] = useState(!fromState);
   const [saving, setSaving] = useState(false);
+
+  const norm = (s) => (s || "").trim().toLowerCase();
+
+  const [nameError, setNameError] = useState("");
+  const [checkingName, setCheckingName] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -158,9 +165,9 @@ export default function EditGroupPage() {
     if (!group_id.trim()) {
       return AlertDiaLog({ icon: "error", title: "กรอก Group ID", text: "" });
     }
-    if (!group_name.trim()) {
+    const q = group_name.trim();
+    if (!q)
       return AlertDiaLog({ icon: "error", title: "กรอกชื่อกลุ่ม", text: "" });
-    }
 
     if (deleted_at) {
       AlertDiaLog({
@@ -169,6 +176,14 @@ export default function EditGroupPage() {
         text: "กลุ่มนี้ถูกลบอยู่ ต้องกู้คืนก่อนจึงจะแก้ไขได้",
       });
       return;
+    }
+
+    setCheckingName(true);
+    const taken = await isGroupNameTaken(q, id);
+    setCheckingName(false);
+    if (taken) {
+      setNameError("มีชื่อกลุ่มนี้อยู่แล้ว");
+      return AlertDiaLog({ icon: "error", title: "ชื่อกลุ่มซ้ำ", text: "กรุณาใช้ชื่ออื่น" });
     }
 
     setSaving(true);
@@ -217,6 +232,17 @@ export default function EditGroupPage() {
         if (status === 200) onBack();
       },
     });
+  };
+
+  const isGroupNameTaken = async (name, excludeId) => {
+    const q = (name || "").trim();
+    if (!q) return false;
+    const { status, data } = await listTagGroupsApi({ q, with_trashed: 1, per_page: 100 });
+    if (status !== 200) return false;
+    const list = data?.data || data?.list || data || [];
+    return list.some(
+      (g) => norm(g.group_name) === norm(q) && String(g.id) !== String(excludeId || "")
+    );
   };
 
   return (
@@ -272,10 +298,22 @@ export default function EditGroupPage() {
               <FormLabel sx={{ fontSize: 16 }}>ชื่อกลุ่ม</FormLabel>
               <Input
                 value={group_name}
-                onChange={(e) => setGroupName(e.target.value)}
+                onChange={(e) => {
+                  setGroupName(e.target.value);
+                  setNameError("");
+                }}
+                onBlur={async () => {
+                  const q = group_name.trim();
+                  if (!q) { setNameError("กรุณากรอกชื่อกลุ่ม"); return; }
+                  setCheckingName(true);
+                  const taken = await isGroupNameTaken(q, id);
+                  setCheckingName(false);
+                  setNameError(taken ? "มีชื่อกลุ่มนี้อยู่แล้ว" : "");
+                }}
                 placeholder="เช่น สแปม, ประกัน, FAQ"
                 disabled={loading}
               />
+              {nameError && <FormHelperText color="danger">{nameError}</FormHelperText>}
             </FormControl>
 
             <FormControl>

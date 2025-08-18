@@ -502,7 +502,10 @@ export default function GroupPage() {
         </Sheet>
 
         {/* Table */}
-        <Sheet variant="outlined" sx={[ChatPageStyle.BoxSheet, { border: "none", p: 0, overflowX: "auto" }]}>
+        <Sheet
+          variant="outlined"
+          sx={[ChatPageStyle.BoxSheet, { border: "none", p: 0, overflowX: "auto" }]}
+        >
           {loading ? (
             <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
               <CircularProgress />
@@ -519,35 +522,46 @@ export default function GroupPage() {
               sx={{
                 "--Table-headerUnderlineThickness": "1px",
                 "--TableCell-paddingX": "12px",
-                minWidth: 1100,
-                "& thead th": { bgcolor: "background.level1" },
+                minWidth: "100%",       
+                tableLayout: "auto",    
+                "& thead th": {
+                  bgcolor: "background.level1",
+                  whiteSpace: "nowrap", 
+                },
               }}
             >
               <thead>
                 <tr>
-                  <th style={{ width: 48 }}>
+                  <th>
                     <Checkbox
                       checked={filtered.length > 0 && selectedRows.length === filtered.length}
                       indeterminate={selectedRows.length > 0 && selectedRows.length < filtered.length}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
                     />
                   </th>
-                  <th style={{ width: 70 }}>ID</th>
-                  <th style={{ width: 120 }}>Group ID</th>
-                  <th style={{ width: 200 }}>Group Name</th>
-                  <th style={{ width: 300 }}>Description</th>
-                  <th style={{ width: 120 }}>สถานะ</th>
-                  <th style={{ width: 180 }}>Created By</th>
-                  <th style={{ width: 180 }}>Updated By</th>
-                  <th style={{ width: 150 }}>Created At</th>
-                  <th style={{ width: 150 }}>Updated At</th>
+                  <th>ID</th>
+                  <th>Group ID</th>
+                  <th>Group Name</th>
+                  <th>Description</th>
+                  <th>สถานะ</th>
+                  <th>Created By</th>
+                  <th>Updated By</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((group) => (
-                  <tr key={group.id} onDoubleClick={() => handleEdit(group)} style={{ cursor: "pointer" }}>
+                  <tr
+                    key={group.id}
+                    onDoubleClick={() => handleEdit(group)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td>
-                      <Checkbox checked={selectedRows.includes(group.id)} onChange={(e) => toggleSelect(group.id, e.target.checked)} />
+                      <Checkbox
+                        checked={selectedRows.includes(group.id)}
+                        onChange={(e) => toggleSelect(group.id, e.target.checked)}
+                      />
                     </td>
                     <td>{group.id}</td>
                     <td>
@@ -559,7 +573,12 @@ export default function GroupPage() {
                     <td>
                       <Typography
                         color="neutral"
-                        sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }}
+                        sx={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: 300, 
+                        }}
                       >
                         {group.group_description || "-"}
                       </Typography>
