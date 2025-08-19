@@ -223,6 +223,7 @@ class LineWebhookController extends Controller
 
     public static function ReplyPushMessage($filter_case_response)
     {
+        $default_image = 'https://images.dcpumpkin.com/images/product/500/default.jpg';
         try {
             $filter_case_response = $filter_case_response['case'] ?? $filter_case_response;
             Log::channel('webhook_line_new')->info('🤖🤖🤖🤖🤖🤖🤖');
@@ -241,11 +242,8 @@ class LineWebhookController extends Controller
                 $message_formated[$key] = [
                     'type' => $message['contentType'] ?? 'text',
                     'text' => $message['content'] ?? '',
-                    'imageUrl' => $message['content'] ?? '',
-                    'videoUrl' => $message['content'] ?? '',
-                    'audioUrl' => $message['content'] ?? '',
-                    'location' => $message['content'] ?? '',
-                    'stickerId' => $message['content'] ?? '',
+                    'originalContentUrl' => $message['content'] ?? '',
+                    'previewImageUrl' => $message['contentType'] === 'image' ? $message['content'] :  $default_image,
                 ];
             }
             switch ($filter_case_response['type_send']) {
@@ -276,6 +274,8 @@ class LineWebhookController extends Controller
                 case 'queue':
                     break;
                 case 'present':
+                    $message_formated[0]['type'] = 'text';
+                    $message_formated[0]['text'] = $filter_case_response['messages'][0]['content'];
                     break;
                 case 'normal':
                     break;
@@ -326,18 +326,26 @@ class LineWebhookController extends Controller
                         $content = trim($content); // ตัด \n ท้ายออก
                     }
 
-                    ChatHistory::query()->create([
-                        'custId' => $filter_case_response['customer']['custId'],
-                        'content' => $content,
-                        'contentType' => $contentType,
-                        'sender' => json_encode($filter_case_response['bot']),
-                        'conversationRef' => $filter_case_response['ac_id'] ?? null,
-                        'line_message_id' => $res_send_line['sentMessages'][$key]['id'] ?? null,
-                        'line_quote_token' => $res_send_line['sentMessages'][$key]['quoteToken'] ?? null,
-                    ]);
+                    $store_chat = new ChatHistory();
+                    $store_chat->custId = $filter_case_response['customer']['custId'];
+                    $store_chat->content = $content;
+                    $store_chat->contentType = $contentType;
+                    if ($filter_case_response['type_send'] === 'present' || $filter_case_response['type_send'] === 'normal') {
+                        $store_chat->sender = json_encode($filter_case_response['employee']);
+                    } else {
+                        $store_chat->sender = json_encode($filter_case_response['bot']);
+                    }
+                    $store_chat->conversationRef = $filter_case_response['ac_id'] ?? null;
+                    $store_chat->line_message_id = $res_send_line['sentMessages'][$key]['id'] ?? null;
+                    $store_chat->line_quote_token = $res_send_line['sentMessages'][$key]['quoteToken'] ?? null;
+                    $store_chat->save();
 
                     $pusherService = new PusherService();
-                    $pusherService->sendNotification($filter_case_response['customer']['custId']);
+                    if ($filter_case_response['type_send'] === 'present') {
+                        $pusherService->sendNotification($filter_case_response['customer']['custId'], 'มีการรับเรื่อง');
+                    } else {
+                        $pusherService->sendNotification($filter_case_response['customer']['custId']);
+                    }
                 }
             } else {
                 Log::channel('webhook_line_new')->error('ส่งข้อความตอบกลับไปยัง LINE ไม่สำเร็จ', [

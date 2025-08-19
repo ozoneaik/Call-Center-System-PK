@@ -1,20 +1,9 @@
 import * as React from 'react';
-import Avatar from '@mui/joy/Avatar';
-import Box from '@mui/joy/Box';
-import Button from '@mui/joy/Button';
-import Chip from '@mui/joy/Chip';
-import Divider from '@mui/joy/Divider';
-import FormControl from '@mui/joy/FormControl';
-import FormLabel from '@mui/joy/FormLabel';
-import Link from '@mui/joy/Link';
-import Input from '@mui/joy/Input';
-import Modal from '@mui/joy/Modal';
-import ModalDialog from '@mui/joy/ModalDialog';
-import ModalClose from '@mui/joy/ModalClose';
-import Table from '@mui/joy/Table';
-import Sheet from '@mui/joy/Sheet';
-import IconButton from '@mui/joy/IconButton';
-import Typography from '@mui/joy/Typography';
+
+import { Avatar, Box, Button, Chip, Divider, FormControl,
+    FormLabel, Input, Modal, ModalDialog, ModalClose, Table, Sheet, IconButton,
+    Typography
+ } from '@mui/joy';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SearchIcon from '@mui/icons-material/Search';
 import { Stack } from '@mui/joy';

@@ -15,6 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('tagName')->unique()->comment('ชื่อ tag');
             $table->string('group_id')->nullable()->comment('รหัสกลุ่ม tag');
+            $table->boolean('require_note')->default(false)->comment('บังคับกรอกมั้ย');
+            $table->string('created_by_user_id')->nullable()->comment('ผู้สร้าง');
+            $table->string('updated_by_user_id')->nullable()->comment('ผู้แก้ไข');
+            $table->string('deleted_by_user_id')->nullable()->comment('ผู้ลบ');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

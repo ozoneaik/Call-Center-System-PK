@@ -20,15 +20,4 @@ class TagMenu extends Model
         'updated_by_user_id',
         'deleted_by_user_id',
     ];
-
-    protected $casts = [
-        'require_note' => 'boolean',
-    ];
-
-    // เชื่อมด้วย group_id (TagMenu.group_id) -> (TagGroup.group_id)
-    public function group()
-    {
-        return $this->belongsTo(TagGroup::class, 'group_id', 'group_id')
-            ->withTrashed(); // เผื่อแสดงชื่อ group แม้ถูกลบแบบ soft แล้ว
-    }
 }
