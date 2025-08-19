@@ -21,7 +21,6 @@ use LINE\Clients\MessagingApi\Configuration;
 class LineWebhookController extends Controller
 {
 
-
     protected $start_log_line = '--------------------------------------------------🌞 เริ่มรับ webhook--------------------------------------------------';
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดรับ webhook---------------------------------------------------';
 
@@ -46,7 +45,6 @@ class LineWebhookController extends Controller
                     Log::channel('webhook_line_new')->info('event index = ' . $key . 'เป็น message 💬');
                     $event_user_id = $event['source']['userId'];
 
-                    // ตรวจสอบว่าผู้ใช้มีอยู่ในระบบหรือไม่
                     $cust_and_platform = $this->checkCustomer($event_user_id);
                     if ($cust_and_platform['customer'] && $cust_and_platform['platform']) {
                         $platform = $cust_and_platform['platform'];

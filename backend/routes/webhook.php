@@ -19,13 +19,13 @@ Route::prefix('webhook-new')->group(function () {
     // สำหรับ Facebook
     Route::prefix('facebook')->group(function () {
         Route::get('/', [FacebookController::class, 'verifyToken']);
-        Route::post('/', [FacebookController::class,'webhook']);
+        Route::post('/', [FacebookController::class, 'webhook']);
     });
 
     // สำหรับ Lazada
     Route::prefix('lazada')->group(function () {
-        Route::get('/', [LazadaController::class,'webhookGET']);
-        Route::post('/', [LazadaController::class,'webhookPOST']);
+        // Route::get('/', [LazadaController::class, 'webhook']);
+        Route::post('/', [LazadaController::class, 'webhook']);
     });
 
     // สำหรับ Shopee

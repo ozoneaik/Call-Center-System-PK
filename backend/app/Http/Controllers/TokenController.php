@@ -66,8 +66,8 @@ class TokenController extends Controller
         }
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
         if ($request->get('platform') === 'lazada') {
-            $store->app_key = $request->get('app_key');
-            $store->app_secret = $request->get('app_secret');
+            $store->laz_app_key = $request->get('laz_app_key');
+            $store->laz_app_secret = $request->get('laz_app_secret');
         } else {
         }
         $store->save();
@@ -90,8 +90,8 @@ class TokenController extends Controller
 
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
         if ($request->get('platform') === 'lazada') {
-            $update->app_key = $request->get('app_key');
-            $update->app_secret = $request->get('app_secret');
+            $update->laz_app_key = $request->get('laz_app_key');
+            $update->laz_app_secret = $request->get('laz_app_secret');
         }
         $update->save();
         return response()->json([
