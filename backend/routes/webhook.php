@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\webhooks\LazadaToken;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LazadaController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
@@ -26,6 +27,7 @@ Route::prefix('webhook-new')->group(function () {
     Route::prefix('lazada')->group(function () {
         // Route::get('/', [LazadaController::class, 'webhook']);
         Route::post('/', [LazadaController::class, 'webhook']);
+        Route::post('/refresh-token', [LazadaToken::class, 'refreshToken']);
     });
 
     // สำหรับ Shopee

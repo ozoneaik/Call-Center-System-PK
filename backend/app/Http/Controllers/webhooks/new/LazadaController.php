@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Lazada\LazopClient;
+use Lazada\LazopRequest;
 
 class LazadaController extends Controller
 {
@@ -31,79 +33,77 @@ class LazadaController extends Controller
     {
         Log::info($this->start_log_line);
         Log::info('รับ webhook จาก Lazada');
+        Log::info('request: ' . json_encode($request->all(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-        try {
-            $req = $request->all();
+        $req = $request->all();
 
-            [$destination, $events, $sellerId] = $this->normalizeLazadaToEvents($req);
+        if (isset($req['data']['from_account_type']) && (string)$req['data']['from_account_type'] === '1') {
+            try {
+                [$destination, $events, $sellerId] = $this->normalizeLazadaToEvents($req);
 
-            Log::info(json_encode([
-                'destination' => $destination,
-                'events'      => $events,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                Log::info(json_encode([
+                    'destination' => $destination,
+                    'events'      => $events,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-            foreach ($events as $idx => $event) {
-                if (($event['type'] ?? '') === 'message') {
-                    Log::info('event index = ' . $idx . 'เป็น message 💬');
+                foreach ($events as $idx => $event) {
+                    if (($event['type'] ?? '') === 'message') {
+                        Log::info("event index = {$idx} เป็น message 💬");
 
-                    // ในที่นี้ userId = session_id ของ Lazada IM
-                    $sessionId = $event['source']['userId'] ?? null;
-                    if (!$sessionId) {
-                        Log::warning('ไม่มี session_id (userId) ใน event: ข้าม');
-                        continue;
-                    }
-
-                    // หา/สร้าง customer + ดึง platform lazada
-                    $cust_and_platform = $this->checkCustomer($sessionId);
-                    if (!($cust_and_platform['customer'] && $cust_and_platform['platform'])) {
-                        Log::warning('ไม่มี token ของ Lazada หรือไม่พบ customer: ข้ามการประมวลผล', [
-                            'session_id' => $sessionId,
-                            'seller_id'  => $sellerId,
-                        ]);
-                        continue;
-                    }
-                    $platform = $cust_and_platform['platform'];
-                    $customer = $cust_and_platform['customer'];
-
-                    Log::info('เจอผู้ใช้ในระบบ: ' . json_encode($customer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                    Log::info('จาก platform: ' . json_encode($platform, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-                    // สร้าง message แบบกลางให้ FilterCase ใช้
-                    $formatted_message = $this->formatMessage($event['message'] ?? [], $event['replyToken'] ?? null);
-
-                    Log::info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-                    // ---- กันตอบซ้ำในกรณี redelivery/loop (idempotency) ----
-                    $replyToken = $formatted_message['reply_token'] ?? '';
-                    if ($replyToken) {
-                        $cacheKey = "lzd:replied:$replyToken";
-                        if (!Cache::add($cacheKey, 1, 180)) {
-                            Log::info('ข้ามการตอบ: เคยตอบข้อความนี้แล้ว', ['reply_token' => $replyToken]);
+                        $sessionId = $event['source']['userId'] ?? null;
+                        if (!$sessionId) {
+                            Log::warning('ไม่มี session_id (userId) ใน event: ข้าม');
                             continue;
                         }
-                    }
-                    // -----------------------------------------------------
 
-                    // ให้ FilterCase ตัดสินใจ
-                    $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform);
+                        $cust_and_platform = $this->checkCustomer($sessionId);
+                        if (!($cust_and_platform['customer'] && $cust_and_platform['platform'])) {
+                            Log::warning('ไม่มี token ของ Lazada หรือไม่พบ customer', [
+                                'session_id' => $sessionId,
+                                'seller_id'  => $sellerId,
+                            ]);
+                            continue;
+                        }
 
-                    // ส่งกลับผู้ใช้ผ่าน Lazada IM
-                    $send_lazada = $this->ReplyPushMessage($filter_case);
-                    if (!$send_lazada['status']) {
-                        throw new \Exception($send_lazada['message']);
+                        $platform = $cust_and_platform['platform'];
+                        $customer = $cust_and_platform['customer'];
+
+                        Log::info('เจอผู้ใช้ในระบบ: ' . json_encode($customer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                        Log::info('จาก platform: ' . json_encode($platform, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+                        $formatted_message = $this->formatMessage($event['message'] ?? [], $event['replyToken'] ?? null);
+                        Log::info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+                        $replyToken = $formatted_message['reply_token'] ?? '';
+                        if ($replyToken) {
+                            $cacheKey = "lzd:replied:$replyToken";
+                            if (!Cache::add($cacheKey, 1, 180)) {
+                                Log::info('ข้ามการตอบ: เคยตอบข้อความนี้แล้ว', ['reply_token' => $replyToken]);
+                                continue;
+                            }
+                        }
+
+                        $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform);
+                        $send_lazada = $this->ReplyPushMessage($filter_case);
+                        if (!$send_lazada['status']) {
+                            throw new \Exception($send_lazada['message']);
+                        }
+                    } else {
+                        Log::error("event index = {$idx} ไม่ใช่ประเภท message");
                     }
-                } else {
-                    Log::error('event index = ' . $idx . 'ไม่ใช่ประเภท message');
                 }
+            } catch (\Exception $e) {
+                $msg_error  = 'เกิดข้อผิดพลาดในการตอบกลับ webhook: ';
+                $msg_error .= $e->getMessage() . ' | ไฟล์: ' . $e->getFile() . ' | บรรทัด: ' . $e->getLine();
+                Log::error('❌ ' . $msg_error);
             }
-        } catch (\Exception $e) {
-            $msg_error  = 'เกิดข้อผิดพลาดในการตอบกลับ webhook: ';
-            $msg_error .= $e->getMessage() . ' | ไฟล์ที่: ' . $e->getFile() . ' | บรรทัดที่: ' . $e->getLine();
-            Log::error('เกิดข้อผิดพลาด ❌ : ' . $msg_error);
-        }
 
-        Log::info($this->end_log_line);
-        return response()->json(['message' => 'ตอบกลับ webhook สําเร็จ']);
+            Log::info($this->end_log_line);
+            return response()->json(['message' => 'ตอบกลับ webhook สําเร็จ']);
+        } else {
+            Log::error('ไม่พบ data หรือ from_account_type != 1');
+            return;
+        }
     }
 
     /**
@@ -215,213 +215,62 @@ class LazadaController extends Controller
         return $result;
     }
 
-    /**
-     * ดึง/อัปโหลดไฟล์ไป S3 (ใช้ได้กรณีมี URL ตรง)
-     */
-    private function getUrlMedia($mediaRef, $accessToken = null, $expected = 'auto')
-    {
-        try {
-            if (!$mediaRef || !is_string($mediaRef)) {
-                throw new \Exception('ไม่มีอ้างอิงไฟล์สื่อที่ถูกต้อง');
-            }
-            $response = Http::get($mediaRef);
-            if (!$response->successful()) {
-                throw new \Exception('ดาวน์โหลดสื่อจาก URL ไม่สำเร็จ');
-            }
-            $mediaContent = $response->body();
-            $contentType  = $response->header('Content-Type');
-
-            $ext = match ($contentType) {
-                'image/jpeg' => '.jpg',
-                'image/png'  => '.png',
-                'image/gif'  => '.gif',
-                'image/webp' => '.webp',
-                'video/mp4'  => '.mp4',
-                'video/webm' => '.webm',
-                'video/ogg'  => '.ogg',
-                'video/avi'  => '.avi',
-                'video/quicktime' => '.mov',
-                'audio/x-m4a', 'audio/m4a' => '.m4a',
-                'audio/mpeg'  => '.mp3',
-                'application/pdf'  => '.pdf',
-                'application/zip'  => '.zip',
-                'application/msword' => '.doc',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => '.docx',
-                'application/vnd.ms-excel' => '.xls',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => '.xlsx',
-                'application/vnd.ms-powerpoint' => '.ppt',
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => '.pptx',
-                default => match ($expected) {
-                    'image' => '.jpg',
-                    'video' => '.mp4',
-                    'audio' => '.m4a',
-                    'file'  => '.bin',
-                    default => '.bin',
-                },
-            };
-
-            $basename = 'lazada/' . uniqid('lzd_', true) . $ext;
-            Storage::disk('s3')->put($basename, $mediaContent, [
-                'visibility'  => 'private',
-                'ContentType' => $contentType,
-            ]);
-            return Storage::disk('s3')->url($basename);
-        } catch (\Exception $e) {
-            Log::error('❌ ไม่สามารถดึง/อัปโหลด URL ของสื่อได้: ' . $e->getMessage(), [
-                'mediaRef' => $mediaRef,
-                'expected' => $expected,
-            ]);
-            return 'ไม่สามารถดึง URL ของสื่อได้';
-        }
-    }
-
-    /**
-     * ส่งข้อความกลับผ่าน Lazada IM (/im/message/send)
-     * ใช้ session_id = customer.custId
-     * - ใช้ POST (form) เท่านั้น
-     * - มี retry/backoff เมื่อเจอ ApiCallLimit/429
-     * - Throttle ต่อ session ด้วย Cache::lock
-     */
     public function ReplyPushMessage($filter_case_response)
     {
         try {
             $filter_case_response = $filter_case_response['case'] ?? $filter_case_response;
 
-            Log::info('🤖🤖🤖🤖🤖🤖🤖');
+            Log::info('🤖🤖🤖 RESPONSE');
             Log::info(json_encode($filter_case_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            Log::info('🤖🤖🤖🤖🤖🤖🤖');
 
-            if (!($filter_case_response['send_to_cust'] ?? false)) {
-                return ['status' => true, 'message' => 'ไม่ต้องส่งข้อความกลับ'];
+            if (empty($filter_case_response['send_to_cust'])) {
+                return ['status' => true, 'message' => 'ตอบกลับสำเร็จ'];
             }
 
             $platformToken = $filter_case_response['platform_access_token'] ?? null;
             $customer      = $filter_case_response['customer'] ?? null;
             $sessionId     = $customer['custId'] ?? null;
+            $messages      = $filter_case_response['messages'] ?? [];
 
-            if (!$platformToken || !$sessionId) {
-                throw new \Exception('ขาด platform token หรือ session_id');
+            $firstMsg = $messages[0]['content'] ?? '';
+
+            $message_format = [
+                'txt'         => $firstMsg,
+                'template_id' => 1,
+                'session_id'  => $sessionId,
+            ];
+
+            Log::info('message_format: ' . json_encode($message_format, JSON_UNESCAPED_UNICODE));
+
+            if (!$platformToken || empty($platformToken['laz_app_key']) || empty($platformToken['laz_app_secret']) || empty($platformToken['accessToken'])) {
+                throw new \Exception("ไม่พบ Lazada credentials ใน platform_access_token");
             }
 
-            $lock = Cache::lock("lzd:send:$sessionId", 2);
-            if (!$lock->get()) {
-                Log::warning('ข้ามการส่ง: throttle per session กำลังทำงาน', ['session' => $sessionId]);
-                return ['status' => true, 'message' => 'throttled'];
+            $client = new LazopClient(
+                'https://api.lazada.co.th/rest',
+                $platformToken['laz_app_key'],
+                $platformToken['laz_app_secret']
+            );
+
+            $request = new LazopRequest('/im/message/send', 'POST');
+            $request->addApiParam('session_id', $message_format['session_id']);
+            $request->addApiParam('template_id', $message_format['template_id']);
+            $request->addApiParam('txt', $message_format['txt']);
+
+            $response = $client->execute($request, $platformToken['accessToken']);
+
+            if (isset($response->code) && (string)$response->code !== '0') {
+                Log::error('Lazada API Error: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                throw new \Exception("Lazada API Error: {$response->message} (Code: {$response->code})");
             }
 
-            try {
-                $apiUrl  = rtrim(env('LAZADA_API_URL', 'https://api.lazada.co.th/rest'), '/');
-                $apiPath = '/im/message/send';
-
-                foreach (($filter_case_response['messages'] ?? []) as $msg) {
-                    $contentType = $msg['contentType'] ?? 'text';
-                    $content     = (string)($msg['content'] ?? '');
-
-                    $params = ['session_id' => $sessionId];
-
-                    if ($contentType === 'image') {
-                        $params['template_id'] = '3';
-                        $params['img_url']     = $content;  // URL รูป
-                    } elseif ($contentType === 'video') {
-                        $params['template_id'] = '6';
-                        $params['video_id']    = $content;  // video_id
-                    } else {
-                        $params['template_id'] = '1';
-                        $params['text']        = $content;  // ข้อความ
-                    }
-
-                    // ใส่ common + sign
-                    $signed = $this->buildAndSignRequest($apiPath, $params, $platformToken);
-
-                    // POST + Retry เมื่อเจอ ApiCallLimit/429
-                    $result = $this->postLazadaWithRetry($apiUrl . $apiPath, $signed, 3);
-
-                    if (!($result['ok'] ?? false)) {
-                        Log::error('ส่งข้อความไป Lazada IM ไม่สำเร็จ', ['response' => $result['json'] ?? null]);
-                        throw new \Exception('Lazada IM ส่งข้อความล้มเหลว');
-                    }
-
-                    ChatHistory::query()->create([
-                        'custId'          => $sessionId,
-                        'content'         => $content,
-                        'contentType'     => $contentType,
-                        'sender'          => json_encode($filter_case_response['bot'] ?? ['type' => 'bot']),
-                        'conversationRef' => $filter_case_response['ac_id'] ?? null,
-                        'line_message_id' => $result['json']['data']['message_id'] ?? null,
-                        'line_quote_token' => null,
-                    ]);
-
-                    (new PusherService())->sendNotification($sessionId);
-                    usleep(1_000_000); // 1 วินาที
-                }
-            } finally {
-                optional($lock)->release();
-            }
+            Log::info('✅ Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            return ['status' => true];
         } catch (\Exception $e) {
             return [
                 'status'  => false,
                 'message' => 'ไม่สามารถส่งข้อความตอบกลับได้: ' . $e->getMessage(),
             ];
         }
-
-        return ['status' => true, 'message' => 'ตอบกลับสำเร็จ'];
-    }
-
-    /**
-     * POST ไป Lazada พร้อม retry/backoff เมื่อโดน ApiCallLimit/429
-     */
-    private function postLazadaWithRetry(string $url, array $params, int $maxRetries = 3): array
-    {
-        $attempt = 0;
-        $last    = null;
-
-        do {
-            $attempt++;
-            $resp = Http::asForm()->post($url, $params);
-            $json = $resp->json();
-            $last = ['resp' => $resp, 'json' => $json];
-
-            if ($resp->successful() && ($json['code'] ?? null) === '0') {
-                return ['ok' => true, 'json' => $json];
-            }
-
-            $code    = $json['code'] ?? null;
-            $is429   = $resp->status() === 429;
-            $isLimit = ($code === 'ApiCallLimit' || $code === '429' || $code === 'TooManyRequests');
-
-            if ($is429 || $isLimit) {
-                // Lazada มักบอก "ban will last 1 seconds" → ถอย 1.1 วินาที
-                usleep(1_100_000);
-                continue;
-            }
-
-            // ไม่ใช่เคสที่ควร retry
-            break;
-        } while ($attempt < $maxRetries);
-
-        return ['ok' => false, 'json' => $last['json'] ?? null];
-    }
-
-    private function buildAndSignRequest(string $apiPath, array $customParams, $token): array
-    {
-        $common = [
-            'app_key'      => $token['laz_app_key'] ?? env('LAZADA_APP_KEY'),
-            'sign_method'  => 'sha256',
-            'timestamp'    => (int) round(microtime(true) * 1000),
-            'access_token' => $token['accessToken'] ?? env('LAZADA_ACCESS_TOKEN'),
-        ];
-        $params = array_merge($common, $customParams);
-        ksort($params);
-
-        $toSign = $apiPath;
-        foreach ($params as $k => $v) {
-            if (is_string($v) || is_numeric($v)) {
-                $toSign .= $k . $v;
-            }
-        }
-
-        $secret         = $token['laz_app_secret'] ?? env('LAZADA_APP_SECRET');
-        $params['sign'] = strtoupper(hash_hmac('sha256', $toSign, $secret));
-        return $params;
     }
 }

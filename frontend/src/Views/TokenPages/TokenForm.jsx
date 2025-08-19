@@ -150,19 +150,19 @@ export const TokenForm = (props) => {
             <FormControl>
               <FormLabel>App Key</FormLabel>
               <Input required
-                name="app_key"
+                name="laz_app_key"
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก App Key"
-                value={newToken.app_key || ""}
+                value={newToken.laz_app_key || ""}
               />
             </FormControl>
             <FormControl>
               <FormLabel>App Secret</FormLabel>
               <Input required
-                name="app_secret"
+                name="laz_app_secret"
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก App Secret"
-                value={newToken.app_secret || ""}
+                value={newToken.laz_app_secret || ""}
               />
             </FormControl>
           </>

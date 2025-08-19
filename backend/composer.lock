@@ -4,8 +4,56 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "900f2c7893acf855158701709f3ac70b",
+    "content-hash": "1a6bfa4d55f2cdf3d7636423e3411164",
     "packages": [
+        {
+            "name": "appolous/lazada-php-sdk",
+            "version": "1.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/appolous/lazada-php-sdk.git",
+                "reference": "b1c4cce33043f0cd725010d45a780b5c336ca4c8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/appolous/lazada-php-sdk/zipball/b1c4cce33043f0cd725010d45a780b5c336ca4c8",
+                "reference": "b1c4cce33043f0cd725010d45a780b5c336ca4c8",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "php": "^7.3|^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Lazada\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Appolous Team",
+                    "email": "hello@appolous.com",
+                    "homepage": "https://www.appolous.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A Lazada PHP SDK for Laravel",
+            "homepage": "https://github.com/appolous/lazada-php-sdk",
+            "keywords": [
+                "Lazada",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/appolous/lazada-php-sdk/issues",
+                "source": "https://github.com/appolous/lazada-php-sdk/tree/1.6"
+            },
+            "time": "2025-02-27T08:53:46+00:00"
+        },
         {
             "name": "aws/aws-crt-php",
             "version": "v1.2.7",
@@ -9947,12 +9995,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
