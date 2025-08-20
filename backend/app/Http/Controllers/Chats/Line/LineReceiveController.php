@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Chats\Line;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Models\ActiveConversations;
 use App\Models\BotMenu;
 use App\Models\ChatHistory;
@@ -40,7 +41,7 @@ class LineReceiveController extends Controller
             if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['startTime'] = Carbon::now();
-            $updateAC['empCode'] = auth()->user()->empCode;
+            $updateAC['empCode'] = Auth::user()->empCode;
             if ($updateAC->save()) {
                 $updateRate = Rates::query()->where('id', $rateId)->first();
                 if (!$updateRate) throw new \Exception('ไม่พบ Rate ที่ต้องการรับเรื่อง');
@@ -57,7 +58,7 @@ class LineReceiveController extends Controller
                     if ($diff >= 12) {
                     }
                     $this->sendMessageReceive($Rate, $updateAC);
-                    $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
+                    // $this->pusherService->sendNotification($updateAC['custId'], 'มีการรับเรื่อง');
                 } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Rates');
             } else throw new \Exception('ไม่สามารถรับเรื่องได้เนื่องจากมีปัญหาการอัพเดท Active');
             DB::commit();
@@ -82,7 +83,7 @@ class LineReceiveController extends Controller
         if (!$menus) throw new \Exception('ไม่พบเมนู');
         if (isset($AC->from_empCode) && $AC->from_empCode !== 'BOT') {
             $message['contentType'] = 'text';
-            $message['content'] = "แอดมิน". Auth::user()->name ."ขออนุญาติรับเรื่องดูแลคุณลูกค้าต่อจากเจ้าหน้าที่ท่านเดิม";
+            $message['content'] = "แอดมิน" . Auth::user()->name . "ขออนุญาติรับเรื่องดูแลคุณลูกค้าต่อจากเจ้าหน้าที่ท่านเดิม";
         } else {
             if ($token->description === 'pumpkintools') {
                 if ($Rate->menu_select) {
@@ -144,20 +145,57 @@ class LineReceiveController extends Controller
             }
         }
 
-        $newChatHistory = new ChatHistory();
-        $newChatHistory->custId = $Rate->custId;
-        $newChatHistory->content = $message['content'];
-        $newChatHistory->contentType = $message['contentType'];
-        $newChatHistory->sender = json_encode(auth()->user());
-        $newChatHistory->conversationRef = $AC->id;
-        $newChatHistory->save();
-        $sendMsgByLine = $this->messageService->sendMsgByLine($Rate->custId, $message);
-        if ($sendMsgByLine['status']) {
-            $newChatHistory->line_message_id = $sendMsgByLine['responseJson']['id'];
-            $newChatHistory->line_quote_token = $sendMsgByLine['responseJson']['quoteToken'];
-            $newChatHistory->save();
-        } else {
-            throw new \Exception($sendMsgByLine['message'] ?? 'ไม่สามารถส่งข้อความได้เนื่องจากมีปัญหาการส่งข้อความ line api');
+        
+        // ส่งข้อความไปยังลูกค้า
+        $send_message_data = [
+            'status' => true,
+            'send_to_cust' => true,
+            'type_send' => 'present',
+            'type_message' => 'push',
+            'messages' => [
+                [
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType']
+                ]
+            ],
+            'customer' => $customer,
+            'ac_id' => $AC->id,
+            'platform_access_token' => $token,
+            'reply_token' => null,
+            'employee' => Auth::user()
+        ];
+        switch ($token['platform']) {
+            case 'line':
+                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                break;
+            case 'facebook':
+                break;
+            case 'lazada':
+                break;
+            case 'shopee':
+                break;
+            default:
+                break;
         }
+        if ($send_message['status']) {
+        } else {
+            throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งข้อความได้กรุณาลองใหม่อีกครั้ง หรือ ติดต่อ admin it');
+        }
+
+        // $newChatHistory = new ChatHistory();
+        // $newChatHistory->custId = $Rate->custId;
+        // $newChatHistory->content = $message['content'];
+        // $newChatHistory->contentType = $message['contentType'];
+        // $newChatHistory->sender = json_encode(auth()->user());
+        // $newChatHistory->conversationRef = $AC->id;
+        // $newChatHistory->save();
+        // $sendMsgByLine = $this->messageService->sendMsgByLine($Rate->custId, $message);
+        // if ($sendMsgByLine['status']) {
+        //     $newChatHistory->line_message_id = $sendMsgByLine['responseJson']['id'];
+        //     $newChatHistory->line_quote_token = $sendMsgByLine['responseJson']['quoteToken'];
+        //     $newChatHistory->save();
+        // } else {
+        //     throw new \Exception($sendMsgByLine['message'] ?? 'ไม่สามารถส่งข้อความได้เนื่องจากมีปัญหาการส่งข้อความ line api');
+        // }
     }
 }

@@ -221,6 +221,7 @@ class LineWebhookController extends Controller
 
     public static function ReplyPushMessage($filter_case_response)
     {
+        $default_image = 'https://images.dcpumpkin.com/images/product/500/default.jpg';
         try {
             $filter_case_response = $filter_case_response['case'] ?? $filter_case_response;
             Log::channel('webhook_line_new')->info('🤖🤖🤖🤖🤖🤖🤖');
@@ -236,15 +237,37 @@ class LineWebhookController extends Controller
             $reply_token = $filter_case_response['reply_token'] ?? '';
             $platform_access_token = $filter_case_response['platform_access_token'] ?? '';
             foreach ($filter_case_response['messages'] as $key => $message) {
-                $message_formated[$key] = [
-                    'type' => $message['contentType'] ?? 'text',
-                    'text' => $message['content'] ?? '',
-                    'imageUrl' => $message['content'] ?? '',
-                    'videoUrl' => $message['content'] ?? '',
-                    'audioUrl' => $message['content'] ?? '',
-                    'location' => $message['content'] ?? '',
-                    'stickerId' => $message['content'] ?? '',
-                ];
+                if ($message['contentType'] === 'file') {
+                    $message_formated[$key] = [
+                        'file' => true,
+                        'type' => 'template',
+                        'altText' => 'ส่งไฟล์',
+                        'template' => [
+                            'title' => 'ใส่ไปงั้นแหล่ะ',
+                            'type' => 'buttons',
+                            'thumbnailImageUrl' => "https://images.pumpkin.tools/icon/pdf_icon.png",
+                            'imageAspectRatio' => "rectangle",
+                            'imageSize' => "cover",
+                            'text' => "ไฟล์.pdf",
+                            'actions' => [
+                                [
+                                    'text' => 'ใส่ไปงั้นแหล่ะ',
+                                    'type' => "uri",
+                                    'label' => "ดูไฟล์",
+                                    'uri' => $message['content'] ?? 'https://example.com/default.pdf'
+                                ]
+                            ]
+                        ]
+
+                    ];
+                } else {
+                    $message_formated[$key] = [
+                        'type' => $message['contentType'] ?? 'text',
+                        'text' => $message['content'] ?? '',
+                        'originalContentUrl' => $message['content'] ?? '',
+                        'previewImageUrl' => $message['contentType'] === 'image' ? $message['content'] :  $default_image,
+                    ];
+                }
             }
             switch ($filter_case_response['type_send']) {
                 case 'menu':
@@ -259,6 +282,7 @@ class LineWebhookController extends Controller
                         $actions[$key]['text'] = (string) $menu['menu_number'];
                     }
                     $message_formated[$latest_key] = [
+                        'file' => false,
                         'type' => 'template',
                         'altText' => 'เมนูหลัก',
                         'template' => [
@@ -274,6 +298,8 @@ class LineWebhookController extends Controller
                 case 'queue':
                     break;
                 case 'present':
+                    $message_formated[0]['type'] = 'text';
+                    $message_formated[0]['text'] = $filter_case_response['messages'][0]['content'];
                     break;
                 case 'normal':
                     break;
@@ -314,33 +340,48 @@ class LineWebhookController extends Controller
 
                     // ถ้าเป็น template menu → override
                     if (($message['type'] ?? '') === 'template' && ($message['template']['type'] ?? '') === 'buttons') {
-                        $contentType = 'text';
-                        $content = $message['template']['title'] . "\n"
-                            . $message['template']['text'] . "\n";
-
-                        foreach ($message['template']['actions'] as $act) {
-                            $content .= $act['text'] . '.' . $act['label'] . "\n";
+                        if ($message['file']) {
+                            $contentType = 'file';
+                            $content = $message['template']['actions'][0]['uri'];
+                        }else{
+                            $contentType = 'text';
+                            $content = $message['template']['title'] . "\n" . $message['template']['text'] . "\n";
+                            foreach ($message['template']['actions'] as $act) {
+                                $content .= $act['text'] . '.' . $act['label'] . "\n";
+                            }
+                            $content = trim($content); // ตัด \n ท้ายออก
                         }
-                        $content = trim($content); // ตัด \n ท้ายออก
                     }
 
-                    ChatHistory::query()->create([
-                        'custId' => $filter_case_response['customer']['custId'],
-                        'content' => $content,
-                        'contentType' => $contentType,
-                        'sender' => json_encode($filter_case_response['bot']),
-                        'conversationRef' => $filter_case_response['ac_id'] ?? null,
-                        'line_message_id' => $res_send_line['sentMessages'][$key]['id'] ?? null,
-                        'line_quote_token' => $res_send_line['sentMessages'][$key]['quoteToken'] ?? null,
-                    ]);
+                    $store_chat = new ChatHistory();
+                    $store_chat->custId = $filter_case_response['customer']['custId'];
+                    $store_chat->content = $content;
+                    $store_chat->contentType = $contentType;
+                    if ($filter_case_response['type_send'] === 'present' || $filter_case_response['type_send'] === 'normal') {
+                        $store_chat->sender = json_encode($filter_case_response['employee']);
+                    } else {
+                        $store_chat->sender = json_encode($filter_case_response['bot']);
+                    }
+                    $store_chat->conversationRef = $filter_case_response['ac_id'] ?? null;
+                    $store_chat->line_message_id = $res_send_line['sentMessages'][$key]['id'] ?? null;
+                    $store_chat->line_quote_token = $res_send_line['sentMessages'][$key]['quoteToken'] ?? null;
+                    $store_chat->save();
 
                     $pusherService = new PusherService();
-                    $pusherService->sendNotification($filter_case_response['customer']['custId']);
+                    if ($filter_case_response['type_send'] === 'present') {
+                        $pusherService->sendNotification($filter_case_response['customer']['custId'], 'มีการรับเรื่อง');
+                    } else {
+                        $pusherService->sendNotification($filter_case_response['customer']['custId']);
+                    }
                 }
             } else {
                 Log::channel('webhook_line_new')->error('ส่งข้อความตอบกลับไปยัง LINE ไม่สำเร็จ', [
                     'response' => $send_line->json(),
                 ]);
+                Log::channel('webhook_line_new')->error('ส่งข้อความตอบกลับไปยัง LINE ไม่สำเร็จ', [
+                    'messages' => json_encode($message_formated, JSON_UNESCAPED_UNICODE),
+                ]);
+                throw new \Exception('ไม่สามารถส่งข้อความตอบกลับไปยัง LINE ได้: ' . $send_line->body());
             }
         } catch (\Exception $e) {
             return [

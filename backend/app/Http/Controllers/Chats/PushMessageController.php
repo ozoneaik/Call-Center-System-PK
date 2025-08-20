@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Chats;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Requests\sendMessageRequest;
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
@@ -48,17 +49,11 @@ class PushMessageController extends Controller
                 if (!$checkConversation->save()) throw new \Exception('เจอปัญหา startTime ไม่ได้');
             }
 
-            $messages_formatted = [];
-
             foreach ($messages as $key => $m) {
-                $storeChatHistory = new ChatHistory();
-                $storeChatHistory['custId'] = $custId;
-                $storeChatHistory['contentType'] = $m['contentType'];
-
-                if (in_array($storeChatHistory['contentType'], ['image', 'video', 'file'])) {
+                if (in_array($m['contentType'], ['image', 'video', 'file'])) {
                     $file = $m['content'];
                     $extension = '.' . $file->getClientOriginalExtension();
-                    $mediaId = rand(0, 9999) . time();
+                    $mediaId = rand(0, 9999) . time() . "_" . $custId;
                     $mediaPath = $mediaId . $extension;
 
                     $mediaContent = file_get_contents($file->getRealPath());
@@ -70,32 +65,33 @@ class PushMessageController extends Controller
                     ]);
 
                     $url = Storage::disk('s3')->url($mediaPath);
-                    $m['content'] = $url;
-                    $storeChatHistory['content'] = $url;
-                } else {
-                    $storeChatHistory['content'] = $m['content'];
+                    $messages[$key]['content'] = $url;
                 }
-
-                $storeChatHistory['sender'] = json_encode(Auth::user());
-                $storeChatHistory['conversationRef'] = $conversationId;
-
-                if (!$storeChatHistory->save()) {
-                    throw new \Exception('สร้าง ChatHistory ไม่สำเร็จ');
-                }
-
-                // ส่งข้อความไป LINE
-                $lineResponse = $this->pushMessageByLine(
-                    [$this->formatLineMessage($m)],
-                    $platformAccessToken['accessToken'],
-                    $custId
-                );
-
-                // ถ้า LINE ส่งสำเร็จ → ส่ง pusher
-                if ($lineResponse['status'] === true) {
-                    $this->pusherService->sendNotification($custId);
-                }else{
-                    throw new \Exception($lineResponse['response']['message']);
-                }
+            }
+            // ส่งข้อความไปยังลูกค้า
+            $send_message_data = [
+                'status' => true,
+                'send_to_cust' => true,
+                'type_send' => 'normal',
+                'type_message' => 'push',
+                'messages' => $messages,
+                'customer' => $checkCustId,
+                'ac_id' => $conversationId,
+                'platform_access_token' => $platformAccessToken,
+                'reply_token' => null,
+                'employee' => Auth::user()
+            ];
+            switch ($platformAccessToken['platform']) {
+                case 'line':
+                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    break;
+                default:
+                    # code...
+                    break;
+            }
+            if ($send_message['status']) {
+            } else {
+                throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งข้อความไปยังลูกค้าได้');
             }
 
             DB::commit();
