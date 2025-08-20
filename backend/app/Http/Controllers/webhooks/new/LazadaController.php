@@ -106,9 +106,6 @@ class LazadaController extends Controller
         }
     }
 
-    /**
-     * แปลง Lazada Push (message_type=2) → events(สไตล์ที่อยาก log)
-     */
     private function normalizeLazadaToEvents(array $req): array
     {
         if (isset($req['message_type'], $req['data'])) {
@@ -163,9 +160,6 @@ class LazadaController extends Controller
         return ['lazada', [], null];
     }
 
-    /**
-     * หา/สร้าง customer สำหรับ Lazada โดยใช้ session_id เป็น custId
-     */
     private function checkCustomer(string $sessionId): array
     {
         $customer = Customers::query()->where('custId', $sessionId)->first();
@@ -189,9 +183,6 @@ class LazadaController extends Controller
         return ['customer' => null, 'platform' => null];
     }
 
-    /**
-     * แปลง message (ที่ normalize แล้ว) → โครงกลางให้ FilterCase ใช้
-     */
     private function formatMessage(array $message, ?string $replyToken): array
     {
         $msg_type = $message['type'] ?? 'text';
@@ -264,7 +255,7 @@ class LazadaController extends Controller
                 throw new \Exception("Lazada API Error: {$response->message} (Code: {$response->code})");
             }
 
-            Log::info('✅ Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            Log::info('Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             return ['status' => true];
         } catch (\Exception $e) {
             return [
