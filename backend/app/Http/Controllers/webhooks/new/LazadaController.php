@@ -223,30 +223,54 @@ class LazadaController extends Controller
             $sessionId     = $customer['custId'] ?? null;
             $messages      = $filter_case_response['messages'] ?? [];
 
+            // ข้อความแรก (fallback เป็นสตริงว่าง)
             $firstMsg = $messages[0]['content'] ?? '';
 
-            $message_format = [
-                'txt'         => $firstMsg,
-                'template_id' => 1,
-                'session_id'  => $sessionId,
-            ];
-
-            Log::info('message_format: ' . json_encode($message_format, JSON_UNESCAPED_UNICODE));
-
-            if (!$platformToken || empty($platformToken['laz_app_key']) || empty($platformToken['laz_app_secret']) || empty($platformToken['accessToken'])) {
+            if (
+                !$platformToken ||
+                empty($platformToken['laz_app_key']) ||
+                empty($platformToken['laz_app_secret']) ||
+                empty($platformToken['accessToken'])
+            ) {
                 throw new \Exception("ไม่พบ Lazada credentials ใน platform_access_token");
             }
+
+            $messaged = $firstMsg;
+            switch ($filter_case_response['type_send'] ?? '') {
+                case 'menu':
+                    $menuLines = BotMenu::query()
+                        ->where('botTokenId', $platformToken['id'])
+                        ->get()
+                        ->map(fn($bot) => ($bot->menu_number ?? '-') . '. ' . ($bot->menuName ?? '-'))
+                        ->implode("\n");
+
+                    $messaged = "เลือกเมนู\n" . ($menuLines ?: '- ยังไม่มีเมนู -');
+                    break;
+                case 'queue':
+                    break;
+                case 'menu_sended':
+                case 'present':
+                case 'normal':
+                default:
+                    break;
+            }
+
+            $request = new LazopRequest('/im/message/send', 'POST');
+            $request->addApiParam('session_id',  $sessionId);
+            $request->addApiParam('template_id', 1);
+            $request->addApiParam('txt',         $messaged);
+
+            Log::info('📤 LAZADA SEND PARAMS: ' . json_encode([
+                'session_id'  => $sessionId,
+                'template_id' => 1,
+                'txt'         => $messaged,
+            ], JSON_UNESCAPED_UNICODE));
 
             $client = new LazopClient(
                 'https://api.lazada.co.th/rest',
                 $platformToken['laz_app_key'],
                 $platformToken['laz_app_secret']
             );
-
-            $request = new LazopRequest('/im/message/send', 'POST');
-            $request->addApiParam('session_id', $message_format['session_id']);
-            $request->addApiParam('template_id', $message_format['template_id']);
-            $request->addApiParam('txt', $message_format['txt']);
 
             $response = $client->execute($request, $platformToken['accessToken']);
 
@@ -255,9 +279,12 @@ class LazadaController extends Controller
                 throw new \Exception("Lazada API Error: {$response->message} (Code: {$response->code})");
             }
 
-            Log::info('Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            
+
+            Log::info('✅ Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             return ['status' => true];
         } catch (\Exception $e) {
+            Log::error('❌ ReplyPushMessage Error: ' . $e->getMessage());
             return [
                 'status'  => false,
                 'message' => 'ไม่สามารถส่งข้อความตอบกลับได้: ' . $e->getMessage(),
