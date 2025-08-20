@@ -107,7 +107,7 @@ class ProgressCase
                 return [
                     'status' => true,
                     'send_to_cust' => true,
-                    'type_send' => 'normal',
+                    'type_send' => 'menu_sended',
                     'type_message' => 'reply',
                     'messages' => [
                         [

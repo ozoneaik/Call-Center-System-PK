@@ -53,13 +53,13 @@ class DatabaseSeeder extends Seeder
 
         // BotMenu Seeder
         $botMenus = [
-            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง', 'botTokenId' => 1],
-            ['roomId' => 'ROOM03', 'menuName' => 'ติดต่อฝ่ายประสานงาน', 'botTokenId' => 1],
-            ['roomId' => 'ROOM04', 'menuName' => 'ติดต่อการขาย', 'botTokenId' => 1],
-            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ', 'botTokenId' => 1],
-            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง', 'botTokenId' => 2],
-            ['roomId' => 'ROOM04', 'menuName' => 'customer service', 'botTokenId' => 2],
-            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ', 'botTokenId' => 2],
+            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง', 'botTokenId' => 1, 'menu_number' => 1],
+            ['roomId' => 'ROOM03', 'menuName' => 'ติดต่อฝ่ายประสานงาน', 'botTokenId' => 1, 'menu_number' => 2],
+            ['roomId' => 'ROOM04', 'menuName' => 'ติดต่อการขาย', 'botTokenId' => 1, 'menu_number' => 3],
+            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ', 'botTokenId' => 1, 'menu_number' => 4],
+            ['roomId' => 'ROOM02', 'menuName' => 'ติดต่อช่าง', 'botTokenId' => 2, 'menu_number' => 1],
+            ['roomId' => 'ROOM04', 'menuName' => 'customer service', 'botTokenId' => 2, 'menu_number' => 2],
+            ['roomId' => 'ROOM01', 'menuName' => 'อื่นๆ', 'botTokenId' => 2, 'menu_number' => 3],
         ];
         foreach ($botMenus as $botMenu) {
             BotMenu::query()->create($botMenu);
