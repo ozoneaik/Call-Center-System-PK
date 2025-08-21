@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Chats\Line\LineReceiveController;
+use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Requests\endTalkRequest;
 use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
@@ -10,6 +11,7 @@ use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\ChatRooms;
 use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\TagMenu;
 use App\Models\User;
@@ -18,6 +20,7 @@ use App\Services\PusherService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +41,7 @@ class MessageController extends Controller
     // ฟังก์ชั่นการส่งข้อความ
     public function send(sendMessageRequest $request): JsonResponse
     {
-        
+
         $detail = 'ไม่พบข้อผิดพลาด';
         $custId = $request['custId'];
         $conversationId = $request['conversationId'];
@@ -310,6 +313,7 @@ class MessageController extends Controller
             if (!$updateRate) throw new \Exception('ไม่พบ Rates ที่ต้องการอัพเดท');
             if ($updateRate['status'] === 'success') throw new \Exception('Rates ที่ต้องการอัพเดท เคยอัพเดทแล้ว');
             $updateRate['status'] = 'success';
+            $updateRate['tag_description'] = $request['note'] ?? null;
             $updateRate['tag'] = $request['tagId'];
             if ($updateRate->save()) {
                 $updateAC = ActiveConversations::query()->where('id', $activeId)->first();
@@ -319,18 +323,36 @@ class MessageController extends Controller
                 if ($updateAC->save()) {
                     if ($Assessment) {
                         /* ส่งการ์ดประเมิน */
-                        $send = $this->messageService->MsgEndTalk($updateAC['custId'], $rateId);
-                        if (!$send['status']) {
-                            throw new \Exception($send['message']);
-                        } else {
-                            $bot = User::query()->where('empCode', 'BOT')->first();
-                            $chatHistory = new ChatHistory();
-                            $chatHistory['custId'] = $updateAC['custId'];
-                            $chatHistory['content'] = '🤖ระบบได้ส่งแบบประเมินให้ลูกค้าแล้ว🤖';
-                            $chatHistory['contentType'] = 'text';
-                            $chatHistory['sender'] = json_encode($bot);
-                            $chatHistory['conversationRef'] = $updateAC['id'];
-                            $chatHistory->save();
+                        $customer = Customers::query()->where('custId', $updateRate['custId'])->first();
+                        $bot = User::query()->where('empCode', 'BOT')->first();
+                        $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+                        switch ($platformAccessToken['platform']) {
+                            case 'line':
+                                $send_message_data = [
+                                    'status' => true,
+                                    'send_to_cust' => true,
+                                    'type_send' => 'evaluation',
+                                    'type_message' => 'push',
+                                    'messages' => [[
+                                        'contentType' => 'text',
+                                        'content' => 'เพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏'
+                                    ]],
+                                    'customer' => $customer,
+                                    'ac_id' => $updateAC['id'],
+                                    'rate_id' => $updateRate['id'],
+                                    'platform_access_token' => $platformAccessToken,
+                                    'reply_token' => null,
+                                    'employee' => Auth::user(),
+                                    'bot' => $bot
+                                ];
+                                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                                if ($send_message['status']) {
+                                } else {
+                                    throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งประเมินหาลูกค้าได้ เกิดข้อผิดพลาดที่ การส่งข้อความ');
+                                }
+                                break;
+                            default:
+                                break;
                         }
                     }
                     $message = 'คุณได้จบการสนทนาแล้ว';
@@ -339,11 +361,6 @@ class MessageController extends Controller
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
 
             $this->pusherService->sendNotification($updateRate['custId']);
-            //            $notification = $this->pusherService->newMessage(null, false, 'มีการจบสนทนา');
-            //            if (!$notification['status']) {
-            //                $status = 400;
-            //                throw new \Exception('การแจ้งเตือนผิดพลาด');
-            //            }
             DB::commit();
         } catch (\Exception $e) {
             $detail = $e->getMessage();

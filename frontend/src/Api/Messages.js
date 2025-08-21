@@ -72,9 +72,9 @@ export const pauseTalkApi = async ({activeConversationId, rateId}) => {
 }
 
 // จบการสนทนา
-export const endTalkApi = async ({ rateId, activeConversationId, tagId ,Assessment}) => {
+export const endTalkApi = async ({ rateId, activeConversationId, tagId ,Assessment,note = null}) => {
     try {
-        const { data, status } = await axiosClient.post(`${messages}/endTalk`, { rateId, activeConversationId, tagId,Assessment });
+        const { data, status } = await axiosClient.post(`${messages}/endTalk`, { rateId, activeConversationId, tagId,Assessment,note });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);

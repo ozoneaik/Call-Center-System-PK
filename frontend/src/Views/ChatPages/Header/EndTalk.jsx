@@ -40,7 +40,7 @@ const ModalEndTalk = (props) => {
                 activeConversationId: activeId,
                 tagId: selectedTagId,
                 Assessment: assessment,
-                note: note.trim(),
+                note: note,
             });
 
             setShowModalEndTalk(false);

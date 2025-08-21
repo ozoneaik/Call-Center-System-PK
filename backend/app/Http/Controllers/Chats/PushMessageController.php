@@ -85,6 +85,15 @@ class PushMessageController extends Controller
                 case 'line':
                     $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                     break;
+                case 'facebook':
+                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    break;
+                case 'lazada':
+                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    break;
+                case 'shopee':
+                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    break;
                 default:
                     # code...
                     break;

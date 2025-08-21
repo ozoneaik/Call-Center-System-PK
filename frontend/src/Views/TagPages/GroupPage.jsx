@@ -95,8 +95,10 @@ export default function GroupPage() {
     try {
       const { status, data } = await listTagGroupsApi({ with_trashed: 1 });
       if (status === 200 && data) {
+        console.log('data >>>>>>>' ,data);
         setGroups(Array.isArray(data.data) ? data.data : []);
       } else {
+        console.log('data >>>>>>>');
         setGroups([]);
       }
     } catch (e) {
