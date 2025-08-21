@@ -7,6 +7,8 @@ use App\Models\BotMenu;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
 use App\Models\ChatHistory;
+use App\Services\LazadaMessageService;
+use App\Services\LazadaVideoService;
 use App\Services\PusherService;
 use App\Services\webhooks_new\FilterCase;
 use Illuminate\Http\Request;
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Lazada\LazopClient;
 use Lazada\LazopRequest;
+use Illuminate\Support\Str;
 
 class LazadaController extends Controller
 {
@@ -183,6 +186,97 @@ class LazadaController extends Controller
         return ['customer' => null, 'platform' => null];
     }
 
+    private function getUrlMedia($mediaUrl, $accessToken = null): ?string
+    {
+        try {
+            if (!filter_var($mediaUrl, FILTER_VALIDATE_URL)) {
+                Log::warning("Media URL ไม่ถูกต้อง: {$mediaUrl}");
+                return null;
+            }
+            Log::info("กำลังดาวน์โหลดไฟล์มีเดียจาก URL: {$mediaUrl}");
+            $response = Http::timeout(30)->get($mediaUrl);
+
+            if ($response->successful()) {
+                $mediaContent = $response->body();
+                $contentType = $response->header('Content-Type');
+
+                $urlParts = parse_url($mediaUrl);
+                $pathInfo = pathinfo($urlParts['path'] ?? '');
+                $originalFilename = $pathInfo['filename'] ?? 'media_' . time();
+                $originalExtension = $pathInfo['extension'] ?? '';
+
+                if (empty($originalExtension)) {
+                    $originalExtension = ltrim($this->getExtensionFromContentType($contentType), '.');
+                }
+
+                // สร้าง path สำหรับเก็บใน S3
+                $filename = $originalFilename . '_' . uniqid();
+                if ($originalExtension) {
+                    $filename .= '.' . $originalExtension;
+                }
+                $mediaPath = 'lazada/media/' . $filename;
+
+                Log::info("กำลังอัปโหลดไฟล์ไปยัง S3: {$mediaPath}", [
+                    'content_type' => $contentType,
+                    'file_size' => strlen($mediaContent)
+                ]);
+
+                // อัปโหลดขึ้น S3 แบบ private โดยใช้ Flysystem ผ่าน Laravel Storage
+                Storage::disk('s3')->put($mediaPath, $mediaContent, [
+                    'visibility'  => 'private',
+                    'ContentType' => $contentType ?: 'application/octet-stream',
+                ]);
+
+                $url = Storage::disk('s3')->url($mediaPath);
+
+                Log::info("อัปโหลดไฟล์มีเดียสำเร็จ: {$url}");
+
+                return $url;
+            } else {
+                Log::error("ไม่สามารถดาวน์โหลดไฟล์มีเดียได้", [
+                    'media_url' => $mediaUrl,
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error("เกิดข้อผิดพลาดในการดาวน์โหลดไฟล์มีเดีย: " . $e->getMessage(), [
+                'media_url' => $mediaUrl,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return null;
+        }
+    }
+
+    private function getExtensionFromContentType(?string $contentType): string
+    {
+        if (!$contentType) {
+            return '';
+        }
+
+        $extensions = [
+            'image/jpeg' => '.jpg',
+            'image/jpg' => '.jpg',
+            'image/png' => '.png',
+            'image/gif' => '.gif',
+            'image/webp' => '.webp',
+            'video/mp4' => '.mp4',
+            'video/mpeg' => '.mpeg',
+            'video/quicktime' => '.mov',
+            'video/x-msvideo' => '.avi',
+            'audio/mpeg' => '.mp3',
+            'audio/wav' => '.wav',
+            'audio/ogg' => '.ogg',
+            'application/pdf' => '.pdf',
+            'application/msword' => '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => '.docx',
+        ];
+
+        return $extensions[$contentType] ?? '';
+    }
+
     private function formatMessage(array $message, ?string $replyToken): array
     {
         $msg_type = $message['type'] ?? 'text';
@@ -198,11 +292,33 @@ class LazadaController extends Controller
             $result['content']     = $message['text'] ?? 'ข้อความว่าง';
         } elseif (in_array($msg_type, ['image', 'video', 'audio', 'file'], true)) {
             $result['contentType'] = $msg_type;
-            $result['content']     = $message['text'] ?? ''; // เก็บ url/video_id ไว้
+            $mediaUrl = $message['text'] ?? null;
+
+            if ($mediaUrl && filter_var($mediaUrl, FILTER_VALIDATE_URL)) {
+                Log::info("พบ URL มีเดีย: {$mediaUrl}");
+
+                $s3Url = $this->getUrlMedia($mediaUrl);
+                if ($s3Url) {
+                    $result['content'] = $s3Url;
+                    $result['original_media_url'] = $mediaUrl; // เก็บ URL เดิมไว้อ้างอิง
+                    Log::info("บันทึกไฟล์มีเดียใน S3 สำเร็จ: {$s3Url}");
+                } else {
+                    $result['content'] = $mediaUrl;
+                    $result['original_media_url'] = $mediaUrl;
+                    Log::warning("ไม่สามารถบันทึกไฟล์มีเดียใน S3 ได้ ใช้ URL เดิม: {$mediaUrl}");
+                }
+            } else {
+                $result['content'] = $mediaUrl ?: '';
+                if ($mediaUrl) {
+                    $result['original_media_url'] = $mediaUrl;
+                }
+                Log::warning('URL มีเดียไม่ถูกต้องหรือไม่มีข้อมูล', ['media_url' => $mediaUrl]);
+            }
         } else {
             $result['contentType'] = 'text';
             $result['content']     = 'ไม่รู้จักประเภทข้อความ';
         }
+
         return $result;
     }
 
@@ -223,7 +339,6 @@ class LazadaController extends Controller
             $sessionId     = $customer['custId'] ?? null;
             $messages      = $filter_case_response['messages'] ?? [];
 
-            // ข้อความแรก (fallback เป็นสตริงว่าง)
             $firstMsg = $messages[0]['content'] ?? '';
 
             if (
@@ -243,11 +358,9 @@ class LazadaController extends Controller
                         ->get()
                         ->map(fn($bot) => ($bot->menu_number ?? '-') . '. ' . ($bot->menuName ?? '-'))
                         ->implode("\n");
-
                     $messaged = "เลือกเมนู\n" . ($menuLines ?: '- ยังไม่มีเมนู -');
                     break;
                 case 'queue':
-                    break;
                 case 'menu_sended':
                 case 'present':
                 case 'normal':
@@ -266,12 +379,7 @@ class LazadaController extends Controller
                 'txt'         => $messaged,
             ], JSON_UNESCAPED_UNICODE));
 
-            $client = new LazopClient(
-                'https://api.lazada.co.th/rest',
-                $platformToken['laz_app_key'],
-                $platformToken['laz_app_secret']
-            );
-
+            $client   = new LazopClient('https://api.lazada.co.th/rest', $platformToken['laz_app_key'], $platformToken['laz_app_secret']);
             $response = $client->execute($request, $platformToken['accessToken']);
 
             if (isset($response->code) && (string)$response->code !== '0') {
@@ -279,9 +387,36 @@ class LazadaController extends Controller
                 throw new \Exception("Lazada API Error: {$response->message} (Code: {$response->code})");
             }
 
-            
-
             Log::info('✅ Lazada Message Sent Successfully: ' . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+            $respArr = json_decode(json_encode($response), true);
+            $platformMsgId = $respArr['data']['message_id']
+                ?? $respArr['message_id']
+                ?? $respArr['result']['message_id']
+                ?? null;
+
+            $content     = $messaged;
+            $contentType = 'text';
+
+            try {
+                $chatHistory = ChatHistory::query()->create([
+                    'custId'            => $customer['custId'] ?? null,
+                    'content'           => $content,
+                    'contentType'       => $contentType,
+                    'sender'            => json_encode($filter_case_response['bot'] ?? ['type' => 'bot', 'platform' => 'lazada'], JSON_UNESCAPED_UNICODE),
+                    'conversationRef'   => $filter_case_response['ac_id'] ?? null,
+                    'line_message_id'   => $platformMsgId,
+                    'line_quote_token'  => $respArr['data']['quote_token'] ?? null,
+                ]);
+
+                $pusherService = new PusherService();
+                $pusherService->sendNotification($customer['custId'] ?? '');
+
+                Log::info('🗃️ ChatHistory created: ' . json_encode($chatHistory->only(['id', 'custId', 'conversationRef']), JSON_UNESCAPED_UNICODE));
+            } catch (\Throwable $dbEx) {
+                Log::error('❌ ChatHistory create failed: ' . $dbEx->getMessage());
+            }
+
             return ['status' => true];
         } catch (\Exception $e) {
             Log::error('❌ ReplyPushMessage Error: ' . $e->getMessage());
