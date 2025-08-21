@@ -305,6 +305,20 @@ class LineWebhookController extends Controller
                     break;
                 case 'normal':
                     break;
+                case 'evaluation':
+                    $rate_id = $filter_case_response['rate_id'] ?? null;
+                    $message_formated[0]['type'] = 'text';
+                    $message_formated[0]['text'] = $filter_case_response['messages'][0]['content'];
+                    $message_formated[0]['quickReply']['items'][0]['type'] = 'action';
+                    $message_formated[0]['quickReply']['items'][0]['action']['type'] = 'postback';
+                    $message_formated[0]['quickReply']['items'][0]['action']['label'] = '👍 ถูกใจ';
+                    $message_formated[0]['quickReply']['items'][0]['action']['data'] = "like,$rate_id";
+                    $message_formated[0]['quickReply']['items'][0]['action']['displayText'] = "ถูกใจ";
+                    $message_formated[0]['quickReply']['items'][1]['action']['type'] = 'postback';
+                    $message_formated[0]['quickReply']['items'][1]['action']['label'] = '👎 ไม่ถูกใจ';
+                    $message_formated[0]['quickReply']['items'][1]['action']['data'] = "dislike,$rate_id";
+                    $message_formated[0]['quickReply']['items'][1]['action']['displayText'] = "ไม่ถูกใจ";
+                    break;
                 default:
                     break;
             }
@@ -345,7 +359,7 @@ class LineWebhookController extends Controller
                         if ($message['file']) {
                             $contentType = 'file';
                             $content = $message['template']['actions'][0]['uri'];
-                        }else{
+                        } else {
                             $contentType = 'text';
                             $content = $message['template']['title'] . "\n" . $message['template']['text'] . "\n";
                             foreach ($message['template']['actions'] as $act) {

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('status')->default('pending')->comment('สถานะ');
             $table->string('latestRoomId')->comment('ห้องปัจจุบัน');
             $table->tinyInteger('tag')->nullable()->comment('แท็คการจบสนทนา');
+            $table->string('tag_description')->nullable()->comment('คำอธิบายแท็คการจบสนทนา');
             $table->string('menu_select')->nullable()->comment('เมนูที่เลือก');
             $table->string('feedback_description')->nullable()->comment('คำอธิบายการให้คะแนน');
             $table->timestamps();

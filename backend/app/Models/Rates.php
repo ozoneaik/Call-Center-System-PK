@@ -21,6 +21,7 @@ class Rates extends Model
         'latestRoomId',
         'status',
         'tag',
+        'tag_description',
         'menu_select',
         'feedback_description',
     ];

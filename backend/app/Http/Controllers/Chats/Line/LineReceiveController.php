@@ -145,7 +145,7 @@ class LineReceiveController extends Controller
             }
         }
 
-        
+
         // ส่งข้อความไปยังลูกค้า
         $send_message_data = [
             'status' => true,
@@ -169,33 +169,21 @@ class LineReceiveController extends Controller
                 $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                 break;
             case 'facebook':
+                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                 break;
             case 'lazada':
+                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                 break;
             case 'shopee':
+                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                 break;
             default:
+                # code...
                 break;
         }
         if ($send_message['status']) {
         } else {
             throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งข้อความได้กรุณาลองใหม่อีกครั้ง หรือ ติดต่อ admin it');
         }
-
-        // $newChatHistory = new ChatHistory();
-        // $newChatHistory->custId = $Rate->custId;
-        // $newChatHistory->content = $message['content'];
-        // $newChatHistory->contentType = $message['contentType'];
-        // $newChatHistory->sender = json_encode(auth()->user());
-        // $newChatHistory->conversationRef = $AC->id;
-        // $newChatHistory->save();
-        // $sendMsgByLine = $this->messageService->sendMsgByLine($Rate->custId, $message);
-        // if ($sendMsgByLine['status']) {
-        //     $newChatHistory->line_message_id = $sendMsgByLine['responseJson']['id'];
-        //     $newChatHistory->line_quote_token = $sendMsgByLine['responseJson']['quoteToken'];
-        //     $newChatHistory->save();
-        // } else {
-        //     throw new \Exception($sendMsgByLine['message'] ?? 'ไม่สามารถส่งข้อความได้เนื่องจากมีปัญหาการส่งข้อความ line api');
-        // }
     }
 }
