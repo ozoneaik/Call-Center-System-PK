@@ -94,7 +94,13 @@ class StatisticsController extends Controller
             ->leftJoin('users as u_s', 'u_s.empCode', '=', 'ac_s.empCode')
             ->when($dept, fn($q) => $q->where('u_s.description', $dept))
             ->where('r_s.status', 'success')
-            ->whereDate('ac_s.endTime', $today)
+            ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
+                $start = Carbon::parse($request->query('start_date'))->startOfDay();
+                $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+                return $q->whereBetween('ac_s.endTime', [$start, $end]);
+            }, function ($q) use ($today) {
+                return $q->whereDate('ac_s.endTime', $today);
+            })
             ->whereNotIn('ac_s.empCode', ['BOT', 'adminIT']);
 
         $successAgg = $this->applyPlatformFilterAlias($successAgg, $platformId, 'ac_s');
@@ -115,7 +121,13 @@ class StatisticsController extends Controller
             ->leftJoin('users as u_p', 'u_p.empCode', '=', 'ac_p.empCode')
             ->when($dept, fn($q) => $q->where('u_p.description', $dept))
             ->where('r_p.status', 'progress')
-            ->whereDate('ac_p.receiveAt', $today)
+            ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
+                $start = Carbon::parse($request->query('start_date'))->startOfDay();
+                $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+                return $q->whereBetween('ac_p.receiveAt', [$start, $end]);
+            }, function ($q) use ($today) {
+                return $q->whereDate('ac_p.receiveAt', $today);
+            })
             ->whereNotIn('ac_p.empCode', ['BOT', 'adminIT']);
 
         $progressAgg = $this->applyPlatformFilterAlias($progressAgg, $platformId, 'ac_p');
@@ -186,7 +198,13 @@ class StatisticsController extends Controller
                 DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 600) as over_ten_min')
             )
             ->where('r.status', 'success')
-            ->whereDate('ac.endTime', $today)
+            ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
+                $start = Carbon::parse($request->query('start_date'))->startOfDay();
+                $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+                return $q->whereBetween('ac.endTime', [$start, $end]);
+            }, function ($q) use ($today) {
+                return $q->whereDate('ac.endTime', $today);
+            })
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
         if ($dept)    $q->where('u.description', $dept);
@@ -201,42 +219,142 @@ class StatisticsController extends Controller
         return response()->json(['data' => $results]);
     }
 
+    // public function getAllCasesByUser($empCode, Request $request)
+    // {
+    //     $platformId = $request->query('platform_id');
+    //     $dept       = $request->query('dept');
+    //     $today = Carbon::today();
+    //     $statusesParam = $request->query('statuses'); 
+    //     $statuses = $statusesParam
+    //         ? array_values(array_filter(array_map('trim', explode(',', $statusesParam))))
+    //         : ['success']; 
+
+    //     $q = DB::connection('pgsql_real')->table('rates as r')
+    //         ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+    //         ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
+    //         ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
+    //         ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
+    //         ->selectRaw('
+    //             ac.id as conversation_id,
+    //             r.status as status_name,
+    //             ac."startTime" as started_at,
+    //             ac."receiveAt" as accepted_at,
+    //             ac."endTime" as closed_at,
+    //             ac."roomId" as room_id,
+    //             ac."custId",
+    //             COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
+    //             COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
+    //         ')
+    //         ->where('ac.empCode', $empCode)
+    //         ->whereIn('r.status', $statuses)
+    //         ->when($request->query('start_date') && $request->query('end_date'), function ($q2) use ($request, $statuses) {
+    //             $start = Carbon::parse($request->query('start_date'))->startOfDay();
+    //             $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+    //             $q2->where(function ($q3) use ($start, $end, $statuses) {
+    //                 $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
+    //                 if (!empty($sc)) {
+    //                     $q3->orWhere(function ($qq) use ($start, $end, $sc) {
+    //                         $qq->whereIn('r.status', $sc)->whereBetween('ac.endTime', [$start, $end]);
+    //                     });
+    //                 }
+    //                 if (in_array('progress', $statuses, true)) {
+    //                     $q3->orWhere(function ($qq) use ($start, $end) {
+    //                         $qq->where('r.status', 'progress')->whereBetween('ac.receiveAt', [$start, $end]);
+    //                     });
+    //                 }
+    //             });
+    //         }, function ($q2) use ($statuses) {
+    //             $today = now()->toDateString();
+    //             $q2->where(function ($q3) use ($today, $statuses) {
+    //                 $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
+    //                 if (!empty($sc)) {
+    //                     $q3->orWhere(function ($qq) use ($today, $sc) {
+    //                         $qq->whereIn('r.status', $sc)->whereDate('ac.endTime', $today);
+    //                     });
+    //                 }
+    //                 if (in_array('progress', $statuses, true)) {
+    //                     $q3->orWhere(function ($qq) use ($today) {
+    //                         $qq->where('r.status', 'progress')->whereDate('r.updated_at', $today);
+    //                     });
+    //                 }
+    //             });
+    //         });
+    //     if ($dept) $q->where('u.description', $dept);
+    //     $q = $this->applyPlatformFilter($q, $platformId);
+
+    //     $cases = $q->orderByDesc(DB::raw('"ac"."startTime"'))->get();
+    //     return response()->json(['cases' => $cases]);
+    // }
+
     public function getAllCasesByUser($empCode, Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
-        $today = Carbon::today();
+
+        $statusesParam = $request->query('statuses');
+        $statuses = $statusesParam
+            ? array_values(array_filter(array_map('trim', explode(',', $statusesParam))))
+            : ['success'];
+
+        $todayTz = Carbon::today('Asia/Bangkok')->toDateString();
+        $hasRange = $request->query('start_date') && $request->query('end_date');
+        $start = $hasRange ? Carbon::parse($request->query('start_date'))->startOfDay() : null;
+        $end   = $hasRange ? Carbon::parse($request->query('end_date'))->endOfDay()   : null;
 
         $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
-            ->selectRaw('
-                ac.id as conversation_id,
-                r.status as status_name,
-                ac."startTime" as started_at,
-                ac."receiveAt" as accepted_at,
-                ac."endTime" as closed_at,
-                ac."roomId" as room_id,
-                ac."custId",
-                COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
-                COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
-            ')
             ->where('ac.empCode', $empCode)
-            ->whereIn('r.status', ['success', 'cancelled', 'progress'])
-            ->where(function ($q2) {
-                $today = now()->toDateString();
-                $q2->where(function ($q3) use ($today) {
-                    $q3->whereIn('r.status', ['success', 'cancelled'])->whereDate('ac.endTime', $today);
-                })->orWhere(function ($q3) use ($today) {
-                    $q3->where('r.status', 'progress')->whereDate('r.updated_at', $today);
-                });
-            });
-        if ($dept) $q->where('u.description', $dept);
-        $q = $this->applyPlatformFilter($q, $platformId);
+            ->whereIn('r.status', $statuses)
+            ->selectRaw('
+            ac.id as conversation_id,
+            r.status as status_name,
+            ac."startTime" as started_at,
+            ac."receiveAt" as accepted_at,
+            ac."endTime"   as closed_at,
+            ac."roomId"    as room_id,
+            ac."custId",
+            COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
+            COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
+        ')
+            ->when($dept, fn($qq) => $qq->where('u.description', $dept));
 
-        $cases = $q->orderByDesc(DB::raw('"ac"."startTime"'))->get();
+        $q = $this->applyPlatformFilterAlias($q, $platformId, 'ac');
+        if ($hasRange) {
+            $q->where(function ($qq) use ($statuses, $start, $end) {
+                $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
+                if (!empty($sc)) {
+                    $qq->where(function ($q2) use ($start, $end, $sc) {
+                        $q2->whereIn('r.status', $sc)->whereBetween('ac.endTime', [$start, $end]);
+                    });
+                }
+                if (in_array('progress', $statuses, true)) {
+                    $qq->orWhere(function ($q2) use ($start, $end) {
+                        $q2->where('r.status', 'progress')->whereBetween('ac.receiveAt', [$start, $end]);
+                    });
+                }
+            });
+        } else {
+            $q->where(function ($qq) use ($statuses, $todayTz) {
+                $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
+                if (!empty($sc)) {
+                    $qq->where(function ($q2) use ($todayTz, $sc) {
+                        $q2->whereIn('r.status', $sc)->whereDate('ac.endTime', $todayTz);
+                    });
+                }
+                if (in_array('progress', $statuses, true)) {
+                    $qq->orWhere(function ($q2) use ($todayTz) {
+                        $q2->where('r.status', 'progress')->whereDate('ac.receiveAt', $todayTz);
+                    });
+                }
+            });
+        }
+        $cases = $q->distinct()
+            ->orderByDesc(DB::raw('"ac"."startTime"'))
+            ->get();
+
         return response()->json(['cases' => $cases]);
     }
 
@@ -266,7 +384,13 @@ class StatisticsController extends Controller
             ')
             ->where(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'), $tagName)
             ->where('r.status', 'success')
-            ->whereDate('ac.endTime', $today)
+            ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
+                $start = Carbon::parse($request->query('start_date'))->startOfDay();
+                $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+                return $q->whereBetween('ac.endTime', [$start, $end]);
+            }, function ($q) use ($today) {
+                return $q->whereDate('ac.endTime', $today);
+            })
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
         if ($dept)    $q->where('u.description', $dept);
         if ($empCode) $q->where('ac.empCode', $empCode);

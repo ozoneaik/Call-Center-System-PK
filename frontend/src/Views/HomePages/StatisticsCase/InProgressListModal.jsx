@@ -1,6 +1,6 @@
 import {
     Modal, ModalDialog, ModalClose, Typography, Table, Box,
-    Select, Option, LinearProgress, Button, Tooltip, Skeleton
+    Select, Option, LinearProgress, Button, Tooltip, Skeleton, Chip
 } from "@mui/joy";
 import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
@@ -16,8 +16,9 @@ export default function InProgressListModal({
     total = 0,
     onChangePage,
     onChangePerPage,
-    hours = "in",        // in | out | all
+    hours = "in",       
     setHours,
+    startDate, endDate,
 }) {
     const totalPages = Math.max(1, Math.ceil(total / Math.max(1, perPage)));
     const from = total === 0 ? 0 : (page - 1) * perPage + 1;
@@ -54,6 +55,15 @@ export default function InProgressListModal({
                     <Typography level="h5">{title}</Typography>
                 </Box>
 
+                {/* Sub header: แสดงช่วงวันที่ให้ตรงกับตัวกรอง */}
+                {(startDate && endDate) && (
+                    <Box sx={{ px: 2, pb: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                        <Chip variant="soft" size="sm">
+                            ช่วงวันที่: {dayjs(startDate).format("DD/MM/YYYY")} - {dayjs(endDate).format("DD/MM/YYYY")}
+                        </Chip>
+                    </Box>
+                )}
+
                 {/* Toolbar */}
                 <Box
                     sx={{
@@ -76,8 +86,6 @@ export default function InProgressListModal({
                 </Box>
 
                 {loading && <LinearProgress thickness="sm" />}
-
-                {/* Scroll container ครอบทั้งตาราง */}
                 <Box
                     sx={{
                         px: 2, pb: 2,
@@ -104,7 +112,7 @@ export default function InProgressListModal({
                                 fontWeight: "lg",
                                 whiteSpace: "nowrap",
                                 bgcolor: "background.level1",
-                                position: "sticky",     // ให้หัวติดบนเมื่อ container เลื่อน
+                                position: "sticky",    
                                 top: 0,
                                 zIndex: 1,
                             },
@@ -112,12 +120,10 @@ export default function InProgressListModal({
                             "& td.left": { textAlign: "left" },
 
                             "@media (max-width: 900px)": {
-                                // ซ่อน "รับเมื่อ" บนจอแคบ
                                 "& th:nth-of-type(5), & td:nth-of-type(5)": { display: "none" },
                             },
                         }}
                     >
-                        {/* ใช้ colgroup ล็อกความกว้างให้หัว/บอดี้ตรงกัน */}
                         <colgroup>
                             <col style={{ width: 64 }} />   {/* # */}
                             <col style={{ width: 240 }} />  {/* ลูกค้า */}
@@ -201,7 +207,6 @@ export default function InProgressListModal({
     );
 }
 
-/** แยก Footer เป็นคอมโพเนนท์ย่อยให้อ่านง่าย */
 function PaginationBar({
     from, to, total, page, totalPages, perPage,
     onChangePage, onChangePerPage, onPrev, onNext,

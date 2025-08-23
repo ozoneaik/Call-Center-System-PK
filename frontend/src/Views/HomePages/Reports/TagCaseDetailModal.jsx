@@ -1,19 +1,23 @@
-import {
-    Modal, ModalDialog, ModalClose, Typography, Table,
-    Sheet,
-    Box
-} from "@mui/joy";
+import { Modal, ModalDialog, ModalClose, Typography, Table, Sheet, Box } from "@mui/joy";
+import dayjs from "dayjs";
 
-export default function TagCaseDetailModal({ open, onClose, tag, rows }) {
+export default function TagCaseDetailModal({ open, onClose, tag, rows, startDate, endDate }) {
     return (
         <Sheet sx={{ mt: 3 }}>
             <Box sx={{ overflowX: "auto" }}>
                 <Modal open={open} onClose={onClose}>
                     <ModalDialog sx={{ width: "90vw", maxHeight: 1100 }}>
                         <ModalClose />
-                        <Typography level="h5" mb={2} sx={{ fontWeight: 'bold' }}>
-                            รายละเอียดเคสของแท็ก: {tag}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
+                            <Typography level="h5" sx={{ fontWeight: 'bold' }}>
+                                รายละเอียดเคสของแท็ก: {tag}
+                            </Typography>
+                            {(startDate && endDate) && (
+                                <Typography level="body-sm" color="neutral">
+                                    ช่วงวันที่: {dayjs(startDate).format("DD/MM/YYYY")} - {dayjs(endDate).format("DD/MM/YYYY")}
+                                </Typography>
+                            )}
+                        </Box>
                         <Box sx={{ overflowX: "auto", maxHeight: "65vh" }}>
                             <Table stickyHeader hoverRow variant="outlined" sx={{ minWidth: 950 }}>
                                 <thead>

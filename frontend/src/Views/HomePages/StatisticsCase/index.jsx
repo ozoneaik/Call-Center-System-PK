@@ -53,6 +53,11 @@ export default function StatisticsCase() {
     const [afterHourStartDate, setAfterHourStartDate] = useState(today);
     const [afterHourEndDate, setAfterHourEndDate] = useState(today);
 
+    const [inHourStartDate, setInHourStartDate] = useState(today);
+    const [inHourEndDate, setInHourEndDate] = useState(today);
+    const [progStartDate, setProgStartDate] = useState(today);
+    const [progEndDate, setProgEndDate] = useState(today);
+
     const [filterPlatform, setFilterPlatform] = useState("");
     const [filterDept, setFilterDept] = useState("");
     const [filterEmp, setFilterEmp] = useState("");
@@ -74,7 +79,7 @@ export default function StatisticsCase() {
     const [tagCaseRows, setTagCaseRows] = useState([]);
 
     const [showProgInModal, setShowProgInModal] = useState(false);
-    const [showProgOutModal, setShowProgOutModal] = useState(false);
+    const [showProgModal, setShowProgModal] = useState(false);
 
     const [progList, setProgList] = useState([]);
     const [progLoading, setProgLoading] = useState(false);
@@ -82,10 +87,13 @@ export default function StatisticsCase() {
     const [progPerPage, setProgPerPage] = useState(50);
     const [progTotal, setProgTotal] = useState(0);
     const [progHours, setProgHours] = useState("in");
+    const isRangeMode = !!(startDate && endDate) && !(startDate === today && endDate === today);
+
+    const selectedRange = isRangeMode ? { s: startDate, e: endDate } : { s: today, e: today };
 
     const fetchProgressList = async ({
-        s = today,
-        e = today,
+        s = progStartDate,
+        e = progEndDate,
         page = progPage,
         perPage = progPerPage,
         hours = progHours, // in/out/all
@@ -117,15 +125,19 @@ export default function StatisticsCase() {
     const openProgressInToday = async () => {
         setProgHours("in");
         setProgPage(1);
-        await fetchProgressList({ s: today, e: today, page: 1, hours: "in" });
-        setShowProgInModal(true);
+        setProgStartDate(selectedRange.s);
+        setProgEndDate(selectedRange.e);
+        await fetchProgressList({ s: selectedRange.s, e: selectedRange.e, page: 1, hours: "in" });
+        setShowProgModal(true);
     };
 
     const openProgressOutToday = async () => {
         setProgHours("out");
         setProgPage(1);
-        await fetchProgressList({ s: today, e: today, page: 1, hours: "out" });
-        setShowProgOutModal(true);
+        setProgStartDate(selectedRange.s);
+        setProgEndDate(selectedRange.e);
+        await fetchProgressList({ s: selectedRange.s, e: selectedRange.e, page: 1, hours: "out" });
+        setShowProgModal(true);
     };
 
     useEffect(() => {
@@ -166,32 +178,66 @@ export default function StatisticsCase() {
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
         };
+        const rangeMode = !!(startDate && endDate) && !(startDate === today && endDate === today);
+        const rangeParams = rangeMode
+            ? {
+                start_date: dayjs(startDate).format("YYYY-MM-DD"),
+                end_date: dayjs(endDate).format("YYYY-MM-DD"),
+            }
+            : null;
 
-        axiosClient
-            .get("home/user-case/closure-stats", { params: { date: today, ...baseParams } })
-            .then(({ data }) => {
-                const { inMap, outMap } = bucketsToKeyed(data.current || []);
-                setTodayStats(inMap);
-                setAfterHourStats(outMap);
+        const loadClosureSummary = rangeParams
+            ? axiosClient
+                .get("home/user-case/closure-range-stats", { params: { ...baseParams, ...rangeParams } })
+                .then(({ data }) => {
+                    const rows = Array.isArray(data?.data)
+                        ? data.data
+                        : (data?.current ? [{ date: rangeParams.start_date, buckets: data.current }] : []);
+                    const agg = rows.reduce((acc, dayRow) => {
+                        const { inMap, outMap } = bucketsToKeyed(dayRow?.buckets || []);
+                        Object.entries(inMap || {}).forEach(([k, v]) => acc.in[k] = (acc.in[k] || 0) + (v || 0));
+                        Object.entries(outMap || {}).forEach(([k, v]) => acc.out[k] = (acc.out[k] || 0) + (v || 0));
+                        return acc;
+                    }, { in: {}, out: {} });
+                    setTodayStats(agg.in);
+                    setAfterHourStats(agg.out);
+                })
+            : axiosClient
+                .get("home/user-case/closure-stats", { params: { date: today, ...baseParams } })
+                .then(({ data }) => {
+                    const { inMap, outMap } = bucketsToKeyed(data.current || []);
+                    setTodayStats(inMap);
+                    setAfterHourStats(outMap);
+                });
+
+        const loadInProgress = rangeParams
+            ? Promise.all([
+                axiosClient.get("home/user-case/in-progress-cases", { params: { ...baseParams, ...rangeParams, hours: "in", per_page: 1 } }),
+                axiosClient.get("home/user-case/in-progress-cases", { params: { ...baseParams, ...rangeParams, hours: "out", per_page: 1 } }),
+            ]).then(([inRes, outRes]) => {
+                const inTotal = inRes?.data?.pagination?.total ?? 0;
+                const outTotal = outRes?.data?.pagination?.total ?? 0;
+                setProgressInOut({ in_time: inTotal, out_time: outTotal, total: inTotal + outTotal });
             })
-            .catch((err) => console.error("❌ closure-stats error:", err));
+            : axiosClient
+                .get("home/user-case/in-progress-business-hours", { params: { today_only: 1, ...baseParams } })
+                .then(({ data }) => setProgressInOut({
+                    in_time: data.in_time ?? 0,
+                    out_time: data.out_time ?? 0,
+                    total: data.total ?? 0,
+                }));
 
-        axiosClient
-            .get("home/user-case/in-progress-business-hours", { params: { today_only: 1, ...baseParams } })
-            .then(({ data }) => setProgressInOut({
-                in_time: data.in_time ?? 0,
-                out_time: data.out_time ?? 0,
-                total: data.total ?? 0,
-            }))
-            .catch((err) => console.error("❌ in-progress-business-hours error:", err));
+        // รอรับ (Pending)
+        const loadPending = rangeParams
+            ? axiosClient
+                .get("home/user-case/pending-cases", { params: { ...baseParams, ...rangeParams, per_page: 1 } })
+                .then(({ data }) => setPendingTotal(data?.pagination?.total ?? 0))
+            : axiosClient
+                .get("home/user-case/pending-today", { params: baseParams })
+                .then(({ data }) => setPendingTotal(data?.total ?? 0));
 
-        axiosClient
-            .get("home/user-case/pending-today", { params: baseParams })
-            .then(({ data }) => setPendingTotal(data?.total ?? 0))
-            .catch((err) => { console.error("❌ pending-today error:", err); setPendingTotal(0); });
-
-        axiosClient
-            .get("home/user-case/employee", { params: baseParams })
+        const loadEmployee = axiosClient
+            .get("home/user-case/employee", { params: { ...baseParams, ...(rangeParams || {}) } })
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     name: item.name,
@@ -205,7 +251,10 @@ export default function StatisticsCase() {
                     onClickDetail: async (row) => {
                         setSelectedUser(row);
                         try {
-                            const { data } = await axiosClient.get(`/home/user-case/employee/${row.empCode}/cases`, { params: baseParams });
+                            const { data } = await axiosClient.get(
+                                `/home/user-case/employee/${row.empCode}/cases`,
+                                { params: { ...baseParams, ...(rangeParams || {}), statuses: 'success' } }
+                            );
                             const rows = (data.cases || []).map((c) => ({
                                 conversation_id: c.conversation_id,
                                 status_name: c.status_name,
@@ -228,8 +277,8 @@ export default function StatisticsCase() {
             })
             .catch((err) => console.error("❌ employeeWorkloadSummary error:", err));
 
-        axiosClient
-            .get("home/user-case/tag-workload", { params: baseParams })
+        const loadTag = axiosClient
+            .get("home/user-case/tag-workload", { params: { ...baseParams, ...(rangeParams || {}) } })
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     tag: item.tag,
@@ -240,7 +289,7 @@ export default function StatisticsCase() {
                     over10: item.over_ten_min,
                     onClickDetail: async (row) => {
                         try {
-                            const { data } = await axiosClient.get(`/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`, { params: baseParams });
+                            const { data } = await axiosClient.get(`/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`, { params: { ...baseParams, ...(rangeParams || {}) } });
                             const rows = (data.cases || []).map((c) => ({
                                 customer_name: c.customer_name,
                                 room_id: c.room_id ?? "-",
@@ -261,10 +310,16 @@ export default function StatisticsCase() {
                 setTagStats(rows);
             })
             .catch((err) => console.error("❌ tagWorkloadSummary error:", err));
-    }, [today, filterPlatform, filterDept, filterEmp]);
+
+        Promise.all([loadClosureSummary, loadInProgress, loadPending, loadEmployee, loadTag]).catch(() => { });
+    }, [today, filterPlatform, filterDept, filterEmp, startDate, endDate]);
 
     const todayWithPending = todayStats ? { ...todayStats, pending: pendingTotal } : null;
     const showFilterInfoAlert = !!(filterPlatform || filterDept || filterEmp);
+
+    const summaryLabel = isRangeMode
+        ? `📊 สรุปช่วง: ${dayjs(startDate).format("DD/MM/YYYY")} - ${dayjs(endDate).format("DD/MM/YYYY")}:`
+        : "📊 สรุปวันนี้:";
 
     const onExportDetailed = () =>
         downloadExcel(axiosClient, "home/user-case/export/detailed-cases.xlsx", {
@@ -309,18 +364,17 @@ export default function StatisticsCase() {
     };
 
     const openAfterHourTodayList = async () => {
-        // preset วันนี้ แล้วเปิด modal list
-        const todayStr = today;
-        setAfterHourStartDate(todayStr);
-        setAfterHourEndDate(todayStr);
+        const { s, e } = selectedRange;
+        setAfterHourStartDate(s);
+        setAfterHourEndDate(e);
         setAhPage(1);
-        await fetchAfterHourList({ s: todayStr, e: todayStr, page: 1 });
+        await fetchAfterHourList({ s, e, page: 1 });
         setShowAfterHourListModal(true);
     };
 
     const fetchInHourList = async ({
-        s = startDate,
-        e = endDate,
+        s = inHourStartDate,
+        e = inHourEndDate,
         page = ihPage,
         perPage = ihPerPage,
         bucket = ihBucket,
@@ -350,11 +404,11 @@ export default function StatisticsCase() {
     };
 
     const openInHourTodayList = async () => {
-        const todayStr = today;
-        setStartDate(todayStr);
-        setEndDate(todayStr);
+        const { s, e } = selectedRange;
+        setInHourStartDate(s);
+        setInHourEndDate(e);
         setIhPage(1);
-        await fetchInHourList({ s: todayStr, e: todayStr, page: 1 });
+        await fetchInHourList({ s, e, page: 1 });
         setShowInHourListModal(true);
     };
 
@@ -379,6 +433,7 @@ export default function StatisticsCase() {
             />
 
             <QuickSummary
+                summaryLabel={summaryLabel}
                 todayWithPending={todayWithPending}
                 progressInOut={progressInOut}
                 pendingTotal={pendingTotal}
@@ -459,8 +514,8 @@ export default function StatisticsCase() {
                 open={showInHourListModal}
                 onClose={() => setShowInHourListModal(false)}
                 title="☀️ รายการเคสที่ปิด “ในเวลาทำการ”"
-                startDate={startDate}
-                endDate={endDate}
+                startDate={inHourStartDate}
+                endDate={inHourEndDate}
                 platformId={filterPlatform || undefined}
                 dept={filterDept || undefined}
                 empCode={filterEmp || undefined}
@@ -477,34 +532,19 @@ export default function StatisticsCase() {
             />
 
             <InProgressListModal
-                open={showProgInModal}
-                onClose={() => setShowProgInModal(false)}
+                open={showProgModal}
+                onClose={() => setShowProgModal(false)}
                 title="🛠️ กำลังดำเนินการ"
                 rows={progList}
                 loading={progLoading}
                 page={progPage}
                 perPage={progPerPage}
-                total={progTotal}
-                hours={progHours}
+                startDate={progStartDate}
+                endDate={progEndDate}
                 setHours={(h) => { setProgHours(h); setProgPage(1); fetchProgressList({ page: 1, hours: h }); }}
                 onChangePage={(p) => { setProgPage(p); fetchProgressList({ page: p }); }}
                 onChangePerPage={(pp) => { setProgPerPage(pp); setProgPage(1); fetchProgressList({ page: 1, perPage: pp }); }}
             />
-
-            {/* <InProgressListModal
-                open={showProgOutModal}
-                onClose={() => setShowProgOutModal(false)}
-                title="🛠️ กำลังดำเนินการ (นอกเวลา)"
-                rows={progList}
-                loading={progLoading}
-                page={progPage}
-                perPage={progPerPage}
-                total={progTotal}
-                hours={progHours}
-                setHours={(h) => { setProgHours(h); setProgPage(1); fetchProgressList({ page: 1, hours: h }); }}
-                onChangePage={(p) => { setProgPage(p); fetchProgressList({ page: p }); }}
-                onChangePerPage={(pp) => { setProgPerPage(pp); setProgPage(1); fetchProgressList({ page: 1, perPage: pp }); }}
-            /> */}
 
             <Modal open={exporting}>
                 <ModalDialog sx={{ p: 3, width: 360, textAlign: "center" }}>
@@ -517,12 +557,24 @@ export default function StatisticsCase() {
                     </Typography>
                 </ModalDialog>
             </Modal>
-
             <EmployeeWorkloadTable rows={employeeStats} />
             <TagWorkloadTable rows={tagStats} />
-
-            <EmployeeCaseDetailModal open={openEmpModal} onClose={() => setOpenEmpModal(false)} user={selectedUser} rows={empCaseRows} />
-            <TagCaseDetailModal open={openTagModal} onClose={() => setOpenTagModal(false)} tag={selectedTag} rows={tagCaseRows} />
+            <EmployeeCaseDetailModal
+                open={openEmpModal}
+                onClose={() => setOpenEmpModal(false)}
+                user={selectedUser}
+                rows={empCaseRows}
+                startDate={isRangeMode ? startDate : undefined}
+                endDate={isRangeMode ? endDate : undefined}
+            />
+            <TagCaseDetailModal
+                open={openTagModal}
+                onClose={() => setOpenTagModal(false)}
+                tag={selectedTag}
+                rows={tagCaseRows}
+                startDate={isRangeMode ? startDate : undefined}
+                endDate={isRangeMode ? endDate : undefined}
+            />
         </Box>
     );
 }
