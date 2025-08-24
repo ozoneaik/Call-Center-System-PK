@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Chats\Line;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Models\ActiveConversations;
 use App\Models\BotMenu;
-use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LineReceiveController extends Controller
 {
@@ -149,27 +150,31 @@ class LineReceiveController extends Controller
         // ส่งข้อความไปยังลูกค้า
         $send_message_data = [
             'status' => true,
-            'send_to_cust' => true,
-            'type_send' => 'present',
-            'type_message' => 'push',
-            'messages' => [
-                [
-                    'content' => $message['content'],
-                    'contentType' => $message['contentType']
-                ]
-            ],
-            'customer' => $customer,
-            'ac_id' => $AC->id,
-            'platform_access_token' => $token,
-            'reply_token' => null,
-            'employee' => Auth::user()
+            'case' => [
+                'status' => true,
+                'send_to_cust' => true,
+                'type_send' => 'present',
+                'type_message' => 'push',
+                'messages' => [
+                    [
+                        'content' => $message['content'],
+                        'contentType' => $message['contentType']
+                    ]
+                ],
+                'customer' => $customer,
+                'ac_id' => $AC->id,
+                'platform_access_token' => $token,
+                'reply_token' => null,
+                'employee' => Auth::user()
+            ]
+
         ];
         switch ($token['platform']) {
             case 'line':
                 $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                 break;
             case 'facebook':
-                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                $send_message = FacebookController::reply_push_message($send_message_data);
                 break;
             case 'lazada':
                 $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
