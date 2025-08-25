@@ -38,6 +38,41 @@ class SuccessCase
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
                 return ['status' => true, 'send_to_cust' => false];
+            } elseif ($keyword['status'] && $keyword['redirectTo_status']) {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'rate' => 0,
+                    'latestRoomId' => $keyword['redirectTo'],
+                    'status' => 'pending',
+                ]);
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'rateRef' => $new_rate['id'],
+                ]);
+                ChatHistory::query()->create([
+                    'custId' => $current_rate['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $new_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
+                ]);
+                $this->pusherService->sendNotification($customer['custId']);
+                return [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'sended',
+                    'type_message' => 'reply',
+                    'messages' => [['content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่', 'contentType' => 'text']],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $bot
+                ];
             } else {
                 $new_rate = Rates::query()->create([
                     'custId' => $customer['custId'],

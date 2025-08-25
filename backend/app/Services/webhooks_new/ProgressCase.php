@@ -73,7 +73,8 @@ class ProgressCase
                     $menus = BotMenu::query()->where('botTokenId', $customer['platformRef'])->get();
                     $foward_to_room_id = $platformAccessToken['room_default_id'] ?? 'ROOM99';
                     foreach ($menus as $menu) {
-                        if ($message['content'] == $menu['menu_number']) {
+                        $one_char = substr($message['content'], 0,1); // ตัดให้่เหลือตัวอักษรแรก
+                        if ($one_char == $menu['menu_number']) {
                             $foward_to_room_id = $menu['roomId'];
                             break;
                         }

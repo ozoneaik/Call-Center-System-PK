@@ -11,6 +11,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import ChatMediaPreview from "./ChatMediaPreview.jsx";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -49,115 +50,118 @@ export default function Bubble(props) {
                         MessageStyle.Bubble.IsSent :
                         MessageStyle.Bubble.IsNotSent
                 }>
-                    {
-                        line_quoted_message_id ? (
-                            <div>
-                                {messages.find(item => item.line_message_id === line_quoted_message_id) && (
-                                    <Box>
-                                        {(() => {
-                                            const quotedMessage = messages.find(
-                                                item => item.line_message_id === line_quoted_message_id
-                                            );
-                                            return quotedMessage ? (
-                                                <Stack direction='column' mb={2}>
-                                                    {!isSent ? (
-                                                        <>
-                                                            <Typography level='body-sm'>
-                                                                {quotedMessage.content}
-                                                            </Typography>
-                                                            <Divider />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Typography level='body-sm' sx={{ color: 'white' }}>
-                                                                {quotedMessage.content}
-                                                            </Typography>
-                                                            <Divider sx={{ bgcolor: 'white' }} />
-                                                        </>
-                                                    )}
-                                                </Stack>
-                                            ) : null;
-                                        })()}
-                                    </Box>
-                                )}
-                            </div>
+                    {/* ปุ่มแสดงการตอบกลับ */}
+                    {line_quoted_message_id ? (
+                        <div>
+                            {messages.find(item => item.line_message_id === line_quoted_message_id) && (
+                                <Box>
+                                    {(() => {
+                                        const quotedMessage = messages.find(
+                                            item => item.line_message_id === line_quoted_message_id
+                                        );
+                                        return quotedMessage ? (
+                                            <Stack direction='column' mb={2}>
+                                                {!isSent ? (
+                                                    <>
+                                                        <Typography level='body-sm'>
+                                                            {quotedMessage.content}
+                                                        </Typography>
+                                                        <Divider />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Typography level='body-sm' sx={{ color: 'white' }}>
+                                                            {quotedMessage.content}
+                                                        </Typography>
+                                                        <Divider sx={{ bgcolor: 'white' }} />
+                                                    </>
+                                                )}
+                                            </Stack>
+                                        ) : null;
+                                    })()}
+                                </Box>
+                            )}
+                        </div>
+                    ) : <></>}
 
-                        ) : <></>
-                    }
-                    {
-
-                        contentType === 'sticker' ? (
-                            <Sheet variant="outlined"
-                                sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
-                                <img src={content} alt="" width={165} />
-                            </Sheet>
-                        ) :
-                            contentType === 'image' ? (
-                                <Sheet
-                                    onClick={() => {
+                    {/* กล่องแชท */}
+                    {contentType === 'sticker' ? (
+                        <Sheet variant="outlined"
+                            sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                            <img src={content} alt="" width={165} />
+                        </Sheet>
+                    ) : contentType === 'image' ? (
+                        <Sheet
+                            onClick={() => {
+                                setPreviewSelect(content);
+                                setOpen(true);
+                            }}
+                            variant="outlined"
+                            sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
+                            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                                <img loading="lazy" src={content} width={165} alt={content} />
+                            </Stack>
+                        </Sheet>
+                    ) : (contentType === 'file' || contentType === 'video' || contentType === 'audio') ? (
+                        <Sheet
+                            variant="outlined"
+                            sx={[
+                                { px: 1.75, py: 1.25, borderRadius: 'lg', },
+                                isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
+                                isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
+                            ]}
+                        >
+                            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                                <Avatar color="primary" size="lg">
+                                    {contentType === 'file'
+                                        ? <InsertDriveFile />
+                                        : contentType === 'video'
+                                            ? <PlayCircle />
+                                            : contentType === 'image'
+                                                ? <ImageIcon />
+                                                : <VolumeUp />}
+                                </Avatar>
+                                <Stack direction='column' spacing={2} width='100%'>
+                                    <Typography sx={{ fontSize: 'sm' }}>
+                                        {contentType === 'file'
+                                            ? 'ไฟล์ PDF'
+                                            : contentType === 'video'
+                                                ? 'ไฟล์ Video'
+                                                : contentType === 'image'
+                                                    ? 'ไฟล์รูปภาพ'
+                                                    : 'ไฟล์เสียง'}
+                                    </Typography>
+                                    <Button fullWidth size="sm" variant="outlined" onClick={() => {
                                         setPreviewSelect(content);
                                         setOpen(true);
-                                    }}
-                                    variant="outlined"
-                                    sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}>
-                                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                        <img loading="lazy" src={content} width={165} alt={content} />
-                                    </Stack>
-                                </Sheet>
-                            ) :
-                                (contentType === 'file') || (contentType === 'video') || (contentType === 'audio') ? (
-                                    <Sheet
-                                        variant="outlined"
-                                        sx={[
-                                            { px: 1.75, py: 1.25, borderRadius: 'lg', },
-                                            isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
-                                            isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
-                                        ]}
-                                    >
-                                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                            <Avatar color="primary" size="lg">
-                                                {contentType === 'file' ?
-                                                    <InsertDriveFile />
-                                                    : contentType === 'video' ? <PlayCircle />
-                                                        : contentType === 'image' ? <ImageIcon /> : <VolumeUp />
-                                                }
-                                            </Avatar>
-                                            <Stack direction='column' spacing={2} width='100%'>
-                                                <Typography sx={{ fontSize: 'sm' }}>
-                                                    {contentType === 'file' ? 'ไฟล์ PDF' :
-                                                        contentType === 'video' ? 'ไฟล์ Video' :
-                                                            contentType === 'image' ? 'ไฟล์รูปภาพ' : 'ไฟล์เสียง'}
-                                                </Typography>
-                                                <Button fullWidth size="sm" variant="outlined" onClick={() => {
-                                                    setPreviewSelect(content);
-                                                    setOpen(true);
-                                                }}>
-                                                    ดู preview
-                                                </Button>
-                                                {/* <Button fullWidth size="sm" variant="outlined" component={Link} to={content} target="_blank">ดู</Button> */}
-                                            </Stack>
-                                        </Stack>
-                                    </Sheet>
-                                ) :
-                                    (
-                                        <Typography
-                                            component="pre" level="body-sm"
-                                            sx={{
-                                                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                                                ...(
-                                                    isSent
-                                                        ? (sender.empCode === user.empCode
-                                                            ? MessageStyle.Bubble.TextMySent
-                                                            : MessageStyle.Bubble.TextIsSent)
-                                                        : MessageStyle.Bubble.TextIsNotSent
-                                                )
-                                            }}>
-                                            {content}
-                                        </Typography>
-                                    )
-                    }
+                                    }}>
+                                        ดู preview
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </Sheet>
+                    ) : contentType === 'product' ? (
+                        <ChatBubbleProduct content={content} />
+                    ) : (
+                        <Typography
+                            component="pre"
+                            level="body-sm"
+                            sx={{
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                ...(
+                                    isSent
+                                        ? (sender.empCode === user.empCode
+                                            ? MessageStyle.Bubble.TextMySent
+                                            : MessageStyle.Bubble.TextIsSent)
+                                        : MessageStyle.Bubble.TextIsNotSent
+                                )
+                            }}>
+                            {content}
+                        </Typography>
+                    )}
                 </Sheet>
             </Box>
-        </Box>
+        </Box >
     )
 }
