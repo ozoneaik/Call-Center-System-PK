@@ -351,6 +351,8 @@ class MessageController extends Controller
                                     throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งประเมินหาลูกค้าได้ เกิดข้อผิดพลาดที่ การส่งข้อความ');
                                 }
                                 break;
+                            case 'facebook':
+                                break;
                             default:
                                 break;
                         }

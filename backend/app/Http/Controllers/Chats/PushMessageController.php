@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Chats;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Requests\sendMessageRequest;
 use App\Models\ActiveConversations;
@@ -71,22 +72,26 @@ class PushMessageController extends Controller
             // ส่งข้อความไปยังลูกค้า
             $send_message_data = [
                 'status' => true,
-                'send_to_cust' => true,
-                'type_send' => 'normal',
-                'type_message' => 'push',
-                'messages' => $messages,
-                'customer' => $checkCustId,
-                'ac_id' => $conversationId,
-                'platform_access_token' => $platformAccessToken,
-                'reply_token' => null,
-                'employee' => Auth::user()
+                'case' => [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'normal',
+                    'type_message' => 'push',
+                    'messages' => $messages,
+                    'customer' => $checkCustId,
+                    'ac_id' => $conversationId,
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => null,
+                    'employee' => Auth::user()
+                ]
+
             ];
             switch ($platformAccessToken['platform']) {
                 case 'line':
                     $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
                     break;
                 case 'facebook':
-                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    $send_message = FacebookController::reply_push_message($send_message_data);
                     break;
                 case 'lazada':
                     $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
