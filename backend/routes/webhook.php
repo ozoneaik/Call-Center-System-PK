@@ -4,6 +4,7 @@ use App\Http\Controllers\webhooks\LazadaToken;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LazadaController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Http\Controllers\webhooks\new\ShopeeController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -32,7 +33,10 @@ Route::prefix('webhook-new')->group(function () {
 
     // สำหรับ Shopee
     Route::prefix('shopee')->group(function () {
-        Route::post('/', function () {});
+        Route::post('/', [ShopeeController::class, 'webhook']);
+        Route::get('/', [ShopeeController::class, 'index']);
+        Route::get('/auth', [ShopeeController::class, 'authorization']);
+        Route::get('/send-message', [ShopeeController::class, 'send_message']);
     });
 
     // สำหรับ Test

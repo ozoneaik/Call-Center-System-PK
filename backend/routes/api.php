@@ -29,6 +29,7 @@ use App\Http\Middleware\UserAccess;
 use App\Models\TagGroup;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);

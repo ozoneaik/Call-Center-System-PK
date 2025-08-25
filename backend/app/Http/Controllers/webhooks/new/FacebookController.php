@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\webhooks\new;
 
 use App\Http\Controllers\Controller;
+use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
@@ -217,6 +218,44 @@ class FacebookController extends Controller
                         ];
                 }
             }
+
+
+            // if ($filter_case['type_send'] === 'menu') {
+            //     $bot_menu_list = BotMenu::query()
+            //         ->where('botTokenId', $filter_case['platform_access_token']['id'])
+            //         ->orderBy('menu_number', 'asc')
+            //         ->get();
+            //     $text_menu = "กรุณาเลือกเมนูที่ต้องการ\nโดยพิพม์เลขที่ต้องการเช่น 1\n";
+            //     foreach ($bot_menu_list as $key => $menu) {
+            //         $text_menu .= $key + 1 . "." . $menu['menuName'] . "\n";
+            //     }
+            //     $latest_length = count($message_formated);
+            //     $message_formated[$latest_length]['text'] = $text_menu;
+            // }
+
+            if ($filter_case['type_send'] === 'menu') {
+                $bot_menu_list = BotMenu::query()
+                    ->where('botTokenId', $filter_case['platform_access_token']['id'])
+                    ->orderBy('menu_number', 'asc')
+                    ->get();
+
+                $quick_replies = [];
+                foreach ($bot_menu_list as $key => $menu) {
+                    $number = $key + 1; // เลขเมนู
+                    $quick_replies[] = [
+                        "content_type" => "text",
+                        "title" => $number . ". " . $menu['menuName'], // แสดงชื่อเมนู
+                        "payload" => (string)$number // ส่งแค่เลข
+                    ];
+                }
+
+                $message_formated[] = [
+                    "text" => "กรุณาเลือกเมนูที่ต้องการ",
+                    "quick_replies" => $quick_replies
+                ];
+            }
+
+
             $recipient_id = $filter_case['customer']['custId'];
             $access_token = $filter_case['platform_access_token']['accessToken'];
             $page_id = $filter_case['platform_access_token']['fb_page_id'];
