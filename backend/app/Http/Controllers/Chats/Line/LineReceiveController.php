@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Chats\Line;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Models\ActiveConversations;
 use App\Models\BotMenu;
 use App\Models\Customers;
@@ -177,7 +178,7 @@ class LineReceiveController extends Controller
                 $send_message = FacebookController::reply_push_message($send_message_data);
                 break;
             case 'lazada':
-                $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                $send_message = NewLazadaController::pushReplyMessage($send_message_data);
                 break;
             case 'shopee':
                 $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
