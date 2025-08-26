@@ -156,7 +156,7 @@ class NewLazadaController extends Controller
     {
         try {
             $filter_case_response = $filter_case['case'] ?? $filter_case;
-            if (!isset($filter_case_response['send_to_cust'])) {
+            if (isset($filter_case_response['send_to_cust']) && !$filter_case_response['send_to_cust']) {
                 return [
                     'status' => true,
                     'message' => 'ตอบกลับสำเร็จ'
