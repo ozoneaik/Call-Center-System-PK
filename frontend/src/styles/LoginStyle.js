@@ -1,4 +1,4 @@
-import Background from '../assets/CoverLogin.png'
+import Background from '../assets/CoverLogin1.png'
 export const LoginStyle = {
     Layout: {
         width: {
@@ -15,9 +15,11 @@ export const LoginStyle = {
         backgroundColor: 'rgba(255 255 255 / 0.2)',
     },
     ContentLeft: {
-        display: 'flex', flexDirection: 'column', minHeight: '100dvh', width: '100%', px: 2,
+        display: 'flex', flexDirection: 'column', minHeight: '100dvh', width: '100%',
     },
     Header: {
+        backgroundColor : 'transparent',
+        
         py: 3,
         display: 'flex',
         justifyContent: 'space-between',

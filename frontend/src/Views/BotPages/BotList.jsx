@@ -10,7 +10,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import Button from "@mui/joy/Button";
 
 const BreadcrumbsPath = [{name: 'จัดการเมนูบอท'}, {name: 'รายละเอียด'}];
-export default function BotPage() {
+export default function BotList() {
     const [loading, setLoading] = useState(true);
     const [bots, setBots] = useState([]);
     const [chatRooms, setChatRooms] = useState([]);

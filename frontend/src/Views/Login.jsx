@@ -1,33 +1,30 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Box from "@mui/joy/Box";
-import Typography from "@mui/joy/Typography";
+import {
+    Box, Typography, GlobalStyles, CssBaseline, Button, Divider,
+    FormControl, FormLabel, IconButton, Input, Stack,
+    Snackbar
+} from '@mui/joy';
 import { CssVarsProvider } from '@mui/joy/styles';
-import GlobalStyles from '@mui/joy/GlobalStyles';
-import CssBaseline from '@mui/joy/CssBaseline';
-import Button from '@mui/joy/Button';
-import Divider from '@mui/joy/Divider';
-import FormControl from '@mui/joy/FormControl';
-import FormLabel from '@mui/joy/FormLabel';
-import IconButton from '@mui/joy/IconButton';
-import Input from '@mui/joy/Input';
-import Stack from '@mui/joy/Stack';
+
 import LoginIcon from '@mui/icons-material/Login';
-import { CircularProgress } from "@mui/joy";
 import ColorSchemeToggle from "../ColorSchemeToggle.jsx";
 import { LoginStyle } from "../styles/LoginStyle.js";
 import Logo from "../assets/logo.png";
 import { AlertDiaLog } from "../Dialogs/Alert.js";
 import { loginApi } from "../Api/Auth.js";
-import { chatRoomListApi } from "../Api/ChatRooms.js";
-import { useChatRooms } from "../context/ChatRoomContext.jsx";
+import { useMediaQuery } from '@mui/material';
+import { Add, GppBad } from "@mui/icons-material";
+
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { setUser, csrfToken } = useAuth();
+    const [open, setOpen] = useState(false);
+    const isMobile = useMediaQuery('(max-width:600px)');
 
     // login user
     const handleSubmit = async (e) => {
@@ -52,17 +49,44 @@ export default function Login() {
         }
     };
 
+    const SnackBarComponent = () => (
+        <Snackbar
+            autoHideDuration={4000}
+            open={open} variant='solid'
+            color='danger' anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'center'
+            }}
+            invertedColors
+            startDecorator={<GppBad />}
+            onClose={() => setOpen(false)}
+        >
+            <div>
+
+                <Typography level="title-lg">
+                    เกิดข้อผิดพลาด
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                    <Typography sx={{ mt: 1, mb: 2 }}>
+                        ระบบลงทะเบียนยังไม่เปิดใช้งาน หากต้องการใช้งานระบบกรุณาติดต่อ admin it
+                    </Typography>
+                </Stack>
+            </div>
+        </Snackbar>
+    )
+
     return (
         <CssVarsProvider defaultMode="dark" disableTransitionOnChange>
             <CssBaseline />
+            {open && <SnackBarComponent />}
             <GlobalStyles styles={{ ':root': { '--Form-maxWidth': '800px', '--Transition-duration': '0.4s', }, }} />
             <Box
                 sx={[LoginStyle.Layout, (theme) => ({
                     [theme.getColorSchemeSelector('dark')]: { backgroundColor: 'rgba(19 19 24 / 0.4)', },
                 })]}
             >
-                <Box sx={LoginStyle.ContentLeft}>
-                    <Box component="header" sx={LoginStyle.Header}>
+                <Box sx={[LoginStyle.ContentLeft, { px: isMobile ? 2 : 0 }]}>
+                    <Box component="header" sx={[LoginStyle.Header, { px: isMobile ? 0 : 3 }]}>
                         <Box sx={LoginStyle.Title}>
                             <IconButton variant="soft" size="sm" color='danger'>
                                 <img src={Logo || ''} alt="" width={25} />
@@ -87,24 +111,37 @@ export default function Login() {
                         <Stack gap={4} sx={{ mt: 2 }}>
                             <form onSubmit={handleSubmit} method={'POST'}>
                                 <FormControl required>
-                                    <FormLabel>รหัสพนักงาน</FormLabel>
+                                    <FormLabel required>รหัสพนักงาน</FormLabel>
                                     <Input
+                                        required placeholder='กรุณากรอกรหัสพนักงาน'
                                         onChange={(e) => setEmail(e.target.value)}
                                         type={'text'} name="email" autoFocus
                                     />
                                 </FormControl>
                                 <FormControl required>
-                                    <FormLabel>รหัสผ่าน</FormLabel>
+                                    <FormLabel required>รหัสผ่าน</FormLabel>
                                     <Input
+                                        required placeholder='กรุณากรอกรหัสผ่าน'
                                         defaultValue={password} type="password" name="password"
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
                                 </FormControl>
-                                <Stack gap={4} sx={{ mt: 2 }}>
+                                <Stack direction='row' spacing={2} mt={2}>
                                     <Button
                                         sx={{ backgroundColor: '#f15739', '&:hover': { backgroundColor: 'darkorange' } }}
-                                        disabled={loading} type="submit" fullWidth>
-                                        {!loading ? <span><LoginIcon /></span> : <CircularProgress />}
+                                        disabled={loading}
+                                        type="submit" fullWidth
+                                        startDecorator={<LoginIcon />}
+                                        loading={loading}
+                                    >
+                                        เข้าสู่ระบบ
+                                    </Button>
+                                    <Button
+                                        color='neutral' disabled={loading}
+                                        fullWidth startDecorator={<Add />}
+                                        loading={loading} onClick={() => setOpen(true)}
+                                    >
+                                        ลงทะเบียน
                                     </Button>
                                 </Stack>
 

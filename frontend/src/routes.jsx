@@ -12,7 +12,7 @@ import Customers from "./Views/Customers.jsx";
 import CheckAdmin from "./Components/CheckAdmin.jsx";
 import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistoryPages/ChatHistory.jsx";
-import BotPage from "./Views/BotPages/main.jsx";
+import BotList from "./Views/BotPages/BotList.jsx";
 import Users from "./Views/UserPages/main.jsx";
 import AccessToken from "./Views/TokenPages/main.jsx";
 import ReportPage from "./Views/ReportPages/main.jsx";
@@ -62,7 +62,7 @@ export const routes = createBrowserRouter([
                             { path: '/customers', element: <Customers /> },
                             { path: '/users', element: <Users /> },
                             { path: '/accessToken', element: <AccessToken /> },
-                            { path: '/botManage', element: <BotPage /> },
+                            { path: '/botManage', element: <BotList /> },
                             
                             { path: '/tags', element: <TagPage /> },
                             { path: '/tags/create', element: <CreateTagPage /> },
