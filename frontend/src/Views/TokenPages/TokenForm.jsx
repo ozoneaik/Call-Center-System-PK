@@ -168,6 +168,51 @@ export const TokenForm = (props) => {
           </>
         )}
 
+        {newToken.platform === "shopee" && (
+          <>
+            <FormControl>
+              <FormLabel>Partner ID</FormLabel>
+              <Input
+                required
+                name="shopee_partner_id"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Partner ID"
+                value={newToken.shopee_partner_id || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Partner Key</FormLabel>
+              <Input
+                required
+                name="shopee_partner_key"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Partner Key"
+                value={newToken.shopee_partner_key || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Shop ID</FormLabel>
+              <Input
+                required
+                name="shopee_shop_id"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Shop ID"
+                value={newToken.shopee_shop_id || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Refresh Token</FormLabel>
+              <Input
+                required
+                name="shopee_refresh_token"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Refresh Token"
+                value={newToken.shopee_refresh_token || ""}
+              />
+            </FormControl>
+          </>
+        )}
+
         {newToken.platform && (
           <FormControl>
             <FormLabel>คำอธิบาย</FormLabel>

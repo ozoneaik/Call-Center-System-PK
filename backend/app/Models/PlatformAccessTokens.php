@@ -21,6 +21,19 @@ class PlatformAccessTokens extends Model
         'laz_app_secret',
         'fb_page_id',
         'fb_verify_token',
-        'room_default_id'
+        'room_default_id',
+
+        'shopee_partner_id',
+        'shopee_partner_key',
+        'shopee_shop_id',
+        'shopee_refresh_token',
+
+        'expire_at'
+    ];
+
+    protected $dates = [
+        'expire_at',
+        'created_at',
+        'updated_at',
     ];
 }
