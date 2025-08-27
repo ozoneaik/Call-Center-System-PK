@@ -156,8 +156,6 @@ class NewShopeeController extends Controller
         $type = $message_req['message_type'] ?? null;
         $ct   = $message_req['content'] ?? [];
 
-
-
         switch ($type) {
             case 'text':
                 $msg_formatted['content']     = $ct['text'] ?? '';
@@ -175,9 +173,20 @@ class NewShopeeController extends Controller
                 $product_list = $ct['chat_product_infos'];
                 $message_real = '';
                 foreach ($product_list as $key => $product) {
-                    $message_real .= "รายการที่ " . $key + 1 . "\n" . $product['name'] . "\n" . "ราคา : " . $product['min_price'] . "-" . $product['max_price'] . "บาท\n" . "รายละเอียด : " . "https://shopee.co.th/product/" . $product['shop_id'] . "/" . $product['item_id'] . "\n\n";
+                    $imageUrl = "https://cf.shopee.co.th/file/" . $product['thumb_url'];
+                    $name     = $product['name'] ?? 'ไม่ทราบชื่อสินค้า';
+                    $minPrice = $product['min_price'] ?? 0;
+                    $maxPrice = $product['max_price'] ?? 0;
+                    $url      = "https://shopee.co.th/product/" . $product['shop_id'] . "/" . $product['item_id'];
+
+                    $message_real .= "รายการที่ " . ($key + 1) . "\n";
+                    $message_real .= "🖼️ รูป: {$imageUrl}\n";
+                    $message_real .= "{$name}\n";
+                    $message_real .= "ราคา : {$minPrice} - {$maxPrice} บาท\n";
+                    $message_real .= "รายละเอียด : {$url}\n\n";
                 }
-                $msg_formatted['content']     =  $message_real;
+
+                $msg_formatted['content']     = $message_real;
                 $msg_formatted['contentType'] = 'text';
                 break;
             case 'item':
@@ -188,14 +197,18 @@ class NewShopeeController extends Controller
                     $platform['shopee_partner_key'],
                     $platform['accessToken']
                 );
+                Log::info(json_encode($p_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
                 $p_name = $p_json['response']['item_list'][0]['item_name'];
                 $p_name = $p_json['response']['item_list'][0]['item_name'];
+                $p_image = $p_json['response']['item_list'][0]['image']['image_url_list'][0]
+                    ?? 'ไม่มีรูป';
                 $p_action_url = "https://shopee.co.th/product/" .  $platform['shopee_shop_id'] . "/" . $p_json['response']['item_list'][0]['item_id'];
                 $p_final = "ชื่อสินค้า : $p_name\n" . "ราคา : ไม่ทราบ\n" . "รายละเอียด : $p_action_url";
 
                 $pd['name'] = $p_name;
                 $pd['price'] = 0;
-                $pd['image'] = 'ไม่มี';
+                $pd['image'] = $p_image;
                 $pd['actionUrl'] = $p_action_url;
                 $pf = [
                     "id"    => "0",
