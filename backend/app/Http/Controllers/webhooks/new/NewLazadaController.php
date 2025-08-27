@@ -120,8 +120,21 @@ class NewLazadaController extends Controller
                 $msg_formatted['contentType'] = 'video';
                 break;
             case 10006:
-                $msg_formatted['content'] = 'ส่งสินค้าในตะกร้าเข้ามา';
-                $msg_formatted['contentType'] = 'text';
+                $pd['id'] = $message_req['content']['itemId'] ?? 'no';
+                $pd['name'] = $message_req['content']['title'] ?? 'title';
+                $pd['price'] = $message_req['content']['price'] ?? 0;
+                $pd['image'] = $message_req['content']['iconUrl'] ?? 'ไม่มี';
+                $pd['actionUrl'] = $message_req['content']['actionUrl'] ?? 'https://www.lazada.co.th';
+                $pf = [
+                    "id"    => $pd['id'],
+                    "name"  => $pd['name'],
+                    "price" => $pd['price'],
+                    "image" => $pd['image'],
+                    "url"   => $pd['actionUrl']
+                ];
+                $pf_json = json_encode($pf, JSON_UNESCAPED_UNICODE);
+                $msg_formatted['content'] = $pf_json ?? 'ส่งตะหร้า';
+                $msg_formatted['contentType'] = 'product';
                 break;
             default:
                 $msg_formatted['content'] = 'ส่งอย่างอื่น ไม่รู้';
