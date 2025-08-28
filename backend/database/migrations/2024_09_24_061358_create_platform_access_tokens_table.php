@@ -26,6 +26,12 @@ return new class extends Migration
             $table->string('laz_app_key')->nullable()->comment('App Key for Lazada');
             $table->string('laz_app_secret')->nullable()->comment('App Secret for Lazada');
 
+            // --- เพิ่มคอลัมน์สำหรับ Shopee ---
+            $table->string('shopee_partner_key')->nullable()->comment('Partner Key for Shopee');
+            $table->string('shopee_code')->nullable()->comment('Code for Shopee');
+            $table->string('shopee_shop_id')->nullable()->comment('Shop ID for Shopee');
+            $table->string('shopee_refresh_token')->nullable()->comment('Refresh Token for Shopee');
+
             $table->string('room_default_id')->default('ROOM99')->comment('ห้องแชทเริ่มต้น');
             $table->timestamps();
         });
