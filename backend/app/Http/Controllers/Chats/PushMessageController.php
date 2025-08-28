@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
+use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Requests\sendMessageRequest;
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
@@ -98,7 +99,7 @@ class PushMessageController extends Controller
                     $send_message = NewLazadaController::pushReplyMessage($send_message_data);
                     break;
                 case 'shopee':
-                    $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+                    $send_message = NewShopeeController::pushReplyMessage($send_message_data);
                     break;
                 default:
                     # code...
