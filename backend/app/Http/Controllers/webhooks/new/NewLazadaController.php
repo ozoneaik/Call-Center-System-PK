@@ -205,6 +205,7 @@ class NewLazadaController extends Controller
                     ];
                     break;
                 case 'menu_sended':
+                    break;
                 case 'present':
                     $messages_to_send[] = [
                         'txt' => $filter_case_response['messages'][0]['content'] ?? '',
