@@ -16,10 +16,11 @@ import { TokenForm } from "./TokenForm.jsx";
 
 const BreadcrumbsPath = [{ name: 'จัดการ Token' }, { name: 'รายละเอียด' }];
 
-export default function AccessToken() {
+export default function TokenList() {
     const [tokens, setTokens] = useState([]); // เริ่มต้นด้วย Array ว่าง
     const [newToken, setNewToken] = useState({}); // เริ่มต้นด้วย Object ว่าง
     const [loading, setLoading] = useState(false);
+    const [chatRoomList, setChatRoomList] = useState([]);
 
     const getTokens = async () => {
         setLoading(true);
@@ -27,6 +28,7 @@ export default function AccessToken() {
             const { data, status } = await tokenListApi();
             if (status === 200) {
                 setTokens(data.tokens);
+                setChatRoomList(data.chat_rooms)
             }
         } catch (error) {
             console.error("Failed to fetch tokens:", error);
@@ -95,6 +97,7 @@ export default function AccessToken() {
                     newToken={newToken}
                     setNewToken={setNewToken}
                     setTokens={setTokens}
+                    chatRoomList={chatRoomList}
                 />
                 <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                     <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>

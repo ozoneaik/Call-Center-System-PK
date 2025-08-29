@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BotMenu;
+use App\Models\ChatRooms;
 use App\Models\PlatformAccessTokens;
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
@@ -18,48 +20,33 @@ class TokenController extends Controller
         $this->tokenService = $tokenService;
     }
 
-    public function verifyToken(Request $request): JsonResponse
-    {
-        $request->validate(['token' => 'required'], ['token.required' => 'กรุณากรอก Token']);
-        $status = 400;
-        $message = 'เกิดข้อผิดพลาด';
-        $detail = 'ไม่พบข้อผิดพลาด';
-        try {
-            $checkToken = $this->tokenService->checkVerifyToken($request['token']);
-            if ($checkToken['status']) {
-                $message = 'ตรวจสอบสำเร็จ';
-                $status = 200;
-            } else throw new \Exception($checkToken['message']);
-        } catch (\Exception $e) {
-            $detail = $e->getMessage();
-        } finally {
-            return response()->json([
-                'message' => $message,
-                'detail' => $detail,
-            ], $status);
-        }
-    }
-
     public function list(): JsonResponse
     {
-        $token = PlatformAccessTokens::orderBy('id', 'asc')->get();
-        return response()->json([
-            'message' => 'success',
-            'tokens' => $token
-        ]);
+        try {
+            $token = PlatformAccessTokens::orderBy('id', 'asc')->get();
+            $chat_rooms = ChatRooms::query()->where('is_active', true)->get();
+            return response()->json([
+                'message' => 'success',
+                'tokens' => $token,
+                'chat_rooms' => $chat_rooms
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'tokens' => [],
+                'chat_rooms' => []
+            ], 400);
+        }
     }
 
     public function store(Request $request): JsonResponse
     {
-        // return response()->json([
-        //     'message' => 'สร้าง token สำเร็จ',
-        //     'detail' => $request->all(),
-        // ], 400);
         $store = new PlatformAccessTokens();
         $store['accessTokenId'] = Hash::make(rand(0, 10000));
         $store['accessToken'] = $request->get('accessToken');
         $store['description'] = $request->get('description');
         $store['platform'] = $request->get('platform');
+        $store['room_default_id'] = $request->get('default_room_id') ?? 'ROOM99';
         if ($request->get('platform') === 'facebook') {
             $store['fb_page_id'] = $request->get('fb_page_id');
         } else {
@@ -71,6 +58,21 @@ class TokenController extends Controller
         } else {
         }
         $store->save();
+
+        try {
+            BotMenu::create([
+                'menuName' => 'สนทนากับแอดมิน',
+                'roomId' => $store['room_default_id'],
+                'botTokenId' => $store['id'],
+                'menu_number' => 1
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'ไม่สามารถสร้างเมนูได้',
+                'detail' => $e->getMessage(),
+            ], 400);
+        }
+
         return response()->json([
             'message' => 'สร้าง token สำเร็จ',
             'detail' => 'ไม่พบข้อผิดพลาด',

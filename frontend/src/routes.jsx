@@ -14,7 +14,7 @@ import TestUi from "./TestUi.jsx";
 import ChatHistory from "./Views/ChatHistoryPages/ChatHistory.jsx";
 import BotList from "./Views/BotPages/BotList.jsx";
 import Users from "./Views/UserPages/main.jsx";
-import AccessToken from "./Views/TokenPages/main.jsx";
+import TokenList from "./Views/TokenPages/TokenList.jsx";
 import ReportPage from "./Views/ReportPages/main.jsx";
 import AuthPages from "./Views/AuthPages/main.jsx";
 import KeyWordPage from "./Views/KeyWordPages/main.jsx";
@@ -61,7 +61,7 @@ export const routes = createBrowserRouter([
                             { path: '/shortChats', element: <ShortChats /> },
                             { path: '/customers', element: <Customers /> },
                             { path: '/users', element: <Users /> },
-                            { path: '/accessToken', element: <AccessToken /> },
+                            { path: '/accessToken', element: <TokenList /> },
                             { path: '/botManage', element: <BotList /> },
                             
                             { path: '/tags', element: <TagPage /> },

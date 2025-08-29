@@ -18,7 +18,7 @@ import LazadaLogo from "../../assets/LazadaLogo.svg";
 import TiktokLogo from "../../assets/TikTok.svg";
 
 export const TokenForm = (props) => {
-  const { newToken, setNewToken, setTokens } = props;
+  const { newToken, setNewToken, setTokens, chatRoomList } = props;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,6 +88,13 @@ export const TokenForm = (props) => {
 
   const handleSelectPlatform = (e, newValue) => {
     setNewToken({ platform: newValue }); // Reset fields on platform change
+  };
+
+  const handleChange = (event, newValue) => {
+    setNewToken({
+      ...newToken,
+      default_room_id : newValue,
+    });
   };
 
   return (
@@ -169,16 +176,31 @@ export const TokenForm = (props) => {
         )}
 
         {newToken.platform && (
-          <FormControl>
-            <FormLabel>คำอธิบาย</FormLabel>
-            <Input required
-              name="description"
-              onChange={handleOnChange}
-              placeholder="กรุณากรอกคำอธิบาย"
-              value={newToken.description || ""}
-            />
-          </FormControl>
+          <>
+            <FormControl>
+              <FormLabel>คำอธิบาย</FormLabel>
+              <Input required
+                name="description"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอกคำอธิบาย"
+                value={newToken.description || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>หมายเลขห้องเริ่มต้น</FormLabel>
+              <Select value={newToken.room_default_id} onChange={handleChange}>
+                {chatRoomList?.map((chatRoom, index) => (
+                  <Option key={index} value={chatRoom.roomId}>
+                    {chatRoom.roomId}-{chatRoom.roomName}
+                  </Option>
+                ))}
+              </Select>
+            </FormControl>
+          </>
+
         )}
+
+
 
         <Box
           sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 2 }}
