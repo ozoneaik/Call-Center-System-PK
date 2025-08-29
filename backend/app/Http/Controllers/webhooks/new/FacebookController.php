@@ -147,6 +147,8 @@ class FacebookController extends Controller
                         'customer' => $new_customer,
                         'platform_access_token' => $platform
                     ];
+                }else{
+                    Log::channel('webhook_facebook_new')->info($response->body());
                 }
             }
             return null;
