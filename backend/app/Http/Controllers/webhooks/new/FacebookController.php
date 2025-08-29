@@ -122,7 +122,7 @@ class FacebookController extends Controller
             $platform = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
             return [
                 'customer' => $customer,
-                'platform_access_token' => $platform['access_token']
+                'platform_access_token' => $platform
             ];
         } else {
             $platforms = PlatformAccessTokens::query()->where('platform', 'facebook')->get();
@@ -146,7 +146,7 @@ class FacebookController extends Controller
                     ]);
                     return [
                         'customer' => $new_customer,
-                        'platform_access_token' => $platform['access_token']
+                        'platform_access_token' => $platform
                     ];
                 }
             }
