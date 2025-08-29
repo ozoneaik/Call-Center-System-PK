@@ -129,12 +129,11 @@ class FacebookController extends Controller
             foreach ($platforms as $key => $platform) {
                 $page_id = $platform['fb_page_id'];
                 $uri = "https://graph.facebook.com/v23.0/$page_id/messages";
-                $response = Http::withToken($platform['access_token'])->post($uri, [
+                $response = Http::post($uri, [
                     'messaging_type' => 'RESPONSE',
-                    'recipient' => [
-                        'id' => $sender_id
-                    ],
-                    'message' => ['text' => "ยินดีต้อนรับ 🙏"]
+                    'recipient' => ['id' => $sender_id],
+                    'message' => ['text' => "ยินดีต้อนรับ 🙏"],
+                    'access_token' => $platform['accessToken']
                 ]);
                 if ($response->successful() && $response->status() === 200) {
                     $new_customer = Customers::query()->create([
