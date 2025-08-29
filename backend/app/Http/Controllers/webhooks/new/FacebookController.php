@@ -64,7 +64,9 @@ class FacebookController extends Controller
                         if (isset($messaging['message'])) {
                             Log::channel('webhook_facebook_new')->info($this->start_log_line);
                             Log::channel('webhook_facebook_new')->info(json_encode($request->all(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                            $customer = $this->check_customer($messaging['sender']['id'], $platform_access_token);
+                            $customer_platform = $this->check_customer($messaging['sender']['id'], $platform_access_token);
+                            $customer = $customer_platform['customer'];
+                            $platform_access_token = $customer_platform['platform_access_token'];
                             if (isset($messaging['message']['text'])) {
                                 $message_formatted = $this->format_message($messaging['message'], $messaging['message']['mid']);
                                 $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform_access_token);
@@ -117,17 +119,40 @@ class FacebookController extends Controller
     {
         $customer = Customers::query()->where('custId', $sender_id)->first();
         if ($customer) {
-            return $customer;
+            $platform = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+            return [
+                'customer' => $customer,
+                'platform_access_token' => $platform['access_token']
+            ];
         } else {
-            $new_customer = Customers::query()->create([
-                'custId' => $sender_id,
-                'custName' => "ผู้ใช้ รหัส $sender_id",
-                'description' => 'ติดต่อมาจากเพท Facebook ' . $platform_access_token['description'],
-                'avatar' => null,
-                'platformRef' => $platform_access_token['id']
-            ]);
-            return $new_customer;
+            $platforms = PlatformAccessTokens::query()->where('platform', 'facebook')->get();
+            foreach ($platforms as $key => $platform) {
+                $page_id = $platform['fb_page_id'];
+                $uri = "https://graph.facebook.com/v23.0/$page_id/messages";
+                $response = Http::withToken($platform['access_token'])->post($uri, [
+                    'messaging_type' => 'RESPONSE',
+                    'recipient' => [
+                        'id' => $sender_id
+                    ],
+                    'message' => ['text' => "ยินดีต้อนรับ 🙏"]
+                ]);
+                if ($response->successful() && $response->status() === 200) {
+                    $new_customer = Customers::query()->create([
+                        'custId' => $sender_id,
+                        'custName' => "ผู้ใช้ รหัส $sender_id",
+                        'description' => 'ติดต่อมาจากเพจ Facebook ' . $platform['description'],
+                        'avatar' => null,
+                        'platformRef' => $platform['id']
+                    ]);
+                    return [
+                        'customer' => $new_customer,
+                        'platform_access_token' => $platform['access_token']
+                    ];
+                }
+            }
+            return null;
         }
+        return null;
     }
 
     private function check_platform($page_id)
