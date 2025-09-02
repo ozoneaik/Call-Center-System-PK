@@ -4,6 +4,7 @@ namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
+use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -33,8 +34,10 @@ class PendingCase
                 'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
             ]);
             $this->pusherService->sendNotification($current_rate['custId']);
-            $ac_all = ActiveConversations::query()->where('roomId', $ac_latest['roomId'])
-                ->whereNull('receiveAt')->orderBy('updated_at', 'asc')->get();
+            // $ac_all = ActiveConversations::query()->where('roomId', $ac_latest['roomId'])
+            //     ->whereNull('receiveAt')->orderBy('updated_at', 'asc')->get();
+            $ac_all = Rates::query()->where('latestRoomId', $ac_latest['roomId'])
+                ->where('status', 'pending')->orderBy('updated_at', 'asc')->get();
             $count = 1;
             foreach ($ac_all as $ac) {
                 if ($ac['custId'] !== $customer['custId']) $count++;
