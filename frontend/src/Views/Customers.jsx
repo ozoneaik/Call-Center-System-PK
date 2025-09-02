@@ -146,7 +146,7 @@ export default function Customers() {
                                     return (
                                         <Button
                                             key={index} onClick={() => {
-                                                link.url ? navigate(`/chatHistory?page=${link.label}`) : null
+                                                link.url ? navigate(`/customers?page=${link.label}`) : null
                                             }}
                                             variant={link.active ? 'solid' : 'soft'} color="primary"
                                         >
