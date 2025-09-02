@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\Customers;
 use App\Services\CustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,9 +16,9 @@ class CustomersController extends Controller
         $this->customerService = $customerService;
     }
 
-    public function CustomerList(): JsonResponse
+    public function CustomerList(Request $request): JsonResponse
     {
-        $customers = $this->customerService->list();
+        $customers = Customers::query()->paginate(50);
         return response()->json([
             'message' => 'ดึงข้อมูลลูกค้าสำเร็จ',
             'customers' => $customers

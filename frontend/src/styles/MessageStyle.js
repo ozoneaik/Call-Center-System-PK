@@ -154,9 +154,10 @@ export const MessageStyle = {
             flexDirection: 'column',
             alignItems: 'center',
             bgcolor: 'background.body',
-            height: '20%',
+            height: '15%',
             // backgroundColor : 'red',
             backgroundImage: 'url(https://www.pumpkintool.com/wp-content/uploads/2017/11/Company-1.png)',
+            // backgroundColor : '#f0f4f8',
             objectFit: 'cover',
         }
     }

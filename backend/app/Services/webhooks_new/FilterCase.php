@@ -2,8 +2,11 @@
 
 namespace App\Services\webhooks_new;
 
+use App\Models\ActiveConversations;
+use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Models\User;
+use App\Services\PusherService;
 use Illuminate\Support\Facades\Log;
 
 class FilterCase
@@ -17,7 +20,7 @@ class FilterCase
     protected ProgressCase $progressCase;
     protected PendingCase $pendingCase;
     protected SuccessCase $successCase;
-    public function __construct( NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
+    public function __construct(NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
     {
         $this->newCase = $newCase;
         $this->progressCase = $progressCase;
@@ -26,7 +29,7 @@ class FilterCase
     }
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดกรองเคส---------------------------------------------------';
 
-    public function filterCase($customer = null, $message = null, $platformAccessToken = null)
+    public function filterCase($customer = null, $message = null, $platformAccessToken = null, $flow = 1)
     {
         Log::channel('webhook_main')->info('เริ่มกรองเคส', [
             'customer' => json_encode($customer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
@@ -47,19 +50,19 @@ class FilterCase
             // ตรวจสอบ Rate ปัจจุบันก่อน
             $current_rate = Rates::query()->where('custId', $customer['custId'])
                 ->orderBy('id', 'desc')->first();
-            if (!$current_rate) {
-                $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
-            } elseif ($current_rate['status'] === 'pending') {
-                $case = $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
-            } elseif ($current_rate['status'] === 'progress') {
-                $case = $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
-            } else {
-                $case = $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+
+            switch ($flow) {
+                case 1:
+                    return $this->caseFlow1($current_rate);
+                    break;
+                case 2:
+                    return $this->caseFlow2($customer, $message, $platformAccessToken, $current_rate);
+                    break;
+                default:
+                    return ['status' => false, 'message' => 'ไม่พบ flow ที่ต้องการ'];
             }
-            Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
-            return ['status' => true, 'case' => $case];
         } catch (\Exception $e) {
-            return ['status' => false, 'message' => $e->getMessage()];
+            return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
         }
     }
 
@@ -80,6 +83,99 @@ class FilterCase
                 'status' => false,
                 'message' => $msg_error ?? $msg_error_default
             ];
+        }
+    }
+
+    private function caseFlow1($current_rate = null)
+    {
+        if (!$current_rate) {
+            $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+        } elseif ($current_rate['status'] === 'pending') {
+            $case = $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+        } elseif ($current_rate['status'] === 'progress') {
+            $case = $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+        } else {
+            $case = $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+        }
+        Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
+        return ['status' => true, 'case' => $case];
+    }
+
+    private function caseFlow2($customer, $message, $platformAccessToken, $current_rate)
+    {
+        try {
+            // ฟังก์ชันสร้างแชทใหม่
+            $createChat = function ($custId, $message, $customer, $ac_id) {
+                return ChatHistory::query()->create([
+                    'custId' => $custId,
+                    'contentType' => $message['contentType'],
+                    'content' => $message['content'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $ac_id,
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null,
+                ]);
+            };
+
+            // ฟังก์ชันส่ง notification + response
+            $sendResponse = function ($customer, $acId, $platformAccessToken, $reply_token, $bot) {
+                (new PusherService())->sendNotification($customer['custId']);
+                return [
+                    'status' => true,
+                    'send_to_cust' => false,
+                    'type_send' => 'normal',
+                    'type_message' => 'reply',
+                    'messages' => [[
+                        'content' => 'รับข้อความเรียบร้อยแล้ว',
+                        'contentType' => 'text'
+                    ]],
+                    'customer' => $customer,
+                    'ac_id' => $acId,
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $reply_token,
+                    'bot' => $bot
+                ];
+            };
+
+            if ($current_rate && $current_rate['status'] === 'success') {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'latestRoomId' => $platformAccessToken['room_default_id'],
+                    'rate' => 0,
+                    'status' => 'pending'
+                ]);
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'rateRef' => $new_rate['id']
+                ]);
+                $createChat($customer['custId'], $message, $customer, $new_ac['id']);
+                return $sendResponse($customer, $new_ac['id'], $platformAccessToken, $message['reply_token'], $this->BOT);
+            } elseif ($current_rate && in_array($current_rate['status'], ['pending', 'progress'])) {
+                $ac = ActiveConversations::query()
+                    ->where('rateRef', $current_rate['id'])
+                    ->orderBy('id', 'desc')
+                    ->first();
+                $createChat($customer['custId'], $message, $customer, $ac['id']);
+                return $sendResponse($customer, $ac['id'], $platformAccessToken, $message['reply_token'], $this->BOT);
+            } else {
+                $new_rate = Rates::query()->create([
+                    'custId' => $customer['custId'],
+                    'latestRoomId' => $platformAccessToken['room_default_id'],
+                    'rate' => 0,
+                    'status' => 'pending'
+                ]);
+                $new_ac = ActiveConversations::query()->create([
+                    'custId' => $customer['custId'],
+                    'roomId' => $new_rate['latestRoomId'],
+                    'rateRef' => $new_rate['id']
+                ]);
+                $createChat($customer['custId'], $message, $customer, $new_ac['id']);
+                return $sendResponse($customer, $new_ac['id'], $platformAccessToken, $message['reply_token'], $this->BOT);
+            }
+        } catch (\Throwable $e) {
+            return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
         }
     }
 }

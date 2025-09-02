@@ -1,87 +1,100 @@
-import {ChatPageStyle} from "../styles/ChatPageStyle.js";
-import {Box, CircularProgress, Sheet, Table} from "@mui/joy";
+import { ChatPageStyle } from "../styles/ChatPageStyle.js";
+import { Box, CircularProgress, Sheet, Table, Stack } from "@mui/joy";
 import BreadcrumbsComponent from "../Components/Breadcrumbs.jsx";
-import {useEffect, useState} from "react";
-import {customersListApi} from "../Api/Customer.js";
+import { useEffect, useState } from "react";
+import { customersListApi } from "../Api/Customer.js";
 import Avatar from "@mui/joy/Avatar";
 import Typography from "@mui/joy/Typography";
 import Chip from "@mui/joy/Chip";
-import {convertFullDate, getRandomColor} from "../Components/Options.jsx";
+import { convertFullDate, getRandomColor } from "../Components/Options.jsx";
 import Button from "@mui/joy/Button";
-import EditNoteIcon from '@mui/icons-material/EditNote';
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import ModalDialog from "../Components/ModalDialog.jsx";
+import { useMediaQuery } from "@mui/material";
 
-const BreadcrumbsPath = [{name: 'จัดการลูกค้า'}, {name: 'รายละเอียด'}];
-const customersRef = {
-    customers: [{
-        id: 'int',
-        custId: 'string',
-        custName: 'string',
-        description: 'string',
-        created_at: 'dateTime'
-    }]
-};
+const BreadcrumbsPath = [{ name: "จัดการลูกค้า" }, { name: "รายละเอียด" }];
 
 export default function Customers() {
-    const [customers, setCustomers] = useState([customersRef]);
+    const isMobile = useMediaQuery("(max-width:600px)");
+    const [customers, setCustomers] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
-    useEffect(() => {
-        getCustomers().finally(() => setLoading(false));
-    }, [])
 
-    const getCustomers = async () => {
+    // state สำหรับ pagination
+    const [page, setPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [to, setTo] = useState(0);
+    const [total, setTotal] = useState(0);
+    const [links, setLinks] = useState([]);
+
+    useEffect(() => {
+        getCustomers(page).finally(() => setLoading(false));
+    }, [page]);
+
+    const getCustomers = async (pageNumber = 1) => {
         setLoading(true);
-        const {data, status} = await customersListApi();
-        status === 200 && setCustomers(data.customers);
-    }
+        const { data, status } = await customersListApi(pageNumber);
+        if (status === 200) {
+            setCustomers(data.customers.data);
+            setTo(data.customers.to);
+            setLinks(data.customers.links);
+            setTotal(data.customers.total);
+            setLastPage(data.customers.last_page);
+        }
+    };
 
     const handleEditClick = async (customer) => {
         setSelected(customer);
         setOpen(true);
-        console.log('open:', open);
-
     };
 
     const refresh = () => {
-        getCustomers().finally(() => setLoading(false));
-    }
+        getCustomers(page).finally(() => setLoading(false));
+    };
 
     return (
         <>
-            {/* เงื่อนไขการแสดงข้อความ "test" */}
-            {open && (<ModalDialog open={open} setOpen={setOpen} event={'customer'} selected={selected}
-                                   Refresh={refresh}/>)}
+            {/* Modal */}
+            {open && (
+                <ModalDialog
+                    open={open}
+                    setOpen={setOpen}
+                    event={"customer"}
+                    selected={selected}
+                    Refresh={refresh}
+                />
+            )}
             <Sheet sx={ChatPageStyle.Layout}>
                 <Box component="main" sx={ChatPageStyle.MainContent}>
-                    <Box sx={{display: 'flex', alignItems: 'center'}}>
-                        <BreadcrumbsComponent list={BreadcrumbsPath}/>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <BreadcrumbsComponent list={BreadcrumbsPath} />
                     </Box>
                     <Box sx={ChatPageStyle.BoxTable}>
-                        <Typography level="h2" component="h1">จัดการลูกค้า</Typography>
+                        <Typography level="h2" component="h1">
+                            จัดการลูกค้า
+                        </Typography>
                     </Box>
                     <Sheet variant="outlined" sx={ChatPageStyle.BoxSheet}>
                         <Table stickyHeader hoverRow sx={ChatPageStyle.Table}>
                             <thead>
-                            <tr>
-                                <th style={{width: 200}}>ลำดับ</th>
-                                <th style={{width: 200}}>ชื่อลูกค้า</th>
-                                <th style={{width: 200}}>คำอธิบาย</th>
-                                <th style={{width: 200}}>สร้างเมื่อ</th>
-                                <th style={{width: 200}}>จัดการ</th>
-                            </tr>
+                                <tr>
+                                    <th style={{ width: 80 }}>ลำดับ</th>
+                                    <th style={{ width: 200 }}>ชื่อลูกค้า</th>
+                                    <th style={{ width: 250 }}>คำอธิบาย</th>
+                                    <th style={{ width: 200 }}>สร้างเมื่อ</th>
+                                    <th style={{ width: 150 }}>จัดการ</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {
-                                !loading ? (
+                                {!loading ? (
                                     customers.length > 0 ? (
                                         customers.map((customer, index) => (
-                                            <tr key={index}>
-                                                <td>{index + 1}</td>
+                                            <tr key={customer.id}>
+                                                <td>{(page - 1) * 50 + index + 1}</td>
                                                 <td>
-                                                    <div style={{display: "flex", alignItems: "center"}}>
-                                                        <Avatar size='sm' sx={{mr: 1}} src={customer.avatar}/>
+                                                    <div style={{ display: "flex", alignItems: "center" }}>
+                                                        <Avatar size="sm" sx={{ mr: 1 }} src={customer.avatar} />
                                                         <Typography>{customer.custName}</Typography>
                                                     </div>
                                                 </td>
@@ -96,25 +109,54 @@ export default function Customers() {
                                                     </Chip>
                                                 </td>
                                                 <td>
-                                                    <Button size='sm' onClick={() => handleEditClick(customer)}>
-                                                        <EditNoteIcon/>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleEditClick(customer)}
+                                                    >
+                                                        <EditNoteIcon />
                                                     </Button>
                                                 </td>
                                             </tr>
                                         ))
-                                    ) : <tr>
-                                        <td colSpan={5}>ไม่มีข้อมูล</td>
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5}>ไม่มีข้อมูล</td>
+                                        </tr>
+                                    )
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5}>
+                                            <CircularProgress />
+                                        </td>
                                     </tr>
-                                ) : <tr>
-                                    <td colSpan={5}><CircularProgress/></td>
-                                </tr>
-                            }
+                                )}
                             </tbody>
                         </Table>
 
+
                     </Sheet>
+                    {/* Pagination */}
+                    <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
+                        <Stack direction={isMobile ? 'column-reverse' : 'row'} justifyContent={'space-between'} alignItems={'center'} spacing={2}>
+                            <Typography>{to} รายการ จากรายการทั้งหมด {total} รายการ</Typography>
+                            <Stack direction="row" spacing={1}>
+                                {links.map((link, index) => {
+                                    return (
+                                        <Button
+                                            key={index} onClick={() => {
+                                                link.url ? navigate(`/chatHistory?page=${link.label}`) : null
+                                            }}
+                                            variant={link.active ? 'solid' : 'soft'} color="primary"
+                                        >
+                                            {index === 0 ? 'ก่อนหน้า' : index === links.length - 1 ? 'ถัดไป' : link.label}
+                                        </Button>
+                                    )
+                                })}
+                            </Stack>
+                        </Stack>
+                    </Box>
                 </Box>
             </Sheet>
         </>
-    )
+    );
 }

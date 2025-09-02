@@ -19,7 +19,8 @@ class BotService
             'bot_menus.menuName',
             'bot_menus.roomId',
             'chat_rooms.roomName',
-            'platform_access_tokens.description'
+            'platform_access_tokens.description',
+             'bot_menus.menu_number',
         )
             ->leftJoin('bot_menus', 'platform_access_tokens.id', '=', 'bot_menus.botTokenId')
             ->leftJoin('chat_rooms', 'bot_menus.roomId', '=', 'chat_rooms.roomId')
@@ -47,6 +48,7 @@ class BotService
                 $store['botTokenId'] = $req['botTokenId'];
                 $store['menuName'] = $item['menuName'];
                 $store['roomId'] = $item['roomId'];
+                $store['menu_number'] = $item['menu_number'];
                 $store->save();
                 $newList[] = $store;
             }

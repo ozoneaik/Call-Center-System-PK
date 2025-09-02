@@ -58,7 +58,7 @@ class LineWebhookController extends Controller
                         Log::channel('webhook_line_new')->info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
                         // เข้าสุ่ filterCase
-                        $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform);
+                        $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform,2);
                         $send_line = $this->ReplyPushMessage($filter_case);
                         if (!$send_line['status']) {
                             throw new \Exception($send_line['message']);
@@ -401,6 +401,11 @@ class LineWebhookController extends Controller
             return [
                 'status' => false,
                 'message' => 'ไม่สามารถส่งข้อความตอบกลับได้: ' . $e->getMessage()
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status' => false,
+                'message' => 'ไม่สามารถส่งข้อความตอบกลับได้: ' . $e->getMessage() .' | ' . 'ไฟล์ที่: ' . $e->getFile() . ' | ' . 'บรรทัดที่: ' . $e->getLine()
             ];
         }
 
