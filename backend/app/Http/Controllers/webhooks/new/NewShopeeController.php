@@ -21,10 +21,18 @@ class NewShopeeController extends Controller
     protected string $start_log_line = '--------------------------------------------------🌞 เริ่มรับ webhook--------------------------------------------------';
     protected string $end_log_line   = '---------------------------------------------------🌚 สิ้นสุดรับ webhook---------------------------------------------------';
     protected FilterCase $filterCase;
+
     public function __construct(FilterCase $filterCase)
     {
         $this->filterCase = $filterCase;
     }
+
+    public function verify(Request $request)
+    {
+        Log::channel('webhook_shopee_new')->info('Shopee webhook verify called', $request->all());
+        return response('ok');
+    }
+
     public function webhooks(Request $request)
     {
         try {
@@ -39,11 +47,11 @@ class NewShopeeController extends Controller
                 ->exists();
 
             if (!$exists) {
-                Log::warning("Shopee webhook: ข้าม shop_id {$shopIdTop} (ไม่พบใน platform_access_tokens)");
+                Log::channel('webhook_shopee_new')->warning("Shopee webhook: ข้าม shop_id {$shopIdTop} (ไม่พบใน platform_access_tokens)");
                 return response()->json(['message' => "skip shop_id {$shopIdTop}"], 200);
             }
 
-            Log::info(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            Log::channel('webhook_shopee_new')->info(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
             $msgId = $payload['msg_id'] ?? null;
             $code = $payload['code'] ?? null;
@@ -57,9 +65,9 @@ class NewShopeeController extends Controller
             $textPayload = $c['content']['text'] ?? null;
             $shopIdTop = $payload['shop_id'] ?? null;
 
-            $allowedTypes = ['text', 'image', 'video', 'item', 'item_list'];
+            $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order'];
             if ($messageType === 'bundle_message') {
-                Log::info("Shopee webhook: ข้าม bundle_message", ['message_id' => $messageId]);
+                Log::channel('webhook_shopee_new')->info("Shopee webhook: ข้าม bundle_message", ['message_id' => $messageId]);
                 return response()->json(['message' => 'skip bundle_message'], 200);
             }
             if ($code === 10 && ($data['type'] ?? null) === 'message' && in_array($messageType, $allowedTypes, true)) {
@@ -67,12 +75,12 @@ class NewShopeeController extends Controller
                     ->where('line_message_id', $messageId)
                     ->first();
                 if ($DuplicateId) {
-                    Log::info('Shopee webhook duplicated', ['message_id' => $messageId]);
+                    Log::channel('webhook_shopee_new')->info('Shopee webhook duplicated', ['message_id' => $messageId]);
                     return response()->json(['message' => 'duplicate webhook'], 200);
                 }
-                Log::info($this->start_log_line);
-                Log::info('รับ webhook จาก Shopee');
-                Log::info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
+                Log::channel('webhook_shopee_new')->info($this->start_log_line);
+                Log::channel('webhook_shopee_new')->info('รับ webhook จาก Shopee');
+                Log::channel('webhook_shopee_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
                 $check = $this->check_customer_and_get_platform(
                     $conversationId,
                     $fromId,
@@ -89,19 +97,19 @@ class NewShopeeController extends Controller
                 $message_formatted = $this->format_message($message_req, $platform);
 
                 $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform);
-                Log::info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $push_result = $this->pushReplyMessage($filter_case, $messageId);
             } else {
-                Log::info('ไม่เข้า');
+                Log::channel('webhook_shopee_new')->info('ไม่เข้า');
             }
         } catch (\Throwable $e) {
-            Log::error('Shopee webhook error ❌', [
+            Log::channel('webhook_shopee_new')->error('Shopee webhook error ❌', [
                 'error' => $e->getMessage(),
                 'file'  => $e->getFile(),
                 'line'  => $e->getLine(),
             ]);
         }
-        Log::info($this->end_log_line);
+        Log::channel('webhook_shopee_new')->info($this->end_log_line);
         return response()->json(['message' => 'ok'], 200);
     }
 
@@ -197,7 +205,7 @@ class NewShopeeController extends Controller
                     $platform['shopee_partner_key'],
                     $platform['accessToken']
                 );
-                Log::info(json_encode($p_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                Log::channel('webhook_shopee_new')->info(json_encode($p_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
                 $p_name = $p_json['response']['item_list'][0]['item_name'];
                 $p_name = $p_json['response']['item_list'][0]['item_name'];
@@ -222,6 +230,130 @@ class NewShopeeController extends Controller
                 $msg_formatted['content'] = $pf_json;
                 $msg_formatted['contentType'] = 'product';
                 break;
+
+            case 'order': {
+                    $ctRaw = $message_req['content'] ?? [];
+                    $ct    = is_array($ctRaw) ? $ctRaw : [];
+                    $orderSn = $ct['order_sn'] ?? null;
+
+                    if (!$orderSn) {
+                        $msg_formatted['content']     = 'ได้รับข้อความออเดอร์ แต่ไม่มีเลขที่คำสั่งซื้อ (order_sn)';
+                        $msg_formatted['contentType'] = 'text';
+                        break;
+                    }
+
+                    $fmtMoney = function ($num, $curr = 'THB') {
+                        if ($num === null || $num === '') return '-';
+                        return number_format((float)$num, 0) . ' ' . $curr;
+                    };
+                    $fmtTime = function ($ts) {
+                        if (empty($ts)) return '-';
+                        try {
+                            return Carbon::createFromTimestamp($ts)->timezone('Asia/Bangkok')->format('d/m/Y H:i');
+                        } catch (\Throwable $e) {
+                            return (string)$ts;
+                        }
+                    };
+                    $isMasked = function (?string $text) {
+                        if ($text === null) return false;
+                        $t = trim($text);
+                        if ($t === '') return false;
+                        $len = mb_strlen($t);
+                        $stars = mb_substr_count($t, '*');
+                        return ($t === '****') || ($len > 0 && ($stars / $len) >= 0.8);
+                    };
+
+                    try {
+                        $detailResp = $this->getOrderDetail(
+                            [$orderSn],
+                            $platform,
+                            'buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time'
+                        );
+
+                        Log::channel('webhook_shopee_new')->info('Shopee getOrderDetail response', [
+                            'order_sn' => $orderSn,
+                            'resp'     => $detailResp
+                        ]);
+
+                        $od = $detailResp['order_list'][0] ?? null;
+                        if (!$od) {
+                            $msg_formatted['content']     = "🧾 Order {$orderSn} : ไม่พบรายละเอียด";
+                            $msg_formatted['contentType'] = 'text';
+                            break;
+                        }
+
+                        $buyer   = $od['buyer_username'] ?? '-';
+                        $status  = $od['order_status'] ?? '-';
+                        $amount  = $od['total_amount'] ?? 0;
+                        $curr    = $od['currency'] ?? 'THB';
+                        $cod     = $od['cod'] ?? null;
+
+                        $created = $fmtTime($od['create_time'] ?? null);
+                        $updated = $fmtTime($od['update_time'] ?? null);
+                        $paidAt  = $fmtTime($od['pay_time'] ?? null);
+
+                        $payText = ($cod === true) ? 'เก็บเงินปลายทาง (COD)' : ($paidAt !== '-' ? "ชำระแล้วเวลา: {$paidAt}" : '-');
+
+                        $lines = [];
+                        $lines[] = "🧾 รายละเอียดคำสั่งซื้อ"; 
+                        $lines[] = "เลขที่: {$orderSn}";
+                        $lines[] = "ผู้ซื้อ: {$buyer}";
+                        $lines[] = "สถานะ: {$status}";
+                        $lines[] = "ยอดรวม: " . $fmtMoney($amount, $curr);
+                        $lines[] = "การชำระเงิน: {$payText}";
+                        $lines[] = "สร้างเมื่อ: {$created}";
+                        $lines[] = "อัปเดตล่าสุด: {$updated}";
+
+                        $addrFull = $od['recipient_address']['full_address'] ?? null;
+                        if ($addrFull !== null) {
+                            if ($isMasked($addrFull)) {
+                                $lines[] = "ที่อยู่ผู้รับ: (ข้อมูลถูกปิดบังตามนโยบายตลาด)";
+                            } else {
+                                $lines[] = "ที่อยู่ผู้รับ: " . $addrFull;
+                            }
+                        }
+
+                        $items = $od['item_list'] ?? [];
+                        $lines[] = "----------------------------------------";
+                        $lines[] = "สินค้า (" . count($items) . " รายการ):";
+
+                        foreach ($items as $i => $it) {
+                            $name   = $it['item_name'] ?? '-';
+                            $model  = $it['model_name'] ?? '-';
+                            $qty    = $it['model_quantity_purchased'] ?? 0;
+                            $price  = $it['model_discounted_price'] ?? 0;
+                            $orig   = $it['model_original_price'] ?? null;
+                            $img    = $it['image_info']['image_url'] ?? null;
+
+                            $idx = $i + 1;
+                            $line = "{$idx}) {$name}";
+                            if ($model && $model !== '-') $line .= " • {$model}";
+                            $line .= " • x{$qty}";
+                            $line .= " • " . $fmtMoney($price, $curr);
+                            if ($orig !== null && $orig != $price) {
+                                $line .= " (เดิม " . $fmtMoney($orig, $curr) . ")";
+                            }
+                            $lines[] = $line;
+
+                            // if ($img) {
+                            //     $lines[] = "รูปสินค้า: {$img}";
+                            // }
+                        }
+
+                        $msg_formatted['content']     = implode("\n", $lines);
+                        $msg_formatted['contentType'] = 'text';
+                    } catch (\Throwable $e) {
+                        Log::channel('webhook_shopee_new')->error('getOrderDetail fail', [
+                            'order_sn' => $orderSn,
+                            'error'    => $e->getMessage(),
+                            'file'     => $e->getFile(),
+                            'line'     => $e->getLine(),
+                        ]);
+                        $msg_formatted['content']     = "🧾 Order {$orderSn} : ดึงรายละเอียดไม่สำเร็จ";
+                        $msg_formatted['contentType'] = 'text';
+                    }
+                    break;
+                }
             default:
                 $msg_formatted['content']     = json_encode($ct, JSON_UNESCAPED_UNICODE);
                 $msg_formatted['contentType'] = 'text';
@@ -367,7 +499,7 @@ class NewShopeeController extends Controller
                 $json = $response->json();
 
                 if ($response->successful() && empty($json['error'])) {
-                    Log::info('Shopee: ส่งข้อความสำเร็จ', ['resp' => $json, 'body' => $body]);
+                    Log::channel('webhook_shopee_new')->info('Shopee: ส่งข้อความสำเร็จ', ['resp' => $json, 'body' => $body]);
                     $sent_messages[] = [
                         'content'     => $msg['content']['text']
                             ?? $msg['content']['image_url']
@@ -378,7 +510,7 @@ class NewShopeeController extends Controller
                         'content_original' => $msg['content_original']
                     ];
                 } else {
-                    Log::error('Shopee: ส่งข้อความไม่สำเร็จ', ['resp' => $json, 'body' => $body]);
+                    Log::channel('webhook_shopee_new')->error('Shopee: ส่งข้อความไม่สำเร็จ', ['resp' => $json, 'body' => $body]);
                 }
             }
 
@@ -410,7 +542,7 @@ class NewShopeeController extends Controller
                 'sent_count' => count($sent_messages)
             ];
         } catch (\Exception $e) {
-            Log::error('Shopee: pushReplyMessage error ❌', [
+            Log::channel('webhook_shopee_new')->error('Shopee: pushReplyMessage error ❌', [
                 'error' => $e->getMessage(),
                 'file'  => $e->getFile(),
                 'line'  => $e->getLine(),
@@ -498,7 +630,7 @@ class NewShopeeController extends Controller
         }
 
         try {
-            $response = \Illuminate\Support\Facades\Http::asMultipart()
+            $response = Http::asMultipart()
                 ->attach('file', file_get_contents($imagePath), basename($imagePath))
                 ->post($url);
 
@@ -515,7 +647,7 @@ class NewShopeeController extends Controller
                 throw new \Exception('Shopee upload_image ไม่คืน url');
             }
 
-            Log::info('Shopee: upload_image success', $json);
+            Log::channel('webhook_shopee_new')->info('Shopee: upload_image success', $json);
             return $resp;
         } finally {
             if ($cleanup && !empty($imagePath) && is_file($imagePath)) @unlink($imagePath);
@@ -671,7 +803,7 @@ class NewShopeeController extends Controller
         $json = $resp->json();
 
         if (!$resp->successful() || !empty($json['error'])) {
-            Log::error("Shopee refresh token error", $json);
+            Log::channel('webhook_shopee_new')->error("Shopee refresh token error", $json);
             throw new \Exception("Shopee refresh token error: " . json_encode($json));
         }
 
@@ -693,13 +825,11 @@ class NewShopeeController extends Controller
         $timestamp = time();
         $path      = "/api/v2/product/get_item_base_info";
 
-        // ✅ สร้าง sign ตาม Shopee Docs
         $base_string = $partner_id . $path . $timestamp . $access_token . $shop_id;
         $sign = hash_hmac('sha256', $base_string, $partner_key);
 
         $url = "https://partner.shopeemobile.com{$path}";
 
-        // ✅ ส่ง request ด้วย Laravel Http Client
         $response = Http::get($url, [
             'access_token' => $access_token,
             'partner_id'   => $partner_id,
@@ -709,7 +839,83 @@ class NewShopeeController extends Controller
             'item_id_list' => $item_id,
         ]);
 
-        // ✅ คืนค่า JSON กลับไป
         return $response->json();
+    }
+
+    private function getOrderDetail(array $orderSnList, $platform, ?string $optionalFields = null): array
+    {
+        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
+        foreach (['shopee_partner_id', 'shopee_partner_key', 'shopee_shop_id'] as $k) {
+            if (empty($pt[$k])) throw new \Exception("Shopee credentials ขาด: {$k}");
+        }
+
+        $host       = 'https://partner.shopeemobile.com';
+        $path       = '/api/v2/order/get_order_detail';
+        $timestamp  = time();
+        $accessToken = self::getValidAccessToken($pt);
+        $partnerId  = (int) $pt['shopee_partner_id'];
+        $partnerKey = (string) $pt['shopee_partner_key'];
+        $shopId     = (int) $pt['shopee_shop_id'];
+
+        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+        $query = [
+            'partner_id'                   => $partnerId,
+            'timestamp'                    => $timestamp,
+            'sign'                         => $sign,
+            'shop_id'                      => $shopId,
+            'access_token'                 => $accessToken,
+            'order_sn_list'                => implode(',', $orderSnList),
+            'request_order_status_pending' => 'true',
+        ];
+        if (!empty($optionalFields)) {
+            $query['response_optional_fields'] = $optionalFields;
+        }
+
+        $url  = $host . $path . '?' . http_build_query($query);
+        $resp = Http::get($url);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            throw new \Exception('get_order_detail error: ' . ($json['message'] ?? json_encode($json)));
+        }
+        return $json['response'] ?? [];
+    }
+
+    private function getOrderList(array|PlatformAccessTokens $platform, array $params): array
+    {
+        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
+        foreach (['time_range_field', 'time_from', 'time_to', 'page_size'] as $required) {
+            if (!isset($params[$required])) {
+                throw new \Exception("get_order_list: missing param {$required}");
+            }
+        }
+
+        $host       = 'https://partner.shopeemobile.com';
+        $path       = '/api/v2/order/get_order_list';
+        $timestamp  = time();
+        $accessToken = self::getValidAccessToken($pt);
+        $partnerId  = (int) $pt['shopee_partner_id'];
+        $partnerKey = (string) $pt['shopee_partner_key'];
+        $shopId     = (int) $pt['shopee_shop_id'];
+
+        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+        $query = array_merge($params, [
+            'partner_id'   => $partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'shop_id'      => $shopId,
+            'access_token' => $accessToken,
+        ]);
+
+        $url  = $host . $path . '?' . http_build_query($query);
+        $resp = Http::get($url);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            throw new \Exception('get_order_list error: ' . ($json['message'] ?? json_encode($json)));
+        }
+        return $json['response'] ?? [];
     }
 }
