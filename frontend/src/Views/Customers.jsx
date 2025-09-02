@@ -11,11 +11,13 @@ import Button from "@mui/joy/Button";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import ModalDialog from "../Components/ModalDialog.jsx";
 import { useMediaQuery } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const BreadcrumbsPath = [{ name: "จัดการลูกค้า" }, { name: "รายละเอียด" }];
 
 export default function Customers() {
     const isMobile = useMediaQuery("(max-width:600px)");
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
