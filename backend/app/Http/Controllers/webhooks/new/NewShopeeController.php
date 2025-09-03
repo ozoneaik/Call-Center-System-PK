@@ -96,7 +96,7 @@ class NewShopeeController extends Controller
                 ];
                 $message_formatted = $this->format_message($message_req, $platform);
 
-                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform);
+                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform,2);
                 Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $push_result = $this->pushReplyMessage($filter_case, $messageId);
             } else {
