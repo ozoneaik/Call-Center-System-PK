@@ -129,8 +129,7 @@ class NewShopeeController extends Controller
         }
 
         $custKey = $buyerId ? (string) $buyerId : "SHP-CONV-" . strtoupper(substr(md5($conversationId), 0, 8));
-        // $customer = Customers::query()->where('custId', $custKey)->first();
-        $customer = Customers::query()->where('custId', $custKey)->where('platformRef', $shopeePlatform->id)->first();
+        $customer = Customers::query()->where('custId', $custKey)->first();
         if ($customer) {
             return [
                 'platform' => $shopeePlatform,
