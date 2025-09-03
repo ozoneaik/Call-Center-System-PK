@@ -416,10 +416,10 @@ class NewLazadaController extends Controller
                 $store_chat->custId = (string) $customer['custId'];
                 $store_chat->content = $message['content'];
                 $store_chat->contentType = $message['contentType'];
-                if ($filter_case_response['type_send'] === 'normal') {
+                if ($filter_case_response['type_send'] === 'normal' || $filter_case_response['type_send'] === 'present') {
                     $store_chat->sender = json_encode($filter_case_response['employee'] ?? []);
                 } else {
-                    $store_chat->sender = json_encode($filter_case_response['bot'] ?? ['name' => 'system']);
+                    $store_chat->sender = json_encode($filter_case_response['bot']);
                 }
                 $store_chat->conversationRef = $filter_case_response['ac_id'] ?? null;
                 $store_chat->line_message_id = null;
