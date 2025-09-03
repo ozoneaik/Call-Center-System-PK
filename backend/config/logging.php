@@ -154,6 +154,13 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
+        'webhook_lazada_new' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/webhook-new/lazada.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
         'webhook_shopee_new' => [
             'driver' => 'daily',
             'path' => storage_path('logs/webhook-new/shopee.log'),
