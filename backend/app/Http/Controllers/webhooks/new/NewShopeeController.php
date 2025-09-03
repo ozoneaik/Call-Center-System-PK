@@ -96,7 +96,7 @@ class NewShopeeController extends Controller
                 ];
                 $message_formatted = $this->format_message($message_req, $platform);
 
-                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform,2);
+                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform, 2);
                 Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $push_result = $this->pushReplyMessage($filter_case, $messageId);
             } else {
@@ -129,7 +129,8 @@ class NewShopeeController extends Controller
         }
 
         $custKey = $buyerId ? (string) $buyerId : "SHP-CONV-" . strtoupper(substr(md5($conversationId), 0, 8));
-        $customer = Customers::query()->where('custId', $custKey)->first();
+        // $customer = Customers::query()->where('custId', $custKey)->first();
+        $customer = Customers::query()->where('custId', $custKey)->where('platformRef', $shopeePlatform->id)->first();
         if ($customer) {
             return [
                 'platform' => $shopeePlatform,
@@ -295,7 +296,7 @@ class NewShopeeController extends Controller
                         $payText = ($cod === true) ? 'เก็บเงินปลายทาง (COD)' : ($paidAt !== '-' ? "ชำระแล้วเวลา: {$paidAt}" : '-');
 
                         $lines = [];
-                        $lines[] = "🧾 รายละเอียดคำสั่งซื้อ"; 
+                        $lines[] = "🧾 รายละเอียดคำสั่งซื้อ";
                         $lines[] = "เลขที่: {$orderSn}";
                         $lines[] = "ผู้ซื้อ: {$buyer}";
                         $lines[] = "สถานะ: {$status}";
