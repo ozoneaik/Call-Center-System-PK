@@ -422,8 +422,8 @@ class NewLazadaController extends Controller
                     $store_chat->sender = json_encode($filter_case_response['bot'] ?? ['name' => 'system']);
                 }
                 $store_chat->conversationRef = $filter_case_response['ac_id'] ?? null;
-                // $store_chat->line_message_id = $msg_id;
-                $store_chat->line_quote_token = $message['response']['data']['quote_token'] ?? null;
+                $store_chat->line_message_id = null;
+                $store_chat->line_quote_token = null;
                 $store_chat->save();
             }
             $pusherService = new PusherService();
