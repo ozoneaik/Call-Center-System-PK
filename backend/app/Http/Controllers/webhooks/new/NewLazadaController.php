@@ -413,7 +413,7 @@ class NewLazadaController extends Controller
             }
             foreach ($sent_messages as $key => $message) {
                 $store_chat = new ChatHistory();
-                $store_chat->custId = (string) $customer['custId'];
+                $store_chat->custId = $filter_case_response['customer']['custId'];
                 $store_chat->content = $message['content'];
                 $store_chat->contentType = $message['contentType'];
                 if ($filter_case_response['type_send'] === 'normal' || $filter_case_response['type_send'] === 'present') {
