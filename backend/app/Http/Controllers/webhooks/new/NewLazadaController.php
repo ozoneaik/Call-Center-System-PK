@@ -116,7 +116,7 @@ class NewLazadaController extends Controller
                         $new_customer = Customers::query()->create([
                             'custId'      => $session_id,
                             'custName'    => "LAZ-{$short_id}",
-                            'description' => "ติดต่อมาจาก " . $lp['description'],
+                            'description' => "ติดต่อมาจาก Lazada " . $lp['description'],
                             'avatar'      => null,
                             'platformRef' => $lp['id'],
                         ]);
