@@ -140,7 +140,7 @@ class NewShopeeController extends Controller
 
         $custName = $fromUserName ?: "Shopee-" . $custKey;
         $newCustomer = Customers::query()->create([
-            'custId'       => $custKey,
+            'custId'       => $custKey . "_" . $shopeePlatform->id,
             'custName'     => $custName,
             'description'  => "ติดต่อมาจาก Shopee" . $shopeePlatform->description,
             'avatar'       => null,
@@ -493,7 +493,9 @@ class NewShopeeController extends Controller
 
             $sent_messages = [];
             foreach ($messages_to_send as $msg) {
-                $toId = (int) $customer['custId'];
+                $cut_underscore_custId = $customer['custId'];
+                $cut_underscore_custId = explode("_", $cut_underscore_custId)[0];
+                $toId = (int) $cut_underscore_custId;
                 $body = array_merge(['to_id' => $toId], $msg);
 
                 $response = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $body);
