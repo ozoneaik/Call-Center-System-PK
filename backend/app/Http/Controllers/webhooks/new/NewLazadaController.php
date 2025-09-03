@@ -59,7 +59,7 @@ class NewLazadaController extends Controller
                     'template_id' => $req['data']['template_id']
                 ];
                 $message_formatted = $this->format_message($message_req, $platform);
-                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform);
+                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform,2);
                 Log::channel('webhook_lazada_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $send_message = $this->pushReplyMessage($filter_case, $msg_id);
             } else {
