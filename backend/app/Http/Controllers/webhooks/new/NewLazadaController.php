@@ -59,7 +59,7 @@ class NewLazadaController extends Controller
                     'template_id' => $req['data']['template_id']
                 ];
                 $message_formatted = $this->format_message($message_req, $platform);
-                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform,2);
+                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform, 2);
                 Log::channel('webhook_lazada_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $send_message = $this->pushReplyMessage($filter_case, $msg_id);
             } else {
@@ -228,8 +228,11 @@ class NewLazadaController extends Controller
                 }
                 $msg_formatted['contentType'] = 'order';
                 break;
+            case 200016:
+                $msg_formatted['content'] = $message_req['content']['ext']['summary'] ?? 'ลูกค้าส่งโปรโมชั่นมา';
+                $msg_formatted['contentType'] = 'text';
             default:
-                $msg_formatted['content'] = 'ส่งอย่างอื่น ไม่รู้';
+                $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : '. $message_req['template_id'];
                 $msg_formatted['contentType'] = 'text';
                 break;
         }
