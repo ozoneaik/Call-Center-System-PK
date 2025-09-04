@@ -148,6 +148,15 @@ export const TokenForm = (props) => {
         {newToken.platform === "lazada" && (
           <>
             <FormControl>
+              <FormLabel>Seller Id</FormLabel>
+              <Input required
+                name="laz_seller_id"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Seller Id"
+                value={newToken.laz_seller_id || ""}
+              />
+            </FormControl>
+            <FormControl>
               <FormLabel>App Key</FormLabel>
               <Input required
                 name="laz_app_key"
@@ -163,6 +172,26 @@ export const TokenForm = (props) => {
                 onChange={handleOnChange}
                 placeholder="กรุณากรอก App Secret"
                 value={newToken.laz_app_secret || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Refresh Token</FormLabel>
+              <Input
+                required
+                name="laz_refresh_token"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Refresh Token"
+                value={newToken.laz_refresh_token || ""}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Lazada Code</FormLabel>
+              <Input
+                required
+                name="laz_code"
+                onChange={handleOnChange}
+                placeholder="กรุณากรอก Lazada Code"
+                value={newToken.laz_code || ""}
               />
             </FormControl>
           </>

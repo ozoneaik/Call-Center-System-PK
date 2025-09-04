@@ -66,8 +66,11 @@ class TokenController extends Controller
         }
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
         if ($request->get('platform') === 'lazada') {
+            $store->laz_seller_id = $request->get('laz_seller_id');
             $store->laz_app_key = $request->get('laz_app_key');
             $store->laz_app_secret = $request->get('laz_app_secret');
+            $store->laz_refresh_token = $request->get('laz_refresh_token');
+            $store->laz_code = $request->get('laz_code');
         } else {
         }
         if ($request->get('platform') === 'shopee') {
@@ -97,8 +100,11 @@ class TokenController extends Controller
 
         // --- เพิ่มเงื่อนไขสำหรับ Lazada ---
         if ($request->get('platform') === 'lazada') {
+            $update->laz_seller_id = $request->get('laz_seller_id');
             $update->laz_app_key = $request->get('laz_app_key');
             $update->laz_app_secret = $request->get('laz_app_secret');
+            $update->laz_refresh_token = $request->get('laz_refresh_token');
+            $update->laz_code = $request->get('laz_code');
         }
         if ($request->input('platform') === 'shopee') {
             $update->shopee_partner_id = $request->input('shopee_partner_id');

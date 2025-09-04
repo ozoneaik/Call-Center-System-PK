@@ -9,6 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Lazada\LazopClient;
+use Lazada\LazopRequest;
 
 class LazadaToken extends Controller
 {
@@ -22,13 +24,56 @@ class LazadaToken extends Controller
 
     public function __construct()
     {
-        $this->appKey    = env('LAZADA_APP_KEY');
-        $this->appSecret = env('LAZADA_APP_SECRET');
+        $this->appKey    = env('LAZADA_APP_KEY_HOST');
+        $this->appSecret = env('LAZADA_APP_SECRET_HOST');
     }
 
-    /**
-     * Handle initial callback exchange code → access_token
-     */
+    public function sendMessage(Request $request)
+    {
+        $validated = $request->validate([
+            'access_token' => 'required|string',
+            'session_id'   => 'required|string',
+            'txt'          => 'required|string',
+        ]);
+
+        $appKey    = env('LAZADA_APP_KEY');
+        $appSecret = env('LAZADA_APP_SECRET');
+        $apiHost   = 'https://api.lazada.co.th/rest';
+
+        $client  = new LazopClient($apiHost, $appKey, $appSecret);
+        $requestApi = new LazopRequest('/im/message/send');
+
+        // พารามิเตอร์หลัก
+        $requestApi->addApiParam('session_id', $validated['session_id']);
+        $requestApi->addApiParam('template_id', '1');
+        $requestApi->addApiParam('txt', $validated['txt']);
+
+        // ส่ง
+        $resp = $client->execute($requestApi, $validated['access_token']);
+
+        return response()->json(json_decode($resp, true));
+    }
+
+    public function getAccessToken(Request $request)
+    {
+        $code = $request->input('code');
+        if (!$code) {
+            return response()->json(['error' => 'Code is required'], 400);
+        }
+
+        $appKey    = env('LAZADA_APP_KEY_HOST');
+        $appSecret = env('LAZADA_APP_SECRET_HOST');
+
+        $client = new LazopClient("https://auth.lazada.com/rest", $appKey, $appSecret);
+        $requestApi = new LazopRequest("/auth/token/create");
+        $requestApi->addApiParam("code", $code);
+
+        $response = $client->execute($requestApi);
+        $data = json_decode($response, true);
+
+        return response()->json($data);
+    }
+
     public function handleCallback(Request $request)
     {
         $code = $request->input('code');
@@ -75,9 +120,6 @@ class LazadaToken extends Controller
         }
     }
 
-    /**
-     * Refresh access token
-     */
     public function refreshToken(Request $request)
     {
         $refreshToken = $request->input('refresh_token');
@@ -106,9 +148,6 @@ class LazadaToken extends Controller
         }
     }
 
-    /**
-     * Refresh token logic (ย้ายมาจาก Service)
-     */
     private function refreshAccessToken(string $refreshToken): ?array
     {
         $timestamp = round(microtime(true) * 1000);
@@ -145,9 +184,6 @@ class LazadaToken extends Controller
         }
     }
 
-    /**
-     * Signature generator
-     */
     private function generateLazadaSignature(array $params, string $appSecret, string $apiPath): string
     {
         ksort($params);
@@ -160,9 +196,6 @@ class LazadaToken extends Controller
         return strtoupper(hash_hmac('sha256', $signString, $appSecret));
     }
 
-    /**
-     * ตรวจสอบ token expiry
-     */
     public function checkTokenExpiry(string $seller_id): JsonResponse
     {
         $token = LazadaAccessToken::where('seller_id', $seller_id)->first();
@@ -205,9 +238,6 @@ class LazadaToken extends Controller
         return $daysLeft;
     }
 
-    /**
-     * Save token ลง DB
-     */
     private function saveToken(array $tokenData)
     {
         $sellerId = null;

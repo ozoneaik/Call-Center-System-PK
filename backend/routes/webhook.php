@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\webhooks\LazadaToken;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
@@ -26,17 +27,23 @@ Route::prefix('webhook-new')->group(function () {
 
     // สำหรับ Lazada
     Route::prefix('lazada')->group(function () {
-        // Route::get('/', [LazadaController::class, 'webhook']);
         Route::post('/', [NewLazadaController::class, 'webhook']);
-        Route::post('/refresh-token', [NewLazadaController::class, 'refreshToken']);
+
+        Route::post('/auth', [LazadaToken::class, 'getAccessToken']);
+
+        Route::post('/refresh-token', [LazadaToken::class, 'refreshToken']);
+        Route::post('/send-message', [LazadaToken::class, 'sendMessage']); //สำหรับทดสอบเฉยๆ
     });
 
     // สำหรับ Shopee
     Route::prefix('shopee')->group(function () {
-        // Route::post('/', [ShopeeController::class, 'webhook']);
+        Route::post('/', [NewShopeeController::class, 'webhooks']);
+        Route::post('/verify', [NewShopeeController::class, 'verify']);
+
         Route::get('/', [ShopeeController::class, 'index']);
-        Route::get('/auth', [ShopeeController::class, 'authorization']);
-        Route::post('/', [NewShopeeController::class,'webhooks']);
+        Route::post('/refresh-token', [ShopeeController::class, 'refreshToken']);
+
+        Route::post('/auth', [ShopeeController::class, 'authorization']);
     });
 
     // สำหรับ Test

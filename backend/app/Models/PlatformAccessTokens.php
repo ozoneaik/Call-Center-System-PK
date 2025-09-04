@@ -17,11 +17,16 @@ class PlatformAccessTokens extends Model
         'accessToken',
         'description',
         'platform',
+        'room_default_id',
+
+        'laz_seller_id',
         'laz_app_key',
         'laz_app_secret',
+        'laz_refresh_token',
+        'laz_code',
+
         'fb_page_id',
         'fb_verify_token',
-        'room_default_id',
 
         'shopee_partner_id',
         'shopee_partner_key',
@@ -29,7 +34,7 @@ class PlatformAccessTokens extends Model
         'shopee_refresh_token',
         'shopee_code',
 
-        'expire_at'
+        'expire_at',
     ];
 
     protected $dates = [

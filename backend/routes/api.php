@@ -251,3 +251,8 @@ require __DIR__ . '/test_only.php';
 require __DIR__ . '/webhook.php';
 
 Route::get('report', [ReportController::class, 'index']);
+Route::get('testt', function(){
+    Log::channel('webhook_lazada_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
+    echo 'hello';
+});
+
