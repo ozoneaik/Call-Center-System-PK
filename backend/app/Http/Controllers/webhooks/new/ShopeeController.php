@@ -165,8 +165,8 @@ class ShopeeController extends Controller
     public function __construct()
     {
         $this->host      = config('shopee.base_url', env('SHOPEE_HOST', 'https://partner.shopeemobile.com'));
-        $this->partnerId = (string) env('SHOPEE_PARTNER_ID');
-        $this->partnerKey = (string) env('SHOPEE_PARTNER_KEY');
+        $this->partnerId = (string) env('SHOPEE_PARTNER_ID_TEST');
+        $this->partnerKey = (string) env('SHOPEE_PARTNER_KEY_TEST');
     }
 
     public function index()
