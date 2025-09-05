@@ -994,7 +994,7 @@ class NewShopeeController extends Controller
                         $detail = $this->getOrderDetail(
                             $snList,
                             $platform,
-                            'buyer_user_id,buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time'
+                            'buyer_user_id,buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time,cancel_reason,buyer_cancel_reason,cancel_by'
                         );
                     } catch (\Throwable $e) {
                         Log::channel('webhook_shopee_new')->error('getOrderDetail fail (chunk)', [
@@ -1051,11 +1051,27 @@ class NewShopeeController extends Controller
         try {
             $orders = $this->getOrdersByBuyer($platform, $buyerId, $buyerUsername, $daysBack, $status, $timeField);
 
+            $withDetail = (string)$request->query('with_detail', '0') === '1'
+                || (string)$request->query('with_invoice', '0') === '1';
+
+            if ($withDetail && !empty($orders)) {
+                $sns = array_values(array_filter(array_map(fn($o) => $o['order_sn'] ?? null, $orders)));
+                if (!empty($sns)) {
+                    $invoiceMap = $this->getBuyerInvoiceInfo($platform, $sns);
+                    foreach ($orders as &$od) {
+                        $sn = $od['order_sn'] ?? null;
+                        if ($sn && isset($invoiceMap[$sn])) {
+                            $od['invoice'] = $invoiceMap[$sn];
+                        }
+                    }
+                    unset($od);
+                }
+            }
+
             $summary = array_map(function ($od) {
                 return [
                     'order_sn'       => $od['order_sn'] ?? null,
                     'status'         => $od['order_status'] ?? null,
-                    // แสดงทั้งสองค่าเพื่อความชัดเจน
                     'buyer_user_id'  => $od['buyer_user_id'] ?? null,
                     'buyer_username' => $od['buyer_username'] ?? null,
                     'total'          => $od['total_amount'] ?? null,
@@ -1063,7 +1079,12 @@ class NewShopeeController extends Controller
                     'create_time'    => $od['create_time'] ?? null,
                     'update_time'    => $od['update_time'] ?? null,
                     'pay_time'       => $od['pay_time'] ?? null,
+                    'cancel_reason'  => $od['cancel_reason'] ?? null,
+                    'buyer_cancel_reason' => $od['buyer_cancel_reason'] ?? null,
+                    'cancel_by'      => $od['cancel_by'] ?? null,
                     'items_count'    => isset($od['item_list']) ? count($od['item_list']) : 0,
+                    'invoice_type'      => $od['invoice']['invoice_type'] ?? null,
+                    'invoice_requested' => (bool)($od['invoice']['is_requested'] ?? false),
                 ];
             }, $orders);
 
@@ -1117,11 +1138,84 @@ class NewShopeeController extends Controller
 
         return response()->json([
             'ok'                => true,
-            'platform'          => $pt->platform,              
+            'platform'          => $pt->platform,
             'platform_token_id' => $pt->id,
             'shopee_shop_id'    => $pt->shopee_shop_id ? (int)$pt->shopee_shop_id : null,
-            'shop_name'         => $pt->description,           
-            'customer_name'     => $cust->custName ?? null,    
+            'shop_name'         => $pt->description,
+            'customer_name'     => $cust->custName ?? null,
         ]);
+    }
+
+    private function getBuyerInvoiceInfo(array|PlatformAccessTokens $platform, array $orderSnList): array
+    {
+        if (empty($orderSnList)) return [];
+
+        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
+
+        $host        = 'https://partner.shopeemobile.com';
+        $path        = '/api/v2/order/get_buyer_invoice_info';
+        $timestamp   = time();
+        $accessToken = self::getValidAccessToken($pt);
+        $partnerId   = (int) $pt['shopee_partner_id'];
+        $partnerKey  = (string) $pt['shopee_partner_key'];
+        $shopId      = (int) $pt['shopee_shop_id'];
+
+        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+        $url = $host . $path . '?' . http_build_query([
+            'partner_id'   => $partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'shop_id'      => $shopId,
+            'access_token' => $accessToken,
+        ]);
+
+        $payload = [
+            'queries' => array_map(fn($sn) => ['order_sn' => $sn], array_values(array_unique($orderSnList))),
+        ];
+
+        $resp = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $payload);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            Log::channel('webhook_shopee_new')->warning('get_buyer_invoice_info fail', ['resp' => $json]);
+            return [];
+        }
+
+        $out = [];
+        foreach (($json['invoice_info_list'] ?? []) as $it) {
+            $sn     = $it['order_sn'] ?? null;
+            if (!$sn) continue;
+            $type   = $it['invoice_type'] ?? '';
+            $detail = $it['invoice_detail'] ?? [];
+            $isReq  = $it['is_requested'] ?? false;
+            $err    = $it['error'] ?? '';
+            if ($err === 'receipt settings not found') {
+                $displayName = $type === 'company'
+                    ? ($detail['company_name'] ?? null)
+                    : ($detail['name'] ?? null);
+
+                $displayTax = $type === 'company'
+                    ? ($detail['company_tax_id'] ?? null)
+                    : ($detail['tax_id'] ?? null);
+
+                $displayAddr =
+                    data_get($detail, 'address_breakdown.full_address') ??
+                    ($detail['id_card_address'] ?? null) ??
+                    ($detail['address'] ?? null) ??
+                    ($detail['company_full_address'] ?? null);
+
+                $out[$sn] = [
+                    'invoice_type'     => $type,
+                    'is_requested'     => $isReq,
+                    'error'            => $err,
+                    'detail'           => $detail,
+                    'display_name'     => $displayName,
+                    'display_tax_id'   => $displayTax,
+                    'display_address'  => $displayAddr,
+                ];
+            }
+        }
+        return $out;
     }
 }

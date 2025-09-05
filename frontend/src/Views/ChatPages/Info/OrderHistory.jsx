@@ -94,6 +94,7 @@ export default function OrderHistory({
             return `${num} ${currency}`;
         }
     };
+    
     const fmtDateTime = (ts) =>
         ts
             ? new Date(ts * 1000).toLocaleString("th-TH", {
@@ -122,15 +123,18 @@ export default function OrderHistory({
             const r = (it.reason_detail || it.reason || "").trim();
             if (r) pool.push(r);
         }
-        // unique
         return [...new Set(pool)];
+    };
+
+    const getCancelReasonShopee = (od) => {
+        if (!od) return null;
+        return od.cancel_reason || od.buyer_cancel_reason || null;
     };
 
     const isCanceled = (st) => String(st || "").toUpperCase().includes("CANCEL");
     const copy = (t) => navigator.clipboard?.writeText(t).catch(() => { });
 
     const getRecipient = (od) => {
-        // Shopee shape
         const r = od?.recipient_address;
         if (r) {
             const parts = [r.full_address, r.town, r.district, r.city, r.state, r.zipcode].filter(Boolean);
@@ -140,7 +144,6 @@ export default function OrderHistory({
                 address: parts.length ? parts.join(" ") : "-",
             };
         }
-        // Lazada ที่ normalize มาแบบ summary รายออเดอร์ (หาก backend เติมมา)
         if (od?.customer || od?.shipping_address) {
             return {
                 name: od.customer?.name || "-",
@@ -151,7 +154,6 @@ export default function OrderHistory({
         return null;
     };
 
-    // ใช้เฉพาะ Shopee สำหรับ product URL
     const regionHost = (region) => {
         switch ((region || "TH").toUpperCase()) {
             case "SG": return "shopee.sg";
@@ -177,7 +179,6 @@ export default function OrderHistory({
                     <RefreshIcon />
                 </IconButton>
             </Box>
-
             {!ready && (
                 <Typography level="body-sm" color="neutral">กำลังเตรียมข้อมูล…</Typography>
             )}
@@ -200,7 +201,6 @@ export default function OrderHistory({
                     <Typography level="body-sm" sx={{ mb: 1 }}>
                         ทั้งหมด {resp.count ?? rows.length} รายการ • แสดง {shown.length}/{rows.length}
                     </Typography>
-
                     {shown.map((s) => {
                         const od = s._detail || {};
                         const items = od.item_list || [];
@@ -209,8 +209,6 @@ export default function OrderHistory({
                                 s.pay_time ? `ชำระแล้ว: ${fmtDateTime(s.pay_time)}` : "—";
                         const host = platform === "shopee" ? regionHost(od.region) : null;
                         const recipient = getRecipient(od);
-                        const reasons = getCancelReasons(od);
-                        const orderId = s.order_id || od.order_id || null;
                         const buyerIdView =
                             s.buyer_id
                             || (od.item_list || []).find(it => it?.buyer_id)?.buyer_id
@@ -222,6 +220,7 @@ export default function OrderHistory({
                                     .filter(Boolean)
                             )
                         ];
+                        const invoice = od.invoice || null;
                         return (
                             <Sheet key={s.order_sn} variant="plain" sx={{ p: 1, borderRadius: "md", mb: 1 }}>
                                 {/* Header */}
@@ -253,13 +252,12 @@ export default function OrderHistory({
                                         level="body-xs"
                                         color="danger"
                                         sx={{ mt: -0.5, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                                        title={`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od.cancel_time ?? s.update_time)}${reasons.length ? ` • เหตุผล: ${reasons.join(" • ")}` : ""}`}
                                     >
                                         {`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od.cancel_time ?? s.update_time)}`}
-                                        {reasons.length > 0 ? ` • เหตุผล: ${reasons.join(" • ")}` : ""}
+                                        {getCancelReasons(od).length > 0 ? ` • เหตุผล: ${getCancelReasons(od).join(" • ")}` : ""}
+                                        {getCancelReasonShopee(od) ? ` • เหตุผล: ${getCancelReasonShopee(od)}` : ""}
                                     </Typography>
                                 )}
-
                                 {openDetail[s.order_sn] && (
                                     <Sheet variant="soft" sx={{ p: 1, borderRadius: "sm", mt: 1 }}>
                                         {recipient ? (
@@ -269,11 +267,6 @@ export default function OrderHistory({
                                                     color="neutral"
                                                     sx={{ mt: 0.25, mb: 0.5, display: "flex", gap: 1, flexWrap: "wrap" }}
                                                 >
-                                                    {/* {orderId ? (
-                                                        <span>
-                                                            order_id: <b style={{ fontFamily: "monospace" }}>{String(orderId)}</b>
-                                                        </span>
-                                                    ) : null} */}
                                                     {buyerIdView ? (
                                                         <span>
                                                             <b>buyer_id: </b>{String(buyerIdView)}
@@ -293,7 +286,34 @@ export default function OrderHistory({
                                                 <Typography level="body-sm" sx={{ whiteSpace: "pre-wrap" }}>
                                                     <b>ที่อยู่:</b> {recipient.address}
                                                 </Typography>
-
+                                                {invoice && (
+                                                    <>
+                                                        <Divider sx={{ my: 1 }} />
+                                                        <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                                                            <b>ใบกำกับภาษี:</b>{" "}
+                                                            {invoice.not_requested
+                                                                ? "ไม่มีคำขอ"
+                                                                : invoice.invoice_type === "company"
+                                                                    ? "นิติบุคคล"
+                                                                    : invoice.invoice_type === "personal"
+                                                                        ? "บุคคลธรรมดา"
+                                                                        : "—"}
+                                                        </Typography>
+                                                        {invoice.not_requested ? (
+                                                            <Typography level="body-xs" color="neutral">
+                                                                ลูกค้าไม่ได้ร้องขอใบกำกับภาษีสำหรับออเดอร์นี้
+                                                            </Typography>
+                                                        ) : (
+                                                            (invoice.display_name || invoice.display_tax_id || invoice.display_address) && (
+                                                                <Typography level="body-xs" color="neutral" sx={{ whiteSpace: "pre-wrap" }}>
+                                                                    {invoice.display_name ? `ชื่อ/บริษัท: ${invoice.display_name}\n` : ""}
+                                                                    {invoice.display_tax_id ? `เลขภาษี: ${invoice.display_tax_id}\n` : ""}
+                                                                    {invoice.display_address ? `ที่อยู่: ${invoice.display_address}` : ""}
+                                                                </Typography>
+                                                            )
+                                                        )}
+                                                    </>
+                                                )}
                                             </>
                                         ) : (
                                             <Typography level="body-sm" color="neutral">
