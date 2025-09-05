@@ -52,7 +52,7 @@ export default function Info(props) {
 
     const buyerId = parseBuyerId(sender?.custId);
     const buyerUsername = sender?.custName;
-    const API_BASE = "https://dev2api.pumpkin-th.com";
+    const API_BASE = import.meta.env.VITE_BACKEND_URL;
 
     useEffect(() => {
         setOpenOrdersModal(false);
@@ -63,7 +63,6 @@ export default function Info(props) {
             }
             setPlatformInfo(s => ({ ...s, loading: true, error: "" }));
             try {
-                // 1) ลอง Shopee
                 const u1 = `${API_BASE}/api/webhook-new/shopee/resolve-platform?cust_id=${encodeURIComponent(sender.custId)}`;
                 let r = await fetch(u1, { headers: { Accept: "application/json" } });
                 let j = await r.json();
@@ -79,8 +78,6 @@ export default function Info(props) {
                     });
                     return;
                 }
-
-                // 2) ลอง Lazada
                 const u2 = `${API_BASE}/api/webhook-new/lazada/resolve-platform?cust_id=${encodeURIComponent(sender.custId)}`;
                 r = await fetch(u2, { headers: { Accept: "application/json" } });
                 j = await r.json();
@@ -90,13 +87,12 @@ export default function Info(props) {
                         platform: "lazada",
                         shopId: null,
                         sellerId: j.seller_id ?? null,
-                        shopName: j.shop_name ?? null,         // ใช้ description เป็นชื่อร้านได้
+                        shopName: j.shop_name ?? null,
                         customerName: j.customer_name ?? sender?.custName ?? null,
                         error: ""
                     });
                     return;
                 }
-
                 setPlatformInfo({
                     loading: false,
                     platform: "unknown",
@@ -218,12 +214,6 @@ export default function Info(props) {
                                     pageSize={5}
                                 />
                             </Suspense>
-                        </Box>
-
-                        <Box sx={{ p: 1.5, display: "flex", gap: 1, justifyContent: "flex-end", borderTop: "1px solid", borderColor: "divider" }}>
-                            <Button variant="plain" color="neutral" onClick={() => setOpenOrdersModal(false)}>
-                                ปิด
-                            </Button>
                         </Box>
                     </DialogContent>
                 </ModalDialog>

@@ -5,6 +5,7 @@ import {
 } from "@mui/joy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import Snackbar from "@mui/joy/Snackbar";
 
 export default function OrderHistory({
     visible = false,
@@ -29,6 +30,7 @@ export default function OrderHistory({
     const [error, setError] = useState("");
     const [page, setPage] = useState(1);
     const [openDetail, setOpenDetail] = useState({});
+    const [snackbar, setSnackbar] = useState("");
     const ready = useMemo(() => {
         if (platform === "shopee") return !!shopId && (!!buyerId || !!buyerUsername);
         if (platform === "lazada") return !!sessionId;
@@ -94,7 +96,7 @@ export default function OrderHistory({
             return `${num} ${currency}`;
         }
     };
-    
+
     const fmtDateTime = (ts) =>
         ts
             ? new Date(ts * 1000).toLocaleString("th-TH", {
@@ -132,8 +134,16 @@ export default function OrderHistory({
     };
 
     const isCanceled = (st) => String(st || "").toUpperCase().includes("CANCEL");
-    const copy = (t) => navigator.clipboard?.writeText(t).catch(() => { });
-
+    // const copy = (t) => navigator.clipboard?.writeText(t).catch(() => { });
+    const copy = (t) => {
+        navigator.clipboard?.writeText(t).then(() => {
+            setSnackbar("คัดลอกแล้ว: " + t);
+            setTimeout(() => setSnackbar(""), 2000);
+        }).catch(() => {
+            setSnackbar("ไม่สามารถคัดลอกได้");
+            setTimeout(() => setSnackbar(""), 2000);
+        });
+    };
     const getRecipient = (od) => {
         const r = od?.recipient_address;
         if (r) {
@@ -170,6 +180,15 @@ export default function OrderHistory({
 
     return (
         <Sheet variant="soft" sx={{ p: 1.5, borderRadius: "xl" }}>
+            {snackbar && (
+                <Snackbar
+                    open
+                    color="success"
+                    anchorOrigin={{ vertical: "top", horizontal: "center" }}
+                >
+                    {snackbar}
+                </Snackbar>
+            )}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <Typography level="h5">
                     {platform === "shopee" ? "ประวัติออเดอร์ Shopee" : "ประวัติออเดอร์ Lazada"}
