@@ -172,11 +172,66 @@ class NewLazadaController extends Controller
                 $msg_formatted['content'] = $pf_json ?? 'ส่งตะหร้า';
                 $msg_formatted['contentType'] = 'product';
                 break;
+            // case 10007:
+            //     $orderId = $message_req['content']['orderId'] ?? null;
+            //     $iconUrlFromMsg   = $message_req['content']['iconUrl']   ?? null;
+            //     Log::channel('webhook_lazada_new')->info("🚀 template_id=10007, เตรียมดึง Order", [
+            //         'orderId' => $orderId
+            //     ]);
+
+            //     if ($orderId) {
+            //         $orderDetail = $this->getOrderDetail($orderId, $platform);
+            //         $orderItems  = $this->getOrderItems($orderId, $platform);
+            //         $timeline    = $this->getLogisticTrace($orderId, $platform);
+
+            //         if ($orderDetail) {
+            //             $text  = "📦 คำสั่งซื้อ #{$orderDetail['order_number']}\n";
+            //             $text .= "🗓️ วันที่: {$orderDetail['created_at']}\n";
+            //             $text .= "📌 สถานะ: {$orderDetail['status']}\n";
+            //             $text .= "💳 ชำระเงิน: {$orderDetail['payment_method']}\n";
+            //             $text .= "🛒 จำนวนสินค้า: {$orderDetail['items_count']}\n";
+            //             $text .= "💰 รวมสุทธิ: {$orderDetail['total_amount']} บาท\n";
+            //             $text .= "👤 ผู้รับ: {$orderDetail['customer']['name']} ({$orderDetail['customer']['phone']})\n";
+            //             $text .= "📍 ที่อยู่: {$orderDetail['shipping_address']}\n\n";
+
+            //             if (!empty($orderItems)) {
+            //                 $text .= "🔎 รายการสินค้า:\n";
+            //                 foreach ($orderItems as $i => $item) {
+            //                     $text .= ($i + 1) . ". {$item['name']} ";
+            //                     $text .= "(SKU: {$item['sku']}) ";
+            //                     $text .= "x{$item['qty']} - {$item['price']} บาท\n\n";
+            //                 }
+            //             } else {
+            //                 $text .= "\n";
+            //             }
+
+            //             if (!empty($timeline)) {
+            //                 $text .= "🚚 ติดตามสถานะ (Tracking):\n";
+            //                 $trackingNo = $timeline[0]['tracking_no'] ?? '';
+            //                 if ($trackingNo) {
+            //                     $text .= "📦 Tracking No: {$trackingNo}\n";
+            //                 }
+            //                 foreach ($timeline as $t) {
+            //                     $time  = $t['time'] ?? '-';
+            //                     $title = $t['title'] ?? '';
+            //                     $text .= "- {$time}: {$title}\n";
+            //                 }
+            //             } else {
+            //                 $text .= "🚚 ยังไม่มีข้อมูลการจัดส่ง";
+            //             }
+
+            //             $msg_formatted['content'] = $text;
+            //         } else {
+            //             $msg_formatted['content'] = "⚠️ ไม่สามารถดึงรายละเอียด Order {$orderId} ได้";
+            //         }
+            //     } else {
+            //         $msg_formatted['content'] = '⚠️ ไม่พบ orderId';
+            //     }
+            //     $msg_formatted['contentType'] = 'order';
+            //     break;
             case 10007:
                 $orderId = $message_req['content']['orderId'] ?? null;
-                Log::channel('webhook_lazada_new')->info("🚀 template_id=10007, เตรียมดึง Order", [
-                    'orderId' => $orderId
-                ]);
+                Log::channel('webhook_lazada_new')->info("🚀 template_id=10007, เตรียมดึง Order", ['orderId' => $orderId]);
 
                 if ($orderId) {
                     $orderDetail = $this->getOrderDetail($orderId, $platform);
@@ -184,9 +239,40 @@ class NewLazadaController extends Controller
                     $timeline    = $this->getLogisticTrace($orderId, $platform);
 
                     if ($orderDetail) {
+                        // ✅ หาเหตุผลยกเลิกจาก item แรกที่มี reason/ reason_detail
+                        $cancelReason = null;
+                        $cancelDetail = null;
+                        foreach ($orderItems as $it) {
+                            if (!empty($it['reason']) || !empty($it['reason_detail'])) {
+                                $cancelReason = $it['reason'] ?? null;
+                                $cancelDetail = $it['reason_detail'] ?? null;
+                                break;
+                            }
+                        }
+                        $canceledAt = $orderDetail['canceled_at'] ?? null;
+
+                        // LOG ให้เห็นชัด
+                        if (stripos((string)$orderDetail['status'], 'cancel') !== false) {
+                            Log::channel('webhook_lazada_new')->info('❌ Cancel Info', [
+                                'order_id'     => $orderId,
+                                'status'       => $orderDetail['status'],
+                                'canceled_at'  => $canceledAt,
+                                'reason'       => $cancelReason,
+                                'reason_detail' => $cancelDetail,
+                            ]);
+                        }
+
                         $text  = "📦 คำสั่งซื้อ #{$orderDetail['order_number']}\n";
                         $text .= "🗓️ วันที่: {$orderDetail['created_at']}\n";
                         $text .= "📌 สถานะ: {$orderDetail['status']}\n";
+                        if (stripos((string)$orderDetail['status'], 'cancel') !== false) {
+                            if ($canceledAt) {
+                                $text .= "❌ ยกเลิกเมื่อ: {$canceledAt}\n";
+                            }
+                            if ($cancelReason || $cancelDetail) {
+                                $text .= "📝 เหตุผล: " . trim($cancelDetail ?: $cancelReason) . "\n";
+                            }
+                        }
                         $text .= "💳 ชำระเงิน: {$orderDetail['payment_method']}\n";
                         $text .= "🛒 จำนวนสินค้า: {$orderDetail['items_count']}\n";
                         $text .= "💰 รวมสุทธิ: {$orderDetail['total_amount']} บาท\n";
@@ -196,20 +282,15 @@ class NewLazadaController extends Controller
                         if (!empty($orderItems)) {
                             $text .= "🔎 รายการสินค้า:\n";
                             foreach ($orderItems as $i => $item) {
-                                $text .= ($i + 1) . ". {$item['name']} ";
-                                $text .= "(SKU: {$item['sku']}) ";
-                                $text .= "x{$item['qty']} - {$item['price']} บาท\n\n";
+                                $text .= ($i + 1) . ". {$item['name']} (SKU: {$item['sku']}) x{$item['qty']} - {$item['price']} บาท\n";
                             }
-                        } else {
                             $text .= "\n";
                         }
 
                         if (!empty($timeline)) {
                             $text .= "🚚 ติดตามสถานะ (Tracking):\n";
                             $trackingNo = $timeline[0]['tracking_no'] ?? '';
-                            if ($trackingNo) {
-                                $text .= "📦 Tracking No: {$trackingNo}\n";
-                            }
+                            if ($trackingNo) $text .= "📦 Tracking No: {$trackingNo}\n";
                             foreach ($timeline as $t) {
                                 $time  = $t['time'] ?? '-';
                                 $title = $t['title'] ?? '';
@@ -232,7 +313,7 @@ class NewLazadaController extends Controller
                 $msg_formatted['content'] = $message_req['content']['ext']['summary'] ?? 'ลูกค้าส่งโปรโมชั่นมา';
                 $msg_formatted['contentType'] = 'text';
             default:
-                $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : '. $message_req['template_id'];
+                $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : ' . $message_req['template_id'];
                 $msg_formatted['contentType'] = 'text';
                 break;
         }
@@ -585,7 +666,7 @@ class NewLazadaController extends Controller
                 $summary = [
                     'order_number'   => $data['order_number'] ?? $orderId,
                     'created_at'     => $data['created_at'] ?? null,
-                    'status'         => $data['statuses'][0] ?? '-',
+                    'status'         => $data['statuses'][0] ?? ($data['status'] ?? '-'),
                     'payment_method' => $data['payment_method'] ?? '-',
                     'items_count'    => $data['items_count'] ?? 0,
                     'total_amount'   => (float)($data['price'] ?? 0) + (float)($data['shipping_fee'] ?? 0),
@@ -600,6 +681,10 @@ class NewLazadaController extends Controller
                             ($data['address_shipping']['city'] ?? '') . ' ' .
                             ($data['address_shipping']['post_code'] ?? '')
                     ),
+
+                    'canceled_at' => $data['canceled_at']
+                        ?? $data['cancel_time']
+                        ?? null,
                 ];
 
                 Log::channel('webhook_lazada_new')->info("✅ สรุป Order", $summary);
@@ -631,15 +716,65 @@ class NewLazadaController extends Controller
 
             if (isset($result['code']) && $result['code'] == '0') {
                 $items = $result['data'] ?? [];
-                return collect($items)->map(function ($item, $idx) {
+
+                $normalized = collect($items)->map(function ($item) {
+                    $imageUrl  = $item['product_main_image']
+                        ?? $item['sku_image']
+                        ?? $item['image']
+                        ?? $item['item_image']
+                        ?? null;
+
+                    $actionUrl = $item['product_detail_url']
+                        ?? $item['product_url']
+                        ?? $item['detail_url']
+                        ?? null;
+
+                    $productId = $item['product_id'] ?? null;
+                    $itemId    = $item['order_item_id'] ?? $item['item_id'] ?? null;
+
                     return [
-                        'name'   => $item['name'] ?? '',
-                        'sku'    => $item['sku'] ?? '',
-                        'status' => $item['status'] ?? '',
-                        'qty'    => $item['quantity'] ?? 1,
-                        'price'  => $item['paid_price'] ?? 0,
+                        'name'        => $item['name'] ?? '',
+                        'sku'         => $item['sku'] ?? '',
+                        'status'      => $item['status'] ?? '',
+                        'qty'         => isset($item['quantity']) ? (int)$item['quantity'] : 1,
+                        'price'       => isset($item['paid_price']) ? (float)$item['paid_price'] : 0.0,
+
+                        'image_url'   => $imageUrl,
+                        'action_url'  => $actionUrl,
+
+                        'product_id'  => $productId,
+                        'item_id'     => $itemId,
+
+                        'reason'            => $item['reason'] ?? null,
+                        'reason_detail'     => $item['reason_detail'] ?? null,
+                        'supply_price'      => isset($item['supply_price']) ? (float)$item['supply_price'] : null,
+                        'shipping_type'     => $item['shipping_type'] ?? null,
+                        'shipment_provider' => $item['shipment_provider'] ?? null,
+                        'shop_sku'          => $item['shop_sku'] ?? null,
+                        'sku_id'            => $item['sku_id'] ?? null,
+                        'tracking_code_pre' => $item['tracking_code_pre'] ?? null,
+                        'buyer_id'          => $item['buyer_id'] ?? null,
+                        'tax_amount'        => isset($item['tax_amount']) ? (float)$item['tax_amount'] : null,
                     ];
                 })->toArray();
+
+                $reasons = [];
+                foreach ($normalized as $it) {
+                    if (!empty($it['reason']) || !empty($it['reason_detail'])) {
+                        $reasons[] = [
+                            'sku'           => $it['sku'] ?? null,
+                            'reason'        => $it['reason'] ?? null,
+                            'reason_detail' => $it['reason_detail'] ?? null,
+                        ];
+                    }
+                }
+                Log::channel('webhook_lazada_new')->info('🧾 getOrderItems', [
+                    'order_id'    => $orderId,
+                    'items_count' => count($normalized),
+                    'reasons'     => $reasons,
+                ]);
+
+                return $normalized;
             }
             return [];
         } catch (\Throwable $e) {
@@ -794,5 +929,294 @@ class NewLazadaController extends Controller
             'body'   => $response->body(),
         ]);
         return null;
+    }
+
+    private function parseSellerIdFromSession(string $sessionId): ?string
+    {
+        if ($sessionId === '') return null;
+        $parts = explode('_', $sessionId);
+        return $parts[0] ?? null;
+    }
+
+    private function getPlatformBySellerId(?string $sellerId): ?PlatformAccessTokens
+    {
+        if (!$sellerId) return null;
+        return PlatformAccessTokens::query()
+            ->where('platform', 'lazada')
+            ->where('laz_seller_id', $sellerId)
+            ->first();
+    }
+
+    private function ensureCustomerPlatformRef(Customers $customer, PlatformAccessTokens $platform): void
+    {
+        if ((int)$customer->platformRef !== (int)$platform->id) {
+            $customer->platformRef = $platform->id;
+            $customer->save();
+        }
+    }
+
+    public function resolvePlatform(Request $request)
+    {
+        $custId = (string) $request->query('cust_id', '');
+        if ($custId === '') {
+            return response()->json(['ok' => false, 'message' => 'cust_id is required'], 422);
+        }
+
+        $customer = Customers::query()->where('custId', $custId)->first();
+        if (!$customer) {
+            return response()->json(['ok' => false, 'message' => 'customer not found'], 404);
+        }
+
+        $platform = PlatformAccessTokens::query()
+            ->where('platform', 'lazada')
+            ->where('id', $customer->platformRef)
+            ->first();
+
+        if (!$platform) {
+            $sellerId = $this->parseSellerIdFromSession($custId);
+            $platform = $this->getPlatformBySellerId($sellerId);
+            if ($platform) {
+                $this->ensureCustomerPlatformRef($customer, $platform);
+            }
+        }
+
+        if (!$platform) {
+            return response()->json(['ok' => true, 'platform' => 'unknown']);
+        }
+
+        $platform = $this->refreshAccessTokenIfNeeded($platform);
+
+        return response()->json([
+            'ok'            => true,
+            'platform'      => 'lazada',
+            'seller_id'     => $platform->laz_seller_id,
+            'shop_name'     => $platform->description,
+            'customer_name' => $customer->custName,
+        ]);
+    }
+
+    public function ordersBySession(Request $request)
+    {
+        $sessionId = (string) $request->query('session_id', '');
+        if ($sessionId === '') {
+            return response()->json(['ok' => false, 'message' => 'session_id is required'], 422);
+        }
+        $daysBack  = max(1, (int) $request->query('days_back', 90));
+        $status    = $request->query('status');
+        $timeField = $request->query('time_field', 'update_time');
+
+        $customer = Customers::query()->where('custId', $sessionId)->first();
+        if (!$customer) {
+            return response()->json(['ok' => false, 'message' => 'customer not found'], 404);
+        }
+
+        $platform = PlatformAccessTokens::query()
+            ->where('platform', 'lazada')
+            ->where('id', $customer->platformRef)
+            ->first();
+
+        if (!$platform) {
+            $sellerId = $this->parseSellerIdFromSession($sessionId);
+            $platform = $this->getPlatformBySellerId($sellerId);
+            if ($platform) {
+                $this->ensureCustomerPlatformRef($customer, $platform);
+            }
+        }
+
+        if (!$platform) {
+            return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
+        }
+
+        $platform = $this->refreshAccessTokenIfNeeded($platform);
+
+        try {
+            $orders = $this->getOrdersBySessionLazada($platform, $daysBack, $status, $timeField);
+
+            $summary = array_map(function ($od) {
+                return [
+                    'order_sn'     => $od['order_sn'] ?? null,
+                    'order_id'     => $od['order_id'] ?? null,
+                    'buyer_id'     => $od['buyer_id'] ?? null,
+                    'status'       => $od['order_status'] ?? null,
+                    'total'        => $od['total_amount'] ?? null,
+                    'currency'     => $od['currency'] ?? 'THB',
+                    'create_time'  => $od['create_time'] ?? null,
+                    'update_time'  => $od['update_time'] ?? null,
+                    'pay_time'     => $od['pay_time'] ?? null,
+                    'cancel_time'  => $od['cancel_time'] ?? null,
+                    'items_count'  => isset($od['item_list']) ? count($od['item_list']) : 0,
+                ];
+            }, $orders);
+
+            return response()->json([
+                'ok'       => true,
+                'platform' => 'lazada',
+                'count'    => count($orders),
+                'summary'  => $summary,
+                'orders'   => $orders,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error('ordersBySession error', ['error' => $e->getMessage()]);
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function getOrdersBySessionLazada($platform, int $daysBack, ?string $status, string $timeField = 'update_time'): array
+    {
+        $host   = 'https://api.lazada.co.th/rest';
+        $client = new LazopClient($host, $platform['laz_app_key'], $platform['laz_app_secret']);
+        $access = $platform['accessToken'];
+
+        $to   = time();
+        $from = $to - ($daysBack * 86400);
+
+        $status    = (is_string($status) && strtoupper($status) === 'ALL') ? null : $status;
+        $timeField = in_array($timeField, ['update_time', 'create_time'], true) ? $timeField : 'update_time';
+
+        $ordersNorm = [];
+        foreach ($this->splitTimeWindows($from, $to, 15) as [$wFrom, $wTo]) {
+            $offset = 0;
+            $limit  = 50;
+
+            do {
+                $req = new LazopRequest('/orders/get', 'GET');
+
+                $isoFrom = Carbon::createFromTimestamp($wFrom, 'Asia/Bangkok')->toIso8601String();
+                $isoTo   = Carbon::createFromTimestamp($wTo,   'Asia/Bangkok')->toIso8601String();
+
+                if ($timeField === 'update_time') {
+                    $req->addApiParam('update_after',  $isoFrom);
+                    $req->addApiParam('update_before', $isoTo);
+                } else {
+                    $req->addApiParam('created_after',  $isoFrom);
+                    $req->addApiParam('created_before', $isoTo);
+                }
+                $req->addApiParam('limit',  (string)$limit);
+                $req->addApiParam('offset', (string)$offset);
+                if (!empty($status)) {
+                    $req->addApiParam('status', $status);
+                }
+
+                $resp = $client->execute($req, $access);
+                $json = json_decode($resp, true);
+
+                if (!isset($json['code']) || $json['code'] !== '0') {
+                    Log::channel('webhook_lazada_new')->warning('orders/get fail', ['resp' => $json]);
+                    break;
+                }
+
+                $list = $json['data']['orders'] ?? [];
+                if (empty($list)) break;
+
+                foreach ($list as $o) {
+                    $orderId     = $o['order_id'] ?? null;
+                    $orderNumber = $o['order_number'] ?? ($orderId ?? null);
+                    if (!$orderId || !$orderNumber) continue;
+
+                    $items = $this->getOrderItems($orderId, $platform);
+                    $buyerIdAgg = null;
+                    foreach ($items as $it) {
+                        if (!empty($it['buyer_id'])) {
+                            $buyerIdAgg = $it['buyer_id'];
+                            break;
+                        }
+                    }
+                    $itemList = array_map(function ($it) {
+                        return [
+                            'item_name'                => $it['name'] ?? '',
+                            'item_sku'                 => $it['sku'] ?? '',
+                            'model_name'               => '',
+                            'model_quantity_purchased' => (int)($it['qty'] ?? 0),
+                            'model_discounted_price'   => (float)($it['price'] ?? 0),
+                            'image_info'               => ['image_url' => $it['image_url'] ?? null],
+                            'product_id'               => $it['product_id'] ?? null,
+                            'item_id'                  => $it['item_id'] ?? null,
+                            'action_url'               => $it['action_url'] ?? null,
+
+                            'reason'            => $it['reason'] ?? null,
+                            'reason_detail'     => $it['reason_detail'] ?? null,
+                            'supply_price'      => $it['supply_price'] ?? null,
+                            'shipping_type'     => $it['shipping_type'] ?? null,
+                            'shipment_provider' => $it['shipment_provider'] ?? null,
+                            'shop_sku'          => $it['shop_sku'] ?? null,
+                            'sku_id'            => $it['sku_id'] ?? null,
+                            'tracking_code_pre' => $it['tracking_code_pre'] ?? null,
+                            'buyer_id'          => $it['buyer_id'] ?? null,
+                            'tax_amount'        => $it['tax_amount'] ?? null,
+                        ];
+                    }, $items);
+
+                    $customerName     = null;
+                    $customerPhone    = null;
+                    $shippingAddress  = null;
+                    $paymentMethod    = $o['payment_method'] ?? null;
+
+                    if (!empty($o['address_shipping']) && is_array($o['address_shipping'])) {
+                        $as = $o['address_shipping'];
+                        $customerName = trim(($as['first_name'] ?? '') . ' ' . ($as['last_name'] ?? '')) ?: null;
+                        $customerPhone = $as['phone'] ?? null;
+                        $shippingAddress = trim(
+                            ($as['address1'] ?? '') . ' ' .
+                                ($as['addressDistrict'] ?? '') . ' ' .
+                                ($as['city'] ?? '') . ' ' .
+                                ($as['post_code'] ?? '')
+                        ) ?: null;
+                    }
+
+                    if (!$customerName || !$shippingAddress) {
+                        $detail = $this->getOrderDetail($orderId, $platform);
+                        if ($detail) {
+                            $customerName    = $customerName    ?: ($detail['customer']['name']  ?? null);
+                            $customerPhone   = $customerPhone   ?: ($detail['customer']['phone'] ?? null);
+                            $shippingAddress = $shippingAddress ?: ($detail['shipping_address']  ?? null);
+                            $paymentMethod   = $paymentMethod   ?: ($detail['payment_method']    ?? null);
+                        }
+                    }
+
+                    $stRaw = $o['statuses'][0] ?? ($o['status'] ?? '');
+                    $isCanceled = stripos($stRaw, 'cancel') !== false;
+                    $cancelTime = null;
+                    if ($isCanceled) {
+                        $cancelTime = isset($o['canceled_at']) ? strtotime($o['canceled_at'])
+                            : (isset($o['updated_at']) ? strtotime($o['updated_at']) : null);
+                    }
+
+                    $ordersNorm[] = [
+                        'order_sn'        => $orderNumber,
+                        'order_id'        => $orderId,
+                        'buyer_id'        => $buyerIdAgg,
+                        'order_status'    => $stRaw ?: '-',
+                        'currency'        => $o['currency'] ?? 'THB',
+                        'total_amount'    => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
+                        'create_time'     => isset($o['created_at']) ? strtotime($o['created_at']) : null,
+                        'update_time'     => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
+                        'pay_time'        => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
+                        'cancel_time'     => $cancelTime,
+                        'region'          => 'TH',
+                        'cod'             => strtoupper((string)$paymentMethod) === 'COD', // NEW: ให้ FE แสดง "เก็บเงินปลายทาง"
+                        'customer'        => ['name' => $customerName, 'phone' => $customerPhone], // NEW
+                        'shipping_address' => $shippingAddress,                                      // NEW
+                        'item_list'       => $itemList,
+                    ];
+                }
+
+                $offset += $limit;
+            } while (true);
+        }
+
+        usort($ordersNorm, fn($a, $b) => ($b['update_time'] ?? 0) <=> ($a['update_time'] ?? 0));
+        return $ordersNorm;
+    }
+
+    private function splitTimeWindows(int $from, int $to, int $daysPerWindow = 15): array
+    {
+        if ($from >= $to) throw new \InvalidArgumentException("time_from must be < time_to");
+        $step = $daysPerWindow * 86400;
+        $windows = [];
+        for ($start = $from; $start < $to; $start += $step) {
+            $end = min($start + $step, $to);
+            $windows[] = [$start, $end];
+        }
+        return $windows;
     }
 }

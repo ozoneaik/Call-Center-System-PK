@@ -920,4 +920,208 @@ class NewShopeeController extends Controller
         }
         return $json['response'] ?? [];
     }
+
+    private function getOrdersByBuyer(
+        $platform,
+        ?int $buyerUserId = null,
+        ?string $buyerUsername = null,
+        int $daysBack = 90,
+        ?string $status = null,
+        string $timeField = 'update_time'
+    ): array {
+        if ($buyerUserId === null && ($buyerUsername === null || $buyerUsername === '')) {
+            throw new \InvalidArgumentException('ต้องระบุ buyer_id หรือ buyer_username อย่างน้อยหนึ่งค่า');
+        }
+
+        $to   = time();
+        $from = $to - ($daysBack * 86400);
+
+        $status    = (is_string($status) && strtoupper($status) === 'ALL') ? null : $status;
+        $timeField = in_array($timeField, ['update_time', 'create_time'], true) ? $timeField : 'update_time';
+
+        $foundOrders = [];
+        $seen = [];
+        $pageSize = 50;
+
+        foreach ($this->splitTimeWindows($from, $to, 15) as [$wFrom, $wTo]) {
+            $cursor = null;
+
+            do {
+                $params = [
+                    'time_range_field' => $timeField,
+                    'time_from'        => $wFrom,
+                    'time_to'          => $wTo,
+                    'page_size'        => $pageSize,
+                ];
+                if (!empty($status)) {
+                    $params['order_status'] = $status;
+                }
+                if (!empty($cursor)) {
+                    $params['cursor'] = $cursor;
+                }
+
+                try {
+                    $listResp = $this->getOrderList($platform, $params);
+                } catch (\Throwable $e) {
+                    Log::channel('webhook_shopee_new')->error('getOrderList fail', [
+                        'error'  => $e->getMessage(),
+                        'params' => $params,
+                    ]);
+                    break;
+                }
+
+                $orders = $listResp['order_list'] ?? [];
+                $cursor = $listResp['next_cursor'] ?? null;
+
+                if (empty($orders)) {
+                    continue;
+                }
+
+                $snListAll = [];
+                foreach ($orders as $o) {
+                    $sn = $o['order_sn'] ?? null;
+                    if ($sn && empty($seen[$sn])) {
+                        $snListAll[] = $sn;
+                        $seen[$sn] = true;
+                    }
+                }
+                if (empty($snListAll)) {
+                    continue;
+                }
+
+                foreach (array_chunk($snListAll, 50) as $snList) {
+                    try {
+                        $detail = $this->getOrderDetail(
+                            $snList,
+                            $platform,
+                            'buyer_user_id,buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time'
+                        );
+                    } catch (\Throwable $e) {
+                        Log::channel('webhook_shopee_new')->error('getOrderDetail fail (chunk)', [
+                            'error' => $e->getMessage(),
+                            'snList' => $snList,
+                        ]);
+                        continue;
+                    }
+
+                    foreach (($detail['order_list'] ?? []) as $od) {
+                        $ok = false;
+                        if ($buyerUserId !== null) {
+                            $ok = (isset($od['buyer_user_id']) && (string)$od['buyer_user_id'] === (string)$buyerUserId);
+                        } elseif ($buyerUsername !== null && $buyerUsername !== '') {
+                            $ok = (($od['buyer_username'] ?? '') === $buyerUsername);
+                        }
+                        if ($ok) {
+                            $foundOrders[] = $od;
+                        }
+                    }
+                }
+            } while (!empty($cursor));
+        }
+
+        return $foundOrders;
+    }
+
+    public function ordersByBuyer(Request $request)
+    {
+        $buyerIdParam   = $request->input('buyer_id');
+        $buyerUsername  = $request->input('buyer_username');
+        $buyerId        = $buyerIdParam !== null && $buyerIdParam !== '' ? (int)$buyerIdParam : null;
+
+        if ($buyerId === null && (empty($buyerUsername))) {
+            return response()->json(['ok' => false, 'message' => 'ต้องส่ง buyer_id หรือ buyer_username อย่างน้อยหนึ่งอย่าง'], 422);
+        }
+
+        $daysBack = (int) $request->input('days_back', 90);
+        if ($daysBack <= 0) $daysBack = 90;
+
+        $status    = $request->input('status');
+        $shopId    = $request->input('shop_id');
+        $timeField = $request->input('time_field', 'update_time');
+
+        $platform = PlatformAccessTokens::query()
+            ->where('platform', 'shopee')
+            ->when($shopId, fn($q) => $q->where('shopee_shop_id', $shopId))
+            ->first();
+
+        if (!$platform) {
+            return response()->json(['ok' => false, 'message' => 'ไม่พบ Shopee platform token (ตรวจสอบ shop_id หรือการเชื่อมต่อ)'], 404);
+        }
+
+        try {
+            $orders = $this->getOrdersByBuyer($platform, $buyerId, $buyerUsername, $daysBack, $status, $timeField);
+
+            $summary = array_map(function ($od) {
+                return [
+                    'order_sn'       => $od['order_sn'] ?? null,
+                    'status'         => $od['order_status'] ?? null,
+                    // แสดงทั้งสองค่าเพื่อความชัดเจน
+                    'buyer_user_id'  => $od['buyer_user_id'] ?? null,
+                    'buyer_username' => $od['buyer_username'] ?? null,
+                    'total'          => $od['total_amount'] ?? null,
+                    'currency'       => $od['currency'] ?? null,
+                    'create_time'    => $od['create_time'] ?? null,
+                    'update_time'    => $od['update_time'] ?? null,
+                    'pay_time'       => $od['pay_time'] ?? null,
+                    'items_count'    => isset($od['item_list']) ? count($od['item_list']) : 0,
+                ];
+            }, $orders);
+
+            return response()->json([
+                'ok'      => true,
+                'count'   => count($orders),
+                'summary' => $summary,
+                'orders'  => $orders,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_shopee_new')->error('ordersByBuyer error', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function splitTimeWindows(int $from, int $to, int $daysPerWindow = 15): array
+    {
+        if ($from >= $to) {
+            throw new \InvalidArgumentException("time_from ต้องน้อยกว่า time_to");
+        }
+        $step = $daysPerWindow * 86400;
+        $windows = [];
+        $start = $from;
+        while ($start < $to) {
+            $end = min($start + $step, $to);
+            $windows[] = [$start, $end];
+            $start = $end;
+        }
+        return $windows;
+    }
+
+    public function resolveChatPlatform(Request $request)
+    {
+        $custId = trim((string) $request->query('cust_id', ''));
+        if ($custId === '') {
+            return response()->json(['ok' => false, 'message' => 'cust_id is required'], 422);
+        }
+
+        $cust = Customers::query()->where('custId', $custId)->first();
+
+        $pos = strrpos($custId, '_');
+        $platformRef = ($pos !== false && ctype_digit(substr($custId, $pos + 1)))
+            ? (int)substr($custId, $pos + 1) : null;
+
+        $pt = $platformRef ? PlatformAccessTokens::query()->find($platformRef) : null;
+        if (!$pt) {
+            return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
+        }
+
+        return response()->json([
+            'ok'                => true,
+            'platform'          => $pt->platform,              
+            'platform_token_id' => $pt->id,
+            'shopee_shop_id'    => $pt->shopee_shop_id ? (int)$pt->shopee_shop_id : null,
+            'shop_name'         => $pt->description,           
+            'customer_name'     => $cust->custName ?? null,    
+        ]);
+    }
 }
