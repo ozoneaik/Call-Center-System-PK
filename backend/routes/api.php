@@ -21,6 +21,7 @@ use App\Http\Controllers\ShortChatController;
 use App\Http\Controllers\StickerModelController;
 use App\Http\Controllers\TagGroupController;
 use App\Http\Controllers\TagMenuController;
+use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\FacebookController;
@@ -161,6 +162,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('{id}/restore', [TagGroupController::class, 'restore']); // PATCH /api/tag-group/{id}/restore
         Route::delete('{id}/force', [TagGroupController::class, 'forceDelete']); // DELETE /api/tag-group/{id}/force
 
+    });
+
+    Route::prefix('tags-by-platform')->group(function () {
+        Route::get('/', [TagsByPlatformController::class, 'index']);
+        Route::post('/', [TagsByPlatformController::class, 'store']);
+        Route::get('/platforms', [TagsByPlatformController::class, 'platforms']);
+        Route::get('/tags', [TagsByPlatformController::class, 'tags']);
+        Route::get('/{id}', [TagsByPlatformController::class, 'show']);
+        Route::put('/{id}', [TagsByPlatformController::class, 'update']);
+        Route::delete('/{id}', [TagsByPlatformController::class, 'destroy']);
     });
 
     //จัดการ keyword

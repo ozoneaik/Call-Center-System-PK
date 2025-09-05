@@ -121,7 +121,11 @@ export const SidebarAdmin = ({ pathname, user }) => (
 
       <ListItem nested>
         <Toggler
-          defaultExpanded={pathname === "/tags" || pathname === "/tags/groups"}
+          defaultExpanded={
+            pathname === "/tags" ||
+            pathname === "/tags/groups" ||
+            pathname === "/tags-by-platforms"
+          }
           renderToggle={({ open, setOpen }) => (
             <ListItemButton onClick={() => setOpen(!open)}>
               <LocalOffer />
@@ -139,22 +143,23 @@ export const SidebarAdmin = ({ pathname, user }) => (
         >
           <List sx={{ gap: 0.5 }}>
             <ListItem component={Link} to="/tags">
-              <ListItemButton
-                selected={pathname === "/tags"}
-                sx={{ pl: 5 }}
-              >
+              <ListItemButton selected={pathname === "/tags"} sx={{ pl: 5 }}>
                 <LabelOutlined fontSize="small" sx={{ mr: 0 }} />
                 <Typography level="body-sm">จัดการ Tag Menu</Typography>
               </ListItemButton>
             </ListItem>
 
             <ListItem component={Link} to="/tags/groups">
-              <ListItemButton
-                selected={pathname === "/tags/groups"}
-                sx={{ pl: 5 }}
-              >
+              <ListItemButton selected={pathname === "/tags/groups"} sx={{ pl: 5 }}>
                 <SubdirectoryArrowRight fontSize="small" sx={{ mr: 0 }} />
                 <Typography level="body-sm">จัดการ Tag Group</Typography>
+              </ListItemButton>
+            </ListItem>
+
+            <ListItem component={Link} to="/tags-by-platforms">
+              <ListItemButton selected={pathname === "/tags-by-platforms"} sx={{ pl: 5 }}>
+                <SubdirectoryArrowRight fontSize="small" sx={{ mr: 0 }} />
+                <Typography level="body-sm">จัดการ Tags By Platforms</Typography>
               </ListItemButton>
             </ListItem>
           </List>

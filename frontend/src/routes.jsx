@@ -34,6 +34,7 @@ import EditTagPage from "./Views/TagPages/TagMenu/EditTagPage.jsx";
 import TagPage from "./Views/TagPages/TagMenu/main.jsx";
 import CreateGroupPage from "./Views/TagPages/CreateGroupPage.jsx";
 import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
+import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -67,6 +68,8 @@ export const routes = createBrowserRouter([
                             { path: '/tags', element: <TagPage /> },
                             { path: '/tags/create', element: <CreateTagPage /> },
                             { path: '/tags/:id/edit', element: <EditTagPage /> },
+                            
+                            { path: '/tags-by-platforms', element: <TagsByPlatforms /> },
 
                             { path: '/tags/groups', element: <GroupPage /> },
                             { path: '/tags/groups/create', element: <CreateGroupPage /> },

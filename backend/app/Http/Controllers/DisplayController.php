@@ -70,7 +70,18 @@ class DisplayController extends Controller
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 
-            $tags = TagMenu::all();
+            $platformRow = DB::table('platform_access_tokens')
+                ->where('id', $sender->platformRef)
+                ->first();
+            $platformName = $platformRow->platform ?? null;
+            $tags = DB::table('tag_by_platforms')
+                ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
+                ->select('tag_menus.id', 'tag_menus.tagName')
+                ->where('tag_by_platforms.platform_name', $platformName)
+                ->get();
+            if ($tags->isEmpty()) {
+                $tags = TagMenu::select('id', 'tagName')->get();
+            }
 
             $message = 'ดึงข้อมูลสำเร็จ';
             $status = 200;
@@ -178,11 +189,11 @@ class DisplayController extends Controller
         $endOfDay = Carbon::now()->endOfDay();     // 2025-05-05 23:59:59
         $topEmployee = ActiveConversations::query()
             ->leftJoin('users', 'active_conversations.empCode', '=', 'users.empCode')
-            ->select('users.name','users.avatar', DB::raw('COUNT(active_conversations.id) as count'))
+            ->select('users.name', 'users.avatar', DB::raw('COUNT(active_conversations.id) as count'))
             ->where('users.empCode', '!=', 'BOT')
             ->whereNotNull('active_conversations.empCode')
             ->whereBetween('active_conversations.created_at', [$startOfDay, $endOfDay])
-            ->groupBy('users.name','users.avatar')
+            ->groupBy('users.name', 'users.avatar')
             ->orderByDesc('count')
             ->limit(10)
             ->get();
