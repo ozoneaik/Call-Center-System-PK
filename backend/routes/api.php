@@ -24,7 +24,6 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\webhooks\FacebookController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Middleware\UserAccess;
 use App\Models\TagGroup;
@@ -233,19 +232,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
-    Route::prefix('facebook')->group(function () {
-        Route::get('/', [FacebookController::class, 'webhook']);
-        Route::post('/', [FacebookController::class, 'webhookFacebook']);
-    });
-    Route::prefix('test')->group(function () {
-        Route::get('/facebook', [FacebookController::class, 'webhook']);
-        Route::post('/facebook', function (Request $request) {
-            return response()->json([
-                'message' => 'Test webhook received successfully',
-                'data' => $request->all(),
-            ]);
-        });
-    });
 });
 Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
