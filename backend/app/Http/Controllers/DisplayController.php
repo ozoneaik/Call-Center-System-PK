@@ -79,15 +79,22 @@ class DisplayController extends Controller
 
             $platformName = $platformRow->platform ?? null;
 
+            $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')
+                ->where('platform_name', '!=', $platformName)
+                ->pluck('tag_id')
+                ->toArray();
+
             $tags = DB::table('tag_by_platforms')
                 ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
                 ->select('tag_menus.id', 'tag_menus.tagName')
                 ->where('tag_by_platforms.platform_name', $platformName)
+                ->whereNotIn('tag_menus.id', $usedTagsByOtherPlatforms)
                 ->distinct()
                 ->get();
 
             if ($tags->isEmpty()) {
                 $tags = TagMenu::select('id', 'tagName')
+                    ->whereNotIn('id', $usedTagsByOtherPlatforms)
                     ->distinct()
                     ->get();
             }

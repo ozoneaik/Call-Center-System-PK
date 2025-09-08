@@ -317,7 +317,7 @@ class NewLazadaController extends Controller
                 $msg_formatted['contentType'] = 'text';
                 break;
         }
-        $msg_formatted['reply_token'] = 'ไม่มีไรหรอก';
+        $msg_formatted['reply_token'] = 'Send Token';
         $msg_formatted['line_quote_token'] = $message_req['message_id'];
         $msg_formatted['line_message_id'] = $message_req['message_id'];
         return $msg_formatted;

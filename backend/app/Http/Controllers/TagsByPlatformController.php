@@ -9,11 +9,25 @@ use Illuminate\Support\Facades\DB;
 
 class TagsByPlatformController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $data = DB::table('tag_by_platforms')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = DB::table('tag_by_platforms')
+            ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
+            ->select(
+                'tag_by_platforms.*',
+                'tag_menus.tagName'
+            )
+            ->orderBy('tag_by_platforms.created_at', 'desc');
+
+        if ($request->filled('platform_name')) {
+            $query->where('platform_name', $request->platform_name);
+        }
+
+        if ($request->filled('tag_id')) {
+            $query->where('tag_id', $request->tag_id);
+        }
+
+        $data = $query->get();
 
         return response()->json([
             'status' => true,
@@ -36,7 +50,7 @@ class TagsByPlatformController extends Controller
         if ($exists) {
             return response()->json([
                 'status' => false,
-                'message' => 'แท็กนี้ถูกเพิ่มไปแล้วในแพลตฟอร์มเดียวกัน'
+                'message' => 'แท็กนี้ถูกเลือกใช้ไปแล้วในแพลตฟอร์มนี้'
             ], 409);
         }
 
@@ -128,9 +142,14 @@ class TagsByPlatformController extends Controller
         ]);
     }
 
-    public function tags()
+    public function tags(Request $request)
     {
+        $usedTags = DB::table('tag_by_platforms')
+            ->pluck('tag_id')
+            ->toArray();
+
         $tags = TagMenu::select('id', 'tagName')
+            ->whereNotIn('id', $usedTags) 
             ->orderBy('id', 'asc')
             ->get();
 

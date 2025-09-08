@@ -157,7 +157,7 @@ class NewShopeeController extends Controller
         $msg_formatted = [
             'content'          => null,
             'contentType'      => 'text',
-            'reply_token'      => 'ไม่มีไรหรอก',
+            'reply_token'      => 'Send Token',
             'line_quote_token' => $message_req['message_id'] ?? null,
             'line_message_id'  => $message_req['message_id'] ?? null,
         ];
