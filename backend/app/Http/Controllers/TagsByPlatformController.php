@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class TagsByPlatformController extends Controller
 {
-
     public function index()
     {
         $data = DB::table('tag_by_platforms')
@@ -29,6 +28,18 @@ class TagsByPlatformController extends Controller
             'tag_id' => 'required|integer',
         ]);
 
+        $exists = DB::table('tag_by_platforms')
+            ->where('platform_name', $validated['platform_name'])
+            ->where('tag_id', $validated['tag_id'])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'แท็กนี้ถูกเพิ่มไปแล้วในแพลตฟอร์มเดียวกัน'
+            ], 409);
+        }
+
         $store = TagByPlatforms::query()->create([
             'platform_name' => $validated['platform_name'],
             'tag_id' => $validated['tag_id'],
@@ -42,23 +53,15 @@ class TagsByPlatformController extends Controller
         ]);
     }
 
-    /**
-     * ดูข้อมูลตาม id
-     */
     public function show($id)
     {
         $record = DB::table('tag_by_platforms')->find($id);
-
         if (!$record) {
             return response()->json(['status' => false, 'message' => 'ไม่พบข้อมูล'], 404);
         }
-
         return response()->json(['status' => true, 'data' => $record]);
     }
 
-    /**
-     * แก้ไขข้อมูล
-     */
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -66,7 +69,38 @@ class TagsByPlatformController extends Controller
             'tag_id' => 'required|integer',
         ]);
 
-        $updated = DB::table('tag_by_platforms')
+        $exists = DB::table('tag_by_platforms')
+            ->where('platform_name', $validated['platform_name'])
+            ->where('tag_id', $validated['tag_id'])
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'แท็กนี้ถูกเพิ่มไปแล้วในแพลตฟอร์มเดียวกัน'
+            ], 409);
+        }
+
+        $current = DB::table('tag_by_platforms')->where('id', $id)->first();
+        if (!$current) {
+            return response()->json([
+                'status' => false,
+                'message' => 'ไม่พบข้อมูล'
+            ], 404);
+        }
+
+        if (
+            $current->platform_name === $validated['platform_name'] &&
+            $current->tag_id == $validated['tag_id']
+        ) {
+            return response()->json([
+                'status' => true,
+                'message' => 'ไม่มีการเปลี่ยนแปลง'
+            ]);
+        }
+
+        DB::table('tag_by_platforms')
             ->where('id', $id)
             ->update([
                 'platform_name' => $validated['platform_name'],
@@ -75,15 +109,16 @@ class TagsByPlatformController extends Controller
             ]);
 
         return response()->json([
-            'status' => $updated > 0,
-            'message' => $updated ? 'แก้ไขข้อมูลสำเร็จ' : 'ไม่พบข้อมูล'
+            'status' => true,
+            'message' => 'แก้ไขข้อมูลสำเร็จ'
         ]);
     }
 
     public function platforms()
     {
         $platforms = DB::table('platform_access_tokens')
-            ->select('id', 'platform')
+            ->select('platform')
+            ->distinct()
             ->orderBy('platform', 'asc')
             ->get();
 
@@ -92,6 +127,7 @@ class TagsByPlatformController extends Controller
             'data' => $platforms
         ]);
     }
+
     public function tags()
     {
         $tags = TagMenu::select('id', 'tagName')
@@ -104,9 +140,6 @@ class TagsByPlatformController extends Controller
         ]);
     }
 
-    /**
-     * ลบข้อมูล
-     */
     public function destroy($id)
     {
         $deleted = DB::table('tag_by_platforms')->where('id', $id)->delete();

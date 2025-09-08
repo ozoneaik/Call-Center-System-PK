@@ -70,17 +70,26 @@ class DisplayController extends Controller
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 
+            $sender = Customers::query()->where('custId', $custId)->first();
+            if (!$sender) throw new \Exception('ไม่พบ sender');
+
             $platformRow = DB::table('platform_access_tokens')
                 ->where('id', $sender->platformRef)
                 ->first();
+
             $platformName = $platformRow->platform ?? null;
+
             $tags = DB::table('tag_by_platforms')
                 ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
                 ->select('tag_menus.id', 'tag_menus.tagName')
                 ->where('tag_by_platforms.platform_name', $platformName)
+                ->distinct()
                 ->get();
+
             if ($tags->isEmpty()) {
-                $tags = TagMenu::select('id', 'tagName')->get();
+                $tags = TagMenu::select('id', 'tagName')
+                    ->distinct()
+                    ->get();
             }
 
             $message = 'ดึงข้อมูลสำเร็จ';
