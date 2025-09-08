@@ -243,7 +243,7 @@ class LineWebhookController extends Controller
                         'type' => 'template',
                         'altText' => 'ส่งไฟล์',
                         'template' => [
-                            'title' => 'ใส่ไปงั้นแหล่ะ',
+                            'title' => 'ไฟล์เอกสาร',
                             'type' => 'buttons',
                             'thumbnailImageUrl' => "https://images.pumpkin.tools/icon/pdf_icon.png",
                             'imageAspectRatio' => "rectangle",
@@ -251,7 +251,7 @@ class LineWebhookController extends Controller
                             'text' => "ไฟล์.pdf",
                             'actions' => [
                                 [
-                                    'text' => 'ใส่ไปงั้นแหล่ะ',
+                                    'text' => 'ไฟล์เอกสาร',
                                     'type' => "uri",
                                     'label' => "ดูไฟล์",
                                     'uri' => $message['content'] ?? 'https://example.com/default.pdf'
