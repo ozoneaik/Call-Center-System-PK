@@ -141,7 +141,7 @@ class NewShopeeController extends Controller
         $newCustomer = Customers::query()->create([
             'custId'       => $custKey . "_" . $shopeePlatform->id,
             'custName'     => $custName,
-            'description'  => "ติดต่อมาจาก Shopee" . $shopeePlatform->description,
+            'description'  => "ติดต่อมาจาก Shopee " . $shopeePlatform->description,
             'avatar'       => null,
             'platformRef'  => $shopeePlatform->id,
         ]);
