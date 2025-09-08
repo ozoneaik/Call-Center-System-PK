@@ -1030,7 +1030,17 @@ class NewLazadaController extends Controller
         $platform = $this->refreshAccessTokenIfNeeded($platform);
 
         try {
-            $orders = $this->getOrdersBySessionLazada($platform, $daysBack, $status, $timeField);
+            // ✅ ดึง buyer_id อย่างเป็นทางการจาก Lazada
+            $buyer = $this->fetchBuyerFromSession($platform, $sessionId);
+            $buyerId = $buyer['buyer_id'] ?? null;
+
+            $orders = $this->getOrdersBySessionLazada(
+                $platform,
+                $daysBack,
+                $status,
+                $timeField,
+                $buyerId // ส่ง buyerId จริง
+            );
 
             $summary = array_map(function ($od) {
                 return [
@@ -1061,7 +1071,33 @@ class NewLazadaController extends Controller
         }
     }
 
-    private function getOrdersBySessionLazada($platform, int $daysBack, ?string $status, string $timeField = 'update_time'): array
+    private function fetchBuyerFromSession($platform, string $sessionId): ?array
+    {
+        try {
+            $url = 'https://api.lazada.co.th/rest';
+            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
+            $req = new LazopRequest('/im/session/get', 'GET');
+            $req->addApiParam('session_id', $sessionId);
+
+            $resp = $c->execute($req, $platform['accessToken']);
+            $json = json_decode($resp, true);
+
+            if (($json['code'] ?? null) === '0') {
+                $data = $json['data'] ?? $json['result'] ?? [];
+                return [
+                    'buyer_id'   => $data['buyer_id']   ?? null,
+                    'buyer_name' => $data['title']      ?? null,
+                ];
+            }
+
+            Log::channel('webhook_lazada_new')->warning('fetchBuyerFromSession fail', ['resp' => $json]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error("fetchBuyerFromSession error: " . $e->getMessage());
+        }
+        return null;
+    }
+
+    private function getOrdersBySessionLazada($platform, int $daysBack, ?string $status, string $timeField = 'update_time', ?string $targetBuyerId = null): array
     {
         $host   = 'https://api.lazada.co.th/rest';
         $client = new LazopClient($host, $platform['laz_app_key'], $platform['laz_app_secret']);
@@ -1091,6 +1127,7 @@ class NewLazadaController extends Controller
                     $req->addApiParam('created_after',  $isoFrom);
                     $req->addApiParam('created_before', $isoTo);
                 }
+
                 $req->addApiParam('limit',  (string)$limit);
                 $req->addApiParam('offset', (string)$offset);
                 if (!empty($status)) {
@@ -1113,7 +1150,9 @@ class NewLazadaController extends Controller
                     $orderNumber = $o['order_number'] ?? ($orderId ?? null);
                     if (!$orderId || !$orderNumber) continue;
 
+                    // ดึง items เพื่อหา buyer_id
                     $items = $this->getOrderItems($orderId, $platform);
+
                     $buyerIdAgg = null;
                     foreach ($items as $it) {
                         if (!empty($it['buyer_id'])) {
@@ -1121,6 +1160,14 @@ class NewLazadaController extends Controller
                             break;
                         }
                     }
+
+                    // ✅ กรองด้วย buyerId ที่ได้จาก /im/session/get
+                    if ($targetBuyerId && (string)$buyerIdAgg !== (string)$targetBuyerId) {
+                        Log::channel('webhook_lazada_new')->info("ข้าม order {$orderId} เพราะ buyerId={$buyerIdAgg} != target={$targetBuyerId}");
+                        continue;
+                    }
+
+                    // รวม item_list (แปลงฟิลด์ให้ frontend ใช้งานง่าย)
                     $itemList = array_map(function ($it) {
                         return [
                             'item_name'                => $it['name'] ?? '',
@@ -1146,6 +1193,7 @@ class NewLazadaController extends Controller
                         ];
                     }, $items);
 
+                    // เติมข้อมูลลูกค้า/ที่อยู่ (ถ้าใน order ชุดแรกไม่ครบ ให้เรียก /order/get เติม)
                     $customerName     = null;
                     $customerPhone    = null;
                     $shippingAddress  = null;
@@ -1173,7 +1221,7 @@ class NewLazadaController extends Controller
                         }
                     }
 
-                    $stRaw = $o['statuses'][0] ?? ($o['status'] ?? '');
+                    $stRaw      = $o['statuses'][0] ?? ($o['status'] ?? '');
                     $isCanceled = stripos($stRaw, 'cancel') !== false;
                     $cancelTime = null;
                     if ($isCanceled) {
@@ -1182,21 +1230,21 @@ class NewLazadaController extends Controller
                     }
 
                     $ordersNorm[] = [
-                        'order_sn'        => $orderNumber,
-                        'order_id'        => $orderId,
-                        'buyer_id'        => $buyerIdAgg,
-                        'order_status'    => $stRaw ?: '-',
-                        'currency'        => $o['currency'] ?? 'THB',
-                        'total_amount'    => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
-                        'create_time'     => isset($o['created_at']) ? strtotime($o['created_at']) : null,
-                        'update_time'     => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
-                        'pay_time'        => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
-                        'cancel_time'     => $cancelTime,
-                        'region'          => 'TH',
-                        'cod'             => strtoupper((string)$paymentMethod) === 'COD', // NEW: ให้ FE แสดง "เก็บเงินปลายทาง"
-                        'customer'        => ['name' => $customerName, 'phone' => $customerPhone], // NEW
-                        'shipping_address' => $shippingAddress,                                      // NEW
-                        'item_list'       => $itemList,
+                        'order_sn'         => $orderNumber,
+                        'order_id'         => $orderId,
+                        'buyer_id'         => $buyerIdAgg,
+                        'order_status'     => $stRaw ?: '-',
+                        'currency'         => $o['currency'] ?? 'THB',
+                        'total_amount'     => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
+                        'create_time'      => isset($o['created_at']) ? strtotime($o['created_at']) : null,
+                        'update_time'      => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
+                        'pay_time'         => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
+                        'cancel_time'      => $cancelTime,
+                        'region'           => 'TH',
+                        'cod'              => strtoupper((string)$paymentMethod) === 'COD',
+                        'customer'         => ['name' => $customerName, 'phone' => $customerPhone],
+                        'shipping_address' => $shippingAddress,
+                        'item_list'        => $itemList,
                     ];
                 }
 
