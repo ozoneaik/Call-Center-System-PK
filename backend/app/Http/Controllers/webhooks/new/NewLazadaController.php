@@ -586,146 +586,6 @@ class NewLazadaController extends Controller
         }
     }
 
-    private function getOrderDetail(string $orderId, $platform)
-    {
-        Log::channel('webhook_lazada_new')->info("👉 เรียกใช้ getOrderDetail()", [
-            'order_id' => $orderId,
-            'platform_id' => $platform['id'] ?? null
-        ]);
-
-        try {
-            $url = 'https://api.lazada.co.th/rest';
-            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
-
-            $request = new LazopRequest('/order/get', 'GET');
-            $request->addApiParam('order_id', $orderId);
-
-            $response = $c->execute($request, $platform['accessToken']);
-            $result = json_decode($response, true);
-
-            if (isset($result['code']) && $result['code'] == '0') {
-                $data = $result['data'] ?? [];
-
-                $summary = [
-                    'order_number'   => $data['order_number'] ?? $orderId,
-                    'created_at'     => $data['created_at'] ?? null,
-                    'status'         => $data['statuses'][0] ?? ($data['status'] ?? '-'),
-                    'payment_method' => $data['payment_method'] ?? '-',
-                    'items_count'    => $data['items_count'] ?? 0,
-                    'total_amount'   => (float)($data['price'] ?? 0) + (float)($data['shipping_fee'] ?? 0),
-
-                    'customer' => [
-                        'name'  => trim(($data['address_shipping']['first_name'] ?? '') . ' ' . ($data['address_shipping']['last_name'] ?? '')),
-                        'phone' => $data['address_shipping']['phone'] ?? '',
-                    ],
-                    'shipping_address' => trim(
-                        ($data['address_shipping']['address1'] ?? '') . ' ' .
-                            ($data['address_shipping']['addressDistrict'] ?? '') . ' ' .
-                            ($data['address_shipping']['city'] ?? '') . ' ' .
-                            ($data['address_shipping']['post_code'] ?? '')
-                    ),
-
-                    'canceled_at' => $data['canceled_at']
-                        ?? $data['cancel_time']
-                        ?? null,
-                ];
-
-                Log::channel('webhook_lazada_new')->info("✅ สรุป Order", $summary);
-                return $summary;
-            } else {
-                Log::channel('webhook_lazada_new')->warning("⚠️ ดึงรายละเอียด Order ไม่สำเร็จ", [
-                    'order_id' => $orderId,
-                    'response' => $result
-                ]);
-                return null;
-            }
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error("❌ เกิดข้อผิดพลาด getOrderDetail: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    private function getOrderItems(string $orderId, $platform)
-    {
-        try {
-            $url = 'https://api.lazada.co.th/rest';
-            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
-
-            $request = new LazopRequest('/order/items/get', 'GET');
-            $request->addApiParam('order_id', $orderId);
-
-            $response = $c->execute($request, $platform['accessToken']);
-            $result = json_decode($response, true);
-
-            if (isset($result['code']) && $result['code'] == '0') {
-                $items = $result['data'] ?? [];
-
-                $normalized = collect($items)->map(function ($item) {
-                    $imageUrl  = $item['product_main_image']
-                        ?? $item['sku_image']
-                        ?? $item['image']
-                        ?? $item['item_image']
-                        ?? null;
-
-                    $actionUrl = $item['product_detail_url']
-                        ?? $item['product_url']
-                        ?? $item['detail_url']
-                        ?? null;
-
-                    $productId = $item['product_id'] ?? null;
-                    $itemId    = $item['order_item_id'] ?? $item['item_id'] ?? null;
-
-                    return [
-                        'name'        => $item['name'] ?? '',
-                        'sku'         => $item['sku'] ?? '',
-                        'status'      => $item['status'] ?? '',
-                        'qty'         => isset($item['quantity']) ? (int)$item['quantity'] : 1,
-                        'price'       => isset($item['paid_price']) ? (float)$item['paid_price'] : 0.0,
-
-                        'image_url'   => $imageUrl,
-                        'action_url'  => $actionUrl,
-
-                        'product_id'  => $productId,
-                        'item_id'     => $itemId,
-
-                        'reason'            => $item['reason'] ?? null,
-                        'reason_detail'     => $item['reason_detail'] ?? null,
-                        'supply_price'      => isset($item['supply_price']) ? (float)$item['supply_price'] : null,
-                        'shipping_type'     => $item['shipping_type'] ?? null,
-                        'shipment_provider' => $item['shipment_provider'] ?? null,
-                        'shop_sku'          => $item['shop_sku'] ?? null,
-                        'sku_id'            => $item['sku_id'] ?? null,
-                        'tracking_code_pre' => $item['tracking_code_pre'] ?? null,
-                        'buyer_id'          => $item['buyer_id'] ?? null,
-                        'tax_amount'        => isset($item['tax_amount']) ? (float)$item['tax_amount'] : null,
-                    ];
-                })->toArray();
-
-                $reasons = [];
-                foreach ($normalized as $it) {
-                    if (!empty($it['reason']) || !empty($it['reason_detail'])) {
-                        $reasons[] = [
-                            'sku'           => $it['sku'] ?? null,
-                            'reason'        => $it['reason'] ?? null,
-                            'reason_detail' => $it['reason_detail'] ?? null,
-                        ];
-                    }
-                }
-                Log::channel('webhook_lazada_new')->info('🧾 getOrderItems', [
-                    'order_id'    => $orderId,
-                    'items_count' => count($normalized),
-                    'reasons'     => $reasons,
-                ]);
-
-                return $normalized;
-            }
-            return [];
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error("❌ getOrderItems error: " . $e->getMessage());
-            return [];
-        }
-    }
-
     private function getLogisticTrace(string $orderId, $platform, string $locale = 'th')
     {
         try {
@@ -936,6 +796,146 @@ class NewLazadaController extends Controller
             'shop_name'     => $platform->description,
             'customer_name' => $customer->custName,
         ]);
+    }
+
+    private function getOrderDetail(string $orderId, $platform)
+    {
+        Log::channel('webhook_lazada_new')->info("👉 เรียกใช้ getOrderDetail()", [
+            'order_id' => $orderId,
+            'platform_id' => $platform['id'] ?? null
+        ]);
+
+        try {
+            $url = 'https://api.lazada.co.th/rest';
+            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
+
+            $request = new LazopRequest('/order/get', 'GET');
+            $request->addApiParam('order_id', $orderId);
+
+            $response = $c->execute($request, $platform['accessToken']);
+            $result = json_decode($response, true);
+
+            if (isset($result['code']) && $result['code'] == '0') {
+                $data = $result['data'] ?? [];
+
+                $summary = [
+                    'order_number'   => $data['order_number'] ?? $orderId,
+                    'created_at'     => $data['created_at'] ?? null,
+                    'status'         => $data['statuses'][0] ?? ($data['status'] ?? '-'),
+                    'payment_method' => $data['payment_method'] ?? '-',
+                    'items_count'    => $data['items_count'] ?? 0,
+                    'total_amount'   => (float)($data['price'] ?? 0) + (float)($data['shipping_fee'] ?? 0),
+
+                    'customer' => [
+                        'name'  => trim(($data['address_shipping']['first_name'] ?? '') . ' ' . ($data['address_shipping']['last_name'] ?? '')),
+                        'phone' => $data['address_shipping']['phone'] ?? '',
+                    ],
+                    'shipping_address' => trim(
+                        ($data['address_shipping']['address1'] ?? '') . ' ' .
+                            ($data['address_shipping']['addressDistrict'] ?? '') . ' ' .
+                            ($data['address_shipping']['city'] ?? '') . ' ' .
+                            ($data['address_shipping']['post_code'] ?? '')
+                    ),
+
+                    'canceled_at' => $data['canceled_at']
+                        ?? $data['cancel_time']
+                        ?? null,
+                ];
+
+                Log::channel('webhook_lazada_new')->info("✅ สรุป Order", $summary);
+                return $summary;
+            } else {
+                Log::channel('webhook_lazada_new')->warning("⚠️ ดึงรายละเอียด Order ไม่สำเร็จ", [
+                    'order_id' => $orderId,
+                    'response' => $result
+                ]);
+                return null;
+            }
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error("❌ เกิดข้อผิดพลาด getOrderDetail: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function getOrderItems(string $orderId, $platform)
+    {
+        try {
+            $url = 'https://api.lazada.co.th/rest';
+            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
+
+            $request = new LazopRequest('/order/items/get', 'GET');
+            $request->addApiParam('order_id', $orderId);
+
+            $response = $c->execute($request, $platform['accessToken']);
+            $result = json_decode($response, true);
+
+            if (isset($result['code']) && $result['code'] == '0') {
+                $items = $result['data'] ?? [];
+
+                $normalized = collect($items)->map(function ($item) {
+                    $imageUrl  = $item['product_main_image']
+                        ?? $item['sku_image']
+                        ?? $item['image']
+                        ?? $item['item_image']
+                        ?? null;
+
+                    $actionUrl = $item['product_detail_url']
+                        ?? $item['product_url']
+                        ?? $item['detail_url']
+                        ?? null;
+
+                    $productId = $item['product_id'] ?? null;
+                    $itemId    = $item['order_item_id'] ?? $item['item_id'] ?? null;
+
+                    return [
+                        'name'        => $item['name'] ?? '',
+                        'sku'         => $item['sku'] ?? '',
+                        'status'      => $item['status'] ?? '',
+                        'qty'         => isset($item['quantity']) ? (int)$item['quantity'] : 1,
+                        'price'       => isset($item['paid_price']) ? (float)$item['paid_price'] : 0.0,
+
+                        'image_url'   => $imageUrl,
+                        'action_url'  => $actionUrl,
+
+                        'product_id'  => $productId,
+                        'item_id'     => $itemId,
+
+                        'reason'            => $item['reason'] ?? null,
+                        'reason_detail'     => $item['reason_detail'] ?? null,
+                        'supply_price'      => isset($item['supply_price']) ? (float)$item['supply_price'] : null,
+                        'shipping_type'     => $item['shipping_type'] ?? null,
+                        'shipment_provider' => $item['shipment_provider'] ?? null,
+                        'shop_sku'          => $item['shop_sku'] ?? null,
+                        'sku_id'            => $item['sku_id'] ?? null,
+                        'tracking_code_pre' => $item['tracking_code_pre'] ?? null,
+                        'buyer_id'          => $item['buyer_id'] ?? null,
+                        'tax_amount'        => isset($item['tax_amount']) ? (float)$item['tax_amount'] : null,
+                    ];
+                })->toArray();
+
+                $reasons = [];
+                foreach ($normalized as $it) {
+                    if (!empty($it['reason']) || !empty($it['reason_detail'])) {
+                        $reasons[] = [
+                            'sku'           => $it['sku'] ?? null,
+                            'reason'        => $it['reason'] ?? null,
+                            'reason_detail' => $it['reason_detail'] ?? null,
+                        ];
+                    }
+                }
+                Log::channel('webhook_lazada_new')->info('🧾 getOrderItems', [
+                    'order_id'    => $orderId,
+                    'items_count' => count($normalized),
+                    'reasons'     => $reasons,
+                ]);
+
+                return $normalized;
+            }
+            return [];
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error("❌ getOrderItems error: " . $e->getMessage());
+            return [];
+        }
     }
 
     public function ordersBySession(Request $request)

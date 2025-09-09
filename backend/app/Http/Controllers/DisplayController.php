@@ -69,14 +69,10 @@ class DisplayController extends Controller
                 ->get();
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
-
-            $sender = Customers::query()->where('custId', $custId)->first();
-            if (!$sender) throw new \Exception('ไม่พบ sender');
-
+            
             $platformRow = DB::table('platform_access_tokens')
                 ->where('id', $sender->platformRef)
                 ->first();
-
             $platformName = $platformRow->platform ?? null;
 
             $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')

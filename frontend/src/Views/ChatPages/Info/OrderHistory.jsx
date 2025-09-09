@@ -30,11 +30,9 @@ export default function OrderHistory({
     const [error, setError] = useState("");
     const [page, setPage] = useState(1);
 
-    // summaries
     const [summaryRows, setSummaryRows] = useState([]);
     const [hasMore, setHasMore] = useState(false);
 
-    // detail (lazy)
     const [detailMap, setDetailMap] = useState({});
     const [openDetail, setOpenDetail] = useState({});
 

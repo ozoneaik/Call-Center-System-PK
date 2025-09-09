@@ -821,6 +821,7 @@ class NewShopeeController extends Controller
         return $json['access_token'];
     }
 
+    //-------------------------------------------------------------order api-----------------------------------------------------------------------
     private function getProduct($item_id, $shop_id, $partner_id, $partner_key, $access_token)
     {
 

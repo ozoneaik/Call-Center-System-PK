@@ -147,12 +147,20 @@ export default function Info(props) {
 
             {!platformInfo.loading && platformInfo.platform !== "unknown" && (
                 <Box sx={{ display: "flex", justifyContent: "flex-end", m: 1 }}>
-                    <Button size="sm" variant="outlined" onClick={() => setOpenOrdersModal(true)}>
-                        {platformInfo.platform === "shopee" ? "ดูประวัติออเดอร์ Shopee" : "ดูประวัติออเดอร์ Lazada"}
+                    <Button
+                        size="sm"
+                        variant="outlined"
+                        onClick={() => setOpenOrdersModal(true)}
+                        disabled={platformInfo.loading}
+                    >
+                        {platformInfo.platform === "shopee"
+                            ? "ดูประวัติออเดอร์ Shopee"
+                            : platformInfo.platform === "lazada"
+                                ? "ดูประวัติออเดอร์ Lazada"
+                                : "ดูประวัติออเดอร์"}
                     </Button>
                 </Box>
             )}
-
             <Modal
                 open={openOrdersModal}
                 onClose={() => setOpenOrdersModal(false)}
@@ -179,9 +187,12 @@ export default function Info(props) {
                 >
                     <ModalClose />
                     <DialogTitle id="orders-modal-title" sx={{ px: 2, pt: 2, pb: 1 }}>
-                        {platformInfo.platform === "shopee" ? "ประวัติออเดอร์ Shopee" : "ประวัติออเดอร์ Lazada"}
+                        {platformInfo.platform === "shopee"
+                            ? "ประวัติออเดอร์ Shopee"
+                            : platformInfo.platform === "lazada"
+                                ? "ประวัติออเดอร์ Lazada"
+                                : "ประวัติออเดอร์"}
                     </DialogTitle>
-
                     <DialogContent sx={{ p: 0 }}>
                         <Box sx={{ px: 2, pb: 1 }}>
                             <Typography level="body-sm" color="neutral">
@@ -190,30 +201,34 @@ export default function Info(props) {
                                 ร้าน: {platformInfo.shopName ?? "-"}
                             </Typography>
                         </Box>
-
                         <Box sx={{ px: 2, pb: 2, overflowY: "auto", maxHeight: { xs: "calc(100vh - 120px)", sm: "70vh" } }}>
-                            <Suspense fallback={<Typography level="body-sm" sx={{ p: 2 }}>กำลังโหลดข้อมูล…</Typography>}>
-                                <OrderHistory
-                                    visible={openOrdersModal}
-                                    platform={platformInfo.platform}
-                                    // Shopee
-                                    buyerId={platformInfo.platform === "shopee" ? parseBuyerId(sender?.custId) : undefined}
-                                    buyerUsername={platformInfo.platform === "shopee" ? buyerUsername : undefined}
-                                    shopId={platformInfo.platform === "shopee" ? platformInfo.shopId : undefined}
-                                    // Lazada
-                                    sessionId={platformInfo.platform === "lazada" ? sender?.custId : undefined}
-                                    sellerId={platformInfo.platform === "lazada" ? platformInfo.sellerId : undefined}
-                                    // common
-                                    daysBack={180}
-                                    status="ALL"
-                                    timeField="update_time"
-                                    baseUrl={API_BASE}
-                                    path={platformInfo.platform === "shopee"
-                                        ? "/api/webhook-new/shopee/orders-by-buyer"
-                                        : "/api/webhook-new/lazada/orders-by-session"}
-                                    pageSize={5}
-                                />
-                            </Suspense>
+                            {platformInfo.platform === "unknown" ? (
+                                <Sheet variant="plain" sx={{ p: 2, borderRadius: "md", bgcolor: "neutral.plainHoverBg" }}>
+                                    <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                                        ยังไม่สามารถระบุแพลตฟอร์มของลูกค้าได้
+                                    </Typography>
+                                    <Typography level="body-xs" color="neutral">
+                                        โปรดลองรีเฟรช หรือรอสักครู่ แล้วกดปุ่ม “ดูประวัติออเดอร์” อีกครั้ง
+                                    </Typography>
+                                </Sheet>
+                            ) : (
+                                <Suspense fallback={<Typography level="body-sm" sx={{ p: 2 }}>กำลังโหลดข้อมูล…</Typography>}>
+                                    <OrderHistory
+                                        visible={openOrdersModal}
+                                        platform={platformInfo.platform}
+                                        buyerId={platformInfo.platform === "shopee" ? parseBuyerId(sender?.custId) : undefined}
+                                        buyerUsername={platformInfo.platform === "shopee" ? sender?.custName : undefined}
+                                        shopId={platformInfo.platform === "shopee" ? platformInfo.shopId : undefined}
+                                        sessionId={platformInfo.platform === "lazada" ? sender?.custId : undefined}
+                                        sellerId={platformInfo.platform === "lazada" ? platformInfo.sellerId : undefined}
+                                        daysBack={180}
+                                        status="ALL"
+                                        timeField="update_time"
+                                        baseUrl={API_BASE}
+                                        pageSize={5}
+                                    />
+                                </Suspense>
+                            )}
                         </Box>
                     </DialogContent>
                 </ModalDialog>
@@ -221,7 +236,9 @@ export default function Info(props) {
 
             {platformInfo.error && (
                 <Typography level="body-xs" color="neutral">
-                    resolve platform error: {platformInfo.error}
+                    {platformInfo.error === "unknown platform"
+                        ? "ระบบยังไม่รองรับการดูประวัติการสั่งซื้อของลูกค้าสำหรับแพลตฟอร์มนี้"
+                        : `resolve platform error: ${platformInfo.error}`}
                 </Typography>
             )}
         </Sheet>
