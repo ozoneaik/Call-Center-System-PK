@@ -70,34 +70,34 @@ class DisplayController extends Controller
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 
-            $sender = Customers::query()->where('custId', $custId)->first();
-            if (!$sender) throw new \Exception('ไม่พบ sender');
+            // $sender = Customers::query()->where('custId', $custId)->first();
+            // if (!$sender) throw new \Exception('ไม่พบ sender');
 
-            $platformRow = DB::table('platform_access_tokens')
-                ->where('id', $sender->platformRef)
-                ->first();
+            // $platformRow = DB::table('platform_access_tokens')
+            //     ->where('id', $sender->platformRef)
+            //     ->first();
 
-            $platformName = $platformRow->platform ?? null;
+            // $platformName = $platformRow->platform ?? null;
 
-            $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')
-                ->where('platform_name', '!=', $platformName)
-                ->pluck('tag_id')
-                ->toArray();
+            // $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')
+            //     ->where('platform_name', '!=', $platformName)
+            //     ->pluck('tag_id')
+            //     ->toArray();
 
-            $tags = DB::table('tag_by_platforms')
-                ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
-                ->select('tag_menus.id', 'tag_menus.tagName')
-                ->where('tag_by_platforms.platform_name', $platformName)
-                ->whereNotIn('tag_menus.id', $usedTagsByOtherPlatforms)
-                ->distinct()
-                ->get();
+            // $tags = DB::table('tag_by_platforms')
+            //     ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
+            //     ->select('tag_menus.id', 'tag_menus.tagName')
+            //     ->where('tag_by_platforms.platform_name', $platformName)
+            //     ->whereNotIn('tag_menus.id', $usedTagsByOtherPlatforms)
+            //     ->distinct()
+            //     ->get();
 
-            if ($tags->isEmpty()) {
-                $tags = TagMenu::select('id', 'tagName')
-                    ->whereNotIn('id', $usedTagsByOtherPlatforms)
-                    ->distinct()
-                    ->get();
-            }
+            // if ($tags->isEmpty()) {
+            //     $tags = TagMenu::select('id', 'tagName')
+            //         ->whereNotIn('id', $usedTagsByOtherPlatforms)
+            //         ->distinct()
+            //         ->get();
+            // }
 
             $message = 'ดึงข้อมูลสำเร็จ';
             $status = 200;
