@@ -70,6 +70,8 @@ class DisplayController extends Controller
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
 
+            $tags = TagMenu::all();
+
             // $sender = Customers::query()->where('custId', $custId)->first();
             // if (!$sender) throw new \Exception('ไม่พบ sender');
 
