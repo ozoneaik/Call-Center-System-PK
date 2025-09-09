@@ -734,6 +734,8 @@ class NewLazadaController extends Controller
         return null;
     }
 
+    //--------------------------------------------------order api------------------------------------------------------------------------------
+
     private function parseSellerIdFromSession(string $sessionId): ?string
     {
         if ($sessionId === '') return null;
@@ -945,7 +947,7 @@ class NewLazadaController extends Controller
             return response()->json(['ok' => false, 'message' => 'session_id is required'], 422);
         }
 
-        $daysBack    = max(1, (int) $request->query('days_back', 90));
+        $daysBack    = max(1, (int) $request->query('days_back', 30));
         $status      = $request->query('status');
         $timeField   = $request->query('itme_field', 'update_time'); // typo-safe
         if (!in_array($timeField, ['update_time', 'create_time'], true)) $timeField = 'update_time';
@@ -1011,7 +1013,7 @@ class NewLazadaController extends Controller
                 'has_more'   => count($ordersAll) > ($offset + $pageSize),
                 'count'      => count($pageData),
                 'summary'    => $summary,
-                'orders'     => $summaryOnly ? [] : $pageData, // lazy: รายละเอียดค่อยไปดึงทีหลัง
+                'orders'     => $summaryOnly ? [] : $pageData,
             ]);
         } catch (\Throwable $e) {
             Log::channel('webhook_lazada_new')->error('ordersBySession error', ['error' => $e->getMessage()]);
@@ -1032,6 +1034,7 @@ class NewLazadaController extends Controller
         $timeField = in_array($timeField, ['update_time', 'create_time'], true) ? $timeField : 'update_time';
 
         $ordersNorm = [];
+
         foreach ($this->splitTimeWindows($from, $to, 15) as [$wFrom, $wTo]) {
             $offset = 0;
             $limit  = 50;
@@ -1066,41 +1069,29 @@ class NewLazadaController extends Controller
                     $orderNumber = $o['order_number'] ?? $orderId;
                     if (!$orderId) continue;
 
-                    $items = $this->getOrderItems($orderId, $platform);
-                    $buyerIdAgg = null;
-                    foreach ($items as $it) {
-                        if (!empty($it['buyer_id'])) {
-                            $buyerIdAgg = $it['buyer_id'];
-                            break;
-                        }
+                    $itemsResp = $this->getOrderItems($orderId, $platform);
+                    $buyerId   = null;
+                    if (!empty($itemsResp)) {
+                        $buyerId = $itemsResp[0]['buyer_id'] ?? null;
                     }
-                    if ($targetBuyerId && (string)$buyerIdAgg !== (string)$targetBuyerId) continue;
 
-                    $ordersNorm[] = [
-                        'order_sn'         => $orderNumber,
-                        'order_id'         => $orderId,
-                        'buyer_id'         => $buyerIdAgg,
-                        'order_status'     => $o['statuses'][0] ?? ($o['status'] ?? '-'),
-                        'currency'         => $o['currency'] ?? 'THB',
-                        'total_amount'     => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
-                        'create_time'      => isset($o['created_at']) ? strtotime($o['created_at']) : null,
-                        'update_time'      => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
-                        'pay_time'         => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
-                        'item_list'        => array_map(function ($it) {
-                            return [
-                                'item_name'                => $it['name'] ?? '',
-                                'item_sku'                 => $it['sku'] ?? '',
-                                'model_name'               => '',
-                                'model_quantity_purchased' => (int)($it['qty'] ?? 0),
-                                'model_discounted_price'   => (float)($it['price'] ?? 0),
-                                'image_info'               => ['image_url' => $it['image_url'] ?? null],
-                                'product_id'               => $it['product_id'] ?? null,
-                                'item_id'                  => $it['item_id'] ?? null,
-                                'action_url'               => $it['action_url'] ?? null,
-                                'buyer_id'                 => $it['buyer_id'] ?? null,
-                            ];
-                        }, $items),
+                    $order = [
+                        'order_sn'     => $orderNumber,
+                        'order_id'     => $orderId,
+                        'buyer_id'     => $buyerId,
+                        'order_status' => $o['statuses'][0] ?? ($o['status'] ?? '-'),
+                        'currency'     => $o['currency'] ?? 'THB',
+                        'total_amount' => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
+                        'create_time'  => isset($o['created_at']) ? strtotime($o['created_at']) : null,
+                        'update_time'  => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
+                        'pay_time'     => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
                     ];
+
+                    if ($targetBuyerId && (string)$buyerId !== (string)$targetBuyerId) {
+                        continue;
+                    }
+
+                    $ordersNorm[] = $order;
 
                     if (count($ordersNorm) >= $needTotal) return $ordersNorm;
                 }

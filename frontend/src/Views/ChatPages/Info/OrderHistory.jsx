@@ -20,7 +20,7 @@ export default function OrderHistory({
     sessionId,
     sellerId,
     // common
-    daysBack = 90,
+    daysBack = 30,
     status = "ALL",
     timeField = "update_time",
     baseUrl = "",
@@ -35,7 +35,6 @@ export default function OrderHistory({
 
     const [detailMap, setDetailMap] = useState({});
     const [openDetail, setOpenDetail] = useState({});
-
     const [snackbar, setSnackbar] = useState("");
     const abortRef = useRef(null);
 
@@ -100,6 +99,7 @@ export default function OrderHistory({
         setPage(1);
     }, []);
 
+    // ดึงข้อมูล list (สรุป order)
     const fetchPage = useCallback(
         async (pageNum) => {
             const url = `${baseUrl}${listPath}?${buildListQuery(pageNum)}`;
@@ -124,6 +124,7 @@ export default function OrderHistory({
         [baseUrl, listPath, safeFetch]
     );
 
+    // useEffect: โหลดหน้าแรกเมื่อ visible + ready
     useEffect(() => {
         if (!visible || !ready) return;
         resetState();
@@ -141,6 +142,7 @@ export default function OrderHistory({
         ? "/api/webhook-new/shopee/order-detail"
         : "/api/webhook-new/lazada/order-detail";
 
+    // ดึงรายละเอียด order ทีละ order_sn
     const fetchDetail = useCallback(async (summaryRow) => {
         const key = summaryRow.order_sn;
         if (!key) return;
@@ -201,6 +203,7 @@ export default function OrderHistory({
             })
             : "—";
 
+    // เลือกสี Chip ตามสถานะ order
     const statusColor = (st) => {
         const s = String(st || "").toUpperCase();
         if (s.includes("UNPAID")) return "warning";
@@ -210,6 +213,7 @@ export default function OrderHistory({
         return "neutral";
     };
 
+    // ดึงเหตุผล cancel จาก item list
     const getCancelReasons = (od) => {
         const list = od?.item_list || [];
         const pool = [];
@@ -346,10 +350,10 @@ export default function OrderHistory({
                                     .filter(Boolean)
                             )
                         ];
-                        const invoice = od?.invoice || null;
 
                         return (
                             <Sheet key={s.order_sn} variant="plain" sx={{ p: 1, borderRadius: "md", mb: 1 }}>
+
                                 {/* Header */}
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                                     <Typography level="title-sm" fontFamily="monospace">{s.order_sn}</Typography>
@@ -428,35 +432,6 @@ export default function OrderHistory({
                                                 <Typography level="body-sm" sx={{ whiteSpace: "pre-wrap" }}>
                                                     <b>ที่อยู่:</b> {recipient.address}
                                                 </Typography>
-
-                                                {invoice && (
-                                                    <>
-                                                        <Divider sx={{ my: 1 }} />
-                                                        <Typography level="body-sm" sx={{ mb: 0.5 }}>
-                                                            <b>ใบกำกับภาษี:</b>{" "}
-                                                            {invoice.not_requested
-                                                                ? "ไม่มีคำขอ"
-                                                                : invoice.invoice_type === "company"
-                                                                    ? "นิติบุคคล"
-                                                                    : invoice.invoice_type === "personal"
-                                                                        ? "บุคคลธรรมดา"
-                                                                        : "—"}
-                                                        </Typography>
-                                                        {invoice.not_requested ? (
-                                                            <Typography level="body-xs" color="neutral">
-                                                                ลูกค้าไม่ได้ร้องขอใบกำกับภาษีสำหรับออเดอร์นี้
-                                                            </Typography>
-                                                        ) : (
-                                                            (invoice.display_name || invoice.display_tax_id || invoice.display_address) && (
-                                                                <Typography level="body-xs" color="neutral" sx={{ whiteSpace: "pre-wrap" }}>
-                                                                    {invoice.display_name ? `ชื่อ/บริษัท: ${invoice.display_name}\n` : ""}
-                                                                    {invoice.display_tax_id ? `เลขภาษี: ${invoice.display_tax_id}\n` : ""}
-                                                                    {invoice.display_address ? `ที่อยู่: ${invoice.display_address}` : ""}
-                                                                </Typography>
-                                                            )
-                                                        )}
-                                                    </>
-                                                )}
                                             </>
                                         ) : (
                                             <Typography level="body-sm" color="neutral">
@@ -475,7 +450,6 @@ export default function OrderHistory({
                                 )}
 
                                 {(items || []).map((it, i) => {
-                                    // ---- normalize fields (Shopee or Lazada) ----
                                     const title = it.item_name ?? it.name ?? "-";
                                     const sku = it.item_sku ?? it.sku ?? "-";
                                     const modelSku = it.model_sku ?? "";
@@ -487,19 +461,16 @@ export default function OrderHistory({
 
                                     const imageUrl = it.image_info?.image_url ?? it.image_url ?? null;
 
-                                    // product URL
                                     let productUrl = null;
                                     if (platform === "shopee" && it.item_id && host && shopId) {
                                         productUrl = `https://${host}/product/${shopId}/${it.item_id}`;
                                     } else if (platform === "lazada") {
-                                        // ใช้ action_url จาก backend ก่อน ถ้าไม่มีค่อย fallback product_id
                                         if (it.action_url) {
                                             productUrl = it.action_url;
                                         } else if (it.product_id) {
                                             productUrl = `https://www.lazada.co.th/products/i${it.product_id}.html`;
                                         }
                                     }
-
                                     return (
                                         <Box
                                             key={`${s.order_sn}-${i}`}

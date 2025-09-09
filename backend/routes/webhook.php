@@ -30,9 +30,9 @@ Route::prefix('webhook-new')->group(function () {
         Route::post('/', [NewLazadaController::class, 'webhook']);
         Route::post('/refresh-token', [NewLazadaController::class, 'refreshToken']);
 
-        Route::get('/resolve-platform', [NewLazadaController::class, 'resolvePlatform']);
-        Route::get('/orders-by-session', [NewLazadaController::class, 'ordersBySession']);
-        Route::get('/order-detail', [NewLazadaController::class, 'orderDetail']);
+        Route::get('/resolve-platform', [NewLazadaController::class, 'resolvePlatform']); //ตรวจสอบว่า ลูกค้าคนนี้อยู่กับ platform Lazada ไหน (ร้านไหน) และ return ข้อมูลร้านกลับมา
+        Route::get('/orders-by-session', [NewLazadaController::class, 'ordersBySession']); //ใช้ ิbuyer id  ของแชท Lazada ดึงประวัติคำสั่งซื้อของลูกค้าคนนั้น (ภายในช่วงเวลาที่กำหนด เช่น 30 วัน)
+        Route::get('/order-detail', [NewLazadaController::class, 'orderDetail']); //ดึงรายละเอียดคำสั่งซื้อจาก Lazada API
     });
 
     // สำหรับ Shopee
@@ -42,9 +42,9 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/auth', [ShopeeController::class, 'authorization']);
         Route::post('/', [NewShopeeController::class, 'webhooks']);
 
-        Route::get('/resolve-platform', [NewShopeeController::class, 'resolvePlatform']); 
-        Route::get('/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']);    
-        Route::get('/order-detail', [NewShopeeController::class, 'orderDetail']);
+        Route::get('/resolve-platform', [NewShopeeController::class, 'resolvePlatform']); //ตรวจสอบว่า ลูกค้าคนนี้อยู่กับ platform Shopee ร้านไหน
+        Route::get('/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']); //ใช้ buyer_id หรือ buyer_username เพื่อดึงประวัติคำสั่งซื้อของลูกค้าคนนั้นจาก Shopee API
+        Route::get('/order-detail', [NewShopeeController::class, 'orderDetail']); //ใช้ order_sn (Shopee order serial number) เพื่อดึงรายละเอียดคำสั่งซื้อ
     });
 
     // สำหรับ Test

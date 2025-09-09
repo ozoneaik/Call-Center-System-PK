@@ -932,13 +932,12 @@ class NewShopeeController extends Controller
             return response()->json(['ok' => false, 'message' => 'ต้องส่ง buyer_id หรือ buyer_username อย่างน้อยหนึ่งอย่าง'], 422);
         }
 
-        $daysBack  = max(1, (int) $request->input('days_back', 90));
+        $daysBack  = max(1, (int) $request->input('days_back', 30));
         $status    = $request->input('status');
         $shopId    = $request->input('shop_id');
         $timeField = $request->input('time_field', 'update_time');
         if (!in_array($timeField, ['update_time', 'create_time'], true)) $timeField = 'update_time';
 
-        // NEW: paging + summary_only
         $page        = max(1, (int)$request->query('page', 1));
         $pageSize    = max(1, min(100, (int)$request->query('page_size', 20)));
         $summaryOnly = (string)$request->query('summary_only', '1') === '1';
@@ -960,15 +959,16 @@ class NewShopeeController extends Controller
             $snList    = $this->collectOrderSNs($platform, $from, $to, $timeField, $status, $needTotal, /*includePENDING*/ false);
 
             $fields = implode(',', [
+                'order_sn',
                 'buyer_user_id',
                 'buyer_username',
                 'order_status',
                 'total_amount',
                 'currency',
-                'item_list',
+                // 'item_list',
                 'create_time',
                 'update_time',
-                'pay_time'
+                'pay_time',
             ]);
 
             $all = [];
@@ -1004,7 +1004,7 @@ class NewShopeeController extends Controller
                     'create_time'    => $od['create_time'] ?? null,
                     'update_time'    => $od['update_time'] ?? null,
                     'pay_time'       => $od['pay_time'] ?? null,
-                    'items_count'    => isset($od['item_list']) ? count($od['item_list']) : 0,
+                    'items_count'    => null,
                 ];
             }, $pageArr);
 
@@ -1043,19 +1043,17 @@ class NewShopeeController extends Controller
             'buyer_user_id',
             'buyer_username',
             'recipient_address',
-            'package_list',
-            'payment_method',
-            'payment_info',
-            'shipping_carrier',
             'item_list',
             'total_amount',
             'currency',
+            'cod',
+            'region',
+            'buyer_cancel_reason',
+            'cancel_by',
+            'cancel_reason',
             'create_time',
             'update_time',
             'pay_time',
-            'buyer_cancel_reason',
-            'cancel_by',
-            'cancel_reason'
         ]);
 
         try {
