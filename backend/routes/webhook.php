@@ -32,6 +32,7 @@ Route::prefix('webhook-new')->group(function () {
 
         Route::get('/resolve-platform', [NewLazadaController::class, 'resolvePlatform']);
         Route::get('/orders-by-session', [NewLazadaController::class, 'ordersBySession']);
+        Route::get('/order-detail', [NewLazadaController::class, 'orderDetail']);
     });
 
     // สำหรับ Shopee
@@ -40,8 +41,10 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/', [ShopeeController::class, 'index']);
         Route::get('/auth', [ShopeeController::class, 'authorization']);
         Route::post('/', [NewShopeeController::class, 'webhooks']);
-        Route::match(['GET', 'POST'], '/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']);
-        Route::get('/resolve-platform', [NewShopeeController::class, 'resolveChatPlatform']);
+
+        Route::get('/resolve-platform', [NewShopeeController::class, 'resolvePlatform']); 
+        Route::get('/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']);    
+        Route::get('/order-detail', [NewShopeeController::class, 'orderDetail']);
     });
 
     // สำหรับ Test
