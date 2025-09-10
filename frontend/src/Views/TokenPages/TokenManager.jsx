@@ -13,6 +13,9 @@ export default function TokenManager() {
     const [authUrl, setAuthUrl] = useState("");
     const [tokenInfo, setTokenInfo] = useState(null);
 
+    const [chatRooms, setChatRooms] = useState([]);
+    const [roomDefaultId, setRoomDefaultId] = useState("");
+
     const location = useLocation();
 
     useEffect(() => {
@@ -22,6 +25,12 @@ export default function TokenManager() {
             setCallback(import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/lazada");
         }
     }, [platform]);
+
+    useEffect(() => {
+        axiosClient.get("/auto-tokens/rooms").then((res) => {
+            setChatRooms(res.data.chat_rooms || []);
+        });
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -41,6 +50,7 @@ export default function TokenManager() {
             localStorage.setItem("callback", callback);
             localStorage.setItem("description", description);
             localStorage.setItem("platform", platform);
+            localStorage.setItem("room_default_id", roomDefaultId);
 
             const resp = await axiosClient.get(`/auto-tokens/token/${platform}/auth-url`, {
                 params: {
@@ -64,6 +74,7 @@ export default function TokenManager() {
             const savedPartnerKey = localStorage.getItem("partnerKey");
             const savedCallback = localStorage.getItem("callback");
             const savedDescription = localStorage.getItem("description");
+            const savedRoomId = localStorage.getItem("room_default_id");
 
             const payload = {
                 code,
@@ -71,6 +82,7 @@ export default function TokenManager() {
                 partner_key: savedPartnerKey,
                 callback_url: savedCallback,
                 description: savedDescription,
+                room_default_id: savedRoomId
             };
 
             if (currentPlatform === "shopee") {
@@ -144,6 +156,22 @@ export default function TokenManager() {
                             </div>
 
                             <div style={styles.formGroup}>
+                                <label style={styles.label}>Default Room</label>
+                                <select
+                                    style={styles.input}
+                                    value={roomDefaultId}
+                                    onChange={(e) => setRoomDefaultId(e.target.value)}
+                                >
+                                    <option value="">-- เลือกห้อง --</option>
+                                    {chatRooms.map((room) => (
+                                        <option key={room.roomId} value={room.roomId}>
+                                            {room.roomName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={styles.formGroup}>
                                 <label style={styles.label}>Callback URL</label>
                                 <input
                                     style={{ ...styles.input, background: "#f3f4f6", color: "#555" }}
@@ -171,11 +199,9 @@ export default function TokenManager() {
                 {tokenInfo && (
                     <div style={styles.tokenBox}>
                         <h3>🎫 Token Info ({tokenInfo.platform})</h3>
-
                         {tokenInfo.platform === "shopee" && (
                             <p><b>Shop ID:</b> {tokenInfo.shop_id}</p>
                         )}
-
                         {tokenInfo.platform === "lazada" && (
                             <>
                                 <p><b>Lazada Seller ID:</b> {tokenInfo.laz_seller_id}</p>
@@ -188,12 +214,10 @@ export default function TokenManager() {
                                 ))}
                             </>
                         )}
-
                         <p><b>Access Token:</b> {tokenInfo.access_token}</p>
                         <p><b>Refresh Token:</b> {tokenInfo.refresh_token}</p>
                         <p><b>Expire In:</b> {tokenInfo.expire_in} วินาที</p>
                         <p><b>Description:</b> {tokenInfo.description}</p>
-
                         <button
                             style={styles.buttonSuccess}
                             onClick={() => window.location.href = "/accessToken"}

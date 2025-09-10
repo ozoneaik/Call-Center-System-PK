@@ -125,6 +125,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('auto-tokens')->group(function () {
+        Route::get('/rooms', [PlatformTokenController::class, 'listRooms']);
+
         Route::get('/token/shopee/auth-url', [PlatformTokenController::class, 'shopeeAuthUrl']);
         Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange']);
         Route::get('/callback/shopee', [PlatformTokenController::class, 'shopeeCallback']);

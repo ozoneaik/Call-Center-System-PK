@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChatRooms;
 use App\Models\PlatformAccessTokens;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -10,6 +11,26 @@ use Illuminate\Support\Facades\Log;
 
 class PlatformTokenController extends Controller
 {
+    public function listRooms()
+    {
+        try {
+            $chatRooms = ChatRooms::query()
+                ->where('is_active', true)
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'chat_rooms' => $chatRooms
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'chat_rooms' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ---------------- SHOPEE ----------------
     public function shopeeAuthUrl(Request $req)
     {
@@ -43,6 +64,7 @@ class PlatformTokenController extends Controller
         $partnerId  = $req->input('partner_id');
         $partnerKey = trim($req->input('partner_key'));
         $redirect   = $req->input('callback_url');
+        $roomId     = $req->input('room_default_id');
 
         if (!$code || !$shopId || !$partnerId || !$partnerKey || !$redirect) {
             return response()->json(['error' => 'missing required params'], 422);
@@ -75,6 +97,7 @@ class PlatformTokenController extends Controller
                     'accessToken'          => $resp['access_token'],
                     'description'          => $req->input('description'),
                     'platform'             => 'shopee',
+                    'room_default_id'      => $roomId,
                     'shopee_refresh_token' => $resp['refresh_token'],
                     'expire_at'            => Carbon::now()->addSeconds($resp['expire_in']),
                     'shopee_partner_id'    => $partnerId,
@@ -84,9 +107,10 @@ class PlatformTokenController extends Controller
             );
 
             Log::info("Shopee Token Saved", $saved->toArray());
-
             return response()->json([
+                'platform'      => 'shopee',
                 'shop_id'       => $shopId,
+                'room_default_id' => $roomId,
                 'access_token'  => $resp['access_token'],
                 'refresh_token' => $resp['refresh_token'],
                 'expire_in'     => $resp['expire_in'],
@@ -106,14 +130,14 @@ class PlatformTokenController extends Controller
             return response()->json(['error' => 'Missing code or shop_id'], 422);
         }
         $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
-        return redirect()->away("{$frontendUrl}?code={$code}&shop_id={$shopId}");
+        return redirect()->away("{$frontendUrl}?code={$code}&shop_id={$shopId}&platform=shopee");
     }
 
     // ---------------- LAZADA ----------------
     public function lazadaAuthUrl(Request $req)
     {
-        $appKey   = $req->input('partner_id');  
-        $redirect = $req->input('callback_url'); 
+        $appKey   = $req->input('partner_id');
+        $redirect = $req->input('callback_url');
 
         if (empty($appKey) || empty($redirect)) {
             return response()->json(['error' => 'ต้องกรอก app_key และ callback_url'], 422);
@@ -132,11 +156,9 @@ class PlatformTokenController extends Controller
     public function lazadaCallback(Request $request)
     {
         $code = $request->query('code');
-
         if (!$code) {
             return response()->json(['error' => 'Missing code'], 422);
         }
-
         $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
         return redirect()->away("{$frontendUrl}?code={$code}&platform=lazada");
     }
@@ -147,6 +169,7 @@ class PlatformTokenController extends Controller
         $appKey    = $req->input('partner_id');
         $appSecret = $req->input('partner_key');
         $redirect  = $req->input('callback_url');
+        $roomId    = $req->input('room_default_id');
 
         if (!$code || !$appKey || !$appSecret || !$redirect) {
             return response()->json(['error' => 'missing required params'], 422);
@@ -163,7 +186,6 @@ class PlatformTokenController extends Controller
             'sign_method' => 'sha256',
         ];
 
-        // 🔑 Lazada signature
         ksort($params);
         $signString = $apiPath;
         foreach ($params as $key => $value) {
@@ -180,29 +202,29 @@ class PlatformTokenController extends Controller
             if (!empty($resp['country_user_info']) && is_array($resp['country_user_info'])) {
                 $sellerId = $resp['country_user_info'][0]['seller_id'] ?? null;
             }
-
             $saved = PlatformAccessTokens::updateOrCreate(
                 [
                     'platform'      => 'lazada',
                     'laz_app_key'   => $appKey,
-                    'laz_seller_id' => $sellerId, 
+                    'laz_seller_id' => $sellerId,
                 ],
                 [
                     'accessTokenId'  => uniqid("laz_", true),
                     'accessToken'    => $resp['access_token'],
                     'description'    => $req->input('description'),
                     'platform'       => 'lazada',
+                    'room_default_id' => $roomId,
                     'laz_app_key'    => $appKey,
                     'laz_app_secret' => $appSecret,
                     'laz_seller_id'  => $sellerId,
                     'expire_at'      => Carbon::now()->addSeconds($resp['expires_in'] ?? 0),
                 ]
             );
-
             Log::info("✅ Lazada Token Saved", $saved->toArray());
-
             return response()->json([
+                'platform'      => 'lazada',
                 'laz_seller_id' => $sellerId,
+                'room_default_id' => $roomId,
                 'account'       => $resp['account'] ?? null,
                 'country'       => $resp['country'] ?? null,
                 'access_token'  => $resp['access_token'],
@@ -212,7 +234,6 @@ class PlatformTokenController extends Controller
                 'country_user_info' => $resp['country_user_info'] ?? [],
             ]);
         }
-
         return response()->json($resp);
     }
 }
