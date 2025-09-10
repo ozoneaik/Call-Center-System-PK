@@ -1129,6 +1129,7 @@ class NewShopeeController extends Controller
                 $cursor = $resp['next_cursor'] ?? '';
             } while (!empty($more) && $cursor !== '');
         }
+        
         return $sns;
     }
 
