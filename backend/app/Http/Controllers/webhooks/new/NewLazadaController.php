@@ -32,6 +32,7 @@ class NewLazadaController extends Controller
     {
         try {
             $req = $request->all();
+            
             if (isset($req['message_type']) && $req['message_type'] === 2 && $req['data']['from_account_type'] === 1) {
                 $check_message_id_same = ChatHistory::query()->where('line_message_id', $req['data']['message_id'])->first();
                 if ($check_message_id_same) {

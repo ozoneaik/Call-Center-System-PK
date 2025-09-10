@@ -35,6 +35,7 @@ import TagPage from "./Views/TagPages/TagMenu/main.jsx";
 import CreateGroupPage from "./Views/TagPages/CreateGroupPage.jsx";
 import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
+import TokenManeger from "./Views/TokenPages/TokenManager.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -63,6 +64,9 @@ export const routes = createBrowserRouter([
                             { path: '/customers', element: <Customers /> },
                             { path: '/users', element: <Users /> },
                             { path: '/accessToken', element: <TokenList /> },
+                            
+                            { path: '/TokenManager', element: <TokenManeger /> },
+
                             { path: '/botManage', element: <BotList /> },
                             
                             { path: '/tags', element: <TagPage /> },

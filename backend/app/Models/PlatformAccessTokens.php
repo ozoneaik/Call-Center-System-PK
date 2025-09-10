@@ -17,6 +17,7 @@ class PlatformAccessTokens extends Model
         'accessToken',
         'description',
         'platform',
+        'laz_seller_id',
         'laz_app_key',
         'laz_app_secret',
         'fb_page_id',

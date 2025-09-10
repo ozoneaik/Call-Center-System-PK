@@ -15,6 +15,7 @@ use App\Http\Controllers\HelpChatController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotesController;
+use App\Http\Controllers\PlatformTokenController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Secret\BotRoomController;
 use App\Http\Controllers\ShortChatController;
@@ -121,6 +122,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('store', [TokenController::class, 'store']);
         Route::put('update', [TokenController::class, 'update']);
         Route::delete('delete/{id}', [TokenController::class, 'delete']);
+    });
+
+    Route::prefix('auto-tokens')->group(function () {
+        Route::get('/token/shopee/auth-url', [PlatformTokenController::class, 'shopeeAuthUrl']);
+        Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange']);
+        Route::get('/callback/shopee', [PlatformTokenController::class, 'shopeeCallback']);
+
+        // Lazada
+        Route::get('/token/lazada/auth-url', [PlatformTokenController::class, 'lazadaAuthUrl']);
+        Route::post('/token/lazada/exchange', [PlatformTokenController::class, 'lazadaExchange']);
+        Route::get('/callback/lazada', [PlatformTokenController::class, 'lazadaCallback']);
     });
 
     // จัดการ Dashboard

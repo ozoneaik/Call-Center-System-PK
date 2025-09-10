@@ -177,12 +177,39 @@ export const SidebarAdmin = ({ pathname, user }) => (
       {/* AdminIT */}
       {user.empCode === "adminIT" && (
         <>
-          <ListItem component={Link} to="/accessToken">
-            <ListItemButton selected={pathname === "/accessToken"}>
+          <ListItem>
+            <ListItemButton
+              component={Link}
+              to="/accessToken"
+              selected={pathname === "/accessToken"}
+            >
               <Token />
               <Typography level="title-sm">จัดการ token</Typography>
             </ListItemButton>
           </ListItem>
+
+          <ListItem>
+            <ListItemButton
+              component={Link}
+              to="/TokenManager"
+              selected={pathname === "/TokenManager"}
+            >
+              <Token />
+              <Typography level="title-sm">Auto Access Token</Typography>
+            </ListItemButton>
+          </ListItem>
+        </>
+      )}
+
+      {/* AdminIT */}
+      {user.empCode === "adminIT" && (
+        <>
+          {/* <ListItem component={Link} to="/accessToken">
+            <ListItemButton selected={pathname === "/accessToken"}>
+              <Token />
+              <Typography level="title-sm">จัดการ token</Typography>
+            </ListItemButton>
+          </ListItem> */}
           <ListItem component={Link} to="/announces">
             <ListItemButton selected={pathname === "/announces"}>
               <CircleNotifications />
