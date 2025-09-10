@@ -821,6 +821,7 @@ class NewShopeeController extends Controller
         return $json['access_token'];
     }
 
+    //-------------------------------------------------------------order api-----------------------------------------------------------------------
     private function getProduct($item_id, $shop_id, $partner_id, $partner_key, $access_token)
     {
 
@@ -921,107 +922,6 @@ class NewShopeeController extends Controller
         return $json['response'] ?? [];
     }
 
-    private function getOrdersByBuyer(
-        $platform,
-        ?int $buyerUserId = null,
-        ?string $buyerUsername = null,
-        int $daysBack = 90,
-        ?string $status = null,
-        string $timeField = 'update_time'
-    ): array {
-        if ($buyerUserId === null && ($buyerUsername === null || $buyerUsername === '')) {
-            throw new \InvalidArgumentException('ต้องระบุ buyer_id หรือ buyer_username อย่างน้อยหนึ่งค่า');
-        }
-
-        $to   = time();
-        $from = $to - ($daysBack * 86400);
-
-        $status    = (is_string($status) && strtoupper($status) === 'ALL') ? null : $status;
-        $timeField = in_array($timeField, ['update_time', 'create_time'], true) ? $timeField : 'update_time';
-
-        $foundOrders = [];
-        $seen = [];
-        $pageSize = 50;
-
-        foreach ($this->splitTimeWindows($from, $to, 15) as [$wFrom, $wTo]) {
-            $cursor = null;
-
-            do {
-                $params = [
-                    'time_range_field' => $timeField,
-                    'time_from'        => $wFrom,
-                    'time_to'          => $wTo,
-                    'page_size'        => $pageSize,
-                ];
-                if (!empty($status)) {
-                    $params['order_status'] = $status;
-                }
-                if (!empty($cursor)) {
-                    $params['cursor'] = $cursor;
-                }
-
-                try {
-                    $listResp = $this->getOrderList($platform, $params);
-                } catch (\Throwable $e) {
-                    Log::channel('webhook_shopee_new')->error('getOrderList fail', [
-                        'error'  => $e->getMessage(),
-                        'params' => $params,
-                    ]);
-                    break;
-                }
-
-                $orders = $listResp['order_list'] ?? [];
-                $cursor = $listResp['next_cursor'] ?? null;
-
-                if (empty($orders)) {
-                    continue;
-                }
-
-                $snListAll = [];
-                foreach ($orders as $o) {
-                    $sn = $o['order_sn'] ?? null;
-                    if ($sn && empty($seen[$sn])) {
-                        $snListAll[] = $sn;
-                        $seen[$sn] = true;
-                    }
-                }
-                if (empty($snListAll)) {
-                    continue;
-                }
-
-                foreach (array_chunk($snListAll, 50) as $snList) {
-                    try {
-                        $detail = $this->getOrderDetail(
-                            $snList,
-                            $platform,
-                            'buyer_user_id,buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time,cancel_reason,buyer_cancel_reason,cancel_by'
-                        );
-                    } catch (\Throwable $e) {
-                        Log::channel('webhook_shopee_new')->error('getOrderDetail fail (chunk)', [
-                            'error' => $e->getMessage(),
-                            'snList' => $snList,
-                        ]);
-                        continue;
-                    }
-
-                    foreach (($detail['order_list'] ?? []) as $od) {
-                        $ok = false;
-                        if ($buyerUserId !== null) {
-                            $ok = (isset($od['buyer_user_id']) && (string)$od['buyer_user_id'] === (string)$buyerUserId);
-                        } elseif ($buyerUsername !== null && $buyerUsername !== '') {
-                            $ok = (($od['buyer_username'] ?? '') === $buyerUsername);
-                        }
-                        if ($ok) {
-                            $foundOrders[] = $od;
-                        }
-                    }
-                }
-            } while (!empty($cursor));
-        }
-
-        return $foundOrders;
-    }
-
     public function ordersByBuyer(Request $request)
     {
         $buyerIdParam   = $request->input('buyer_id');
@@ -1032,12 +932,15 @@ class NewShopeeController extends Controller
             return response()->json(['ok' => false, 'message' => 'ต้องส่ง buyer_id หรือ buyer_username อย่างน้อยหนึ่งอย่าง'], 422);
         }
 
-        $daysBack = (int) $request->input('days_back', 90);
-        if ($daysBack <= 0) $daysBack = 90;
-
+        $daysBack  = max(1, (int) $request->input('days_back', 30));
         $status    = $request->input('status');
         $shopId    = $request->input('shop_id');
         $timeField = $request->input('time_field', 'update_time');
+        if (!in_array($timeField, ['update_time', 'create_time'], true)) $timeField = 'update_time';
+
+        $page        = max(1, (int)$request->query('page', 1));
+        $pageSize    = max(1, min(100, (int)$request->query('page_size', 20)));
+        $summaryOnly = (string)$request->query('summary_only', '1') === '1';
 
         $platform = PlatformAccessTokens::query()
             ->where('platform', 'shopee')
@@ -1048,25 +951,47 @@ class NewShopeeController extends Controller
             return response()->json(['ok' => false, 'message' => 'ไม่พบ Shopee platform token (ตรวจสอบ shop_id หรือการเชื่อมต่อ)'], 404);
         }
 
+        $to   = time();
+        $from = $to - ($daysBack * 86400);
+
         try {
-            $orders = $this->getOrdersByBuyer($platform, $buyerId, $buyerUsername, $daysBack, $status, $timeField);
+            $needTotal = $page * $pageSize;
+            $snList    = $this->collectOrderSNs($platform, $from, $to, $timeField, $status, $needTotal, /*includePENDING*/ false);
 
-            $withDetail = (string)$request->query('with_detail', '0') === '1'
-                || (string)$request->query('with_invoice', '0') === '1';
+            $fields = implode(',', [
+                'order_sn',
+                'buyer_user_id',
+                'buyer_username',
+                'order_status',
+                'total_amount',
+                'currency',
+                // 'item_list',
+                'create_time',
+                'update_time',
+                'pay_time',
+            ]);
 
-            if ($withDetail && !empty($orders)) {
-                $sns = array_values(array_filter(array_map(fn($o) => $o['order_sn'] ?? null, $orders)));
-                if (!empty($sns)) {
-                    $invoiceMap = $this->getBuyerInvoiceInfo($platform, $sns);
-                    foreach ($orders as &$od) {
-                        $sn = $od['order_sn'] ?? null;
-                        if ($sn && isset($invoiceMap[$sn])) {
-                            $od['invoice'] = $invoiceMap[$sn];
-                        }
+            $all = [];
+            foreach (array_chunk($snList, 50) as $chunk) {
+                $resp = $this->getOrderDetail($chunk, $platform, $fields);
+                foreach (($resp['order_list'] ?? []) as $od) {
+                    // กรองผู้ซื้อ
+                    $ok = true;
+                    if ($buyerId !== null) {
+                        $ok = (isset($od['buyer_user_id']) && (string)$od['buyer_user_id'] === (string)$buyerId);
+                    } elseif (!empty($buyerUsername)) {
+                        $ok = (($od['buyer_username'] ?? '') === $buyerUsername);
                     }
-                    unset($od);
+                    if (!$ok) continue;
+
+                    $all[] = $od;
                 }
             }
+
+            usort($all, fn($a, $b) => (int)($b['update_time'] ?? 0) <=> (int)($a['update_time'] ?? 0));
+
+            $offset  = ($page - 1) * $pageSize;
+            $pageArr = array_slice($all, $offset, $pageSize);
 
             $summary = array_map(function ($od) {
                 return [
@@ -1079,25 +1004,67 @@ class NewShopeeController extends Controller
                     'create_time'    => $od['create_time'] ?? null,
                     'update_time'    => $od['update_time'] ?? null,
                     'pay_time'       => $od['pay_time'] ?? null,
-                    'cancel_reason'  => $od['cancel_reason'] ?? null,
-                    'buyer_cancel_reason' => $od['buyer_cancel_reason'] ?? null,
-                    'cancel_by'      => $od['cancel_by'] ?? null,
-                    'items_count'    => isset($od['item_list']) ? count($od['item_list']) : 0,
-                    'invoice_type'      => $od['invoice']['invoice_type'] ?? null,
-                    'invoice_requested' => (bool)($od['invoice']['is_requested'] ?? false),
+                    'items_count'    => null,
                 ];
-            }, $orders);
+            }, $pageArr);
 
             return response()->json([
-                'ok'      => true,
-                'count'   => count($orders),
-                'summary' => $summary,
-                'orders'  => $orders,
+                'ok'         => true,
+                'page'       => $page,
+                'page_size'  => $pageSize,
+                'has_more'   => count($all) > ($offset + $pageSize),
+                'count'      => count($pageArr),
+                'summary'    => $summary,
+                'orders'     => $summaryOnly ? [] : $pageArr,
             ]);
         } catch (\Throwable $e) {
-            Log::channel('webhook_shopee_new')->error('ordersByBuyer error', [
-                'error' => $e->getMessage(),
+            Log::channel('webhook_shopee_new')->error('ordersByBuyer error', ['error' => $e->getMessage()]);
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function orderDetail(Request $request)
+    {
+        $orderSn = trim((string)$request->query('order_sn', ''));
+        $shopId  = $request->query('shop_id');
+
+        if ($orderSn === '') {
+            return response()->json(['ok' => false, 'message' => 'order_sn is required'], 422);
+        }
+
+        $platform = PlatformAccessTokens::query()
+            ->where('platform', 'shopee')
+            ->when($shopId, fn($q) => $q->where('shopee_shop_id', $shopId))
+            ->first();
+
+        if (!$platform) return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
+
+        $fields = implode(',', [
+            'buyer_user_id',
+            'buyer_username',
+            'recipient_address',
+            'item_list',
+            'total_amount',
+            'currency',
+            'cod',
+            'region',
+            'buyer_cancel_reason',
+            'cancel_by',
+            'cancel_reason',
+            'create_time',
+            'update_time',
+            'pay_time',
+        ]);
+
+        try {
+            $resp = $this->getOrderDetail([$orderSn], $platform, $fields);
+            $od   = $resp['order_list'][0] ?? null;
+
+            return response()->json([
+                'ok'    => $od !== null,
+                'order' => $od,
             ]);
+        } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -1116,6 +1083,53 @@ class NewShopeeController extends Controller
             $start = $end;
         }
         return $windows;
+    }
+
+    public function resolvePlatform(Request $request)
+    {
+        return $this->resolveChatPlatform($request);
+    }
+
+    private function collectOrderSNs(
+        array|PlatformAccessTokens $platform,
+        int $fromTs,
+        int $toTs,
+        string $timeField,
+        ?string $status,
+        int $needTotal,
+        bool $includePending = false
+    ): array {
+        $sns = [];
+        foreach ($this->splitTimeWindows($fromTs, $toTs, 15) as [$wFrom, $wTo]) {
+            $cursor = '';
+            do {
+                $params = [
+                    'time_range_field' => $timeField,
+                    'time_from'        => $wFrom,
+                    'time_to'          => $wTo,
+                    'page_size'        => 100,
+                ];
+                if ($status && strtoupper($status) !== 'ALL') {
+                    $params['order_status'] = $status;
+                }
+                if ($includePending) $params['request_order_status_pending'] = 'true';
+                if ($cursor !== '') $params['cursor'] = $cursor;
+
+                $resp = $this->getOrderList($platform, $params);
+                $list = $resp['order_list'] ?? [];
+
+                foreach ($list as $row) {
+                    if (!empty($row['order_sn'])) {
+                        $sns[] = $row['order_sn'];
+                        if (count($sns) >= $needTotal) return $sns;
+                    }
+                }
+
+                $more   = $resp['more'] ?? false;
+                $cursor = $resp['next_cursor'] ?? '';
+            } while (!empty($more) && $cursor !== '');
+        }
+        return $sns;
     }
 
     public function resolveChatPlatform(Request $request)
@@ -1144,78 +1158,5 @@ class NewShopeeController extends Controller
             'shop_name'         => $pt->description,
             'customer_name'     => $cust->custName ?? null,
         ]);
-    }
-
-    private function getBuyerInvoiceInfo(array|PlatformAccessTokens $platform, array $orderSnList): array
-    {
-        if (empty($orderSnList)) return [];
-
-        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
-
-        $host        = 'https://partner.shopeemobile.com';
-        $path        = '/api/v2/order/get_buyer_invoice_info';
-        $timestamp   = time();
-        $accessToken = self::getValidAccessToken($pt);
-        $partnerId   = (int) $pt['shopee_partner_id'];
-        $partnerKey  = (string) $pt['shopee_partner_key'];
-        $shopId      = (int) $pt['shopee_shop_id'];
-
-        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
-
-        $url = $host . $path . '?' . http_build_query([
-            'partner_id'   => $partnerId,
-            'timestamp'    => $timestamp,
-            'sign'         => $sign,
-            'shop_id'      => $shopId,
-            'access_token' => $accessToken,
-        ]);
-
-        $payload = [
-            'queries' => array_map(fn($sn) => ['order_sn' => $sn], array_values(array_unique($orderSnList))),
-        ];
-
-        $resp = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $payload);
-        $json = $resp->json();
-
-        if (!$resp->successful() || !empty($json['error'])) {
-            Log::channel('webhook_shopee_new')->warning('get_buyer_invoice_info fail', ['resp' => $json]);
-            return [];
-        }
-
-        $out = [];
-        foreach (($json['invoice_info_list'] ?? []) as $it) {
-            $sn     = $it['order_sn'] ?? null;
-            if (!$sn) continue;
-            $type   = $it['invoice_type'] ?? '';
-            $detail = $it['invoice_detail'] ?? [];
-            $isReq  = $it['is_requested'] ?? false;
-            $err    = $it['error'] ?? '';
-            if ($err === 'receipt settings not found') {
-                $displayName = $type === 'company'
-                    ? ($detail['company_name'] ?? null)
-                    : ($detail['name'] ?? null);
-
-                $displayTax = $type === 'company'
-                    ? ($detail['company_tax_id'] ?? null)
-                    : ($detail['tax_id'] ?? null);
-
-                $displayAddr =
-                    data_get($detail, 'address_breakdown.full_address') ??
-                    ($detail['id_card_address'] ?? null) ??
-                    ($detail['address'] ?? null) ??
-                    ($detail['company_full_address'] ?? null);
-
-                $out[$sn] = [
-                    'invoice_type'     => $type,
-                    'is_requested'     => $isReq,
-                    'error'            => $err,
-                    'detail'           => $detail,
-                    'display_name'     => $displayName,
-                    'display_tax_id'   => $displayTax,
-                    'display_address'  => $displayAddr,
-                ];
-            }
-        }
-        return $out;
     }
 }

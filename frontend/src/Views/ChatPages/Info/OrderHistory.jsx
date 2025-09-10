@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Box, Button, Chip, CircularProgress, Divider,
     IconButton, Sheet, Typography
@@ -7,37 +7,48 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Snackbar from "@mui/joy/Snackbar";
 
+const DEFAULT_PAGE_SIZE = 10;
+
 export default function OrderHistory({
     visible = false,
-    platform = "shopee",       // "shopee" | "lazada"
+    platform = "shopee",
     // Shopee
     buyerId,
     buyerUsername,
     shopId,
     // Lazada
     sessionId,
-    sellerId,                  // (เผื่ออนาคต)
+    sellerId,
     // common
-    daysBack = 90,
+    daysBack = 30,
     status = "ALL",
     timeField = "update_time",
     baseUrl = "",
-    path = "/api/webhook-new/shopee/orders-by-buyer",
-    pageSize = 5,
+    pageSize = DEFAULT_PAGE_SIZE,
 }) {
     const [loading, setLoading] = useState(false);
-    const [resp, setResp] = useState(null);
     const [error, setError] = useState("");
     const [page, setPage] = useState(1);
+
+    const [summaryRows, setSummaryRows] = useState([]);
+    const [hasMore, setHasMore] = useState(false);
+
+    const [detailMap, setDetailMap] = useState({});
     const [openDetail, setOpenDetail] = useState({});
     const [snackbar, setSnackbar] = useState("");
+    const abortRef = useRef(null);
+
     const ready = useMemo(() => {
         if (platform === "shopee") return !!shopId && (!!buyerId || !!buyerUsername);
         if (platform === "lazada") return !!sessionId;
         return false;
     }, [platform, shopId, buyerId, buyerUsername, sessionId]);
 
-    const queryString = useMemo(() => {
+    const listPath = platform === "shopee"
+        ? "/api/webhook-new/shopee/orders-by-buyer"
+        : "/api/webhook-new/lazada/orders-by-session";
+
+    const buildListQuery = (pageNum) => {
         const p = new URLSearchParams();
         if (platform === "shopee") {
             if (buyerId) p.set("buyer_id", String(buyerId));
@@ -50,48 +61,131 @@ export default function OrderHistory({
         p.set("days_back", String(daysBack));
         p.set("status", status);
         p.set("time_field", timeField);
-        p.set("with_detail", "1");
+        p.set("summary_only", "1");
+        p.set("page", String(pageNum));
+        p.set("page_size", String(pageSize));
         return p.toString();
-    }, [platform, buyerId, buyerUsername, shopId, sessionId, sellerId, daysBack, status, timeField]);
+    };
 
-    const url = `${baseUrl}${path}?${queryString}`;
+    const safeFetch = useCallback(
+        async (input, init, timeoutMs = 20000, retries = 1) => {
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                abortRef.current?.abort();
+                const controller = new AbortController();
+                abortRef.current = controller;
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const resp = await fetch(input, { ...init, signal: controller.signal });
+                    clearTimeout(timer);
+                    if (!resp.ok) return resp;
+                    return resp;
+                } catch (e) {
+                    clearTimeout(timer);
+                    if (attempt === retries) throw e;
+                    await new Promise((r) => setTimeout(r, 400));
+                }
+            }
+            throw new Error("Fetch failed");
+        },
+        []
+    );
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const resetState = useCallback(() => {
         setError("");
+        setSummaryRows([]);
+        setDetailMap({});
+        setOpenDetail({});
+        setHasMore(false);
         setPage(1);
-        try {
-            const r = await fetch(url, { headers: { Accept: "application/json" } });
-            const j = await r.json();
-            if (!r.ok || j.ok === false) throw new Error(j?.message || `HTTP ${r.status}`);
-            setResp(j);
-        } catch (e) {
-            setError(e.message || "Fetch error");
-            setResp(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [url]);
+    }, []);
 
+    // ดึงข้อมูล list (สรุป order)
+    const fetchPage = useCallback(
+        async (pageNum) => {
+            const url = `${baseUrl}${listPath}?${buildListQuery(pageNum)}`;
+            setLoading(true);
+            setError("");
+
+            try {
+                const r = await safeFetch(url, { headers: { Accept: "application/json" } }, 20000, 1);
+                const j = await r.json();
+                if (!r.ok || j.ok === false) {
+                    throw new Error(j?.message || `HTTP ${r.status}`);
+                }
+                const incoming = Array.isArray(j.summary) ? j.summary : [];
+                setSummaryRows((prev) => (pageNum === 1 ? incoming : [...prev, ...incoming]));
+                setHasMore(Boolean(j.has_more));
+            } catch (e) {
+                setError(e?.message || "Fetch error");
+            } finally {
+                setLoading(false);
+            }
+        },
+        [baseUrl, listPath, safeFetch]
+    );
+
+    // useEffect: โหลดหน้าแรกเมื่อ visible + ready
     useEffect(() => {
-        if (visible && ready) fetchData();
-    }, [visible, ready, fetchData]);
+        if (!visible || !ready) return;
+        resetState();
+        fetchPage(1);
+    }, [visible, ready, platform, shopId, buyerId, buyerUsername, sessionId, sellerId, daysBack, status, timeField, pageSize, resetState, fetchPage]);
+
+    const loadMore = useCallback(() => {
+        if (loading || !hasMore) return;
+        const next = page + 1;
+        setPage(next);
+        fetchPage(next);
+    }, [loading, hasMore, page, fetchPage]);
+
+    const detailPath = platform === "shopee"
+        ? "/api/webhook-new/shopee/order-detail"
+        : "/api/webhook-new/lazada/order-detail";
+
+    // ดึงรายละเอียด order ทีละ order_sn
+    const fetchDetail = useCallback(async (summaryRow) => {
+        const key = summaryRow.order_sn;
+        if (!key) return;
+        if (detailMap[key]) return;
+
+        try {
+            const p = new URLSearchParams();
+            if (platform === "shopee") {
+                p.set("order_sn", key);
+                if (shopId) p.set("shop_id", String(shopId));
+            } else {
+                const orderId = summaryRow.order_id || summaryRow._detail?.order_id;
+                if (!orderId) return;
+                p.set("order_id", String(orderId));
+            }
+            const url = `${baseUrl}${detailPath}?${p.toString()}`;
+            const r = await safeFetch(url, { headers: { Accept: "application/json" } }, 20000, 1);
+            const j = await r.json();
+            if (!r.ok || j.ok === false) {
+                throw new Error(j?.message || `HTTP ${r.status}`);
+            }
+
+            const od = platform === "shopee"
+                ? j.order
+                : { ...(j.detail || {}), item_list: j.items || [], invoice: j.invoice, trace: j.trace };
+
+            setDetailMap((m) => ({ ...m, [key]: od || {} }));
+        } catch (e) {
+            setDetailMap((m) => ({ ...m, [key]: { __error: e?.message || "load detail failed" } }));
+        }
+    }, [platform, shopId, baseUrl, detailPath, detailMap, safeFetch]);
 
     const rows = useMemo(() => {
-        if (!resp || !Array.isArray(resp.summary)) return [];
-        const orderMap = new Map((resp.orders || []).map((od) => [od.order_sn, od]));
-        const joined = resp.summary.map((s) => ({ ...s, _detail: orderMap.get(s.order_sn) || {} }));
-        joined.sort((a, b) => (b.update_time || b.create_time || 0) - (a.update_time || a.create_time || 0));
-        return joined;
-    }, [resp]);
-
-    const shown = rows.slice(0, page * pageSize);
-    const hasMore = rows.length > shown.length;
+        return summaryRows.map((s) => ({
+            ...s,
+            _detail: detailMap[s.order_sn] || null,
+        }));
+    }, [summaryRows, detailMap]);
 
     const fmtMoney = (num, currency = "THB") => {
         if (num == null) return "-";
         try {
-            return new Intl.NumberFormat("th-TH", { style: "currency", currency, maximumFractionDigits: 0 }).format(num);
+            return new Intl.NumberFormat("th-TH", { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(num));
         } catch {
             return `${num} ${currency}`;
         }
@@ -109,6 +203,7 @@ export default function OrderHistory({
             })
             : "—";
 
+    // เลือกสี Chip ตามสถานะ order
     const statusColor = (st) => {
         const s = String(st || "").toUpperCase();
         if (s.includes("UNPAID")) return "warning";
@@ -118,11 +213,12 @@ export default function OrderHistory({
         return "neutral";
     };
 
+    // ดึงเหตุผล cancel จาก item list
     const getCancelReasons = (od) => {
         const list = od?.item_list || [];
         const pool = [];
         for (const it of list) {
-            const r = (it.reason_detail || it.reason || "").trim();
+            const r = (it?.reason_detail || it?.reason || "").toString().trim();
             if (r) pool.push(r);
         }
         return [...new Set(pool)];
@@ -134,16 +230,19 @@ export default function OrderHistory({
     };
 
     const isCanceled = (st) => String(st || "").toUpperCase().includes("CANCEL");
-    // const copy = (t) => navigator.clipboard?.writeText(t).catch(() => { });
+
     const copy = (t) => {
-        navigator.clipboard?.writeText(t).then(() => {
-            setSnackbar("คัดลอกแล้ว: " + t);
-            setTimeout(() => setSnackbar(""), 2000);
-        }).catch(() => {
-            setSnackbar("ไม่สามารถคัดลอกได้");
-            setTimeout(() => setSnackbar(""), 2000);
-        });
+        navigator.clipboard?.writeText(t)
+            .then(() => {
+                setSnackbar("คัดลอกแล้ว: " + t);
+                setTimeout(() => setSnackbar(""), 1800);
+            })
+            .catch(() => {
+                setSnackbar("ไม่สามารถคัดลอกได้");
+                setTimeout(() => setSnackbar(""), 1800);
+            });
     };
+
     const getRecipient = (od) => {
         const r = od?.recipient_address;
         if (r) {
@@ -181,28 +280,32 @@ export default function OrderHistory({
     return (
         <Sheet variant="soft" sx={{ p: 1.5, borderRadius: "xl" }}>
             {snackbar && (
-                <Snackbar
-                    open
-                    color="success"
-                    anchorOrigin={{ vertical: "top", horizontal: "center" }}
-                >
+                <Snackbar open color="success" anchorOrigin={{ vertical: "top", horizontal: "center" }}>
                     {snackbar}
                 </Snackbar>
             )}
+
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <Typography level="h5">
                     {platform === "shopee" ? "ประวัติออเดอร์ Shopee" : "ประวัติออเดอร์ Lazada"}
                 </Typography>
                 <Box sx={{ flex: 1 }} />
-                <IconButton size="sm" onClick={fetchData} disabled={loading} variant="plain">
+                <IconButton
+                    size="sm"
+                    onClick={() => {
+                        resetState();
+                        fetchPage(1);
+                    }}
+                    disabled={loading}
+                    variant="plain"
+                >
                     <RefreshIcon />
                 </IconButton>
             </Box>
-            {!ready && (
-                <Typography level="body-sm" color="neutral">กำลังเตรียมข้อมูล…</Typography>
-            )}
 
-            {loading && ready && (
+            {!ready && <Typography level="body-sm" color="neutral">กำลังเตรียมข้อมูล…</Typography>}
+
+            {loading && summaryRows.length === 0 && ready && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, my: 1 }}>
                     <CircularProgress size="sm" />
                     <Typography level="body-sm">กำลังโหลด…</Typography>
@@ -215,33 +318,42 @@ export default function OrderHistory({
                 </Typography>
             )}
 
-            {!loading && !error && ready && resp && (
+            {!error && ready && (
                 <>
-                    <Typography level="body-sm" sx={{ mb: 1 }}>
-                        ทั้งหมด {resp.count ?? rows.length} รายการ • แสดง {shown.length}/{rows.length}
-                    </Typography>
-                    {shown.map((s) => {
-                        const od = s._detail || {};
-                        const items = od.item_list || [];
+                    {summaryRows.length > 0 && (
+                        <Typography level="body-sm" sx={{ mb: 1 }}>
+                            ทั้งหมด {summaryRows.length} รายการ • แสดง {summaryRows.length}
+                        </Typography>
+                    )}
+
+                    {summaryRows.map((s) => {
+                        const od = rows.find((r) => r.order_sn === s.order_sn)?._detail || null;
+                        const items = od?.item_list || [];
                         const paymentText =
-                            od.cod === true ? "เก็บเงินปลายทาง (COD)" :
-                                s.pay_time ? `ชำระแล้ว: ${fmtDateTime(s.pay_time)}` : "—";
-                        const host = platform === "shopee" ? regionHost(od.region) : null;
+                            od?.cod === true
+                                ? "เก็บเงินปลายทาง (COD)"
+                                : s.pay_time
+                                    ? `ชำระแล้ว: ${fmtDateTime(s.pay_time)}`
+                                    : "—";
+
+                        const host = platform === "shopee" ? regionHost(od?.region) : null;
                         const recipient = getRecipient(od);
                         const buyerIdView =
                             s.buyer_id
-                            || (od.item_list || []).find(it => it?.buyer_id)?.buyer_id
+                            || (od?.item_list || []).find((it) => it?.buyer_id)?.buyer_id
                             || (platform === "shopee" ? buyerId : null);
+
                         const trackingCodesPre = [
                             ...new Set(
-                                (od.item_list || [])
-                                    .map(it => (it?.tracking_code_pre ?? "").toString().trim())
+                                (od?.item_list || [])
+                                    .map((it) => (it?.tracking_code_pre ?? "").toString().trim())
                                     .filter(Boolean)
                             )
                         ];
-                        const invoice = od.invoice || null;
+
                         return (
                             <Sheet key={s.order_sn} variant="plain" sx={{ p: 1, borderRadius: "md", mb: 1 }}>
+
                                 {/* Header */}
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                                     <Typography level="title-sm" fontFamily="monospace">{s.order_sn}</Typography>
@@ -255,13 +367,18 @@ export default function OrderHistory({
                                     <Button
                                         size="sm"
                                         variant="soft"
-                                        onClick={() => setOpenDetail((m) => ({ ...m, [s.order_sn]: !m[s.order_sn] }))}
+                                        onClick={async () => {
+                                            const willOpen = !openDetail[s.order_sn];
+                                            setOpenDetail((m) => ({ ...m, [s.order_sn]: willOpen }));
+                                            if (willOpen) await fetchDetail(s);
+                                        }}
                                         sx={{ mr: 1 }}
                                     >
                                         {openDetail[s.order_sn] ? "ซ่อนรายละเอียด" : "รายละเอียด"}
                                     </Button>
                                     <Typography level="title-sm">{fmtMoney(s.total, s.currency || "THB")}</Typography>
                                 </Box>
+
                                 <Typography level="body-xs" color="neutral" sx={{ mt: 0.5, mb: 1 }}>
                                     สั่งซื้อเมื่อ {fmtDateTime(s.create_time)} • อัปเดต {fmtDateTime(s.update_time)} • {paymentText}
                                 </Typography>
@@ -272,14 +389,24 @@ export default function OrderHistory({
                                         color="danger"
                                         sx={{ mt: -0.5, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                                     >
-                                        {`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od.cancel_time ?? s.update_time)}`}
+                                        {`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od?.cancel_time ?? s.update_time)}`}
                                         {getCancelReasons(od).length > 0 ? ` • เหตุผล: ${getCancelReasons(od).join(" • ")}` : ""}
                                         {getCancelReasonShopee(od) ? ` • เหตุผล: ${getCancelReasonShopee(od)}` : ""}
                                     </Typography>
                                 )}
+
                                 {openDetail[s.order_sn] && (
                                     <Sheet variant="soft" sx={{ p: 1, borderRadius: "sm", mt: 1 }}>
-                                        {recipient ? (
+                                        {!od ? (
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                <CircularProgress size="sm" />
+                                                <Typography level="body-sm">กำลังโหลดรายละเอียด…</Typography>
+                                            </Box>
+                                        ) : od.__error ? (
+                                            <Typography level="body-sm" color="danger">
+                                                ดึงรายละเอียดไม่สำเร็จ: {od.__error}
+                                            </Typography>
+                                        ) : recipient ? (
                                             <>
                                                 <Typography
                                                     level="body-sm"
@@ -305,34 +432,6 @@ export default function OrderHistory({
                                                 <Typography level="body-sm" sx={{ whiteSpace: "pre-wrap" }}>
                                                     <b>ที่อยู่:</b> {recipient.address}
                                                 </Typography>
-                                                {invoice && (
-                                                    <>
-                                                        <Divider sx={{ my: 1 }} />
-                                                        <Typography level="body-sm" sx={{ mb: 0.5 }}>
-                                                            <b>ใบกำกับภาษี:</b>{" "}
-                                                            {invoice.not_requested
-                                                                ? "ไม่มีคำขอ"
-                                                                : invoice.invoice_type === "company"
-                                                                    ? "นิติบุคคล"
-                                                                    : invoice.invoice_type === "personal"
-                                                                        ? "บุคคลธรรมดา"
-                                                                        : "—"}
-                                                        </Typography>
-                                                        {invoice.not_requested ? (
-                                                            <Typography level="body-xs" color="neutral">
-                                                                ลูกค้าไม่ได้ร้องขอใบกำกับภาษีสำหรับออเดอร์นี้
-                                                            </Typography>
-                                                        ) : (
-                                                            (invoice.display_name || invoice.display_tax_id || invoice.display_address) && (
-                                                                <Typography level="body-xs" color="neutral" sx={{ whiteSpace: "pre-wrap" }}>
-                                                                    {invoice.display_name ? `ชื่อ/บริษัท: ${invoice.display_name}\n` : ""}
-                                                                    {invoice.display_tax_id ? `เลขภาษี: ${invoice.display_tax_id}\n` : ""}
-                                                                    {invoice.display_address ? `ที่อยู่: ${invoice.display_address}` : ""}
-                                                                </Typography>
-                                                            )
-                                                        )}
-                                                    </>
-                                                )}
                                             </>
                                         ) : (
                                             <Typography level="body-sm" color="neutral">
@@ -344,19 +443,34 @@ export default function OrderHistory({
 
                                 {/* Items */}
                                 <Divider sx={{ mb: 1 }} />
-                                {items.length === 0 && (
-                                    <Typography level="body-sm" color="neutral">ไม่มีรายการสินค้า</Typography>
+                                {(items || []).length === 0 && (
+                                    <Typography level="body-sm" color="neutral">
+                                        กด "รายละเอียด" เพื่อดูสินค้าภายในออเดอร์นี้
+                                    </Typography>
                                 )}
 
-                                {items.map((it, i) => {
+                                {(items || []).map((it, i) => {
+                                    const title = it.item_name ?? it.name ?? "-";
+                                    const sku = it.item_sku ?? it.sku ?? "-";
+                                    const modelSku = it.model_sku ?? "";
+                                    const qty = (it.model_quantity_purchased ?? it.qty ?? 0);
+                                    const priceEach =
+                                        it.model_discounted_price ??
+                                        it.model_original_price ??
+                                        it.price ?? 0;
+
+                                    const imageUrl = it.image_info?.image_url ?? it.image_url ?? null;
+
                                     let productUrl = null;
                                     if (platform === "shopee" && it.item_id && host && shopId) {
                                         productUrl = `https://${host}/product/${shopId}/${it.item_id}`;
+                                    } else if (platform === "lazada") {
+                                        if (it.action_url) {
+                                            productUrl = it.action_url;
+                                        } else if (it.product_id) {
+                                            productUrl = `https://www.lazada.co.th/products/i${it.product_id}.html`;
+                                        }
                                     }
-                                    if (platform === "lazada" && it.product_id) {
-                                        productUrl = `https://www.lazada.co.th/products/i${it.product_id}.html`;
-                                    }
-
                                     return (
                                         <Box
                                             key={`${s.order_sn}-${i}`}
@@ -370,10 +484,10 @@ export default function OrderHistory({
                                         >
                                             {/* image */}
                                             <Box sx={{ width: 44, height: 44, borderRadius: 1, overflow: "hidden", bgcolor: "neutral.plainHoverBg" }}>
-                                                {it.image_info?.image_url && (
+                                                {imageUrl && (
                                                     <img
-                                                        src={it.image_info.image_url}
-                                                        alt={it.item_name || "item"}
+                                                        src={imageUrl}
+                                                        alt={title || "item"}
                                                         width={44}
                                                         height={44}
                                                         style={{ objectFit: "cover", display: "block" }}
@@ -387,12 +501,12 @@ export default function OrderHistory({
                                                 <Typography
                                                     level="body-sm"
                                                     sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                                                    title={it.item_name || ""}
+                                                    title={title || ""}
                                                 >
-                                                    {it.item_name || "-"} {it.model_name ? `• ${it.model_name}` : ""}
+                                                    {title}{it.model_name ? ` • ${it.model_name}` : ""}
                                                 </Typography>
                                                 <Typography level="body-xs" color="neutral">
-                                                    SKU: {it.item_sku || "-"}{it.model_sku ? ` • รุ่น: ${it.model_sku}` : ""} • x{it.model_quantity_purchased ?? 0}
+                                                    SKU: {sku}{modelSku ? ` • รุ่น: ${modelSku}` : ""} • x{qty}
                                                 </Typography>
 
                                                 {productUrl && (
@@ -412,10 +526,7 @@ export default function OrderHistory({
 
                                             {/* price */}
                                             <Typography level="body-sm" sx={{ textAlign: "right" }}>
-                                                {fmtMoney(
-                                                    it.model_discounted_price ?? it.model_original_price ?? 0,
-                                                    s.currency || "THB"
-                                                )}
+                                                {fmtMoney(priceEach, s.currency || "THB")}
                                             </Typography>
                                         </Box>
                                     );
@@ -426,11 +537,11 @@ export default function OrderHistory({
 
                     {hasMore ? (
                         <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-                            <Button size="sm" variant="outlined" onClick={() => setPage((p) => p + 1)}>
-                                Load more
+                            <Button size="sm" variant="outlined" onClick={loadMore} disabled={loading}>
+                                {loading ? "กำลังโหลด…" : "Load more"}
                             </Button>
                         </Box>
-                    ) : rows.length > 0 ? (
+                    ) : summaryRows.length > 0 ? (
                         <Typography level="body-xs" color="neutral" textAlign="center" sx={{ mt: 1 }}>
                             แสดงครบแล้ว
                         </Typography>
