@@ -102,12 +102,17 @@ class ExportExcelController extends Controller
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
             ->select(
                 'rates.*',
+                'rates.tag_description',
                 'customers.custName',
                 'tag_menus.tagName',
-                DB::raw('chat_rooms."roomName" as "latestRoomName"')
+                'rates.tag_description',
+                'tag_menus.group_id as tag_group_id',
+                'tag_groups.group_name as tag_group_name',
+                DB::raw('chat_rooms."roomName" as "latestRoomName"'),
             );
 
         if ($platformId) {
@@ -147,7 +152,6 @@ class ExportExcelController extends Controller
         $mainCases = $mainQuery->orderBy('rates.id', 'desc')->get();
         $rateIds   = $mainCases->pluck('id')->toArray();
 
-        // ✅ ใช้ accepted_at และ close_minutes แยกกัน
         $acceptedExpr    = 'COALESCE(ac."receiveAt", ac."startTime")';
         $acceptSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";
         $closeSecsExpr   = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";
@@ -258,6 +262,9 @@ class ExportExcelController extends Controller
             'สถานะ',
             'หมายเลขแท็ก',
             'แท็คการจบสนทนา',
+            'รหัสกลุ่มแท็ค',
+            'ชื่อกลุ่มแท็ค',
+            'คำอธิบายแท็ค',
             'เวลารวม',
             'จบการสนทนาเมื่อ',
             'จำนวนเคสย่อย',
@@ -288,22 +295,25 @@ class ExportExcelController extends Controller
             'C' => 12,
             'D' => 12,
             'E' => 24,
-            'F' => 18,
-            'G' => 20,
-            'H' => 14,
-            'I' => 12,
+            'F' => 12,
+            'G' => 24,
+            'H' => 30,
+            'I' => 18,
             'J' => 20,
-            'K' => 22,
-            'L' => 22,
-            'M' => 16,
+            'K' => 14,
+            'L' => 12,
+            'M' => 20,
             'N' => 22,
-            'O' => 20,
-            'P' => 20,
-            'Q' => 20,
-            'R' => 16,
-            'S' => 18,
-            'T' => 20,
-            'U' => 24
+            'O' => 22,
+            'P' => 16,
+            'Q' => 22,
+            'R' => 20,
+            'S' => 20,
+            'T' => 16,
+            'U' => 18,
+            'V' => 20,
+            'W' => 20,
+            'X' => 24
         ];
         foreach ($colWidths as $col => $w) {
             $sheet->getColumnDimension($col)->setAutoSize(false);
@@ -331,6 +341,9 @@ class ExportExcelController extends Controller
                         $rate->status,
                         $rate->tag ?? '',
                         $rate->tagName ?? 'ไม่ระบุแท็ก',
+                        $rate->tag_group_id ?? '',
+                        $rate->tag_group_name ?? '',
+                        $rate->tag_description ?? '',
                         $rate->totalTime,
                         $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
@@ -353,7 +366,7 @@ class ExportExcelController extends Controller
                 }
                 $blockEnd = $r - 1;
                 if ($blockEnd >= $blockStart) {
-                    $paintRange("A{$blockStart}:U{$blockEnd}", $blockColors[$blockColorIdx]);
+                    $paintRange("A{$blockStart}:X{$blockEnd}", $blockColors[$blockColorIdx]);
                     $blockColorIdx = 1 - $blockColorIdx;
                 }
             } else {
@@ -363,6 +376,9 @@ class ExportExcelController extends Controller
                     $rate->status,
                     $rate->tag ?? '',
                     $rate->tagName ?? 'ไม่ระบุแท็ก',
+                    $rate->tag_group_id ?? '',
+                    $rate->tag_group_name ?? '',
+                    $rate->tag_description ?? '',
                     $rate->totalTime,
                     $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
@@ -379,13 +395,13 @@ class ExportExcelController extends Controller
                     '',
                     '',
                 ]], null, "A{$r}");
-                $paintRange("A{$blockStart}:U{$r}", $blockColors[$blockColorIdx]);
+                $paintRange("A{$blockStart}:X{$r}", $blockColors[$blockColorIdx]);
                 $blockColorIdx = 1 - $blockColorIdx;
                 $r++;
             }
         }
 
-        foreach (range('A', 'U') as $col) {
+        foreach (range('A', 'X') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -426,7 +442,6 @@ class ExportExcelController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
 
-        // เงื่อนไข: เคสปิดสำเร็จในช่วงเวลา
         $closedExists = function ($q) use ($start, $end, $dept, $empCode) {
             $q->select(DB::raw(1))
                 ->from('active_conversations as ac')
@@ -444,10 +459,10 @@ class ExportExcelController extends Controller
             }
         };
 
-        // main เคส (rate) ที่ปิดสำเร็จในช่วง
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->where('rates.status', 'success')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
+            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
             ->whereExists($closedExists)
@@ -455,11 +470,13 @@ class ExportExcelController extends Controller
                 'rates.*',
                 'customers.custName',
                 'tag_menus.tagName',
+                'tag_menus.group_id as tag_group_id',
+                'tag_groups.group_name as tag_group_name',
+                'rates.tag_description',
                 DB::raw('chat_rooms."roomName" as "latestRoomName"')
             )
             ->orderBy('rates.id', 'desc');
 
-        // filter platform (หากเลือก)
         if ($platformId) {
             $mainQuery->leftJoin('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'customers.platformRef')
                 ->where('pat_pf.id', $platformId);
@@ -468,12 +485,10 @@ class ExportExcelController extends Controller
         $mainCases = $mainQuery->get();
         $rateIds   = $mainCases->pluck('id')->toArray();
 
-        // ====== จุดแก้หลัก: แยก accepted_at / acceptSecsExpr / closeSecsExpr ======
         $acceptedExpr   = 'COALESCE(ac."receiveAt", ac."startTime")';
         $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";                  // created_at -> accepted_at
         $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";                   // accepted_at -> endTime
 
-        // sub เคส (active_conversations) ที่เกี่ยวข้อง
         $subCases = DB::connection('pgsql_real')->table('active_conversations as ac')
             ->join('rates as r', 'r.id', '=', 'ac.rateRef')
             ->leftJoin('users', 'users.empCode', '=', 'ac.empCode')
@@ -505,7 +520,6 @@ class ExportExcelController extends Controller
             ->get()
             ->groupBy('rateRef');
 
-        // รวม totalTime ต่อ rate (โค้ดเดิม)
         foreach ($mainCases as $k => $rate) {
             $current = $subCases->get($rate->id, collect());
             $totalH = 0;
@@ -556,13 +570,15 @@ class ExportExcelController extends Controller
             $rate->sub_case  = $current;
         }
 
-        // สร้างไฟล์ Excel (เหมือนเดิม)
         $headers = [
             'ID เคสหลัก',
             'ชื่อลูกค้า',
             'สถานะ',
             'หมายเลขแท็ก',
             'แท็คการจบสนทนา',
+            'รหัสกลุ่มแท็ค',
+            'ชื่อกลุ่มแท็ค',
+            'คำอธิบายแท็ค',
             'เวลารวม',
             'จบการสนทนาเมื่อ',
             'จำนวนเคสย่อย',
@@ -599,6 +615,9 @@ class ExportExcelController extends Controller
                         $rate->status,
                         $rate->tag ?? '',
                         $rate->tagName ?? 'ไม่ระบุแท็ก',
+                        $rate->tag_group_id ?? '',
+                        $rate->tag_group_name ?? '',
+                        $rate->tag_description ?? '',
                         $rate->totalTime,
                         $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
@@ -626,6 +645,9 @@ class ExportExcelController extends Controller
                     $rate->status,
                     $rate->tag ?? '',
                     $rate->tagName ?? 'ไม่ระบุแท็ก',
+                    $rate->tag_group_id ?? '',
+                    $rate->tag_group_name ?? '',
+                    $rate->tag_description ?? '',
                     $rate->totalTime,
                     $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
@@ -646,7 +668,7 @@ class ExportExcelController extends Controller
             }
         }
 
-        foreach (range('A', 'U') as $col) {
+        foreach (range('A', 'X') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
