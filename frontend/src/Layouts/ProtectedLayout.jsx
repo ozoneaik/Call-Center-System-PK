@@ -7,8 +7,10 @@ import App from "../App.jsx";
 import { AnnouncementBar } from "./AnnouncementBar.jsx";
 import { useEffect, useState } from "react";
 import axiosClient from "../Axios.js";
+import { useMediaQuery } from "@mui/material";
 
 function ProtectedLayout() {
+    const isMobile = useMediaQuery('(max-width: 1000px)');
     const [announces, SetAnnounces] = useState([]);
     useEffect(() => {
         fetchAnnouncement();
@@ -33,7 +35,7 @@ function ProtectedLayout() {
             <Box sx={LayoutStyle.MainLayout}>
                 <Sidebar />
                 <Navbar />
-                <Box component="main" className="MainContent" sx={{ flex: 1 }}>
+                <Box component="main" className="MainContent" sx={{ flex: 1,pt : isMobile ? 6 : 0 }}>
                     <Outlet />
                 </Box>
             </Box>

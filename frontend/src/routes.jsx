@@ -35,6 +35,7 @@ import TagPage from "./Views/TagPages/TagMenu/main.jsx";
 import CreateGroupPage from "./Views/TagPages/CreateGroupPage.jsx";
 import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
+import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -82,7 +83,9 @@ export const routes = createBrowserRouter([
                     },
                     { path: '/report', element: <ReportPage /> },
                     { path: '/chatHistory', element: <ChatHistory /> },
-                    { path: '/profile', element: <AuthPages /> }
+                    { path: '/profile', element: <AuthPages /> },
+
+                    {path : '/chat-pages-new', element: <ChatPageNew/>}
                 ],
             },
             { path: '/chatHistory/detail/:custId', element: <ChatDetail /> },
