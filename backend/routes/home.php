@@ -34,6 +34,7 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedTodayByUser']);
         Route::get('/users/{empCode}/forwarded-range', [UcTagSummaryController::class, 'forwardedRangeByUser']);
 
+
         Route::get('/employee/{empCode}/cases', [StatisticsController::class, 'getAllCasesByUser']);
         Route::get('/tag/{tagName}/cases', [StatisticsController::class, 'getAllCasesByTag']);
 

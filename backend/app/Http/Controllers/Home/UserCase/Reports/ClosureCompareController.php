@@ -22,7 +22,7 @@ class ClosureCompareController extends Controller
         $previousDay  = $current->copy()->subDay();
         $previousWeek = $current->copy()->subWeek();
 
-        $col = $this->startExpr(); // ใช้แยกใน/นอกเวลา
+        $col = $this->startExpr(); 
 
         $fetch = function (Carbon $d) use ($platformId, $dept, $empCode, $col) {
 
@@ -80,7 +80,7 @@ class ClosureCompareController extends Controller
         $end        = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $filterCol = 'ac."endTime"';
-        $startCol  = $this->startExpr(); // COALESCE(receiveAt, startTime)
+        $startCol  = $this->startExpr(); 
 
         // in-hours
         $inRows = DB::connection("pgsql_real")->table('rates as r')
