@@ -3,10 +3,42 @@ import { Box, Typography, Sheet, List, ListItemButton, Avatar, Stack, Divider } 
 import ChatMsgNew from "./ChatMsgNew";
 import ChatBubbleNew from "./ChatBubbleNew";
 
-export default function ChatPageNew() {
+export default function ChatPageNew({
+    setFilterPending,
+    filterPending,
+    disable,
+    pending,
+    roomId,
+    roomName,
+    progress,
+    filterProgress,
+    setFilterProgress,
+    showMyCasesOnly,
+    setShowMyCasesOnly
+}) {
     const [messages, setMessages] = useState([
         { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
-        { id: 2, text: "สวัสดีครับ ต้องการความช่วยเหลือเรื่องอะไรครับ?", sender: "agent", time: "10:21" }
+        { id: 2, text: "สวัสดีครับ ต้องการความช่วยเหลือเรื่องอะไรครับ?", sender: "agent", time: "10:21" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 3, text: "สวัสดีครับ ต้องการความช่วยเหลือเรื่องอะไรครับ?", sender: "agent", time: "10:21" },
+        { id: 4, text: "สวัสดีครับ ต้องการความช่วยเหลือเรื่องอะไรครับ?", sender: "agent", time: "10:21" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
+        { id: 1, text: "สวัสดีครับ 👋", sender: "customer", time: "10:20" },
     ]);
 
     const handleSend = (text) => {
@@ -39,13 +71,10 @@ export default function ChatPageNew() {
                     overflow: "hidden"
                 }}
             >
-                <Typography level="h5" mb={2}>
-                    ห้องแชท
-                </Typography>
-
                 {/* List 1 */}
-                <List sx={{ gap: 1, flex: 1, overflowY: "auto" }}>
-                    {[1, 2, 3].map((item, index) => (
+                <Typography>กำลังดำเนินการ</Typography>
+                <List sx={SidebarStyle}>
+                    {[1, 2, 3, 4, 5, 6, 7, 7].map((item, index) => (
                         <ListItemButton key={index} sx={{ borderRadius: 8 }} selected={index === 0}>
                             <Box display="flex" alignItems="center" gap={2}>
                                 <Avatar />
@@ -63,7 +92,8 @@ export default function ChatPageNew() {
                 <Divider sx={{ my: 1 }} />
 
                 {/* List 2 */}
-                <List sx={{ gap: 1, flex: 1, overflowY: "auto" }}>
+                <Typography>รอดำเนินการ</Typography>
+                <List sx={SidebarStyle}>
                     {[1, 2, 3, 5, 6, 7, 5, 4, 3, 2, 1].map((item, index) => (
                         <ListItemButton key={index} sx={{ borderRadius: 8 }}>
                             <Box display="flex" alignItems="center" gap={2}>
@@ -81,24 +111,43 @@ export default function ChatPageNew() {
             </Sheet>
 
             {/* Chat Area */}
-            <Sheet variant="plain" sx={{ display: "flex", flexDirection: "column", bgcolor: "background.surface" }}>
+            <Sheet variant="plain" sx={{ display: "flex", flexDirection: "column" }}>
                 {/* Chat header */}
                 <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
                     <Typography level="title-md">ลูกค้า A</Typography>
                 </Box>
 
                 {/* Chat messages */}
-                <Box sx={{ flex: 1, overflowY: "auto", p: 2, bgcolor: "neutral.50" }}>
+                <Box sx={{ flex: 1, maxHeight: "calc(100vh - 130px)", overflowY: "auto", p: 2 }}>
                     {messages.map((msg) => (
                         <ChatBubbleNew key={msg.id} text={msg.text} sender={msg.sender} time={msg.time} />
                     ))}
                 </Box>
 
                 {/* Message input */}
-                <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 2 }}>
+                <Box sx={{borderTop: "1px solid", borderColor: "divider", p: 2 }}>
                     <ChatMsgNew onSend={handleSend} />
                 </Box>
             </Sheet>
         </Sheet>
     );
+}
+
+const SidebarStyle = {
+    gap: 1, flex: 1, overflowY: "auto", '&::-webkit-scrollbar': {
+        width: '0px',
+    },
+    '&:hover::-webkit-scrollbar': {
+        width: '4px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#555',
+        borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: '#ff7922',
+    },
+    '&::-webkit-scrollbar-track': {
+        background: 'none',
+    }
 }
