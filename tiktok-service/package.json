@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "tiktok-service",
   "version": "1.0.0",
   "main": "index.js",
@@ -10,6 +11,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.12.0",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
     "node-fetch": "^3.3.2",
     "tiktok-live-connector": "^2.0.7-beta1"
   }
