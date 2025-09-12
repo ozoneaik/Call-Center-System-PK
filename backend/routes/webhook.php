@@ -5,6 +5,7 @@ use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\ShopeeController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
+use App\Http\Controllers\webhooks\new\TikTokLiveController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -45,6 +46,10 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/resolve-platform', [NewShopeeController::class, 'resolvePlatform']); //ตรวจสอบว่า ลูกค้าคนนี้อยู่กับ platform Shopee ร้านไหน
         Route::get('/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']); //ใช้ buyer_id หรือ buyer_username เพื่อดึงประวัติคำสั่งซื้อของลูกค้าคนนั้นจาก Shopee API
         Route::get('/order-detail', [NewShopeeController::class, 'orderDetail']); //ใช้ order_sn (Shopee order serial number) เพื่อดึงรายละเอียดคำสั่งซื้อ
+    });
+
+    Route::prefix('tiktok')->group(function () {
+        Route::post('/', [TikTokLiveController::class, 'webhooksLive']);
     });
 
     // สำหรับ Test

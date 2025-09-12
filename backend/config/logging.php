@@ -168,6 +168,13 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
+        'webhook_tiktok_new' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/webhook-new/tiktok.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
         'webhook_main' => [
             'driver' => 'daily',
             'path' => storage_path('logs/webhook-new/webhook_main.log'),
