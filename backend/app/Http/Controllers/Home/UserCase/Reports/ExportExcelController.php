@@ -462,8 +462,8 @@ class ExportExcelController extends Controller
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->where('rates.status', 'success')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
-            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id')
-            ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+            ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id') 
+            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id') 
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
             ->whereExists($closedExists)
             ->select(
@@ -476,7 +476,6 @@ class ExportExcelController extends Controller
                 DB::raw('chat_rooms."roomName" as "latestRoomName"')
             )
             ->orderBy('rates.id', 'desc');
-
         if ($platformId) {
             $mainQuery->leftJoin('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'customers.platformRef')
                 ->where('pat_pf.id', $platformId);
@@ -486,8 +485,8 @@ class ExportExcelController extends Controller
         $rateIds   = $mainCases->pluck('id')->toArray();
 
         $acceptedExpr   = 'COALESCE(ac."receiveAt", ac."startTime")';
-        $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";                  // created_at -> accepted_at
-        $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";                   // accepted_at -> endTime
+        $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";                  
+        $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";                   
 
         $subCases = DB::connection('pgsql_real')->table('active_conversations as ac')
             ->join('rates as r', 'r.id', '=', 'ac.rateRef')
