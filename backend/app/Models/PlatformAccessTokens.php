@@ -20,6 +20,7 @@ class PlatformAccessTokens extends Model
         'laz_seller_id',
         'laz_app_key',
         'laz_app_secret',
+        'laz_refresh_token',
         'fb_page_id',
         'fb_verify_token',
         'room_default_id',

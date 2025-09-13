@@ -383,18 +383,6 @@ export default function OrderHistory({
                                     สั่งซื้อเมื่อ {fmtDateTime(s.create_time)} • อัปเดต {fmtDateTime(s.update_time)} • {paymentText}
                                 </Typography>
 
-                                {isCanceled(s.status) && (
-                                    <Typography
-                                        level="body-xs"
-                                        color="danger"
-                                        sx={{ mt: -0.5, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                                    >
-                                        {`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od?.cancel_time ?? s.update_time)}`}
-                                        {getCancelReasons(od).length > 0 ? ` • เหตุผล: ${getCancelReasons(od).join(" • ")}` : ""}
-                                        {getCancelReasonShopee(od) ? ` • เหตุผล: ${getCancelReasonShopee(od)}` : ""}
-                                    </Typography>
-                                )}
-
                                 {openDetail[s.order_sn] && (
                                     <Sheet variant="soft" sx={{ p: 1, borderRadius: "sm", mt: 1 }}>
                                         {!od ? (
@@ -432,6 +420,7 @@ export default function OrderHistory({
                                                 <Typography level="body-sm" sx={{ whiteSpace: "pre-wrap" }}>
                                                     <b>ที่อยู่:</b> {recipient.address}
                                                 </Typography>
+
                                             </>
                                         ) : (
                                             <Typography level="body-sm" color="neutral">
@@ -521,6 +510,18 @@ export default function OrderHistory({
                                                     >
                                                         เปิดหน้าสินค้า
                                                     </Button>
+                                                )}
+
+                                                {isCanceled(s.status) && (
+                                                    <Typography
+                                                        level="body-sm"
+                                                        color="neutral"
+                                                        sx={{ mt: 0.25, mb: 0.5, display: "flex", gap: 1, flexWrap: "wrap" }}
+                                                    >
+                                                        {`ยกเลิกเมื่อ ${fmtDateTime(s.cancel_time ?? od?.cancel_time ?? s.update_time)}`}
+                                                        {getCancelReasons(od).length > 0 ? ` • เหตุผล: ${getCancelReasons(od).join(" • ")}` : ""}
+                                                        {getCancelReasonShopee(od) ? ` • เหตุผล: ${getCancelReasonShopee(od)}` : ""}
+                                                    </Typography>
                                                 )}
                                             </Box>
 
