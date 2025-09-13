@@ -74,14 +74,14 @@ export default function ChatPageNew({
                 {/* List 1 */}
                 <Typography>กำลังดำเนินการ</Typography>
                 <List sx={SidebarStyle}>
-                    {[1, 2, 3, 4, 5, 6, 7, 7].map((item, index) => (
+                    {progress.map((item, index) => (
                         <ListItemButton key={index} sx={{ borderRadius: 8 }} selected={index === 0}>
                             <Box display="flex" alignItems="center" gap={2}>
-                                <Avatar />
+                                <Avatar src={item.avatar}/>
                                 <Stack spacing={1}>
-                                    <Typography level="body-sm">ลูกค้า A{index + 1}</Typography>
+                                    <Typography level="body-sm">{item.custName}</Typography>
                                     <Typography level="body-xs" sx={{ opacity: 0.6 }}>
-                                        ติดต่อมาจาก cal-center
+                                        {item.description}
                                     </Typography>
                                 </Stack>
                             </Box>
@@ -94,7 +94,7 @@ export default function ChatPageNew({
                 {/* List 2 */}
                 <Typography>รอดำเนินการ</Typography>
                 <List sx={SidebarStyle}>
-                    {[1, 2, 3, 5, 6, 7, 5, 4, 3, 2, 1].map((item, index) => (
+                    {pending.map((item, index) => (
                         <ListItemButton key={index} sx={{ borderRadius: 8 }}>
                             <Box display="flex" alignItems="center" gap={2}>
                                 <Avatar />
