@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\PlatformTokenController;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\ShopeeController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
+use App\Http\Controllers\webhooks\new\NewTikTokController;
 use App\Http\Controllers\webhooks\new\TikTokLiveController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,7 +51,12 @@ Route::prefix('webhook-new')->group(function () {
     });
 
     Route::prefix('tiktok')->group(function () {
-        Route::post('/', [TikTokLiveController::class, 'webhooksLive']);
+        // Route::post('/', [TikTokLiveController::class, 'webhooksLive']);
+
+        Route::post('/', [NewTikTokController::class, 'webhooks']);
+        Route::get('/shops', [NewTikTokController::class, 'getAuthorizedShops']);
+        Route::post('/shop-webhooks', [NewTikTokController::class, 'getShopWebhooks']);
+
     });
 
     // สำหรับ Test

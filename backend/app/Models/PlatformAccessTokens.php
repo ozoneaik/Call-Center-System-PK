@@ -23,14 +23,24 @@ class PlatformAccessTokens extends Model
         'fb_page_id',
         'fb_verify_token',
         'room_default_id',
-
+ 
         'shopee_partner_id',
         'shopee_partner_key',
         'shopee_shop_id',
         'shopee_refresh_token',
         'shopee_code',
 
-        'expire_at'
+        'expire_at',
+
+        // 'tiktok_service_id',
+        'tiktok_open_id',
+        'tiktok_shop_id',
+        'tiktok_seller_name',
+        'tiktok_region',
+        'tiktok_app_key',
+        'tiktok_app_secret',
+        'tiktok_refresh_token',
+        // 'tiktok_refresh_token_expire',
     ];
 
     protected $dates = [

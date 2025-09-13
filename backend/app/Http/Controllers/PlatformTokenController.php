@@ -236,4 +236,163 @@ class PlatformTokenController extends Controller
         }
         return response()->json($resp);
     }
+
+    //tiktok
+    // public function callback(Request $request)
+    // {
+    //     $code  = $request->input('code');
+    //     $state = $request->input('state');
+
+    //     if (!$code) {
+    //         return response()->json(['error' => 'Missing code'], 400);
+    //     }
+
+    //     try {
+    //         $appKey    = env('TIKTOK_APP_KEY');
+    //         $appSecret = env('TIKTOK_APP_SECRET');
+
+    //         $response = Http::get('https://auth.tiktok-shops.com/api/v2/token/get', [
+    //             'app_key'    => $appKey,
+    //             'app_secret' => $appSecret,
+    //             'auth_code'  => $code,
+    //             'grant_type' => 'authorized_code',
+    //         ]);
+
+    //         $data = $response->json();
+
+    //         if (!isset($data['data']['access_token'])) {
+    //             Log::error('TikTok token exchange failed', $data);
+    //             return response()->json([
+    //                 'error' => 'Token exchange failed',
+    //                 'resp'  => $data
+    //             ], 500);
+    //         }
+
+    //         return response()->json([
+    //             'message'             => 'Authorized successfully!',
+    //             'access_token'        => $data['data']['access_token'],
+    //             'refresh_token'       => $data['data']['refresh_token'],
+    //             'access_token_expire' => $data['data']['access_token_expire_in'],
+    //             'refresh_token_expire' => $data['data']['refresh_token_expire_in'],
+    //             'open_id'             => $data['data']['open_id'] ?? null,
+    //             'seller_name'         => $data['data']['seller_name'] ?? null,
+    //             'seller_base_region'  => $data['data']['seller_base_region'] ?? null,
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('TikTok callback error', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => $e->getMessage()], 500);
+    //     }
+    // }
+
+    // ---------------- TIKTOK ----------------
+    public function tiktokAuthUrl(Request $req)
+    {
+        $serviceId = $req->input('service_id');
+        $redirect  = $req->input('callback_url');
+        $state     = uniqid("tiktok_", true);
+
+        if (empty($serviceId) || empty($redirect)) {
+            return response()->json(['error' => 'ต้องกรอก service_id และ callback_url'], 422);
+        }
+
+        $url = "https://services.tiktokshop.com/open/authorize?" . http_build_query([
+            'service_id'   => $serviceId,
+            'state'        => $state,
+            'redirect_uri' => $redirect,
+            'scope'        => implode(',', [
+                'seller.shop.info',
+                'seller.product.basic',
+                'seller.order.info',
+                'seller.chat.basic'
+            ]),
+        ]);
+
+        return response()->json(['auth_url' => $url]);
+    }
+
+    public function tiktokCallback(Request $request)
+    {
+        $code  = $request->query('code');
+        $state = $request->query('state');
+
+        if (!$code) {
+            return response()->json(['error' => 'Missing code'], 422);
+        }
+
+        $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
+        return redirect()->away("{$frontendUrl}?code={$code}&platform=tiktok");
+    }
+
+    public function tiktokExchange(Request $req)
+    {
+        $code       = $req->input('code');
+        $appKey     = $req->input('app_key');
+        $appSecret  = $req->input('app_secret');
+        $roomId     = $req->input('room_default_id');
+        $desc       = $req->input('description');
+
+        if (!$code || !$appKey || !$appSecret) {
+            Log::warning("❌ TikTok Exchange missing params", [
+                'code' => $code,
+                'appKey' => $appKey,
+                'appSecret' => $appSecret,
+            ]);
+            return response()->json(['error' => 'missing required params'], 422);
+        }
+
+        Log::info("📤 TikTok Exchange Request", [
+            'app_key' => $appKey,
+            'auth_code' => $code,
+        ]);
+
+        $resp = Http::get('https://auth.tiktok-shops.com/api/v2/token/get', [
+            'app_key'    => $appKey,
+            'app_secret' => $appSecret,
+            'auth_code'  => $code,
+            'grant_type' => 'authorized_code',
+        ])->json();
+
+        Log::info("📥 TikTok Token API Response", $resp);
+
+        if (!empty($resp['data']['access_token'])) {
+            $desc = $desc ?: ($resp['data']['seller_name'] ?? 'tiktok');
+            $saved = PlatformAccessTokens::updateOrCreate(
+                ['platform' => 'tiktok', 'tiktok_open_id' => $resp['data']['open_id'] ?? null],
+                [
+                    'accessTokenId'        => uniqid("ttk_", true),
+                    'accessToken'          => $resp['data']['access_token'],
+                    'platform'             => 'tiktok',
+                    'description'          => $desc,
+                    'room_default_id'      => $roomId,
+
+                    'tiktok_open_id'       => $resp['data']['open_id'] ?? null,
+                    'tiktok_seller_name'   => $resp['data']['seller_name'] ?? null,
+                    'tiktok_region'        => $resp['data']['seller_base_region'] ?? null,
+                    'tiktok_app_key'       => $appKey,
+                    'tiktok_app_secret'    => $appSecret,
+                    'tiktok_refresh_token' => $resp['data']['refresh_token'] ?? null,
+
+                    'expire_at'            => Carbon::createFromTimestamp($resp['data']['access_token_expire_in']),
+                ]
+            );
+
+            Log::info("✅ TikTok Token Saved", $saved->toArray());
+            return response()->json([
+                'platform'             => 'tiktok',
+                'open_id'              => $resp['data']['open_id'],
+                'seller_name'          => $resp['data']['seller_name'] ?? null,
+                'seller_base_region'   => $resp['data']['seller_base_region'] ?? null,
+                'access_token'         => $resp['data']['access_token'],
+                'refresh_token'        => $resp['data']['refresh_token'],
+                'expire_in'            => $resp['data']['access_token_expire_in'],
+                'refresh_token_expire' => $resp['data']['refresh_token_expire_in'],
+                'description'          => $desc,
+            ]);
+        }
+
+        Log::error("❌ TikTok Token Exchange Failed", $resp);
+        return response()->json($resp);
+    }
+
+   
 }

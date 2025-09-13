@@ -7,8 +7,10 @@ export default function TokenManager() {
     const [callback, setCallback] = useState(
         import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/shopee"
     );
-    const [partnerId, setPartnerId] = useState("");
-    const [partnerKey, setPartnerKey] = useState("");
+
+    const [serviceId, setServiceId] = useState(""); 
+    const [partnerId, setPartnerId] = useState(""); 
+    const [partnerKey, setPartnerKey] = useState(""); 
     const [description, setDescription] = useState("");
     const [authUrl, setAuthUrl] = useState("");
     const [tokenInfo, setTokenInfo] = useState(null);
@@ -18,20 +20,25 @@ export default function TokenManager() {
 
     const location = useLocation();
 
+    // ตั้งค่า callback URL ตาม platform
     useEffect(() => {
         if (platform === "shopee") {
             setCallback(import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/shopee");
         } else if (platform === "lazada") {
             setCallback(import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/lazada");
+        } else if (platform === "tiktok") {
+            setCallback(import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/tiktok");
         }
     }, [platform]);
 
+    // โหลด list chat rooms
     useEffect(() => {
         axiosClient.get("/auto-tokens/rooms").then((res) => {
             setChatRooms(res.data.chat_rooms || []);
         });
     }, []);
 
+    // handle callback ที่ redirect กลับมาพร้อม code
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const code = params.get("code");
@@ -45,6 +52,7 @@ export default function TokenManager() {
 
     const getAuthUrl = async () => {
         try {
+            localStorage.setItem("serviceId", serviceId);
             localStorage.setItem("partnerId", partnerId);
             localStorage.setItem("partnerKey", partnerKey);
             localStorage.setItem("callback", callback);
@@ -52,12 +60,19 @@ export default function TokenManager() {
             localStorage.setItem("platform", platform);
             localStorage.setItem("room_default_id", roomDefaultId);
 
+            const params = {
+                callback_url: callback,
+            };
+
+            if (platform === "tiktok") {
+                params.service_id = serviceId; // ✅ ใช้ service_id
+            } else {
+                params.partner_id = partnerId;
+                params.partner_key = partnerKey;
+            }
+
             const resp = await axiosClient.get(`/auto-tokens/token/${platform}/auth-url`, {
-                params: {
-                    partner_id: partnerId,
-                    partner_key: partnerKey,
-                    callback_url: callback,
-                },
+                params,
             });
 
             setAuthUrl(resp.data.auth_url);
@@ -70,6 +85,7 @@ export default function TokenManager() {
 
     const exchangeToken = async (code, shopId = null, currentPlatform = platform) => {
         try {
+            const savedServiceId = localStorage.getItem("serviceId");
             const savedPartnerId = localStorage.getItem("partnerId");
             const savedPartnerKey = localStorage.getItem("partnerKey");
             const savedCallback = localStorage.getItem("callback");
@@ -78,15 +94,22 @@ export default function TokenManager() {
 
             const payload = {
                 code,
-                partner_id: savedPartnerId,
-                partner_key: savedPartnerKey,
                 callback_url: savedCallback,
                 description: savedDescription,
-                room_default_id: savedRoomId
+                room_default_id: savedRoomId,
             };
 
             if (currentPlatform === "shopee") {
+                payload.partner_id = savedPartnerId;
+                payload.partner_key = savedPartnerKey;
                 payload.shop_id = shopId;
+            } else if (currentPlatform === "lazada") {
+                payload.partner_id = savedPartnerId;
+                payload.partner_key = savedPartnerKey;
+            } else if (currentPlatform === "tiktok") {
+                payload.service_id = savedServiceId;   
+                payload.app_key = savedPartnerId;      
+                payload.app_secret = savedPartnerKey;  
             }
 
             const resp = await axiosClient.post(
@@ -118,30 +141,63 @@ export default function TokenManager() {
                                 >
                                     <option value="shopee">Shopee</option>
                                     <option value="lazada">Lazada</option>
+                                    <option value="tiktok">TikTok</option>
                                 </select>
                             </div>
 
+                            {platform === "tiktok" && (
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Service ID (TikTok)</label>
+                                    <input
+                                        style={styles.input}
+                                        value={serviceId}
+                                        onChange={(e) => setServiceId(e.target.value)}
+                                        placeholder="TikTok Service ID"
+                                    />
+                                </div>
+                            )}
+
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>
-                                    {platform === "shopee" ? "Partner ID" : "App Key"}
+                                    {platform === "tiktok"
+                                        ? "App Key (TikTok)"
+                                        : platform === "shopee"
+                                            ? "Partner ID"
+                                            : "App Key"}
                                 </label>
                                 <input
                                     style={styles.input}
                                     value={partnerId}
                                     onChange={(e) => setPartnerId(e.target.value)}
-                                    placeholder={platform === "shopee" ? "Shopee Partner ID" : "Lazada App Key"}
+                                    placeholder={
+                                        platform === "tiktok"
+                                            ? "TikTok App Key"
+                                            : platform === "shopee"
+                                                ? "Shopee Partner ID"
+                                                : "Lazada App Key"
+                                    }
                                 />
                             </div>
 
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>
-                                    {platform === "shopee" ? "Partner Key" : "App Secret"}
+                                    {platform === "tiktok"
+                                        ? "App Secret (TikTok)"
+                                        : platform === "shopee"
+                                            ? "Partner Key"
+                                            : "App Secret"}
                                 </label>
                                 <input
                                     style={styles.input}
                                     value={partnerKey}
                                     onChange={(e) => setPartnerKey(e.target.value)}
-                                    placeholder={platform === "shopee" ? "Shopee Partner Key" : "Lazada App Secret"}
+                                    placeholder={
+                                        platform === "tiktok"
+                                            ? "TikTok App Secret"
+                                            : platform === "shopee"
+                                                ? "Shopee Partner Key"
+                                                : "Lazada App Secret"
+                                    }
                                 />
                             </div>
 
@@ -212,6 +268,13 @@ export default function TokenManager() {
                                         <b>{info.country}:</b> seller_id={info.seller_id}, user_id={info.user_id}
                                     </p>
                                 ))}
+                            </>
+                        )}
+                        {tokenInfo.platform === "tiktok" && (
+                            <>
+                                <p><b>Open ID:</b> {tokenInfo.open_id}</p>
+                                <p><b>Seller Name:</b> {tokenInfo.seller_name}</p>
+                                <p><b>Region:</b> {tokenInfo.seller_base_region}</p>
                             </>
                         )}
                         <p><b>Access Token:</b> {tokenInfo.access_token}</p>
