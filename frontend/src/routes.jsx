@@ -34,8 +34,9 @@ import EditTagPage from "./Views/TagPages/TagMenu/EditTagPage.jsx";
 import TagPage from "./Views/TagPages/TagMenu/main.jsx";
 import CreateGroupPage from "./Views/TagPages/CreateGroupPage.jsx";
 import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
-import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 import TokenManeger from "./Views/TokenPages/TokenManager.jsx";
+import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
+import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -64,15 +65,15 @@ export const routes = createBrowserRouter([
                             { path: '/customers', element: <Customers /> },
                             { path: '/users', element: <Users /> },
                             { path: '/accessToken', element: <TokenList /> },
-                            
+
                             { path: '/TokenManager', element: <TokenManeger /> },
 
                             { path: '/botManage', element: <BotList /> },
-                            
+
                             { path: '/tags', element: <TagPage /> },
                             { path: '/tags/create', element: <CreateTagPage /> },
                             { path: '/tags/:id/edit', element: <EditTagPage /> },
-                            
+
                             { path: '/tags-by-platforms', element: <TagsByPlatforms /> },
 
                             { path: '/tags/groups', element: <GroupPage /> },
@@ -86,7 +87,9 @@ export const routes = createBrowserRouter([
                     },
                     { path: '/report', element: <ReportPage /> },
                     { path: '/chatHistory', element: <ChatHistory /> },
-                    { path: '/profile', element: <AuthPages /> }
+                    { path: '/profile', element: <AuthPages /> },
+
+                    { path: '/chat-pages-new', element: <ChatPageNew /> }
                 ],
             },
             { path: '/chatHistory/detail/:custId', element: <ChatDetail /> },

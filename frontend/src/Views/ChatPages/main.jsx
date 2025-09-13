@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { Sheet, CircularProgress, Box, Stack } from "@mui/joy";
 import OrderTable from "./ProgressTableNew.jsx";
 import PendingTableNew from "./PendingTableNew.jsx";
+import ChatPageNew from "../ChatPagesNew/ChatPageNew.jsx";
 
 export default function MainChat() {
     const { user } = useAuth();
@@ -87,7 +88,7 @@ export default function MainChat() {
         }
 
         console.log('notification >>> ', notification);
-        
+
 
         if (notification.activeConversation.roomId === roomId) {
             if (notification.Rate.status === "progress") {
@@ -111,7 +112,7 @@ export default function MainChat() {
                                 isUnread: true,
                                 latest_message: {
                                     ...item.latest_message,
-                                    sender : notification.message.sender,
+                                    sender: notification.message.sender,
                                     contentType: notification.message.contentType,
                                     content: notification.message.content,
                                     sender_id: notification.message.sender_id,
@@ -141,7 +142,7 @@ export default function MainChat() {
                             content: notification.message.content,
                             created_at: notification.message.created_at,
                             sender_id: notification.message.sender_id,
-                            sender : notification.message.sender,
+                            sender: notification.message.sender,
                         },
                         rateRef: notification.Rate.id,
                         receiveAt: notification.activeConversation.receiveAt,
@@ -182,7 +183,7 @@ export default function MainChat() {
                                 isUnread: true,
                                 latest_message: {
                                     ...item.latest_message,
-                                    sender : notification.message.sender,
+                                    sender: notification.message.sender,
                                     contentType: notification.message.contentType,
                                     content: notification.message.content,
                                     sender_id: notification.message.sender_id,
@@ -212,7 +213,7 @@ export default function MainChat() {
                             content: notification.message.content,
                             created_at: notification.message.created_at,
                             sender_id: notification.message.sender_id,
-                            sender : notification.message.sender,
+                            sender: notification.message.sender,
                         },
                         rateRef: notification.Rate.id,
                         receiveAt: notification.activeConversation.receiveAt,
@@ -341,6 +342,23 @@ export default function MainChat() {
                             />
                         </Box>
                     </Box>
+                    // <ChatPageNew
+                    //     {...{
+                    //         setFilterPending,
+                    //         filterPending,
+                    //         disable: roomId === "ROOM00",
+                    //         pending,
+                    //         roomId,
+                    //         roomName,
+
+                            
+                    //         progress,
+                    //         filterProgress,
+                    //         setFilterProgress,
+                    //         showMyCasesOnly,
+                    //         setShowMyCasesOnly
+                    //     }}
+                    // />
                 )
             }
         </>

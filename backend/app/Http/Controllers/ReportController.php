@@ -351,8 +351,9 @@ class ReportController extends Controller
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
-            ->whereBetween('rates.created_at', ['2025-08-05 00:00:00', '2025-08-05 23:59:59'])
-            ->select('rates.*', 'customers.custName', 'tag_menus.tagName', 'chat_rooms.roomName as latestRoomName')
+            ->leftJoin('tag_groups', 'tag_groups.group_id', 'tag_menus.group_id')
+            ->whereBetween('rates.updated_at', ['2025-09-13 00:00:00', '2025-09-13 23:59:59'])
+            ->select('rates.*', 'customers.custName', 'tag_menus.tagName', 'chat_rooms.roomName as latestRoomName', 'tag_groups.group_id', 'tag_groups.group_name')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -449,6 +450,9 @@ class ReportController extends Controller
             'สถานะ',
             'หมายเลขแท็ก',
             'แท็คการจบสนทนา',
+            "หมายเหตุการปิด",
+            "รหัสกลุ่มแท็คการจบสนทนา",
+            "ชื่อกลุ่มแท็คการจบสนทนา",
             'เวลารวม',
             'จบสนทนาเมื่อ',
             'จำนวนเคสย่อย',
@@ -474,6 +478,9 @@ class ReportController extends Controller
                         $rate->status,
                         $rate->tag ?? '',
                         $rate->tagName,
+                        $rate->tag_description ?? '',
+                        $rate->group_id,
+                        $rate->group_name,
                         $rate->totalTime,
                         $rate->created_at,
                         count($rate->sub_case),
@@ -486,7 +493,7 @@ class ReportController extends Controller
                         $sub_case->created_at,
                         $sub_case->startTime,
                         $sub_case->endTime,
-                        $sub_case->totalTime ?? ''
+                        $sub_case->totalTime ?? '',
                     ];
                 }
             } else {
