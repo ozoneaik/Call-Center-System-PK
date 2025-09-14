@@ -17,23 +17,106 @@ export default function Info(props) {
 
     const [orders, setOrders] = useState([]);
     const [openOrdersModal, setOpenOrdersModal] = useState(false);
-    32
+    const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+    const [ordersPlatform, setOrdersPlatform] = useState('');
+
     useEffect(() => {
         setNotes(props.notes);
     }, [props.notes]);
+
     useEffect(() => {
         setStarList(props.starList);
     }, [props.starList]);
 
-    const fetchOrders = async () => {
+    const fetchLazadaOrders = async () => {
         try {
+            setIsLoadingOrders(true);
             const res = await axiosClient.get(`/webhook-new/lazada/customer-orders/${sender?.custId}`);
             setOrders(res.data.orders || []);
+            setOrdersPlatform('Lazada');
             setOpenOrdersModal(true);
         } catch (err) {
-            console.error("โหลดออเดอร์ไม่สำเร็จ", err);
+            console.error("โหลดออเดอร์ Lazada ไม่สำเร็จ", err);
+            setOrders([]);
+            setOrdersPlatform('Lazada');
+            setOpenOrdersModal(true);
+        } finally {
+            setIsLoadingOrders(false);
         }
     };
+
+    const fetchShopeeOrders = async () => {
+        try {
+            setIsLoadingOrders(true);
+            const res = await axiosClient.get(`/webhook-new/shopee/customer-orders/${sender?.custId}`);
+            setOrders(res.data.orders || []);
+            setOrdersPlatform('Shopee');
+            setOpenOrdersModal(true);
+        } catch (err) {
+            console.error("โหลดออเดอร์ Shopee ไม่สำเร็จ", err);
+            setOrders([]);
+            setOrdersPlatform('Shopee');
+            setOpenOrdersModal(true);
+        } finally {
+            setIsLoadingOrders(false);
+        }
+    };
+
+    const formatCurrency = (amount, currency = 'THB') => {
+        const formatter = new Intl.NumberFormat('th-TH', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2
+        });
+        return formatter.format(amount);
+    };
+
+    const getStatusColor = (status) => {
+        const statusLower = status?.toLowerCase() || '';
+        if (statusLower.includes('complete') || statusLower.includes('delivered')) return 'success';
+        if (statusLower.includes('cancel')) return 'danger';
+        if (statusLower.includes('pending') || statusLower.includes('processing')) return 'warning';
+        return 'neutral';
+    };
+
+    const renderLazadaOrder = (order, index) => (
+        <Box key={index} sx={{ my: 1, p: 2, borderRadius: 1, bgcolor: 'background.level1' }}>
+            <Typography level="body-sm" fontWeight="bold">
+                📦 Order No: {order.order_number}
+            </Typography>
+            <Typography level="body-sm" color={getStatusColor(order.statuses?.[0])}>
+                📌 สถานะ: {order.statuses?.join(", ") || order.status || '-'}
+            </Typography>
+            <Typography level="body-sm">
+                💰 ยอดรวม: {formatCurrency(order.price || 0)}
+            </Typography>
+            <Typography level="body-sm" color="neutral">
+                🗓️ วันที่: {order.created_at || '-'}
+            </Typography>
+            {order.items_count && (
+                <Typography level="body-sm" color="neutral">
+                    🛒 จำนวนสินค้า: {order.items_count} รายการ
+                </Typography>
+            )}
+        </Box>
+    );
+
+    const renderShopeeOrder = (order, index) => (
+        <Box key={index} sx={{ my: 1, p: 2, borderRadius: 1, bgcolor: 'background.level1' }}>
+            <Typography level="body-sm" fontWeight="bold">
+                📦 Order SN: {order.order_sn}
+            </Typography>
+            <Typography level="body-sm" color={getStatusColor(order.status)}>
+                📌 สถานะ: {order.status}
+            </Typography>
+            <Typography level="body-sm">
+                💰 ยอดรวม: {formatCurrency(order.price, order.currency)}
+            </Typography>
+            <Typography level="body-sm" color="neutral">
+                🗓️ วันที่: {order.created_at || '-'}
+            </Typography>
+        </Box>
+    );
 
     return (
         <Sheet sx={[MessageStyle.Layout, MessageStyle.Info.subLayout]}>
@@ -43,10 +126,6 @@ export default function Info(props) {
                 </Typography>
             </Box>
 
-            {/* <Box sx={MessageStyle.Info.Box}>
-                <Avatar src={sender.avatar} sx={{ width: '80px', height: '80px', mb: 1 }} />
-                <Typography level="h4" sx={{ mb: 0.5, color: 'white' }}>{sender.custName}</Typography>
-            </Box> */}
             <Divider />
 
             {/* โน๊ต */}
@@ -65,37 +144,67 @@ export default function Info(props) {
             <Feedback starList={starList} />
             <Divider sx={{ my: 1 }} />
 
-            <Button
-                variant="soft"
-                color="primary"
-                onClick={fetchOrders}
-                sx={{ m: 1 }}
-            >
-                ดูประวัติการสั่งซื้อ
-            </Button>
+            {/* ปุ่มดูออเดอร์ */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, m: 1 }}>
+                <Button
+                    variant="soft"
+                    color="primary"
+                    onClick={fetchLazadaOrders}
+                    loading={isLoadingOrders && ordersPlatform === 'Lazada'}
+                    disabled={isLoadingOrders}
+                    sx={{ width: '100%' }}
+                >
+                    ดูประวัติ Lazada
+                </Button>
+
+                <Button
+                    variant="soft"
+                    color="success"
+                    onClick={fetchShopeeOrders}
+                    loading={isLoadingOrders && ordersPlatform === 'Shopee'}
+                    disabled={isLoadingOrders}
+                    sx={{ width: '100%' }}
+                >
+                    ดูประวัติ Shopee
+                </Button>
+            </Box>
 
             <Modal open={openOrdersModal} onClose={() => setOpenOrdersModal(false)}>
-                <ModalDialog>
-                    <Typography level="h5">
-                        ประวัติการสั่งซื้อ ({orders.length} รายการ)
+                <ModalDialog sx={{ maxWidth: 500, maxHeight: '80vh', overflow: 'auto' }}>
+                    <Typography level="h5" sx={{ mb: 2 }}>
+                        ประวัติการสั่งซื้อ {ordersPlatform} ({orders.length} รายการ)
                     </Typography>
+
                     {orders.length === 0 ? (
-                        <Typography color="neutral" sx={{ my: 2 }}>
-                            ลูกค้าคนนี้ยังไม่มีประวัติการสั่งซื้อ
-                        </Typography>
+                        <Box sx={{ textAlign: 'center', py: 3 }}>
+                            <Typography color="neutral">
+                                {isLoadingOrders
+                                    ? "กำลังโหลด..."
+                                    : `ลูกค้าคนนี้ยังไม่มีประวัติการสั่งซื้อใน ${ordersPlatform}`
+                                }
+                            </Typography>
+                        </Box>
                     ) : (
-                        orders.map((o, i) => (
-                            <Box key={i} sx={{ my: 1, p: 1, borderBottom: '1px solid #ddd' }}>
-                                <Typography>📦 Order No: {o.order_number}</Typography>
-                                <Typography>📌 สถานะ: {o.statuses?.join(", ")}</Typography>
-                                <Typography>💰 ยอดรวม: {o.price} บาท</Typography>
-                                <Typography>🗓️ วันที่: {o.created_at}</Typography>
-                            </Box>
-                        ))
+                        <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+                            {orders.map((order, index) =>
+                                ordersPlatform === 'Lazada'
+                                    ? renderLazadaOrder(order, index)
+                                    : renderShopeeOrder(order, index)
+                            )}
+                        </Box>
                     )}
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                        <Button
+                            variant="outlined"
+                            color="neutral"
+                            onClick={() => setOpenOrdersModal(false)}
+                        >
+                            ปิด
+                        </Button>
+                    </Box>
                 </ModalDialog>
             </Modal>
-
         </Sheet>
     );
 }

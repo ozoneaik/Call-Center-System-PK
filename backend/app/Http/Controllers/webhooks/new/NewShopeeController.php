@@ -39,7 +39,6 @@ class NewShopeeController extends Controller
             $raw  = $request->getContent();
             $payload = json_decode($raw, true);
 
-            //ตรวจสอบร้านค้าจาก shopee_shop_id 
             $shopIdTop = $payload['shop_id'] ?? null;
             $exists = DB::table('platform_access_tokens')
                 ->where('platform', 'shopee')
@@ -123,29 +122,41 @@ class NewShopeeController extends Controller
             ->where('platform', 'shopee')
             ->when($shopId, fn($q) => $q->where('shopee_shop_id', $shopId))
             ->first();
-
         if (!$shopeePlatform) {
             return ['platform' => null, 'customer' => null];
         }
+        if (!$buyerId) {
+            Log::channel('webhook_shopee_new')->error("Shopee webhook: ไม่พบ buyerId (from_id)");
+            return ['platform' => $shopeePlatform, 'customer' => null];
+        }
 
-        $custKey = $buyerId ? (string) $buyerId : "SHP-CONV-" . strtoupper(substr(md5($conversationId), 0, 8));
-        $customer = Customers::query()->where('custId', $custKey . "_" . $shopeePlatform->id)->first();
+        $custKey = (string) $buyerId;
+        $custId = $custKey . "_" . $shopeePlatform->id;
+
+        $customer = Customers::query()->where('custId', $custId)->first();
+
         if ($customer) {
+            if (empty($customer->buyerId)) {
+                $customer->update(['buyerId' => $buyerId]);
+                Log::channel('webhook_shopee_new')->info("📝 Update existing customer buyerId", [
+                    'custId'  => $customer->custId,
+                    'buyerId' => $buyerId,
+                ]);
+            }
             return [
                 'platform' => $shopeePlatform,
                 'customer' => $customer,
             ];
         }
-
         $custName = $fromUserName ?: "Shopee-" . $custKey;
         $newCustomer = Customers::query()->create([
-            'custId'       => $custKey . "_" . $shopeePlatform->id,
+            'custId'       => $custId,
             'custName'     => $custName,
             'description'  => "ติดต่อมาจาก Shopee " . $shopeePlatform->description,
             'avatar'       => null,
             'platformRef'  => $shopeePlatform->id,
+            'buyerId'      => $buyerId,
         ]);
-
         return [
             'platform' => $shopeePlatform,
             'customer' => $newCustomer,
@@ -267,13 +278,17 @@ class NewShopeeController extends Controller
                         $detailResp = $this->getOrderDetail(
                             [$orderSn],
                             $platform,
-                            'buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time'
+                            'buyer_user_id,buyer_username,order_status,total_amount,currency,item_list,recipient_address,cod,create_time,update_time,pay_time'
                         );
 
-                        Log::channel('webhook_shopee_new')->info('Shopee getOrderDetail response', [
-                            'order_sn' => $orderSn,
-                            'resp'     => $detailResp
-                        ]);
+                        // Log::channel('webhook_shopee_new')->info('Shopee getOrderDetail response', [
+                        //     'order_sn' => $orderSn,
+                        //     'resp'     => $detailResp
+                        // ]);
+                        Log::channel('webhook_shopee_new')->info(
+                            "Shopee getOrderDetail response for order_sn={$orderSn}:\n" .
+                                json_encode($detailResp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                        );
 
                         $od = $detailResp['order_list'][0] ?? null;
                         if (!$od) {
@@ -885,32 +900,96 @@ class NewShopeeController extends Controller
         return $json['response'] ?? [];
     }
 
-    private function getOrderList(array|PlatformAccessTokens $platform, array $params): array
+    public function customerOrders($custId)
     {
-        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
-        foreach (['time_range_field', 'time_from', 'time_to', 'page_size'] as $required) {
-            if (!isset($params[$required])) {
-                throw new \Exception("get_order_list: missing param {$required}");
-            }
+        $customer = Customers::where('custId', $custId)->firstOrFail();
+        $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
+
+        if (empty($customer->buyerId)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'ยังไม่มี buyerId สำหรับลูกค้าคนนี้'
+            ]);
         }
 
-        $host       = 'https://partner.shopeemobile.com';
-        $path       = '/api/v2/order/get_order_list';
-        $timestamp  = time();
+        try {
+            $orderSnList = $this->getRecentOrderSnList($platform, 90);
+            if (empty($orderSnList)) {
+                return response()->json([
+                    'status' => true,
+                    'orders' => [],
+                    'count'  => 0,
+                ]);
+            }
+
+            $detailResp = $this->getOrderDetail(
+                $orderSnList,
+                $platform,
+                'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time'
+            );
+
+            $orders = collect($detailResp['order_list'] ?? [])
+                ->filter(fn($o) => ($o['buyer_user_id'] ?? null) == $customer->buyerId)
+                ->map(fn($o) => [
+                    'order_sn'   => $o['order_sn'] ?? null,
+                    'status'     => $o['order_status'] ?? '-',
+                    'price'      => $o['total_amount'] ?? 0,
+                    'currency'   => $o['currency'] ?? 'THB',
+                    'created_at' => isset($o['create_time'])
+                        ? Carbon::createFromTimestamp($o['create_time'])->format('Y-m-d H:i')
+                        : null,
+                ])
+                ->values()
+                ->toArray();
+
+            return response()->json([
+                'status' => true,
+                'orders' => $orders,
+                'count'  => count($orders),
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_shopee_new')->error('customerOrders error', [
+                'custId' => $custId,
+                'error'  => $e->getMessage(),
+            ]);
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getRecentOrderSnList($platform, int $days = 90): array
+    {
+        $pt = ($platform instanceof PlatformAccessTokens) ? $platform->toArray() : $platform;
+        foreach (['shopee_partner_id', 'shopee_partner_key', 'shopee_shop_id'] as $k) {
+            if (empty($pt[$k])) throw new \Exception("Shopee credentials ขาด: {$k}");
+        }
+
+        $host        = 'https://partner.shopeemobile.com';
+        $path        = '/api/v2/order/get_order_list';
+        $timestamp   = time();
         $accessToken = self::getValidAccessToken($pt);
-        $partnerId  = (int) $pt['shopee_partner_id'];
-        $partnerKey = (string) $pt['shopee_partner_key'];
-        $shopId     = (int) $pt['shopee_shop_id'];
+        $partnerId   = (int) $pt['shopee_partner_id'];
+        $partnerKey  = (string) $pt['shopee_partner_key'];
+        $shopId      = (int) $pt['shopee_shop_id'];
 
         $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
 
-        $query = array_merge($params, [
-            'partner_id'   => $partnerId,
-            'timestamp'    => $timestamp,
-            'sign'         => $sign,
-            'shop_id'      => $shopId,
-            'access_token' => $accessToken,
-        ]);
+        $timeTo   = time();
+        $timeFrom = $timeTo - ($days * 86400); // 90 วันย้อนหลัง
+
+        $query = [
+            'partner_id'        => $partnerId,
+            'timestamp'         => $timestamp,
+            'sign'              => $sign,
+            'shop_id'           => $shopId,
+            'access_token'      => $accessToken,
+            'time_range_field'  => 'create_time',
+            'time_from'         => $timeFrom,
+            'time_to'           => $timeTo,
+            'page_size'         => 50,
+        ];
 
         $url  = $host . $path . '?' . http_build_query($query);
         $resp = Http::get($url);
@@ -919,244 +998,8 @@ class NewShopeeController extends Controller
         if (!$resp->successful() || !empty($json['error'])) {
             throw new \Exception('get_order_list error: ' . ($json['message'] ?? json_encode($json)));
         }
-        return $json['response'] ?? [];
-    }
 
-    public function ordersByBuyer(Request $request)
-    {
-        $buyerIdParam   = $request->input('buyer_id');
-        $buyerUsername  = $request->input('buyer_username');
-        $buyerId        = $buyerIdParam !== null && $buyerIdParam !== '' ? (int)$buyerIdParam : null;
-
-        if ($buyerId === null && (empty($buyerUsername))) {
-            return response()->json(['ok' => false, 'message' => 'ต้องส่ง buyer_id หรือ buyer_username อย่างน้อยหนึ่งอย่าง'], 422);
-        }
-
-        $daysBack  = max(1, (int) $request->input('days_back', 30));
-        $status    = $request->input('status');
-        $shopId    = $request->input('shop_id');
-        $timeField = $request->input('time_field', 'update_time');
-        if (!in_array($timeField, ['update_time', 'create_time'], true)) $timeField = 'update_time';
-
-        $page        = max(1, (int)$request->query('page', 1));
-        $pageSize    = max(1, min(100, (int)$request->query('page_size', 20)));
-        $summaryOnly = (string)$request->query('summary_only', '1') === '1';
-
-        $platform = PlatformAccessTokens::query()
-            ->where('platform', 'shopee')
-            ->when($shopId, fn($q) => $q->where('shopee_shop_id', $shopId))
-            ->first();
-
-        if (!$platform) {
-            return response()->json(['ok' => false, 'message' => 'ไม่พบ Shopee platform token (ตรวจสอบ shop_id หรือการเชื่อมต่อ)'], 404);
-        }
-
-        $to   = time();
-        $from = $to - ($daysBack * 86400);
-
-        try {
-            $needTotal = $page * $pageSize;
-            $snList    = $this->collectOrderSNs($platform, $from, $to, $timeField, $status, $needTotal, /*includePENDING*/ false);
-
-            $fields = implode(',', [
-                'order_sn',
-                'buyer_user_id',
-                'buyer_username',
-                'order_status',
-                'total_amount',
-                'currency',
-                // 'item_list',
-                'create_time',
-                'update_time',
-                'pay_time',
-            ]);
-
-            $all = [];
-            foreach (array_chunk($snList, 50) as $chunk) {
-                $resp = $this->getOrderDetail($chunk, $platform, $fields);
-                foreach (($resp['order_list'] ?? []) as $od) {
-                    // กรองผู้ซื้อ
-                    $ok = true;
-                    if ($buyerId !== null) {
-                        $ok = (isset($od['buyer_user_id']) && (string)$od['buyer_user_id'] === (string)$buyerId);
-                    } elseif (!empty($buyerUsername)) {
-                        $ok = (($od['buyer_username'] ?? '') === $buyerUsername);
-                    }
-                    if (!$ok) continue;
-
-                    $all[] = $od;
-                }
-            }
-
-            usort($all, fn($a, $b) => (int)($b['update_time'] ?? 0) <=> (int)($a['update_time'] ?? 0));
-
-            $offset  = ($page - 1) * $pageSize;
-            $pageArr = array_slice($all, $offset, $pageSize);
-
-            $summary = array_map(function ($od) {
-                return [
-                    'order_sn'       => $od['order_sn'] ?? null,
-                    'status'         => $od['order_status'] ?? null,
-                    'buyer_user_id'  => $od['buyer_user_id'] ?? null,
-                    'buyer_username' => $od['buyer_username'] ?? null,
-                    'total'          => $od['total_amount'] ?? null,
-                    'currency'       => $od['currency'] ?? null,
-                    'create_time'    => $od['create_time'] ?? null,
-                    'update_time'    => $od['update_time'] ?? null,
-                    'pay_time'       => $od['pay_time'] ?? null,
-                    'items_count'    => null,
-                ];
-            }, $pageArr);
-
-            return response()->json([
-                'ok'         => true,
-                'page'       => $page,
-                'page_size'  => $pageSize,
-                'has_more'   => count($all) > ($offset + $pageSize),
-                'count'      => count($pageArr),
-                'summary'    => $summary,
-                'orders'     => $summaryOnly ? [] : $pageArr,
-            ]);
-        } catch (\Throwable $e) {
-            Log::channel('webhook_shopee_new')->error('ordersByBuyer error', ['error' => $e->getMessage()]);
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function orderDetail(Request $request)
-    {
-        $orderSn = trim((string)$request->query('order_sn', ''));
-        $shopId  = $request->query('shop_id');
-
-        if ($orderSn === '') {
-            return response()->json(['ok' => false, 'message' => 'order_sn is required'], 422);
-        }
-
-        $platform = PlatformAccessTokens::query()
-            ->where('platform', 'shopee')
-            ->when($shopId, fn($q) => $q->where('shopee_shop_id', $shopId))
-            ->first();
-
-        if (!$platform) return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
-
-        $fields = implode(',', [
-            'buyer_user_id',
-            'buyer_username',
-            'recipient_address',
-            'item_list',
-            'total_amount',
-            'currency',
-            'cod',
-            'region',
-            'buyer_cancel_reason',
-            'cancel_by',
-            'cancel_reason',
-            'create_time',
-            'update_time',
-            'pay_time',
-        ]);
-
-        try {
-            $resp = $this->getOrderDetail([$orderSn], $platform, $fields);
-            $od   = $resp['order_list'][0] ?? null;
-
-            return response()->json([
-                'ok'    => $od !== null,
-                'order' => $od,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    private function splitTimeWindows(int $from, int $to, int $daysPerWindow = 15): array
-    {
-        if ($from >= $to) {
-            throw new \InvalidArgumentException("time_from ต้องน้อยกว่า time_to");
-        }
-        $step = $daysPerWindow * 86400;
-        $windows = [];
-        $start = $from;
-        while ($start < $to) {
-            $end = min($start + $step, $to);
-            $windows[] = [$start, $end];
-            $start = $end;
-        }
-        return $windows;
-    }
-
-    public function resolvePlatform(Request $request)
-    {
-        return $this->resolveChatPlatform($request);
-    }
-
-    private function collectOrderSNs(
-        array|PlatformAccessTokens $platform,
-        int $fromTs,
-        int $toTs,
-        string $timeField,
-        ?string $status,
-        int $needTotal,
-        bool $includePending = false
-    ): array {
-        $sns = [];
-        foreach ($this->splitTimeWindows($fromTs, $toTs, 15) as [$wFrom, $wTo]) {
-            $cursor = '';
-            do {
-                $params = [
-                    'time_range_field' => $timeField,
-                    'time_from'        => $wFrom,
-                    'time_to'          => $wTo,
-                    'page_size'        => 100,
-                ];
-                if ($status && strtoupper($status) !== 'ALL') {
-                    $params['order_status'] = $status;
-                }
-                if ($includePending) $params['request_order_status_pending'] = 'true';
-                if ($cursor !== '') $params['cursor'] = $cursor;
-
-                $resp = $this->getOrderList($platform, $params);
-                $list = $resp['order_list'] ?? [];
-
-                foreach ($list as $row) {
-                    if (!empty($row['order_sn'])) {
-                        $sns[] = $row['order_sn'];
-                        if (count($sns) >= $needTotal) return $sns;
-                    }
-                }
-
-                $more   = $resp['more'] ?? false;
-                $cursor = $resp['next_cursor'] ?? '';
-            } while (!empty($more) && $cursor !== '');
-        }
-        return $sns;
-    }
-
-    public function resolveChatPlatform(Request $request)
-    {
-        $custId = trim((string) $request->query('cust_id', ''));
-        if ($custId === '') {
-            return response()->json(['ok' => false, 'message' => 'cust_id is required'], 422);
-        }
-
-        $cust = Customers::query()->where('custId', $custId)->first();
-
-        $pos = strrpos($custId, '_');
-        $platformRef = ($pos !== false && ctype_digit(substr($custId, $pos + 1)))
-            ? (int)substr($custId, $pos + 1) : null;
-
-        $pt = $platformRef ? PlatformAccessTokens::query()->find($platformRef) : null;
-        if (!$pt) {
-            return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
-        }
-
-        return response()->json([
-            'ok'                => true,
-            'platform'          => $pt->platform,
-            'platform_token_id' => $pt->id,
-            'shopee_shop_id'    => $pt->shopee_shop_id ? (int)$pt->shopee_shop_id : null,
-            'shop_name'         => $pt->description,
-            'customer_name'     => $cust->custName ?? null,
-        ]);
+        $orders = $json['response']['order_list'] ?? [];
+        return collect($orders)->pluck('order_sn')->toArray();
     }
 }

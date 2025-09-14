@@ -42,9 +42,8 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/auth', [ShopeeController::class, 'authorization']);
         Route::post('/', [NewShopeeController::class, 'webhooks']);
 
-        Route::get('/resolve-platform', [NewShopeeController::class, 'resolvePlatform']); //ตรวจสอบว่า ลูกค้าคนนี้อยู่กับ platform Shopee ร้านไหน
-        Route::get('/orders-by-buyer', [NewShopeeController::class, 'ordersByBuyer']); //ใช้ buyer_id หรือ buyer_username เพื่อดึงประวัติคำสั่งซื้อของลูกค้าคนนั้นจาก Shopee API
-        Route::get('/order-detail', [NewShopeeController::class, 'orderDetail']); //ใช้ order_sn (Shopee order serial number) เพื่อดึงรายละเอียดคำสั่งซื้อ
+      Route::get('/customer-orders/{custId}', [NewShopeeController::class, 'customerOrders']);
+
     });
 
     Route::prefix('tiktok')->group(function () {
