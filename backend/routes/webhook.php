@@ -32,10 +32,7 @@ Route::prefix('webhook-new')->group(function () {
         // Route::get('/', [LazadaController::class, 'webhook']);
         Route::post('/', [NewLazadaController::class, 'webhook']);
         Route::post('/refresh-token', [NewLazadaController::class, 'refreshToken']);
-
-        Route::get('/resolve-platform', [NewLazadaController::class, 'resolvePlatform']); //ตรวจสอบว่า ลูกค้าคนนี้อยู่กับ platform Lazada ไหน (ร้านไหน) และ return ข้อมูลร้านกลับมา
-        Route::get('/orders-by-session', [NewLazadaController::class, 'ordersBySession']); //ใช้ ิbuyer id  ของแชท Lazada ดึงประวัติคำสั่งซื้อของลูกค้าคนนั้น (ภายในช่วงเวลาที่กำหนด เช่น 30 วัน)
-        Route::get('/order-detail', [NewLazadaController::class, 'orderDetail']); //ดึงรายละเอียดคำสั่งซื้อจาก Lazada API
+        Route::get('/customer-orders/{custId}', [NewLazadaController::class, 'customerOrders']);
     });
 
     // สำหรับ Shopee
@@ -56,7 +53,6 @@ Route::prefix('webhook-new')->group(function () {
         Route::post('/', [NewTikTokController::class, 'webhooks']);
         Route::get('/shops', [NewTikTokController::class, 'getAuthorizedShops']);
         Route::post('/shop-webhooks', [NewTikTokController::class, 'getShopWebhooks']);
-
     });
 
     // สำหรับ Test

@@ -19,6 +19,7 @@ class Customers extends Model
         'custName',
         'description',
         'avatar',
-        'platformRef'
+        'platformRef',
+        'buyerId'
     ];
 }

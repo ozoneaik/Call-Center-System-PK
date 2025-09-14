@@ -32,7 +32,7 @@ class NewLazadaController extends Controller
     {
         try {
             $req = $request->all();
-            
+
             if (isset($req['message_type']) && $req['message_type'] === 2 && $req['data']['from_account_type'] === 1) {
                 $check_message_id_same = ChatHistory::query()->where('line_message_id', $req['data']['message_id'])->first();
                 if ($check_message_id_same) {
@@ -49,7 +49,8 @@ class NewLazadaController extends Controller
                 // return response('ok');
 
                 $session_id = $req['data']['session_id'] ?? null;
-                $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id);
+                // $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id);
+                $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id, $req);
                 $customer = $check_customer_and_get_platform['customer'];
                 $platform = $check_customer_and_get_platform['platform'];
 
@@ -79,11 +80,16 @@ class NewLazadaController extends Controller
         ]);
     }
 
-    private function check_customer_and_get_platform($session_id)
+    private function check_customer_and_get_platform($session_id, $req)
     {
         $check_customer = Customers::query()->where('custId', $session_id)->first();
 
         if ($check_customer) {
+            if (empty($check_customer->buyerId) && isset($req['data']['from_user_id'])) {
+                $check_customer->update([
+                    'buyerId' => $req['data']['from_user_id']
+                ]);
+            }
             $lazada_platform = PlatformAccessTokens::query()
                 ->where('platform', 'lazada')
                 ->where('id', $check_customer['platformRef'])
@@ -120,6 +126,7 @@ class NewLazadaController extends Controller
                             'description' => "ติดต่อมาจาก Lazada " . $lp['description'],
                             'avatar'      => null,
                             'platformRef' => $lp['id'],
+                            'buyerId'     => $req['data']['from_user_id'] ?? null,
                         ]);
                         return [
                             'platform' => $lp,
@@ -180,10 +187,8 @@ class NewLazadaController extends Controller
                 if ($orderId) {
                     $orderDetail = $this->getOrderDetail($orderId, $platform);
                     $orderItems  = $this->getOrderItems($orderId, $platform);
-                    $timeline    = $this->getLogisticTrace($orderId, $platform);
 
                     if ($orderDetail) {
-                        // ✅ หาเหตุผลยกเลิกจาก item แรกที่มี reason/ reason_detail
                         $cancelReason = null;
                         $cancelDetail = null;
                         foreach ($orderItems as $it) {
@@ -230,20 +235,6 @@ class NewLazadaController extends Controller
                             }
                             $text .= "\n";
                         }
-
-                        if (!empty($timeline)) {
-                            $text .= "🚚 ติดตามสถานะ (Tracking):\n";
-                            $trackingNo = $timeline[0]['tracking_no'] ?? '';
-                            if ($trackingNo) $text .= "📦 Tracking No: {$trackingNo}\n";
-                            foreach ($timeline as $t) {
-                                $time  = $t['time'] ?? '-';
-                                $title = $t['title'] ?? '';
-                                $text .= "- {$time}: {$title}\n";
-                            }
-                        } else {
-                            $text .= "🚚 ยังไม่มีข้อมูลการจัดส่ง";
-                        }
-
                         $msg_formatted['content'] = $text;
                     } else {
                         $msg_formatted['content'] = "⚠️ ไม่สามารถดึงรายละเอียด Order {$orderId} ได้";
@@ -587,59 +578,6 @@ class NewLazadaController extends Controller
         }
     }
 
-    private function getLogisticTrace(string $orderId, $platform, string $locale = 'th')
-    {
-        try {
-            $url = 'https://api.lazada.co.th/rest';
-            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
-
-            $request = new LazopRequest('/logistic/order/trace', 'GET');
-            $request->addApiParam('order_id', $orderId);
-            $request->addApiParam('locale', $locale);
-            $request->addApiParam('ofcPackageIdList', '[]');
-
-            $response = $c->execute($request, $platform['accessToken']);
-            $result = json_decode($response, true);
-
-            Log::channel('webhook_lazada_new')->info("📦 getLogisticTrace RAW Response", [
-                'order_id' => $orderId,
-                'raw'      => $result
-            ]);
-
-            if (isset($result['code']) && $result['code'] == '0') {
-                $timeline = [];
-                $modules = $result['result']['module'] ?? [];
-                foreach ($modules as $module) {
-                    foreach ($module['package_detail_info_list'] ?? [] as $pkg) {
-                        Log::channel('webhook_lazada_new')->info("📦 getLogisticTrace Package Info", $pkg);
-                        $trackingNo = $pkg['tracking_number']
-                            ?? $pkg['trackingNo']
-                            ?? $pkg['tracking_code']
-                            ?? '';
-
-                        foreach ($pkg['logistic_detail_info_list'] ?? [] as $event) {
-                            $timeline[] = [
-                                'tracking_no'  => $trackingNo,
-                                'title'        => $event['title'] ?? '',
-                                'description'  => $event['description'] ?? '',
-                                'time'         => isset($event['event_time'])
-                                    ? date('Y-m-d H:i:s', $event['event_time'] / 1000)
-                                    : null,
-                            ];
-                        }
-                    }
-                }
-
-                Log::channel('webhook_lazada_new')->info("📦 getLogisticTrace Timeline", $timeline);
-                return $timeline;
-            }
-            return [];
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error("❌ getLogisticTrace error: " . $e->getMessage());
-            return [];
-        }
-    }
-
     private function refreshAccessTokenIfNeeded($platform, int $days = 3)
     {
         try {
@@ -737,69 +675,6 @@ class NewLazadaController extends Controller
 
     //--------------------------------------------------order api------------------------------------------------------------------------------
 
-    private function parseSellerIdFromSession(string $sessionId): ?string
-    {
-        if ($sessionId === '') return null;
-        $parts = explode('_', $sessionId);
-        return $parts[0] ?? null;
-    }
-
-    private function getPlatformBySellerId(?string $sellerId): ?PlatformAccessTokens
-    {
-        if (!$sellerId) return null;
-        return PlatformAccessTokens::query()
-            ->where('platform', 'lazada')
-            ->where('laz_seller_id', $sellerId)
-            ->first();
-    }
-
-    private function ensureCustomerPlatformRef(Customers $customer, PlatformAccessTokens $platform): void
-    {
-        if ((int)$customer->platformRef !== (int)$platform->id) {
-            $customer->platformRef = $platform->id;
-            $customer->save();
-        }
-    }
-
-    public function resolvePlatform(Request $request)
-    {
-        $custId = (string) $request->query('cust_id', '');
-        if ($custId === '') {
-            return response()->json(['ok' => false, 'message' => 'cust_id is required'], 422);
-        }
-
-        $customer = Customers::query()->where('custId', $custId)->first();
-        if (!$customer) {
-            return response()->json(['ok' => false, 'message' => 'customer not found'], 404);
-        }
-
-        $platform = PlatformAccessTokens::query()
-            ->where('platform', 'lazada')
-            ->where('id', $customer->platformRef)
-            ->first();
-
-        if (!$platform) {
-            $sellerId = $this->parseSellerIdFromSession($custId);
-            $platform = $this->getPlatformBySellerId($sellerId);
-            if ($platform) {
-                $this->ensureCustomerPlatformRef($customer, $platform);
-            }
-        }
-
-        if (!$platform) {
-            return response()->json(['ok' => true, 'platform' => 'unknown']);
-        }
-
-        $platform = $this->refreshAccessTokenIfNeeded($platform);
-
-        return response()->json([
-            'ok'            => true,
-            'platform'      => 'lazada',
-            'seller_id'     => $platform->laz_seller_id,
-            'shop_name'     => $platform->description,
-            'customer_name' => $customer->custName,
-        ]);
-    }
 
     private function getOrderDetail(string $orderId, $platform)
     {
@@ -929,6 +804,7 @@ class NewLazadaController extends Controller
                 Log::channel('webhook_lazada_new')->info('🧾 getOrderItems', [
                     'order_id'    => $orderId,
                     'items_count' => count($normalized),
+                    'buyer_ids'   => collect($normalized)->pluck('buyer_id')->unique()->values()->all(),
                     'reasons'     => $reasons,
                 ]);
 
@@ -941,234 +817,77 @@ class NewLazadaController extends Controller
         }
     }
 
-    public function ordersBySession(Request $request)
+    private function getOrdersByCustomer($platform, $buyerId, $days = 90)
     {
-        $sessionId = (string) $request->query('session_id', '');
-        if ($sessionId === '') {
-            return response()->json(['ok' => false, 'message' => 'session_id is required'], 422);
-        }
+        $url = 'https://api.lazada.co.th/rest';
+        $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
+        $request = new LazopRequest('/orders/get', 'GET');
 
-        $daysBack    = max(1, (int) $request->query('days_back', 30));
-        $status      = $request->query('status');
-        $timeField   = $request->query('itme_field', 'update_time'); // typo-safe
-        if (!in_array($timeField, ['update_time', 'create_time'], true)) $timeField = 'update_time';
+        $createdAfter = now()->subDays($days)->format('Y-m-d\TH:i:s+00:00');
+        $request->addApiParam('created_after', $createdAfter);
 
-        $page        = max(1, (int) $request->query('page', 1));
-        $pageSize    = max(1, min(100, (int) $request->query('page_size', 20)));
-        $summaryOnly = (string)$request->query('summary_only', '1') === '1';
+        $response = $c->execute($request, $platform['accessToken']);
+        $result = json_decode($response, true);
 
-        $customer = Customers::query()->where('custId', $sessionId)->first();
-        if (!$customer) {
-            return response()->json(['ok' => false, 'message' => 'customer not found'], 404);
-        }
+        $matchedOrders = [];
 
-        $platform = PlatformAccessTokens::query()
-            ->where('platform', 'lazada')
-            ->where('id', $customer->platformRef)
-            ->first();
+        if (($result['code'] ?? '1') === '0') {
+            $orders = $result['data']['orders'] ?? [];
 
-        if (!$platform) {
-            $sellerId = $this->parseSellerIdFromSession($sessionId);
-            $platform = $this->getPlatformBySellerId($sellerId);
-            if ($platform) {
-                $this->ensureCustomerPlatformRef($customer, $platform);
+            foreach ($orders as $order) {
+                $reqItem = new LazopRequest('/order/items/get', 'GET');
+                $reqItem->addApiParam('order_id', $order['order_id']);
+                $resItem = $c->execute($reqItem, $platform['accessToken']);
+                $itemData = json_decode($resItem, true);
+
+                $apiBuyerId = $itemData['data'][0]['buyer_id'] ?? null;
+
+                Log::channel('webhook_lazada_new')->info("🧾 ตรวจสอบ Order", [
+                    'order_id'       => $order['order_id'],
+                    'buyerId_expected' => $buyerId,
+                    'buyerId_from_items' => $apiBuyerId,
+                    'matched'        => $apiBuyerId == $buyerId,
+                ]);
+
+                if ($apiBuyerId == $buyerId) {
+                    $matchedOrders[] = $order;
+                }
             }
         }
-        if (!$platform) {
-            return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
-        }
 
-        $platform = $this->refreshAccessTokenIfNeeded($platform);
+        Log::channel('webhook_lazada_new')->info("📦 Orders (filtered)", [
+            'buyerId_expected' => $buyerId,
+            'orders_found'     => count($matchedOrders),
+            'orders'           => $matchedOrders,
+        ]);
 
-        try {
-            $buyer = $this->fetchBuyerFromSession($platform, $sessionId);
-            $buyerId = $buyer['buyer_id'] ?? null;
+        return $matchedOrders;
+    }
 
-            $needTotal = $page * $pageSize;
-            $ordersAll = $this->getOrdersBySessionLazadaPaged($platform, $daysBack, $status, $timeField, $buyerId, $needTotal);
+    public function customerOrders($custId)
+    {
+        $customer = Customers::where('custId', $custId)->firstOrFail();
+        $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
 
-            usort($ordersAll, fn($a, $b) => ($b['update_time'] ?? 0) <=> ($a['update_time'] ?? 0));
-            $offset   = ($page - 1) * $pageSize;
-            $pageData = array_slice($ordersAll, $offset, $pageSize);
+        Log::channel('webhook_lazada_new')->info("🔎 customerOrders()", [
+            'custId' => $custId,
+            'buyerId' => $customer->buyerId,
+            'platform_id' => $platform->id,
+        ]);
 
-            $summary = array_map(function ($od) {
-                return [
-                    'order_sn'    => $od['order_sn'] ?? null,
-                    'order_id'    => $od['order_id'] ?? null,
-                    'buyer_id'    => $od['buyer_id'] ?? null,
-                    'status'      => $od['order_status'] ?? null,
-                    'total'       => $od['total_amount'] ?? null,
-                    'currency'    => $od['currency'] ?? 'THB',
-                    'create_time' => $od['create_time'] ?? null,
-                    'update_time' => $od['update_time'] ?? null,
-                    'pay_time'    => $od['pay_time'] ?? null,
-                    'items_count' => isset($od['item_list']) ? count($od['item_list']) : 0,
-                ];
-            }, $pageData);
-
+        if (empty($customer->buyerId)) {
             return response()->json([
-                'ok'         => true,
-                'platform'   => 'lazada',
-                'page'       => $page,
-                'page_size'  => $pageSize,
-                'has_more'   => count($ordersAll) > ($offset + $pageSize),
-                'count'      => count($pageData),
-                'summary'    => $summary,
-                'orders'     => $summaryOnly ? [] : $pageData,
+                'status' => false,
+                'message' => 'ยังไม่มี buyerId สำหรับลูกค้าคนนี้'
             ]);
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error('ordersBySession error', ['error' => $e->getMessage()]);
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    private function getOrdersBySessionLazadaPaged($platform, int $daysBack, ?string $status, string $timeField, ?string $targetBuyerId, int $needTotal): array
-    {
-        $host   = 'https://api.lazada.co.th/rest';
-        $client = new LazopClient($host, $platform['laz_app_key'], $platform['laz_app_secret']);
-        $access = $platform['accessToken'];
-
-        $to   = time();
-        $from = $to - ($daysBack * 86400);
-
-        $status    = (is_string($status) && strtoupper($status) === 'ALL') ? null : $status;
-        $timeField = in_array($timeField, ['update_time', 'create_time'], true) ? $timeField : 'update_time';
-
-        $ordersNorm = [];
-
-        foreach ($this->splitTimeWindows($from, $to, 15) as [$wFrom, $wTo]) {
-            $offset = 0;
-            $limit  = 50;
-
-            do {
-                $req = new LazopRequest('/orders/get', 'GET');
-
-                $isoFrom = Carbon::createFromTimestamp($wFrom, 'Asia/Bangkok')->toIso8601String();
-                $isoTo   = Carbon::createFromTimestamp($wTo,   'Asia/Bangkok')->toIso8601String();
-
-                if ($timeField === 'update_time') {
-                    $req->addApiParam('update_after',  $isoFrom);
-                    $req->addApiParam('update_before', $isoTo);
-                } else {
-                    $req->addApiParam('created_after',  $isoFrom);
-                    $req->addApiParam('created_before', $isoTo);
-                }
-
-                $req->addApiParam('limit',  (string)$limit);
-                $req->addApiParam('offset', (string)$offset);
-                if (!empty($status)) $req->addApiParam('status', $status);
-
-                $resp = $client->execute($req, $access);
-                $json = json_decode($resp, true);
-
-                if (($json['code'] ?? '') !== '0') break;
-                $list = $json['data']['orders'] ?? [];
-                if (empty($list)) break;
-
-                foreach ($list as $o) {
-                    $orderId     = $o['order_id'] ?? null;
-                    $orderNumber = $o['order_number'] ?? $orderId;
-                    if (!$orderId) continue;
-
-                    $itemsResp = $this->getOrderItems($orderId, $platform);
-                    $buyerId   = null;
-                    if (!empty($itemsResp)) {
-                        $buyerId = $itemsResp[0]['buyer_id'] ?? null;
-                    }
-
-                    $order = [
-                        'order_sn'     => $orderNumber,
-                        'order_id'     => $orderId,
-                        'buyer_id'     => $buyerId,
-                        'order_status' => $o['statuses'][0] ?? ($o['status'] ?? '-'),
-                        'currency'     => $o['currency'] ?? 'THB',
-                        'total_amount' => (float)($o['price'] ?? 0) + (float)($o['shipping_fee'] ?? 0),
-                        'create_time'  => isset($o['created_at']) ? strtotime($o['created_at']) : null,
-                        'update_time'  => isset($o['updated_at']) ? strtotime($o['updated_at']) : null,
-                        'pay_time'     => isset($o['paid_time']) ? strtotime($o['paid_time']) : null,
-                    ];
-
-                    if ($targetBuyerId && (string)$buyerId !== (string)$targetBuyerId) {
-                        continue;
-                    }
-
-                    $ordersNorm[] = $order;
-
-                    if (count($ordersNorm) >= $needTotal) return $ordersNorm;
-                }
-
-                $offset += $limit;
-            } while (true);
         }
 
-        return $ordersNorm;
-    }
+        $orders = $this->getOrdersByCustomer($platform, $customer->buyerId, 90);
 
-    public function orderDetail(Request $request)
-    {
-        $orderId = trim((string)$request->query('order_id', ''));
-        if ($orderId === '') {
-            return response()->json(['ok' => false, 'message' => 'order_id is required'], 422);
-        }
-
-        $platform = PlatformAccessTokens::query()
-            ->where('platform', 'lazada')
-            ->latest('id')
-            ->first();
-
-        if (!$platform) return response()->json(['ok' => false, 'message' => 'platform token not found'], 404);
-
-        try {
-            $detail  = $this->getOrderDetail($orderId, $platform);
-            $items   = $this->getOrderItems($orderId, $platform);
-            $trace   = $this->getLogisticTrace($orderId, $platform);
-
-            return response()->json([
-                'ok'     => true,
-                'detail' => $detail,
-                'items'  => $items,
-                'trace'  => $trace,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    private function fetchBuyerFromSession($platform, string $sessionId): ?array
-    {
-        try {
-            $url = 'https://api.lazada.co.th/rest';
-            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
-            $req = new LazopRequest('/im/session/get', 'GET');
-            $req->addApiParam('session_id', $sessionId);
-
-            $resp = $c->execute($req, $platform['accessToken']);
-            $json = json_decode($resp, true);
-
-            if (($json['code'] ?? null) === '0') {
-                $data = $json['data'] ?? $json['result'] ?? [];
-                return [
-                    'buyer_id'   => $data['buyer_id']   ?? null,
-                    'buyer_name' => $data['title']      ?? null,
-                ];
-            }
-
-            Log::channel('webhook_lazada_new')->warning('fetchBuyerFromSession fail', ['resp' => $json]);
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error("fetchBuyerFromSession error: " . $e->getMessage());
-        }
-        return null;
-    }
-
-    private function splitTimeWindows(int $from, int $to, int $daysPerWindow = 15): array
-    {
-        if ($from >= $to) throw new \InvalidArgumentException("time_from must be < time_to");
-        $step = $daysPerWindow * 86400;
-        $windows = [];
-        for ($start = $from; $start < $to; $start += $step) {
-            $end = min($start + $step, $to);
-            $windows[] = [$start, $end];
-        }
-        return $windows;
+        return response()->json([
+            'status' => true,
+            'orders' => $orders,
+            'count'  => count($orders)
+        ]);
     }
 }
