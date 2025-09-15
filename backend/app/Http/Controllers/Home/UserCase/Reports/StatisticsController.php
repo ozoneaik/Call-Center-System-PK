@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Home\UserCase\Reports;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class StatisticsController extends Controller
 {
@@ -19,6 +19,17 @@ class StatisticsController extends Controller
             ->where('pat_pf.id', $platformId);
     }
 
+    private function applyPlatformFilterAlias($q, $platformId, $acAlias = 'ac')
+    {
+        if (!$platformId) return $q;
+
+        return $q
+            ->join("customers as c_pf_$acAlias", "c_pf_$acAlias.custId", '=', DB::raw("\"$acAlias\".\"custId\""))
+            ->join("platform_access_tokens as pat_pf_$acAlias", "pat_pf_$acAlias.id", '=', "c_pf_$acAlias.platformRef")
+            ->where("pat_pf_$acAlias.id", $platformId);
+    }
+
+    // ✅ โหลดรายการแพลตฟอร์ม
     public function optionsPlatforms()
     {
         $rows = DB::connection('pgsql_real')
@@ -40,6 +51,7 @@ class StatisticsController extends Controller
         return response()->json(['options' => $rows]);
     }
 
+    // ✅ โหลดรายการแผนก
     public function optionsDepartments()
     {
         $rows = DB::connection('pgsql_real')
@@ -57,6 +69,7 @@ class StatisticsController extends Controller
         return response()->json(['options' => $rows]);
     }
 
+    // ✅ โหลดรายการพนักงาน
     public function optionsEmployees(Request $request)
     {
         $dept = $request->query('dept');
@@ -64,35 +77,58 @@ class StatisticsController extends Controller
             ->whereNotIn('empCode', ['BOT', 'adminIT'])
             ->select('empCode', 'name', 'description')
             ->whereRaw("NULLIF(TRIM(name), '') IS NOT NULL");
+
         if ($dept) $q->where('description', $dept);
         else $q->whereRaw("NULLIF(TRIM(description), '') IS NOT NULL");
 
         $rows = $q->orderBy('name', 'asc')->get()
-            ->map(fn($r) => ['value' => $r->empCode, 'label' => $r->name, 'department' => trim((string)$r->description)]);
+            ->map(fn($r) => [
+                'value' => $r->empCode,
+                'label' => $r->name,
+                'department' => trim((string)$r->description),
+            ]);
+
         return response()->json($rows);
     }
 
-    private function applyPlatformFilterAlias($q, $platformId, $acAlias = 'ac')
+    // ✅ โหลดรายการห้องแชท
+    public function optionsRooms()
     {
-        if (!$platformId) return $q;
+        $rows = DB::connection('pgsql_real')
+            ->table('active_conversations as ac')
+            ->join('chat_rooms as cr', 'cr.roomId', '=', 'ac.roomId')
+            ->select('ac.roomId', DB::raw('MAX("cr"."roomName") as "roomName"'))
+            ->whereNotNull('ac.roomId')
+            ->where('cr.is_active', true) // ✅ เพิ่มกรองตรงนี้
+            ->groupBy('ac.roomId')
+            ->orderBy('ac.roomId')
+            ->get()
+            ->map(fn($r) => [
+                'value' => $r->roomId,
+                'label' => $r->roomName ? "{$r->roomName} ({$r->roomId})" : $r->roomId,
+                'roomName' => $r->roomName,
+            ])
+            ->values()
+            ->toArray();
 
-        return $q
-            ->join("customers as c_pf_$acAlias", "c_pf_$acAlias.custId", '=', DB::raw("\"$acAlias\".\"custId\""))
-            ->join("platform_access_tokens as pat_pf_$acAlias", "pat_pf_$acAlias.id", '=', "c_pf_$acAlias.platformRef")
-            ->where("pat_pf_$acAlias.id", $platformId);
+        return response()->json(['options' => $rows]);
     }
 
+    // ✅ Summary พนักงาน
     public function employeeWorkloadSummary(Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId     = $request->query('roomId');
         $today      = Carbon::today('Asia/Bangkok')->toDateString();
 
+        // Success cases
         $successAgg = DB::connection('pgsql_real')->table('rates as r_s')
             ->join('active_conversations as ac_s', 'ac_s.rateRef', '=', 'r_s.id')
             ->leftJoin('users as u_s', 'u_s.empCode', '=', 'ac_s.empCode')
             ->when($dept, fn($q) => $q->where('u_s.description', $dept))
+            ->when($roomId, fn($q) => $q->where('ac_s.roomId', $roomId))
             ->where('r_s.status', 'success')
             ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
                 $start = Carbon::parse($request->query('start_date'))->startOfDay();
@@ -108,18 +144,20 @@ class StatisticsController extends Controller
         $successAgg = $successAgg
             ->groupBy('ac_s.empCode')
             ->selectRaw('
-            ac_s."empCode" as "empCode",
-            COUNT(*) as total_success,
-            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 60) as within_1_min,
-            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 60 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 300) as one_to_five_min,
-            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 300 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 600) as five_to_ten_min,
-            COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 600) as over_ten_min
-        ');
+                ac_s."empCode" as "empCode",
+                COUNT(*) as total_success,
+                COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 60) as within_1_min,
+                COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 60 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 300) as one_to_five_min,
+                COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 300 AND EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") <= 600) as five_to_ten_min,
+                COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac_s."endTime" - ac_s."startTime") > 600) as over_ten_min
+            ');
 
+        // Progress cases
         $progressAgg = DB::connection('pgsql_real')->table('rates as r_p')
             ->join('active_conversations as ac_p', 'ac_p.rateRef', '=', 'r_p.id')
             ->leftJoin('users as u_p', 'u_p.empCode', '=', 'ac_p.empCode')
             ->when($dept, fn($q) => $q->where('u_p.description', $dept))
+            ->when($roomId, fn($q) => $q->where('ac_p.roomId', $roomId))
             ->where('r_p.status', 'progress')
             ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
                 $start = Carbon::parse($request->query('start_date'))->startOfDay();
@@ -135,21 +173,22 @@ class StatisticsController extends Controller
         $progressAgg = $progressAgg
             ->groupBy('ac_p.empCode')
             ->selectRaw('
-            ac_p."empCode" as "empCode",
-            COUNT(*) as in_progress
-        ');
+                ac_p."empCode" as "empCode",
+                COUNT(*) as in_progress
+            ');
 
+        // Base join with users
         $base = DB::connection('pgsql_real')->table('users as u')
             ->selectRaw('
-            u."empCode",
-            u."name",
-            COALESCE(s.total_success, 0) as total,
-            COALESCE(s.within_1_min, 0) as within_1_min,
-            COALESCE(s.one_to_five_min, 0) as one_to_five_min,
-            COALESCE(s.five_to_ten_min, 0) as five_to_ten_min,
-            COALESCE(s.over_ten_min, 0) as over_ten_min,
-            COALESCE(p.in_progress, 0) as in_progress
-        ')
+                u."empCode",
+                u."name",
+                COALESCE(s.total_success, 0) as total,
+                COALESCE(s.within_1_min, 0) as within_1_min,
+                COALESCE(s.one_to_five_min, 0) as one_to_five_min,
+                COALESCE(s.five_to_ten_min, 0) as five_to_ten_min,
+                COALESCE(s.over_ten_min, 0) as over_ten_min,
+                COALESCE(p.in_progress, 0) as in_progress
+            ')
             ->leftJoinSub($successAgg, 's', 's.empCode', '=', 'u.empCode')
             ->leftJoinSub($progressAgg, 'p', 'p.empCode', '=', 'u.empCode')
             ->whereNotIn('u.empCode', ['BOT', 'adminIT'])
@@ -179,117 +218,98 @@ class StatisticsController extends Controller
         return response()->json(['data' => $rows]);
     }
 
+    // ✅ Summary แท็ก
     public function tagWorkloadSummary(Request $request)
     {
         $today = Carbon::today();
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId     = $request->query('roomId');
 
         $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
+            ->leftJoin('tag_groups as tg', 'tg.group_id', '=', 'tm.group_id') 
             ->join('users as u', 'u.empCode', '=', 'ac.empCode')
             ->select(
                 DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag'),
+                DB::raw('COALESCE(tg."group_name", \'-\') as tag_group'),
+                DB::raw("BOOL_OR(r.tag_description ~ '[A-Z]{1,5}[0-9]{2,}' OR r.tag_description ~ '^[0-9]{4,}$') as is_product_code"),
                 DB::raw('COUNT(*) as total'),
                 DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 60 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 300) as one_to_five_min'),
                 DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 300 AND EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") <= 600) as five_to_ten_min'),
                 DB::raw('COUNT(*) FILTER (WHERE EXTRACT(EPOCH FROM ac."endTime" - ac."startTime") > 600) as over_ten_min')
             )
             ->where('r.status', 'success')
-            ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
-                $start = Carbon::parse($request->query('start_date'))->startOfDay();
-                $end   = Carbon::parse($request->query('end_date'))->endOfDay();
-                return $q->whereBetween('ac.endTime', [$start, $end]);
-            }, function ($q) use ($today) {
-                return $q->whereDate('ac.endTime', $today);
-            })
+            ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
+            ->when(
+                $request->query('start_date') && $request->query('end_date'),
+                function ($q) use ($request) {
+                    $start = Carbon::parse($request->query('start_date'))->startOfDay();
+                    $end   = Carbon::parse($request->query('end_date'))->endOfDay();
+                    return $q->whereBetween('ac.endTime', [$start, $end]);
+                },
+                function ($q) use ($today) {
+                    return $q->whereDate('ac.endTime', $today);
+                }
+            )
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
         if ($dept)    $q->where('u.description', $dept);
         if ($empCode) $q->where('ac.empCode', $empCode);
         $q = $this->applyPlatformFilter($q, $platformId);
 
-        $results = $q->groupBy(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'))->orderByDesc('total')->get();
+        $results = $q->groupBy(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'))
+            ->groupBy(DB::raw('COALESCE(tg."group_name", \'-\')'))
+            ->orderByDesc('total')
+            ->get();
+
         $totalAll = $results->sum('total');
         foreach ($results as $row) {
             $row->percent = $totalAll ? round(($row->total / $totalAll) * 100, 2) : 0.0;
+            $row->is_product_code = (bool) $row->is_product_code;
         }
+
         return response()->json(['data' => $results]);
     }
 
-    // public function getAllCasesByUser($empCode, Request $request)
-    // {
-    //     $platformId = $request->query('platform_id');
-    //     $dept       = $request->query('dept');
-    //     $today = Carbon::today();
-    //     $statusesParam = $request->query('statuses'); 
-    //     $statuses = $statusesParam
-    //         ? array_values(array_filter(array_map('trim', explode(',', $statusesParam))))
-    //         : ['success']; 
+    public function getDescriptionsByTag($tagName, Request $request)
+    {
+        $platformId = $request->query('platform_id');
+        $dept       = $request->query('dept');
+        $empCode    = $request->query('empCode');
+        $roomId     = $request->query('roomId');
 
-    //     $q = DB::connection('pgsql_real')->table('rates as r')
-    //         ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
-    //         ->leftJoin('customers as c', 'c.custId', '=', 'ac.custId')
-    //         ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
-    //         ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
-    //         ->selectRaw('
-    //             ac.id as conversation_id,
-    //             r.status as status_name,
-    //             ac."startTime" as started_at,
-    //             ac."receiveAt" as accepted_at,
-    //             ac."endTime" as closed_at,
-    //             ac."roomId" as room_id,
-    //             ac."custId",
-    //             COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
-    //             COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
-    //         ')
-    //         ->where('ac.empCode', $empCode)
-    //         ->whereIn('r.status', $statuses)
-    //         ->when($request->query('start_date') && $request->query('end_date'), function ($q2) use ($request, $statuses) {
-    //             $start = Carbon::parse($request->query('start_date'))->startOfDay();
-    //             $end   = Carbon::parse($request->query('end_date'))->endOfDay();
-    //             $q2->where(function ($q3) use ($start, $end, $statuses) {
-    //                 $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
-    //                 if (!empty($sc)) {
-    //                     $q3->orWhere(function ($qq) use ($start, $end, $sc) {
-    //                         $qq->whereIn('r.status', $sc)->whereBetween('ac.endTime', [$start, $end]);
-    //                     });
-    //                 }
-    //                 if (in_array('progress', $statuses, true)) {
-    //                     $q3->orWhere(function ($qq) use ($start, $end) {
-    //                         $qq->where('r.status', 'progress')->whereBetween('ac.receiveAt', [$start, $end]);
-    //                     });
-    //                 }
-    //             });
-    //         }, function ($q2) use ($statuses) {
-    //             $today = now()->toDateString();
-    //             $q2->where(function ($q3) use ($today, $statuses) {
-    //                 $sc = array_values(array_intersect($statuses, ['success', 'cancelled']));
-    //                 if (!empty($sc)) {
-    //                     $q3->orWhere(function ($qq) use ($today, $sc) {
-    //                         $qq->whereIn('r.status', $sc)->whereDate('ac.endTime', $today);
-    //                     });
-    //                 }
-    //                 if (in_array('progress', $statuses, true)) {
-    //                     $q3->orWhere(function ($qq) use ($today) {
-    //                         $qq->where('r.status', 'progress')->whereDate('r.updated_at', $today);
-    //                     });
-    //                 }
-    //             });
-    //         });
-    //     if ($dept) $q->where('u.description', $dept);
-    //     $q = $this->applyPlatformFilter($q, $platformId);
+        $q = DB::connection('pgsql_real')->table('rates as r')
+            ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
+            ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
+            ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
+            ->select('r.tag_description')
+            ->where('r.status', 'success')
+            ->whereNotNull('r.tag_description')
+            ->where(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'), $tagName)
+            ->where(function ($qq) {
+                $qq->whereRaw("r.tag_description ~ '[A-Z]{1,5}[0-9]{2,}'")
+                    ->orWhereRaw("r.tag_description ~ '^[0-9]{4,}$'");
+            });
 
-    //     $cases = $q->orderByDesc(DB::raw('"ac"."startTime"'))->get();
-    //     return response()->json(['cases' => $cases]);
-    // }
+        if ($dept)    $q->where('u.description', $dept);
+        if ($empCode) $q->where('ac.empCode', $empCode);
+        if ($roomId)  $q->where('ac.roomId', $roomId);
+        $q = $this->applyPlatformFilter($q, $platformId);
 
+        $descriptions = $q->distinct()->pluck('tag_description')->toArray();
+
+        return response()->json(['descriptions' => $descriptions]);
+    }
+
+    // ✅ รายการเคสตามพนักงาน
     public function getAllCasesByUser($empCode, Request $request)
     {
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
+        $roomId     = $request->query('roomId');
 
         $statusesParam = $request->query('statuses');
         $statuses = $statusesParam
@@ -308,17 +328,18 @@ class StatisticsController extends Controller
             ->leftJoin('users as u', 'u.empCode', '=', 'ac.empCode')
             ->where('ac.empCode', $empCode)
             ->whereIn('r.status', $statuses)
+            ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
             ->selectRaw('
-            ac.id as conversation_id,
-            r.status as status_name,
-            ac."startTime" as started_at,
-            ac."receiveAt" as accepted_at,
-            ac."endTime"   as closed_at,
-            ac."roomId"    as room_id,
-            ac."custId",
-            COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
-            COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
-        ')
+                ac.id as conversation_id,
+                r.status as status_name,
+                ac."startTime" as started_at,
+                ac."receiveAt" as accepted_at,
+                ac."endTime"   as closed_at,
+                ac."roomId"    as room_id,
+                ac."custId",
+                COALESCE(NULLIF(c."custName", \'\'), ac."custId") as customer_name,
+                COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
+            ')
             ->when($dept, fn($qq) => $qq->where('u.description', $dept));
 
         $q = $this->applyPlatformFilterAlias($q, $platformId, 'ac');
@@ -358,12 +379,14 @@ class StatisticsController extends Controller
         return response()->json(['cases' => $cases]);
     }
 
+    // ✅ รายการเคสตามแท็ก
     public function getAllCasesByTag($tagName, Request $request)
     {
         $today = Carbon::today();
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId     = $request->query('roomId');
 
         $q = DB::connection('pgsql_real')->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
@@ -383,6 +406,7 @@ class StatisticsController extends Controller
                 COALESCE(tm."tagName", \'ไม่ระบุแท็ก\') as tag_name
             ')
             ->where(DB::raw('COALESCE(tm."tagName", \'ไม่ระบุแท็ก\')'), $tagName)
+            ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
             ->where('r.status', 'success')
             ->when($request->query('start_date') && $request->query('end_date'), function ($q) use ($request) {
                 $start = Carbon::parse($request->query('start_date'))->startOfDay();

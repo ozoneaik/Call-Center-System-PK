@@ -17,6 +17,7 @@ class InProgressController extends Controller
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId = $request->query('roomId');
 
         $col = 'ac."receiveAt"';
 
@@ -25,6 +26,10 @@ class InProgressController extends Controller
             ->where('r.status', 'progress')
             ->whereDate('ac.receiveAt', Carbon::today())
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
+
+        if (!empty($roomId)) {
+            $row->where('ac.roomId', $roomId);
+        }
 
         $row = $this->applyUserFilters($row, $dept, $empCode);
         $row = $this->applyPlatformFilter($row, $platformId);
@@ -50,6 +55,7 @@ class InProgressController extends Controller
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId = $request->query('roomId');
 
         // hours: in | out | all (default=in)
         $hours   = $request->query('hours', 'in');
@@ -66,7 +72,6 @@ class InProgressController extends Controller
             ->leftJoin('tag_menus as tm', 'r.tag', '=', 'tm.id')
             ->leftJoin('chat_rooms as cr', 'cr.roomId', '=', 'ac.roomId')
             ->where('r.status', 'progress')
-            // อิงเกณฑ์เดียวกับตัวนับ inProgressByBusinessHours
             ->whereBetween(DB::raw($acceptedExpr), [$start, $end])
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT']);
 
@@ -77,6 +82,9 @@ class InProgressController extends Controller
             $q->join('customers as c_pf', 'c_pf.custId', '=', 'ac.custId')
                 ->join('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'c_pf.platformRef')
                 ->where('pat_pf.id', $platformId);
+        }
+        if (!empty($roomId)) {
+            $q->where('ac.roomId', $roomId);
         }
 
         if ($hours === 'in') {

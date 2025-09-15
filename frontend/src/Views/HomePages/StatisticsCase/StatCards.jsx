@@ -8,8 +8,8 @@ const VALUE_ZONE_MIN = { xs: 68, sm: 76, md: 84 };
 const caseCategories = [
     { label: "📊 งานทั้งหมด", key: "total", color: "#1976D2" },
     { label: "⏱ ภายใน 1 นาที", key: "ภายใน 1 นาที", color: "#2E7D32" },
-    { label: "🕐 1-5 นาที", key: "1-5 นาที", color: "#43A047" },
-    { label: "🕒 5-10 นาที", key: "5-10 นาที", color: "#FB8C00" },
+    { label: "🕐 ภายใน 5 นาที", key: "1-5 นาที", color: "#43A047" },
+    { label: "🕒 ภายใน 10 นาที", key: "5-10 นาที", color: "#FB8C00" },
     { label: "⏰ มากกว่า 10 นาที", key: "มากกว่า 10 นาที", color: "#FF9800" },
     { label: "🛠️ กำลังดำเนินการ", key: "in_progress", color: "#3949AB" },
     { label: "⌛ รอรับงาน", key: "pending", color: "#6D4C41" },
@@ -41,15 +41,6 @@ export function QuickSummary({ todayWithPending, progressInOut, pendingTotal, af
             >
                 🛠️ กำลังดำเนินการ  {progressInOut.in_time || 0} เคส
             </Chip>
-            {/* <Chip
-                variant="soft"
-                color="warning"
-                size="md"
-                onClick={onClickProgressAfterHourToday}
-                sx={{ cursor: 'pointer' }}
-            >
-                🛠️ กำลังดำเนินการ (นอกเวลา) {progressInOut.out_time || 0} เคส
-            </Chip> */}
             <Chip variant="soft" color="second" size="md">รอรับ {pendingTotal || 0} เคส</Chip>
         </Box>
     );
@@ -63,7 +54,6 @@ export default function StatCards({ data, afterHourData, showFilterInfoAlert = f
             </Box>
         );
     }
-
     return (
         <>
             {showFilterInfoAlert && (

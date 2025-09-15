@@ -61,10 +61,12 @@ export default function StatisticsCase() {
     const [filterPlatform, setFilterPlatform] = useState("");
     const [filterDept, setFilterDept] = useState("");
     const [filterEmp, setFilterEmp] = useState("");
+    const [filterRoom, setFilterRoom] = useState("");
 
     const [platformOptions, setPlatformOptions] = useState([]);
     const [deptOptions, setDeptOptions] = useState([]);
     const [empOptions, setEmpOptions] = useState([]);
+    const [roomOptions, setRoomOptions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
     const [employeeStats, setEmployeeStats] = useState([]);
@@ -96,7 +98,7 @@ export default function StatisticsCase() {
         e = progEndDate,
         page = progPage,
         perPage = progPerPage,
-        hours = progHours, // in/out/all
+        hours = progHours,
     } = {}) => {
         const params = {
             start_date: s,
@@ -107,6 +109,7 @@ export default function StatisticsCase() {
             platform_id: filterPlatform || undefined,
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
+            roomId: filterRoom || undefined,   // ✅ fixed
         };
         try {
             setProgLoading(true);
@@ -143,15 +146,17 @@ export default function StatisticsCase() {
     useEffect(() => {
         setIsLoading(true);
         (async () => {
-            const [p1, p2, p3] = await Promise.allSettled([
+            const [p1, p2, p3, p4] = await Promise.allSettled([
                 axiosClient.get("home/user-case/options/platforms"),
                 axiosClient.get("home/user-case/options/departments"),
                 axiosClient.get("home/user-case/options/employees", { params: { dept: "" } }),
+                axiosClient.get("home/user-case/options/rooms"),
             ]);
             const asArray = (d) => (Array.isArray(d) ? d : d?.options ?? []);
             if (p1.status === "fulfilled") setPlatformOptions(asArray(p1.value.data)); else setPlatformOptions([]);
             if (p2.status === "fulfilled") setDeptOptions(asArray(p2.value.data)); else setDeptOptions([]);
             if (p3.status === "fulfilled") setEmpOptions(asArray(p3.value.data)); else setEmpOptions([]);
+            if (p4.status === "fulfilled") setRoomOptions(asArray(p4.value.data)); else setRoomOptions([]);
             setIsLoading(false);
         })();
     }, []);
@@ -177,6 +182,7 @@ export default function StatisticsCase() {
             platform_id: filterPlatform || undefined,
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
+            roomId: filterRoom || undefined,   // ✅ fixed
         };
         const rangeMode = !!(startDate && endDate) && !(startDate === today && endDate === today);
         const rangeParams = rangeMode
@@ -227,7 +233,7 @@ export default function StatisticsCase() {
                     total: data.total ?? 0,
                 }));
 
-        // รอรับ (Pending)
+        // Pending
         const loadPending = rangeParams
             ? axiosClient
                 .get("home/user-case/pending-cases", { params: { ...baseParams, ...rangeParams, per_page: 1 } })
@@ -282,14 +288,19 @@ export default function StatisticsCase() {
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     tag: item.tag,
+                    tag_group: item.tag_group || "-",
                     percent: item.percent,
                     total: item.total,
                     min1to5: item.one_to_five_min,
                     min5to10: item.five_to_ten_min,
                     over10: item.over_ten_min,
+                    is_product_code: item.is_product_code,   
                     onClickDetail: async (row) => {
                         try {
-                            const { data } = await axiosClient.get(`/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`, { params: { ...baseParams, ...(rangeParams || {}) } });
+                            const { data } = await axiosClient.get(
+                                `/home/user-case/tag/${encodeURIComponent(row.tag)}/cases`,
+                                { params: { ...baseParams, ...(rangeParams || {}) } }
+                            );
                             const rows = (data.cases || []).map((c) => ({
                                 customer_name: c.customer_name,
                                 room_id: c.room_id ?? "-",
@@ -310,16 +321,15 @@ export default function StatisticsCase() {
                 setTagStats(rows);
             })
             .catch((err) => console.error("❌ tagWorkloadSummary error:", err));
-
         Promise.all([loadClosureSummary, loadInProgress, loadPending, loadEmployee, loadTag]).catch(() => { });
-    }, [today, filterPlatform, filterDept, filterEmp, startDate, endDate]);
+    }, [today, filterPlatform, filterDept, filterEmp, filterRoom, startDate, endDate]); // ✅ added filterRoom
 
     const todayWithPending = todayStats ? { ...todayStats, pending: pendingTotal } : null;
-    const showFilterInfoAlert = !!(filterPlatform || filterDept || filterEmp);
+    const showFilterInfoAlert = !!(filterPlatform || filterDept || filterEmp || filterRoom);
 
     const summaryLabel = isRangeMode
         ? `📊 สรุปช่วง: ${dayjs(startDate).format("DD/MM/YYYY")} - ${dayjs(endDate).format("DD/MM/YYYY")}:`
-        : "📊 สรุปวันนี้:";
+        : "📊 สรุปรายวัน:";
 
     const onExportDetailed = () =>
         downloadExcel(axiosClient, "home/user-case/export/detailed-cases.xlsx", {
@@ -328,6 +338,7 @@ export default function StatisticsCase() {
             platform_id: filterPlatform || undefined,
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
+            roomId: filterRoom || undefined,   // ✅ fixed
         }, { onStart: () => setExporting(true), onDone: () => setExporting(false) });
 
     const afterHourCount = afterHourStats?.total ?? 0;
@@ -348,6 +359,7 @@ export default function StatisticsCase() {
             platform_id: filterPlatform || undefined,
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
+            roomId: filterRoom || undefined,
         };
         try {
             setAhLoading(true);
@@ -388,6 +400,7 @@ export default function StatisticsCase() {
             platform_id: filterPlatform || undefined,
             dept: filterDept || undefined,
             empCode: filterEmp || undefined,
+            roomId: filterRoom || undefined,
         };
         try {
             setIhLoading(true);
@@ -421,9 +434,11 @@ export default function StatisticsCase() {
                 platformOptions={platformOptions}
                 deptOptions={deptOptions}
                 empOptions={empOptions}
+                roomOptions={roomOptions}
                 filterPlatform={filterPlatform} setFilterPlatform={setFilterPlatform}
                 filterDept={filterDept} setFilterDept={setFilterDept}
                 filterEmp={filterEmp} setFilterEmp={setFilterEmp}
+                filterRoom={filterRoom} setFilterRoom={setFilterRoom}
                 startDate={startDate} setStartDate={setStartDate}
                 endDate={endDate} setEndDate={setEndDate}
                 exporting={exporting}
@@ -472,6 +487,7 @@ export default function StatisticsCase() {
                     platform_id: filterPlatform || undefined,
                     dept: filterDept || undefined,
                     empCode: filterEmp || undefined,
+                    roomId: filterRoom || undefined,
                 }}
             />
 
@@ -486,6 +502,7 @@ export default function StatisticsCase() {
                     platform_id: filterPlatform || undefined,
                     dept: filterDept || undefined,
                     empCode: filterEmp || undefined,
+                    roomId: filterRoom || undefined,
                 }}
             />
 

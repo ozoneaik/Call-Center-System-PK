@@ -17,12 +17,16 @@ class PendingController extends Controller
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId = $request->query('roomId');
 
         $q = DB::connection('pgsql_real')->table('rates as r')
             ->where('r.status', 'pending')
             ->whereDate('r.created_at', Carbon::today())
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id');
 
+        if (!empty($roomId)) {
+            $q->where('ac.roomId', $roomId);
+        }
         $q = $this->applyUserFilters($q, $dept, $empCode);
         $q = $this->applyPlatformFilter($q, $platformId);
 
@@ -40,6 +44,7 @@ class PendingController extends Controller
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId = $request->query('roomId');
 
         $page     = max(1, (int) $request->query('page', 1));
         $perPage  = min(200, max(1, (int) $request->query('per_page', 50)));
@@ -58,6 +63,9 @@ class PendingController extends Controller
         if (!empty($platformId)) {
             $q->join('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'c.platformRef')
                 ->where('pat_pf.id', $platformId);
+        }
+        if (!empty($roomId)) {
+            $q->where('ac.roomId', $roomId);
         }
 
         $total = (clone $q)->count();

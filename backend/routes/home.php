@@ -6,7 +6,6 @@ use App\Http\Controllers\Home\UserCase\Reports\ExportExcelController;
 use App\Http\Controllers\Home\UserCase\Reports\InProgressController;
 use App\Http\Controllers\Home\UserCase\Reports\PendingController;
 use App\Http\Controllers\Home\UserCase\Reports\StatisticsController;
-use App\Http\Controllers\Home\UserCase\Reports\UcClosureStatsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Home\UserCase\UcController;
@@ -34,7 +33,7 @@ Route::prefix('/home')->group(function () {
         Route::get('/users/{empCode}/forwarded-today', [UcTagSummaryController::class, 'forwardedTodayByUser']);
         Route::get('/users/{empCode}/forwarded-range', [UcTagSummaryController::class, 'forwardedRangeByUser']);
 
-
+        //หน้า Reports (Statistics)
         Route::get('/employee/{empCode}/cases', [StatisticsController::class, 'getAllCasesByUser']);
         Route::get('/tag/{tagName}/cases', [StatisticsController::class, 'getAllCasesByTag']);
 
@@ -46,8 +45,9 @@ Route::prefix('/home')->group(function () {
         Route::get('/employee',     [StatisticsController::class, 'employeeWorkloadSummary']);
         Route::get('/employee-range',     [StatisticsController::class, 'employeeWorkloadSummaryRange']);
         Route::get('/tag-workload-range', [StatisticsController::class, 'tagWorkloadSummaryRange']);
+        Route::get('/options/rooms', [StatisticsController::class, 'optionsRooms']);
+        Route::get('/tag/{tagName}/descriptions', [StatisticsController::class, 'getDescriptionsByTag']);
 
-        // ==== UcClosureStatsController ====
         // เปรียบเทียบ/สรุปช่วงวัน
         Route::get('/closure-stats',         [ClosureCompareController::class, 'closureStats']);
         Route::get('/closure-range-stats',   [ClosureCompareController::class, 'closureRangeStats']);

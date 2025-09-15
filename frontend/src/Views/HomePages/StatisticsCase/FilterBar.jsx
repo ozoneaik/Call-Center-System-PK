@@ -10,10 +10,12 @@ export default function FilterBar({
     platformOptions = [],
     deptOptions = [],
     empOptions = [],
+    roomOptions = [],
 
     filterPlatform, setFilterPlatform,
     filterDept, setFilterDept,
     filterEmp, setFilterEmp,
+    filterRoom, setFilterRoom,
 
     // วันที่ (ในเวลา)
     startDate, setStartDate,
@@ -33,12 +35,14 @@ export default function FilterBar({
         setFilterDept("");
         setFilterEmp("");
         setFilterPlatform("");
+        setFilterRoom("");
     };
     const getActiveFiltersCount = () => {
         let count = 0;
         if (filterDept) count++;
         if (filterEmp) count++;
         if (filterPlatform) count++;
+        if (filterRoom) count++;
         return count;
     };
 
@@ -112,6 +116,26 @@ export default function FilterBar({
                             <Option value="">ทั้งหมด</Option>
                             {deptOptions.map((dept) => (
                                 <Option key={dept.value} value={dept.value}>{dept.label}</Option>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl sx={{ minWidth: 160 }}>
+                        <FormLabel sx={{ fontSize: '0.875rem', height: 40, display: 'flex', alignItems: 'center' }}>
+                            💬 ห้องแชท
+                        </FormLabel>
+                        <Select
+                            size="sm"
+                            placeholder="ทั้งหมด"
+                            value={filterRoom}
+                            onChange={(e, value) => setFilterRoom(value || "")}
+                            sx={{ backgroundColor: 'background.body' }}
+                        >
+                            <Option value="">ทั้งหมด</Option>
+                            {roomOptions.map((room) => (
+                                <Option key={room.value} value={room.value}>
+                                    {room.label}
+                                </Option>
                             ))}
                         </Select>
                     </FormControl>
@@ -250,6 +274,13 @@ export default function FilterBar({
                                 <ChipDelete aria-label="ลบตัวกรองแพลตฟอร์ม" onClick={() => setFilterPlatform("")} />
                             }>
                                 📱 {platformOptions.find(p => p.value === filterPlatform)?.label || filterPlatform}
+                            </Chip>
+                        )}
+                        {filterRoom && (
+                            <Chip variant="soft" color="primary" endDecorator={
+                                <ChipDelete aria-label="ลบตัวกรองห้องแชท" onClick={() => setFilterRoom("")} />
+                            }>
+                                💬 {roomOptions.find(r => r.value === filterRoom)?.label || filterRoom}
                             </Chip>
                         )}
                     </Stack>

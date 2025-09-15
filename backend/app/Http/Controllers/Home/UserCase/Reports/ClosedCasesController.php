@@ -21,6 +21,7 @@ class ClosedCasesController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
         $bucket     = $request->query('bucket');
+        $roomId = $request->query('roomId');
 
         $page     = max(1, (int) $request->query('page', 1));
         $perPage  = min(200, max(1, (int) $request->query('per_page', 50)));
@@ -45,6 +46,9 @@ class ClosedCasesController extends Controller
         if (!empty($platformId)) {
             $q->join('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'c.platformRef')
                 ->where('pat_pf.id', $platformId);
+        }
+        if (!empty($roomId)) {
+            $q->where('ac.roomId', $roomId);
         }
 
         $q = $this->applyOutHours($q, $startExpr);
@@ -117,6 +121,7 @@ class ClosedCasesController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
         $bucket     = $request->query('bucket');
+        $roomId = $request->query('roomId');
 
         $page     = max(1, (int) $request->query('page', 1));
         $perPage  = min(200, max(1, (int) $request->query('per_page', 50)));
@@ -141,6 +146,9 @@ class ClosedCasesController extends Controller
         if (!empty($platformId)) {
             $q->join('platform_access_tokens as pat_pf', 'pat_pf.id', '=', 'c.platformRef')
                 ->where('pat_pf.id', $platformId);
+        }
+        if (!empty($roomId)) {
+            $q->where('ac.roomId', $roomId);
         }
 
         $q = $this->applyInHours($q, $startExpr);

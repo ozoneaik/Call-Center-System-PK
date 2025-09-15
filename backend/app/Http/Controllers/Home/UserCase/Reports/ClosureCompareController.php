@@ -18,18 +18,21 @@ class ClosureCompareController extends Controller
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
 
+        $roomId = $request->query('roomId');
+
         $current      = Carbon::parse($date);
         $previousDay  = $current->copy()->subDay();
         $previousWeek = $current->copy()->subWeek();
 
-        $col = $this->startExpr(); 
+        $col = $this->startExpr();
 
-        $fetch = function (Carbon $d) use ($platformId, $dept, $empCode, $col) {
+        $fetch = function (Carbon $d) use ($platformId, $dept, $empCode, $col, $roomId) {
 
             // ในเวลา
             $in = DB::connection("pgsql_real")->table('rates as r')
                 ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
                 ->where('r.status', 'success')
+                ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
                 ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
                 ->whereDate('ac.endTime', $d->toDateString());
             $in = $this->applyUserFilters($in, $dept, $empCode);
@@ -42,6 +45,7 @@ class ClosureCompareController extends Controller
             $out = DB::connection("pgsql_real")->table('rates as r')
                 ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
                 ->where('r.status', 'success')
+                ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
                 ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
                 ->whereDate('ac.endTime', $d->toDateString());
             $out = $this->applyUserFilters($out, $dept, $empCode);
@@ -75,17 +79,19 @@ class ClosureCompareController extends Controller
         $platformId = $request->query('platform_id');
         $dept       = $request->query('dept');
         $empCode    = $request->query('empCode');
+        $roomId = $request->query('roomId');
 
         $start      = Carbon::parse($request->input('start_date'))->startOfDay();
         $end        = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $filterCol = 'ac."endTime"';
-        $startCol  = $this->startExpr(); 
+        $startCol  = $this->startExpr();
 
         // in-hours
         $inRows = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->where('r.status', 'success')
+            ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->whereBetween(DB::raw($filterCol), [$start, $end]);
 
@@ -103,6 +109,7 @@ class ClosureCompareController extends Controller
         $outRows = DB::connection("pgsql_real")->table('rates as r')
             ->join('active_conversations as ac', 'ac.rateRef', '=', 'r.id')
             ->where('r.status', 'success')
+            ->when($roomId, fn($q) => $q->where('ac.roomId', $roomId))
             ->whereNotIn('ac.empCode', ['BOT', 'adminIT'])
             ->whereBetween(DB::raw($filterCol), [$start, $end]);
 

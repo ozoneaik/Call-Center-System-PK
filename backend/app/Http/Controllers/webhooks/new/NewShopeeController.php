@@ -867,37 +867,47 @@ class NewShopeeController extends Controller
             if (empty($pt[$k])) throw new \Exception("Shopee credentials ขาด: {$k}");
         }
 
-        $host       = 'https://partner.shopeemobile.com';
-        $path       = '/api/v2/order/get_order_detail';
-        $timestamp  = time();
+        $host        = 'https://partner.shopeemobile.com';
+        $path        = '/api/v2/order/get_order_detail';
         $accessToken = self::getValidAccessToken($pt);
-        $partnerId  = (int) $pt['shopee_partner_id'];
-        $partnerKey = (string) $pt['shopee_partner_key'];
-        $shopId     = (int) $pt['shopee_shop_id'];
+        $partnerId   = (int) $pt['shopee_partner_id'];
+        $partnerKey  = (string) $pt['shopee_partner_key'];
+        $shopId      = (int) $pt['shopee_shop_id'];
 
-        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+        $allOrders = [];
 
-        $query = [
-            'partner_id'                   => $partnerId,
-            'timestamp'                    => $timestamp,
-            'sign'                         => $sign,
-            'shop_id'                      => $shopId,
-            'access_token'                 => $accessToken,
-            'order_sn_list'                => implode(',', $orderSnList),
-            'request_order_status_pending' => 'true',
+        foreach (array_chunk($orderSnList, 50) as $chunk) {
+            $timestamp = time();
+            $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+            $query = [
+                'partner_id'                   => $partnerId,
+                'timestamp'                    => $timestamp,
+                'sign'                         => $sign,
+                'shop_id'                      => $shopId,
+                'access_token'                 => $accessToken,
+                'order_sn_list'                => implode(',', $chunk),
+                'request_order_status_pending' => 'true',
+            ];
+            if (!empty($optionalFields)) {
+                $query['response_optional_fields'] = $optionalFields;
+            }
+
+            $url  = $host . $path . '?' . http_build_query($query);
+            $resp = Http::get($url);
+            $json = $resp->json();
+
+            if (!$resp->successful() || !empty($json['error'])) {
+                throw new \Exception('get_order_detail error: ' . ($json['message'] ?? json_encode($json)));
+            }
+
+            $orders = $json['response']['order_list'] ?? [];
+            $allOrders = array_merge($allOrders, $orders);
+        }
+
+        return [
+            'order_list' => $allOrders,
         ];
-        if (!empty($optionalFields)) {
-            $query['response_optional_fields'] = $optionalFields;
-        }
-
-        $url  = $host . $path . '?' . http_build_query($query);
-        $resp = Http::get($url);
-        $json = $resp->json();
-
-        if (!$resp->successful() || !empty($json['error'])) {
-            throw new \Exception('get_order_detail error: ' . ($json['message'] ?? json_encode($json)));
-        }
-        return $json['response'] ?? [];
     }
 
     public function customerOrders($custId)
@@ -905,7 +915,17 @@ class NewShopeeController extends Controller
         $customer = Customers::where('custId', $custId)->firstOrFail();
         $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
 
+        Log::channel('webhook_shopee_new')->info("📌 กดดูออเดอร์ของลูกค้า", [
+            'custId'   => $custId,
+            'buyerId'  => $customer->buyerId,
+            'platform' => $platform->platform ?? null,
+            'shop_id'  => $platform->shopee_shop_id ?? null,
+        ]);
+
         if (empty($customer->buyerId)) {
+            Log::channel('webhook_shopee_new')->warning("⚠️ ยังไม่มี buyerId สำหรับลูกค้า", [
+                'custId' => $custId
+            ]);
             return response()->json([
                 'status' => false,
                 'message' => 'ยังไม่มี buyerId สำหรับลูกค้าคนนี้'
@@ -914,6 +934,12 @@ class NewShopeeController extends Controller
 
         try {
             $orderSnList = $this->getRecentOrderSnList($platform, 90);
+            Log::channel('webhook_shopee_new')->info("✅ ได้ order_sn list", [
+                'custId'   => $custId,
+                'count'    => count($orderSnList),
+                'order_sn' => $orderSnList,
+            ]);
+
             if (empty($orderSnList)) {
                 return response()->json([
                     'status' => true,
@@ -927,6 +953,11 @@ class NewShopeeController extends Controller
                 $platform,
                 'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time'
             );
+
+            Log::channel('webhook_shopee_new')->info("📦 getOrderDetail response", [
+                'custId' => $custId,
+                'orders' => $detailResp['order_list'] ?? []
+            ]);
 
             $orders = collect($detailResp['order_list'] ?? [])
                 ->filter(fn($o) => ($o['buyer_user_id'] ?? null) == $customer->buyerId)
@@ -942,6 +973,11 @@ class NewShopeeController extends Controller
                 ->values()
                 ->toArray();
 
+            Log::channel('webhook_shopee_new')->info("🎯 Orders filtered by buyerId", [
+                'custId' => $custId,
+                'count'  => count($orders),
+            ]);
+
             return response()->json([
                 'status' => true,
                 'orders' => $orders,
@@ -951,6 +987,8 @@ class NewShopeeController extends Controller
             Log::channel('webhook_shopee_new')->error('customerOrders error', [
                 'custId' => $custId,
                 'error'  => $e->getMessage(),
+                'line'   => $e->getLine(),
+                'file'   => $e->getFile(),
             ]);
             return response()->json([
                 'status' => false,
@@ -968,38 +1006,46 @@ class NewShopeeController extends Controller
 
         $host        = 'https://partner.shopeemobile.com';
         $path        = '/api/v2/order/get_order_list';
-        $timestamp   = time();
         $accessToken = self::getValidAccessToken($pt);
         $partnerId   = (int) $pt['shopee_partner_id'];
         $partnerKey  = (string) $pt['shopee_partner_key'];
         $shopId      = (int) $pt['shopee_shop_id'];
 
-        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+        $allOrders = [];
+        $timeTo = time();
+        $timeFrom = $timeTo - ($days * 86400);
 
-        $timeTo   = time();
-        $timeFrom = $timeTo - ($days * 86400); // 90 วันย้อนหลัง
+        $chunkDays = 15 * 86400;
+        for ($start = $timeFrom; $start < $timeTo; $start += $chunkDays) {
+            $end = min($start + $chunkDays - 1, $timeTo);
 
-        $query = [
-            'partner_id'        => $partnerId,
-            'timestamp'         => $timestamp,
-            'sign'              => $sign,
-            'shop_id'           => $shopId,
-            'access_token'      => $accessToken,
-            'time_range_field'  => 'create_time',
-            'time_from'         => $timeFrom,
-            'time_to'           => $timeTo,
-            'page_size'         => 50,
-        ];
+            $timestamp = time();
+            $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
 
-        $url  = $host . $path . '?' . http_build_query($query);
-        $resp = Http::get($url);
-        $json = $resp->json();
+            $query = [
+                'partner_id'       => $partnerId,
+                'timestamp'        => $timestamp,
+                'sign'             => $sign,
+                'shop_id'          => $shopId,
+                'access_token'     => $accessToken,
+                'time_range_field' => 'create_time',
+                'time_from'        => $start,
+                'time_to'          => $end,
+                'page_size'        => 50,
+            ];
 
-        if (!$resp->successful() || !empty($json['error'])) {
-            throw new \Exception('get_order_list error: ' . ($json['message'] ?? json_encode($json)));
+            $url  = $host . $path . '?' . http_build_query($query);
+            $resp = Http::get($url);
+            $json = $resp->json();
+
+            if (!$resp->successful() || !empty($json['error'])) {
+                throw new \Exception('get_order_list error: ' . ($json['message'] ?? json_encode($json)));
+            }
+
+            $orders = $json['response']['order_list'] ?? [];
+            $allOrders = array_merge($allOrders, $orders);
         }
 
-        $orders = $json['response']['order_list'] ?? [];
-        return collect($orders)->pluck('order_sn')->toArray();
+        return collect($allOrders)->pluck('order_sn')->toArray();
     }
 }
