@@ -842,14 +842,22 @@ class NewLazadaController extends Controller
 
                 $apiBuyerId = $itemData['data'][0]['buyer_id'] ?? null;
 
+                $matched = false;
+                if ($apiBuyerId && (string)$apiBuyerId === (string)$buyerId) {
+                    $matched = true;
+                }
+                if (!$matched && isset($order['customer_user_id']) && (string)$order['customer_user_id'] === (string)$buyerId) {
+                    $matched = true;
+                }
                 Log::channel('webhook_lazada_new')->info("🧾 ตรวจสอบ Order", [
-                    'order_id'       => $order['order_id'],
-                    'buyerId_expected' => $buyerId,
+                    'order_id'          => $order['order_id'],
+                    'buyerId_expected'  => $buyerId,
                     'buyerId_from_items' => $apiBuyerId,
-                    'matched'        => $apiBuyerId == $buyerId,
+                    'buyerId_from_order' => $order['customer_user_id'] ?? null,
+                    'matched'           => $matched,
                 ]);
 
-                if ($apiBuyerId == $buyerId) {
+                if ($matched) {
                     $matchedOrders[] = $order;
                 }
             }
