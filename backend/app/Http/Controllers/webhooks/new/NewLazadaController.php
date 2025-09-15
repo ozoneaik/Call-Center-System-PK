@@ -834,7 +834,7 @@ class NewLazadaController extends Controller
             ]);
         }
 
-        $orders = $this->getOrdersByBuyerId($platform, $customer->buyerId, 90);
+        $orders = $this->getOrdersByCustomer($platform, $customer->buyerId, 90);
 
         return response()->json([
             'status' => true,
@@ -843,39 +843,50 @@ class NewLazadaController extends Controller
         ]);
     }
 
-    private function getOrdersByBuyerId($platform, string $buyerId, int $days = 90): array
+    private function getOrdersByCustomer($platform, $buyerId, $days = 90)
     {
-        try {
-            $url = 'https://api.lazada.co.th/rest';
-            $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
-            $request = new LazopRequest('/orders/get', 'GET');
+        $url = 'https://api.lazada.co.th/rest';
+        $c = new LazopClient($url, $platform['laz_app_key'], $platform['laz_app_secret']);
 
-            $createdAfter = now()->subDays($days)->format('Y-m-d\TH:i:s+00:00');
-            $request->addApiParam('created_after', $createdAfter);
-            $request->addApiParam('buyer_id', $buyerId); 
+        $request = new LazopRequest('/orders/get', 'GET');
+        $createdAfter = now()->subDays($days)->format('Y-m-d\TH:i:s+00:00');
+        $request->addApiParam('created_after', $createdAfter);
 
-            $response = $c->execute($request, $platform['accessToken']);
-            $result = json_decode($response, true);
+        $response = $c->execute($request, $platform['accessToken']);
+        $result   = json_decode($response, true);
 
-            if (($result['code'] ?? '1') === '0') {
-                $orders = $result['data']['orders'] ?? [];
+        $matchedOrders = [];
 
-                Log::channel('webhook_lazada_new')->info("📦 Orders by buyerId", [
-                    'buyerId' => $buyerId,
-                    'found'   => count($orders),
+        if (($result['code'] ?? '1') === '0') {
+            $orders = $result['data']['orders'] ?? [];
+
+            foreach ($orders as $order) {
+                $reqItem = new LazopRequest('/order/items/get', 'GET');
+                $reqItem->addApiParam('order_id', $order['order_id']);
+                $resItem  = $c->execute($reqItem, $platform['accessToken']);
+                $itemData = json_decode($resItem, true);
+
+                $apiBuyerId = $itemData['data'][0]['buyer_id'] ?? null;
+
+                Log::channel('webhook_lazada_new')->info("🧾 ตรวจสอบ Order", [
+                    'order_id'          => $order['order_id'],
+                    'buyerId_expected'  => $buyerId,
+                    'buyerId_from_items' => $apiBuyerId,
+                    'matched'           => $apiBuyerId == $buyerId,
                 ]);
 
-                return $orders;
+                if ($apiBuyerId == $buyerId) {
+                    $matchedOrders[] = $order;
+                }
             }
-
-            Log::channel('webhook_lazada_new')->warning("⚠️ getOrdersByBuyerId ล้มเหลว", [
-                'buyerId'  => $buyerId,
-                'response' => $result,
-            ]);
-            return [];
-        } catch (\Throwable $e) {
-            Log::channel('webhook_lazada_new')->error("❌ getOrdersByBuyerId error: " . $e->getMessage());
-            return [];
         }
+
+        Log::channel('webhook_lazada_new')->info("📦 Orders (filtered)", [
+            'buyerId_expected' => $buyerId,
+            'orders_found'     => count($matchedOrders),
+            'orders'           => $matchedOrders,
+        ]);
+
+        return $matchedOrders;
     }
 }
