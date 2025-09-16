@@ -851,6 +851,7 @@ class NewLazadaController extends Controller
         $request = new LazopRequest('/orders/get', 'GET');
         $createdAfter = now()->subDays($days)->format('Y-m-d\TH:i:s+00:00');
         $request->addApiParam('created_after', $createdAfter);
+        $request->addApiParam('buyer_id', (string)$buyerId);
 
         $response = $c->execute($request, $platform['accessToken']);
         $result   = json_decode($response, true);
@@ -861,31 +862,34 @@ class NewLazadaController extends Controller
             $orders = $result['data']['orders'] ?? [];
 
             foreach ($orders as $order) {
+                $orderId = $order['order_id'];
                 $reqItem = new LazopRequest('/order/items/get', 'GET');
-                $reqItem->addApiParam('order_id', $order['order_id']);
-                $resItem  = $c->execute($reqItem, $platform['accessToken']);
+                $reqItem->addApiParam('order_id', $orderId);
+                $resItem = $c->execute($reqItem, $platform['accessToken']);
                 $itemData = json_decode($resItem, true);
-
-                $apiBuyerId = $itemData['data'][0]['buyer_id'] ?? null;
-
-                Log::channel('webhook_lazada_new')->info("🧾 ตรวจสอบ Order", [
-                    'order_id'          => $order['order_id'],
-                    'buyerId_expected'  => $buyerId,
-                    'buyerId_from_items' => $apiBuyerId,
-                    'matched'           => $apiBuyerId == $buyerId,
-                ]);
-
-                if ($apiBuyerId == $buyerId) {
+                $valid = false;
+                if (($itemData['code'] ?? '1') === '0') {
+                    foreach ($itemData['data'] ?? [] as $it) {
+                        if ((string)($it['buyer_id'] ?? '') === (string)$buyerId) {
+                            $valid = true;
+                            break;
+                        }
+                    }
+                }
+                if ($valid) {
                     $matchedOrders[] = $order;
                 }
             }
-        }
 
-        Log::channel('webhook_lazada_new')->info("📦 Orders (filtered)", [
-            'buyerId_expected' => $buyerId,
-            'orders_found'     => count($matchedOrders),
-            'orders'           => $matchedOrders,
-        ]);
+            Log::channel('webhook_lazada_new')->info("📦 Orders (hybrid filtered)", [
+                'buyerId_expected' => $buyerId,
+                'orders_found'     => count($matchedOrders),
+                'orders'           => array_map(fn($o) => [
+                    'order_id' => $o['order_id'],
+                    'status'   => $o['statuses'][0] ?? 'unknown'
+                ], $matchedOrders),
+            ]);
+        }
 
         return $matchedOrders;
     }
