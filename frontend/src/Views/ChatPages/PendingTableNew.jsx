@@ -1,9 +1,10 @@
 import * as React from 'react';
 
-import { Avatar, Box, Button, Chip, Divider, FormControl,
+import {
+    Avatar, Box, Button, Chip, Divider, FormControl,
     FormLabel, Input, Modal, ModalDialog, ModalClose, Table, Sheet, IconButton,
     Typography
- } from '@mui/joy';
+} from '@mui/joy';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SearchIcon from '@mui/icons-material/Search';
 import { Stack } from '@mui/joy';
@@ -13,6 +14,7 @@ import { ChatPageStyle } from '../../styles/ChatPageStyle';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertDiaLog } from '../../Dialogs/Alert';
 import { receiveApi } from '../../Api/Messages';
+import { useAuth } from '../../context/AuthContext';
 
 
 function descendingComparator(a, b, orderBy) {
@@ -25,15 +27,13 @@ function descendingComparator(a, b, orderBy) {
     return 0;
 }
 
-
-
-
 export default function PendingTableNew({ setFilterPending, filterPending, disable, pending, roomId, roomName }) {
     const [order, setOrder] = React.useState('desc');
     const [selected, setSelected] = React.useState([]);
     const [open, setOpen] = React.useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
 
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
@@ -142,7 +142,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                             <th style={{ width: 240, padding: '12px 6px' }}>เวลา</th>
                             <th style={{ width: 140, padding: '12px 6px' }}>จากห้องแชท</th>
                             <th style={{ width: 80, padding: '12px 6px' }}></th>
-                            
+
                         </tr>
                     </thead>
                     <tbody>
@@ -158,7 +158,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                             </Stack>
                                         </Stack>
                                         <Chip color='primary' startDecorator={<MessageSharp />}>
-                                           {row.latest_message.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
+                                            {row.latest_message.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
                                         </Chip>
                                     </Stack>
                                 </td>
@@ -182,6 +182,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                         <Button
                                             variant='soft'
                                             onClick={() => handleChat({ rateId: row.rateRef, roomId: row.roomId })}
+                                            disabled={index != 0 && user.role != 'admin'}
                                         >
                                             รับเรื่อง
                                         </Button>

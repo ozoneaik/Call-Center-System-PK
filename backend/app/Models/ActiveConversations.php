@@ -24,6 +24,7 @@ class ActiveConversations extends Model
         'from_empCode',
         'from_roomId',
         'empCode',
-        'rateRef'
+        'rateRef',
+        'is_send_q'
     ];
 }

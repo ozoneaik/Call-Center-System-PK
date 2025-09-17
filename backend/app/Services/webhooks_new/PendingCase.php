@@ -23,6 +23,7 @@ class PendingCase
                 ->where('rateRef', $current_rate['id'])
                 ->orderBy('id', 'desc')
                 ->first();
+
             $store_chat_cust = ChatHistory::query()->create([
                 'custId' => $current_rate['custId'],
                 'content' => $message['content'],
@@ -36,6 +37,24 @@ class PendingCase
             $this->pusherService->sendNotification($current_rate['custId']);
             // $ac_all = ActiveConversations::query()->where('roomId', $ac_latest['roomId'])
             //     ->whereNull('receiveAt')->orderBy('updated_at', 'asc')->get();
+
+            //ตรวจสอบการส่งคิว
+            if ($ac_latest && $ac_latest->is_send_q) {
+                Log::channel('webhook_main')->info("❌ ข้ามการส่งคิว (is_send_q = true)", [
+                    'ac_id' => $ac_latest->id,
+                    'custId' => $current_rate['custId'],
+                ]);
+                return [
+                    'status' => true,
+                    'send_to_cust' => false,
+                    'customer' => $customer,
+                    'ac_id' => $ac_latest['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $BOT
+                ];
+            }
+
             $ac_all = Rates::query()->where('latestRoomId', $ac_latest['roomId'])
                 ->where('status', 'pending')->orderBy('updated_at', 'asc')->get();
             $count = 1;
@@ -43,6 +62,7 @@ class PendingCase
                 if ($ac['custId'] !== $customer['custId']) $count++;
                 else break;
             }
+
             if ($current_rate['latestRoomId'] !== 'ROOM00') {
                 Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสรอดำเนินการอยู่');
             } else {
@@ -61,6 +81,7 @@ class PendingCase
                 $seconds = $diffInSeconds % 60;
                 $totalTime = "{$hours} ชั่วโมง {$minutes} นาที {$seconds} วินาที";
                 $ac_latest->update(['endTime' => $now_time, 'totalTime' => $totalTime]);
+
                 ActiveConversations::query()->create([
                     'custId' => $customer['custId'],
                     'roomId' => $default_room,
@@ -69,6 +90,9 @@ class PendingCase
                     'rateRef' => $current_rate['id']
                 ]);
             }
+
+            $ac_latest->update(['is_send_q' => true]);
+
             return [
                 'status' => true,
                 'send_to_cust' => true,

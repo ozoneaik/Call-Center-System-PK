@@ -178,6 +178,12 @@ class LineReceiveController extends Controller
             case 'facebook':
                 $send_message = FacebookController::reply_push_message($send_message_data);
                 break;
+            case 'lazada':
+                $send_message = NewLazadaController::pushReplyMessage($send_message_data);
+                break;
+            case 'shopee':
+                $send_message = NewShopeeController::pushReplyMessage($send_message_data);
+                break;
             default:
                 $pusherService = new PusherService();
                 $pusherService->sendNotification($customer['custId'], 'มีการรับเรื่อง');
