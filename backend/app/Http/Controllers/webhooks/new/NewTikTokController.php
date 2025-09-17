@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class NewTikTokController extends Controller
 {
-    //
+    
     public function webhooks(Request $request)
     {
         $data = $request->all();
@@ -120,7 +120,7 @@ class NewTikTokController extends Controller
             "content-type"       => "application/json",
         ])->get($url)->json();
 
-       Log::channel('webhook_tiktok_new')->info("📥 Get Shop Webhooks Response", $resp);
+        Log::channel('webhook_tiktok_new')->info("📥 Get Shop Webhooks Response", $resp);
 
         return response()->json([
             "request" => [

@@ -237,53 +237,6 @@ class PlatformTokenController extends Controller
         return response()->json($resp);
     }
 
-    //tiktok
-    // public function callback(Request $request)
-    // {
-    //     $code  = $request->input('code');
-    //     $state = $request->input('state');
-
-    //     if (!$code) {
-    //         return response()->json(['error' => 'Missing code'], 400);
-    //     }
-
-    //     try {
-    //         $appKey    = env('TIKTOK_APP_KEY');
-    //         $appSecret = env('TIKTOK_APP_SECRET');
-
-    //         $response = Http::get('https://auth.tiktok-shops.com/api/v2/token/get', [
-    //             'app_key'    => $appKey,
-    //             'app_secret' => $appSecret,
-    //             'auth_code'  => $code,
-    //             'grant_type' => 'authorized_code',
-    //         ]);
-
-    //         $data = $response->json();
-
-    //         if (!isset($data['data']['access_token'])) {
-    //             Log::error('TikTok token exchange failed', $data);
-    //             return response()->json([
-    //                 'error' => 'Token exchange failed',
-    //                 'resp'  => $data
-    //             ], 500);
-    //         }
-
-    //         return response()->json([
-    //             'message'             => 'Authorized successfully!',
-    //             'access_token'        => $data['data']['access_token'],
-    //             'refresh_token'       => $data['data']['refresh_token'],
-    //             'access_token_expire' => $data['data']['access_token_expire_in'],
-    //             'refresh_token_expire' => $data['data']['refresh_token_expire_in'],
-    //             'open_id'             => $data['data']['open_id'] ?? null,
-    //             'seller_name'         => $data['data']['seller_name'] ?? null,
-    //             'seller_base_region'  => $data['data']['seller_base_region'] ?? null,
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         Log::error('TikTok callback error', ['error' => $e->getMessage()]);
-    //         return response()->json(['error' => $e->getMessage()], 500);
-    //     }
-    // }
-
     // ---------------- TIKTOK ----------------
     public function tiktokAuthUrl(Request $req)
     {
@@ -332,7 +285,7 @@ class PlatformTokenController extends Controller
         $desc       = $req->input('description');
 
         if (!$code || !$appKey || !$appSecret) {
-            Log::warning("❌ TikTok Exchange missing params", [
+            Log::channel('webhook_tiktok_new')->warning("❌ TikTok Exchange missing params", [
                 'code' => $code,
                 'appKey' => $appKey,
                 'appSecret' => $appSecret,
@@ -340,7 +293,7 @@ class PlatformTokenController extends Controller
             return response()->json(['error' => 'missing required params'], 422);
         }
 
-        Log::info("📤 TikTok Exchange Request", [
+        Log::channel('webhook_tiktok_new')->info("📤 TikTok Exchange Request", [
             'app_key' => $appKey,
             'auth_code' => $code,
         ]);
@@ -352,7 +305,7 @@ class PlatformTokenController extends Controller
             'grant_type' => 'authorized_code',
         ])->json();
 
-        Log::info("📥 TikTok Token API Response", $resp);
+        Log::channel('webhook_tiktok_new')->info("📥 TikTok Token API Response", $resp);
 
         if (!empty($resp['data']['access_token'])) {
             $desc = $desc ?: ($resp['data']['seller_name'] ?? 'tiktok');
@@ -376,7 +329,7 @@ class PlatformTokenController extends Controller
                 ]
             );
 
-            Log::info("✅ TikTok Token Saved", $saved->toArray());
+            Log::channel('webhook_tiktok_new')->info("✅ TikTok Token Saved", $saved->toArray());
             return response()->json([
                 'platform'             => 'tiktok',
                 'open_id'              => $resp['data']['open_id'],
@@ -390,9 +343,7 @@ class PlatformTokenController extends Controller
             ]);
         }
 
-        Log::error("❌ TikTok Token Exchange Failed", $resp);
+        Log::channel('webhook_tiktok_new')->error("❌ TikTok Token Exchange Failed", $resp);
         return response()->json($resp);
     }
-
-   
 }
