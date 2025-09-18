@@ -3,10 +3,15 @@
 namespace App\Services\webhooks_new;
 
 use App\Models\ActiveConversations;
+use App\Models\BotMenu;
 use App\Models\ChatHistory;
+use App\Models\ChatRooms;
+use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\User;
 use App\Services\PusherService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class FilterCase
@@ -20,12 +25,14 @@ class FilterCase
     protected ProgressCase $progressCase;
     protected PendingCase $pendingCase;
     protected SuccessCase $successCase;
-    public function __construct(NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase)
+    protected PusherService $pusherService;
+    public function __construct(NewCase $newCase, ProgressCase $progressCase, PendingCase $pendingCase, SuccessCase $successCase, PusherService $pusherService)
     {
         $this->newCase = $newCase;
         $this->progressCase = $progressCase;
         $this->pendingCase = $pendingCase;
         $this->successCase = $successCase;
+        $this->pusherService = $pusherService;
     }
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดกรองเคส---------------------------------------------------';
 
@@ -51,6 +58,14 @@ class FilterCase
             $current_rate = Rates::query()->where('custId', $customer['custId'])
                 ->orderBy('id', 'desc')->first();
 
+            if ($current_rate) {
+                $is_spam = $this->isSpam($current_rate, $customer, $message);
+                if ($is_spam['status']) {
+                    return $is_spam;
+                }
+            }
+
+
             switch ($flow) {
                 case 1:
                     return $this->caseFlow1($current_rate);
@@ -65,7 +80,6 @@ class FilterCase
             return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
         }
     }
-
 
     private function checkParams($customer = null, $message = null, $platformAccessToken = null)
     {
@@ -176,6 +190,108 @@ class FilterCase
             }
         } catch (\Throwable $e) {
             return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
+        }
+    }
+
+    private function isSpam($current_rate, $customer, $message)
+    {
+        try {
+            //เก็บข้อความที่ลูกค้าทักเข้ามา
+            $new_ac = ActiveConversations::query()->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+            if ($new_ac) {
+                ChatHistory::query()->create([
+                    'custId' => $customer['custId'],
+                    'content' => $message['content'],
+                    'contentType' => $message['contentType'],
+                    'sender' => json_encode($customer),
+                    'conversationRef' => $new_ac['id'],
+                    'line_message_id' => $message['line_message_id'] ?? null,
+                    'line_quote_token' => $message['line_quote_token'] ?? null,
+                    'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null,
+                ]);
+                $this->pusherService->sendNotification($customer['custId']);
+            }
+
+            $one_char = substr($message['content'], 0, 1); // ตัดให้่เหลือตัวอักษรแรก
+            $latest_room_id = $current_rate['latestRoomId'];
+            $new_ac = ActiveConversations::query()->where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+            $room_spam = ChatRooms::query()->where('roomId', $latest_room_id)->where('is_spam', true)->first();
+            $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+            $bot = User::query()->where('empCode', 'BOT')->first();
+            if ($room_spam) {
+                $menus = BotMenu::query()->where('botTokenId', $customer['platformRef'])->get();
+                foreach ($menus as $menu) {
+                    $one_char = substr($message['content'], 0, 1); // ตัดให้่เหลือตัวอักษรแรก
+                    if ($one_char == $menu['menu_number']) {
+                        $foward_to_room_id = $menu['roomId'];
+                        Log::info('1️⃣1️⃣1️⃣1️⃣1️⃣1️⃣1️⃣1️⃣1️⃣');
+                        $new_ac->update([
+                            'receiveAt' => Carbon::now(),
+                            'startTime' => Carbon::now(),
+                            'endTime' => Carbon::now(),
+                            'empCode' => 'BOT',
+                        ]);
+                        $old_room_id = $current_rate['latestRoomId'];
+                        $current_rate->update([
+                            'latestRoomId' => $foward_to_room_id,
+                            'status' => 'pending',
+                        ]);
+                        $new_ac_new = ActiveConversations::query()->create([
+                            'custId' => $customer['custId'],
+                            'roomId' => $current_rate['latestRoomId'],
+                            'empCode' => $bot['empCode'],
+                            'rateRef' => $current_rate['id'],
+                            'from_empCode' => $new_ac['empCode'],
+                            'from_roomId' =>  $old_room_id
+                        ]);
+
+                        $case = [
+                            'status' => true,
+                            'send_to_cust' => true,
+                            'type_send' => 'menu_sended',
+                            'type_message' => 'reply',
+                            'messages' => [
+                                [
+                                    'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                                    'contentType' => 'text'
+                                ]
+                            ],
+                            'customer' => $customer,
+                            'ac_id' => $new_ac['id'],
+                            'platform_access_token' => $platformAccessToken,
+                            'reply_token' => $message['reply_token'],
+                            'bot' => $bot
+                        ];
+                        Log::info('📌📌📌📌📌📌📌📌📌📌');
+                        return ['status' => true, 'case' => $case];
+                    }
+                }
+
+                $case =  [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'menu',
+                    'type_message' => 'reply',
+                    'messages' => [
+                        [
+                            'content' => 'ขณะนี้คุณกำลังอยู่ในห้องสแปม หากต้องการติดต่อกับเรา กรุณาโปรดเลือก เมนู ด้านล่าง',
+                            'contentType' => 'text'
+                        ]
+                    ],
+                    'customer' => $customer,
+                    'ac_id' => $new_ac['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'] ?? 'reply Token',
+                    'bot' => $bot
+                ];
+                Log::info('📌📌📌📌📌📌📌📌📌📌');
+                return ['status' => true, 'case' => $case];
+            } else {
+                Log::info('❌👌👌👌👌👌👌👌👌❌');
+                return ['status' => false, 'case' => []];
+            }
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
         }
     }
 }

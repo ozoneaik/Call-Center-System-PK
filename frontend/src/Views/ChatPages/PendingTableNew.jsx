@@ -16,7 +16,6 @@ import { AlertDiaLog } from '../../Dialogs/Alert';
 import { receiveApi } from '../../Api/Messages';
 import { useAuth } from '../../context/AuthContext';
 
-
 function descendingComparator(a, b, orderBy) {
     if (b[orderBy] < a[orderBy]) {
         return -1;
@@ -31,6 +30,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
     const [order, setOrder] = React.useState('desc');
     const [selected, setSelected] = React.useState([]);
     const [open, setOpen] = React.useState(false);
+    const [loadingStates, setLoadingStates] = React.useState({}); // เพิ่ม state สำหรับ loading
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
@@ -42,7 +42,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
         });
     }
 
-    const handleChat = ({ rateId, roomId }) => {
+    const handleChat = ({ rateId, roomId, index }) => {
         const options = {
             title: 'ต้องการรับเรื่องหรือไม่',
             text: 'กด "ตกลง" เพื่อยืนยันรับเรื่อง',
@@ -52,9 +52,26 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
             ...options,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    const { data, status } = await receiveApi(rateId, roomId);
-                    status !== 200 && AlertDiaLog({ title: data.message, text: data.detail });
-                } else console.log('ไม่ได้ confirm');
+                    // เริ่ม loading สำหรับปุ่มนี้
+                    setLoadingStates(prev => ({ ...prev, [index]: true }));
+
+                    try {
+                        const { data, status } = await receiveApi(rateId, roomId);
+                        if (status !== 200) {
+                            AlertDiaLog({ title: data.message, text: data.detail });
+                        }
+                    } catch (error) {
+                        AlertDiaLog({
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถรับเรื่องได้ กรุณาลองใหม่อีกครั้ง'
+                        });
+                    } finally {
+                        // หยุด loading
+                        setLoadingStates(prev => ({ ...prev, [index]: false }));
+                    }
+                } else {
+                    console.log('ไม่ได้ confirm');
+                }
             }
         });
     };
@@ -142,7 +159,6 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                             <th style={{ width: 240, padding: '12px 6px' }}>เวลา</th>
                             <th style={{ width: 140, padding: '12px 6px' }}>จากห้องแชท</th>
                             <th style={{ width: 80, padding: '12px 6px' }}></th>
-
                         </tr>
                     </thead>
                     <tbody>
@@ -169,7 +185,6 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                         </Chip>
                                         <TimeDisplay startTime={row.created_at} />
                                     </Stack>
-
                                 </td>
                                 <td>
                                     <Box sx={{ display: 'block', gap: 2, alignItems: 'center' }}>
@@ -181,10 +196,15 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                     <Stack spacing={1}>
                                         <Button
                                             variant='soft'
-                                            onClick={() => handleChat({ rateId: row.rateRef, roomId: row.roomId })}
-                                            disabled={index != 0 && user.role != 'admin'}
+                                            onClick={() => handleChat({
+                                                rateId: row.rateRef,
+                                                roomId: row.roomId,
+                                                index: index
+                                            })}
+                                            disabled={(index != 0 && user.role != 'admin') || loadingStates[index]}
+                                            loading={loadingStates[index]}
                                         >
-                                            รับเรื่อง
+                                            {loadingStates[index] ? 'กำลังรับเรื่อง...' : 'รับเรื่อง'}
                                         </Button>
                                         <Button variant='soft' onClick={() => redirectChat(row)}>
                                             ดูข้อความ
