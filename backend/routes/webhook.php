@@ -42,7 +42,9 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/auth', [ShopeeController::class, 'authorization']);
         Route::post('/', [NewShopeeController::class, 'webhooks']);
 
-      Route::get('/customer-orders/{custId}', [NewShopeeController::class, 'customerOrders']);
+        Route::get('/customer-orders/{custId}', [NewShopeeController::class, 'customerOrders']);
+        Route::post('/test-order', [NewShopeeController::class, 'testOrderDetail']);
+        // Route::get('/test-order', [NewShopeeController::class, 'testOrderDetail']);
 
     });
 

@@ -1048,4 +1048,119 @@ class NewShopeeController extends Controller
 
         return collect($allOrders)->pluck('order_sn')->toArray();
     }
+
+    public function testOrderDetail(Request $request)
+    {
+        $orderSn = $request->input('order_sn');
+        if (empty($orderSn)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'กรุณาส่ง order_sn',
+            ], 400);
+        }
+
+        try {
+            // หาร้านที่เชื่อมกับ Shopee
+            $platform = PlatformAccessTokens::where('platform', 'shopee')
+                ->orderByDesc('id')
+                ->first();
+
+            if (!$platform) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'ไม่พบ Shopee platform token',
+                ], 404);
+            }
+            
+            $detailResp = $this->getOrderDetail(
+                [$orderSn],
+                $platform,
+                'buyer_user_id,buyer_username,buyer_message,order_status,total_amount,currency,
+             item_list,recipient_address,shipping_carrier,tracking_no,payment_method,
+             pay_time,cod,create_time,update_time,ship_by_date,
+             voucher_code,voucher_info,voucher_platform,discount_amount'
+            );
+
+            $od = $detailResp['order_list'][0] ?? null;
+            if (!$od) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => "ไม่พบรายละเอียด order_sn: {$orderSn}"
+                ]);
+            }
+
+            // map item_list
+            $items = collect($od['item_list'] ?? [])->map(fn($it) => [
+                'item_id'            => $it['item_id'] ?? null,
+                'name'               => $it['item_name'] ?? null,
+                'model'              => $it['model_name'] ?? null,
+                'sku'                => $it['model_sku'] ?? null,
+                'quantity'           => $it['model_quantity_purchased'] ?? 0,
+                'price'              => $it['model_discounted_price'] ?? 0,
+                'original_price'     => $it['model_original_price'] ?? null,
+                'currency'           => $od['currency'] ?? 'THB',
+                'image_url'          => $it['image_info']['image_url'] ?? null,
+                'promotion_type'     => $it['item_promotion_type'] ?? null,
+                'promotion_id'       => $it['item_promotion_id'] ?? null,
+                'promotion_platform' => $it['item_promotion_platform'] ?? null,
+                'is_add_on_deal'     => $it['is_add_on_deal'] ?? false,
+            ])->toArray();
+
+            // ส่งกลับ
+            return response()->json([
+                'status' => true,
+                'order'  => [
+                    'order_sn'    => $od['order_sn'] ?? null,
+                    'buyer'       => [
+                        'id'       => $od['buyer_user_id'] ?? null,
+                        'username' => $od['buyer_username'] ?? '-',
+                        'message'  => $od['buyer_message'] ?? null,
+                    ],
+                    'status'      => $od['order_status'] ?? '-',
+                    'amount'      => $od['total_amount'] ?? 0,
+                    'currency'    => $od['currency'] ?? 'THB',
+                    'voucher'     => [
+                        'code'     => $od['voucher_code'] ?? null,
+                        'info'     => $od['voucher_info'] ?? null,
+                        'platform' => $od['voucher_platform'] ?? null,
+                        'discount' => $od['discount_amount'] ?? 0,
+                    ],
+                    'payment'     => [
+                        'method'   => $od['payment_method'] ?? null,
+                        'cod'      => $od['cod'] ?? null,
+                        'pay_time' => isset($od['pay_time'])
+                            ? Carbon::createFromTimestamp($od['pay_time'])->format('Y-m-d H:i')
+                            : null,
+                    ],
+                    'shipping'    => [
+                        'carrier'    => $od['shipping_carrier'] ?? null,
+                        'tracking'   => $od['tracking_no'] ?? null,
+                        'ship_by'    => isset($od['ship_by_date'])
+                            ? Carbon::createFromTimestamp($od['ship_by_date'])->format('Y-m-d H:i')
+                            : null,
+                        'recipient'  => $od['recipient_address']['full_address'] ?? null,
+                        'zipcode'    => $od['recipient_address']['zipcode'] ?? null,
+                    ],
+                    'create_time' => isset($od['create_time'])
+                        ? Carbon::createFromTimestamp($od['create_time'])->format('Y-m-d H:i')
+                        : null,
+                    'update_time' => isset($od['update_time'])
+                        ? Carbon::createFromTimestamp($od['update_time'])->format('Y-m-d H:i')
+                        : null,
+                    'items'       => $items,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_shopee_new')->error('testOrderDetail error', [
+                'order_sn' => $orderSn,
+                'error'    => $e->getMessage(),
+                'file'     => $e->getFile(),
+                'line'     => $e->getLine(),
+            ]);
+            return response()->json([
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
