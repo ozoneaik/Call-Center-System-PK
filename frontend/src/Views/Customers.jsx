@@ -11,20 +11,21 @@ import Button from "@mui/joy/Button";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import ModalDialog from "../Components/ModalDialog.jsx";
 import { useMediaQuery } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const BreadcrumbsPath = [{ name: "จัดการลูกค้า" }, { name: "รายละเอียด" }];
 
 export default function Customers() {
     const isMobile = useMediaQuery("(max-width:600px)");
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const page = parseInt(searchParams.get("page") ?? "1", 10);
     const [customers, setCustomers] = useState([]);
     const [selected, setSelected] = useState({});
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
 
     // state สำหรับ pagination
-    const [page, setPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [to, setTo] = useState(0);
     const [total, setTotal] = useState(0);
@@ -134,25 +135,40 @@ export default function Customers() {
                                 )}
                             </tbody>
                         </Table>
-
-
                     </Sheet>
                     {/* Pagination */}
                     <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
-                        <Stack direction={isMobile ? 'column-reverse' : 'row'} justifyContent={'space-between'} alignItems={'center'} spacing={2}>
+                        <Stack
+                            direction={isMobile ? "column-reverse" : "row"}
+                            justifyContent={"space-between"}
+                            alignItems={"center"}
+                            spacing={2}
+                            sx={{ width: "100%" }}
+                        >
                             <Typography>{to} รายการ จากรายการทั้งหมด {total} รายการ</Typography>
                             <Stack direction="row" spacing={1}>
                                 {links.map((link, index) => {
+                                    const searchParams = link.url ? new URLSearchParams(link.url.split("?")[1]) : null;
+                                    const pageNumber = searchParams ? searchParams.get("page") : null;
+
                                     return (
                                         <Button
-                                            key={index} onClick={() => {
-                                                link.url ? navigate(`/customers?page=${link.label}`) : null
+                                            key={index}
+                                            onClick={() => {
+                                                pageNumber ? navigate(`/customers?page=${pageNumber}`) : null;
                                             }}
-                                            variant={link.active ? 'solid' : 'soft'} color="primary"
+                                            variant={link.active ? "solid" : "soft"}
+                                            color="primary"
+                                            size="sm"
+                                            disabled={!pageNumber} // disable ถ้าไม่มี page (เช่น ...)
                                         >
-                                            {index === 0 ? 'ก่อนหน้า' : index === links.length - 1 ? 'ถัดไป' : link.label}
+                                            {index === 0
+                                                ? "ก่อนหน้า"
+                                                : index === links.length - 1
+                                                    ? "ถัดไป"
+                                                    : link.label}
                                         </Button>
-                                    )
+                                    );
                                 })}
                             </Stack>
                         </Stack>

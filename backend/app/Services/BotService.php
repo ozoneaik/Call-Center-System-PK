@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class BotService
 {
-    public function list() : array
+    public function list(): array
     {
         $botMenus = PlatformAccessTokens::select(
             'platform_access_tokens.id AS botTokenId',
@@ -20,7 +20,8 @@ class BotService
             'bot_menus.roomId',
             'chat_rooms.roomName',
             'platform_access_tokens.description',
-             'bot_menus.menu_number',
+            'platform_access_tokens.platform',
+            'bot_menus.menu_number',
         )
             ->leftJoin('bot_menus', 'platform_access_tokens.id', '=', 'bot_menus.botTokenId')
             ->leftJoin('chat_rooms', 'bot_menus.roomId', '=', 'chat_rooms.roomId')
@@ -40,7 +41,7 @@ class BotService
         $data['status'] = false;
         try {
             DB::beginTransaction();
-            BotMenu::where('botTokenId',$req['botTokenId'])->delete();
+            BotMenu::where('botTokenId', $req['botTokenId'])->delete();
             $list = $req['list'];
             $newList = [];
             foreach ($list as $item) {
@@ -56,7 +57,7 @@ class BotService
             $data['message'] = 'สร้างเมนู BOT สำเร็จ';
             $data['botMenu'] = $newList;
             DB::commit();
-        }catch (QueryException $e) {
+        } catch (QueryException $e) {
             DB::rollBack();
             // จัดการกับ SQL Error
             Log::info("เกิดข้อผิดพลาดจาก SQL ใน method store ของ BotService >>> {$e->getMessage()}");
@@ -64,8 +65,7 @@ class BotService
                 'status' => false,
                 'message' => 'ไม่สามารถสร้างหรือ botMenu ได้ ติดต่อฝ่ายไอที (QUERY_SQL_ERR)',
             ];
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::info("เกิดข้อผิดพลาด method store ใน BotService >>> {$e->getMessage()}");
             $data['message'] = $e->getMessage();

@@ -18,15 +18,16 @@ class BotMenuController extends Controller
     public function list(): JsonResponse
     {
         $list = $this->botService->list();
-//        return response()->json($list);
+        //        return response()->json($list);
         // สร้างผลลัพธ์สำหรับ botMenu โดยจัดกลุ่มตาม botTokenId
         $botMenuResult = $list['botMenu']->map(function ($menus, $botTokenId) {
             // ดึงข้อมูล description ครั้งเดียวต่อ botTokenId
             $description = $menus->first()->description;
+            $platform = $menus->first()->platform;
             // ลบ description ในรายการย่อยแต่ละรายการ
-            if (count($menus) === 0){
+            if (count($menus) === 0) {
                 $cleanedMenus = [];
-            }else{
+            } else {
                 $cleanedMenus = $menus->map(function ($menu) {
                     unset($menu['description']);
                     return $menu;
@@ -37,6 +38,7 @@ class BotMenuController extends Controller
             return [
                 'botTokenId' => $botTokenId,
                 'description' => $description,
+                'platform' => $platform,
                 'list' => $cleanedMenus->values()->all(),
             ];
         })->values()->all();
