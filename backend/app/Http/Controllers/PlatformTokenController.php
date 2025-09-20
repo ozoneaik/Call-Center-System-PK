@@ -32,6 +32,111 @@ class PlatformTokenController extends Controller
     }
 
     // ---------------- SHOPEE ----------------
+    public function shopeeExchange(Request $req)
+    {
+        $code       = $req->input('code');
+        $shopId     = $req->input('shop_id');
+        $partnerId  = $req->input('partner_id');
+        $partnerKey = trim($req->input('partner_key'));
+        $redirect   = $req->input('callback_url');
+        $roomId     = $req->input('room_default_id');
+        $usageType  = $req->input('usage_type'); 
+        $description = $req->input('description');
+
+        if (!$code || !$shopId || !$partnerId || !$partnerKey || !$redirect) {
+            return response()->json(
+                ['error' => 'missing required params'],
+                422,
+                [],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            );
+        }
+
+        $timestamp = time();
+        $host      = "https://partner.shopeemobile.com";
+        $path      = "/api/v2/auth/token/get";
+
+        $baseString = $partnerId . $path . $timestamp;
+        $sign = hash_hmac('sha256', $baseString, $partnerKey);
+
+        $url = "{$host}{$path}?partner_id={$partnerId}&timestamp={$timestamp}&sign={$sign}";
+
+        $body = [
+            "code"       => $code,
+            "shop_id"    => (int)$shopId,
+            "partner_id" => (int)$partnerId,
+        ];
+
+        $resp = Http::withHeaders(['Content-Type' => 'application/json'])
+            ->post($url, $body);
+
+        $rawBody = $resp->body();
+        $json    = json_decode($rawBody, true);
+
+        Log::channel('webhook_shopee_new')->info(
+            "📥 Shopee Exchange Response\n" .
+                json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
+        if (!empty($json['access_token'])) {
+            $platforms = PlatformAccessTokens::where('platform', 'shopee')
+                ->where('shopee_shop_id', $shopId)
+                ->get();
+
+            if ($platforms->isEmpty()) {
+                PlatformAccessTokens::create([
+                    'accessTokenId'        => uniqid("shp_", true),
+                    'accessToken'          => $json['access_token'],
+                    'description'          => $req->input('description'),
+                    'platform'             => 'shopee',
+                    'room_default_id'      => $roomId,
+                    'shopee_refresh_token' => $json['refresh_token'],
+                    'expire_at'            => Carbon::now()->addSeconds($json['expire_in']),
+                    'shopee_partner_id'    => $partnerId,
+                    'shopee_partner_key'   => $partnerKey,
+                    'shopee_code'          => $code,
+                    'usage_type'           => $usageType,
+                    'shopee_shop_id'       => $shopId,
+                ]);
+            } else {
+                $target = $platforms->firstWhere('usage_type', $usageType);
+
+                if (!$target) {
+                    $noUsageType = $platforms->firstWhere('usage_type', null);
+                    if ($noUsageType) {
+                        $target = $noUsageType;
+                    } else {
+                        $target = new PlatformAccessTokens();
+                    }
+                }
+                $target->fill([
+                    'accessTokenId'        => uniqid("shp_", true),
+                    'accessToken'          => $json['access_token'],
+                    'description'          => $req->input('description'),
+                    'platform'             => 'shopee',
+                    'room_default_id'      => $roomId,
+                    'shopee_refresh_token' => $json['refresh_token'],
+                    'expire_at'            => Carbon::now()->addSeconds($json['expire_in']),
+                    'shopee_partner_id'    => $partnerId,
+                    'shopee_partner_key'   => $partnerKey,
+                    'shopee_code'          => $code,
+                    'usage_type'           => $usageType,
+                    'shopee_shop_id'       => $shopId,
+                ])->save();
+            }
+        }
+
+        return response()->json(
+            array_merge($json, [
+                'usage_type'  => $usageType,
+                'description' => $description,
+                'shop_id'     => $shopId,
+            ]),
+            $resp->status(),
+            [],
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+        );
+    }
+
     public function shopeeAuthUrl(Request $req)
     {
         $partnerId  = $req->input('partner_id');
@@ -57,69 +162,6 @@ class PlatformTokenController extends Controller
         return response()->json(['auth_url' => $url]);
     }
 
-    public function shopeeExchange(Request $req)
-    {
-        $code       = $req->input('code');
-        $shopId     = $req->input('shop_id');
-        $partnerId  = $req->input('partner_id');
-        $partnerKey = trim($req->input('partner_key'));
-        $redirect   = $req->input('callback_url');
-        $roomId     = $req->input('room_default_id');
-
-        if (!$code || !$shopId || !$partnerId || !$partnerKey || !$redirect) {
-            return response()->json(['error' => 'missing required params'], 422);
-        }
-
-        $timestamp = time();
-        $host      = "https://partner.shopeemobile.com";
-        $path      = "/api/v2/auth/token/get";
-
-        $baseString = $partnerId . $path . $timestamp;
-        $sign = hash_hmac('sha256', $baseString, $partnerKey);
-
-        $url = "{$host}{$path}?partner_id={$partnerId}&timestamp={$timestamp}&sign={$sign}";
-
-        $body = [
-            "code"       => $code,
-            "shop_id"    => (int)$shopId,
-            "partner_id" => (int)$partnerId,
-        ];
-
-        $resp = Http::withHeaders(['Content-Type' => 'application/json'])
-            ->post($url, $body)
-            ->json();
-
-        if (!empty($resp['access_token'])) {
-            $saved = PlatformAccessTokens::updateOrCreate(
-                ['platform' => 'shopee', 'shopee_shop_id' => $shopId],
-                [
-                    'accessTokenId'        => uniqid("shp_", true),
-                    'accessToken'          => $resp['access_token'],
-                    'description'          => $req->input('description'),
-                    'platform'             => 'shopee',
-                    'room_default_id'      => $roomId,
-                    'shopee_refresh_token' => $resp['refresh_token'],
-                    'expire_at'            => Carbon::now()->addSeconds($resp['expire_in']),
-                    'shopee_partner_id'    => $partnerId,
-                    'shopee_partner_key'   => $partnerKey,
-                    'shopee_code'          => $code,
-                ]
-            );
-
-            Log::info("Shopee Token Saved", $saved->toArray());
-            return response()->json([
-                'platform'      => 'shopee',
-                'shop_id'       => $shopId,
-                'room_default_id' => $roomId,
-                'access_token'  => $resp['access_token'],
-                'refresh_token' => $resp['refresh_token'],
-                'expire_in'     => $resp['expire_in'],
-                'description'   => $req->input('description'),
-            ]);
-        }
-
-        return response()->json($resp);
-    }
 
     public function shopeeCallback(Request $request)
     {
@@ -131,6 +173,66 @@ class PlatformTokenController extends Controller
         }
         $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
         return redirect()->away("{$frontendUrl}?code={$code}&shop_id={$shopId}&platform=shopee");
+    }
+
+    public function shopeeRefresh(Request $req)
+    {
+        $shopId = $req->input('shop_id');
+        if (!$shopId) {
+            return response()->json(['error' => 'missing shop_id'], 422);
+        }
+
+        $platform = PlatformAccessTokens::where('platform', 'shopee')
+            ->where('shopee_shop_id', $shopId)
+            ->first();
+
+        if (!$platform) {
+            return response()->json(['error' => 'ไม่พบข้อมูล token สำหรับ shop_id นี้'], 404);
+        }
+
+        $partnerId  = $platform->shopee_partner_id;
+        $partnerKey = $platform->shopee_partner_key;
+        $refreshTok = $platform->shopee_refresh_token;
+
+        if (!$partnerId || !$partnerKey || !$refreshTok) {
+            return response()->json(['error' => 'ข้อมูลไม่ครบ ไม่สามารถ refresh token ได้'], 422);
+        }
+
+        $timestamp = time();
+        $host      = "https://partner.shopeemobile.com";
+        $path      = "/api/v2/auth/access_token/get";
+
+        $baseString = $partnerId . $path . $timestamp;
+        $sign = hash_hmac('sha256', $baseString, $partnerKey);
+
+        $url = "{$host}{$path}?partner_id={$partnerId}&timestamp={$timestamp}&sign={$sign}";
+
+        $body = [
+            "refresh_token" => $refreshTok,
+            "partner_id"    => (int)$partnerId,
+            "shop_id"       => (int)$shopId,
+        ];
+
+        $resp = Http::withHeaders(['Content-Type' => 'application/json'])
+            ->post($url, $body);
+
+        $rawBody = $resp->body();
+        $json    = json_decode($rawBody, true);
+
+        Log::channel('webhook_shopee_new')->info(
+            "♻️ Shopee Refresh Response\n" .
+                json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
+
+        if (!empty($json['access_token'])) {
+            $platform->update([
+                'accessToken'          => $json['access_token'],
+                'shopee_refresh_token' => $json['refresh_token'] ?? $refreshTok,
+                'expire_at'            => Carbon::now()->addSeconds($json['expire_in']),
+            ]);
+        }
+
+        return response()->json($json, $resp->status(), [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
     // ---------------- LAZADA ----------------

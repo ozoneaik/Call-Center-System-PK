@@ -7,6 +7,7 @@ use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\ShopeeController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Controllers\webhooks\new\NewTikTokController;
+use App\Http\Controllers\webhooks\new\ShopeeLiveController;
 use App\Http\Controllers\webhooks\new\TikTokLiveController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,11 +42,22 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/', [ShopeeController::class, 'index']);
         Route::get('/auth', [ShopeeController::class, 'authorization']);
         Route::post('/', [NewShopeeController::class, 'webhooks']);
+        Route::post('/refresh', [PlatformTokenController::class, 'shopeeRefresh']);
 
         Route::get('/customer-orders/{custId}', [NewShopeeController::class, 'customerOrders']);
         Route::post('/test-order', [NewShopeeController::class, 'testOrderDetail']);
         // Route::get('/test-order', [NewShopeeController::class, 'testOrderDetail']);
 
+        Route::post('/create-session', [ShopeeLiveController::class, 'shopeeCreateLiveSession']);
+        Route::post('/start-session', [ShopeeLiveController::class, 'shopeeStartLiveSession']);
+        Route::get('/get-session-detail', [ShopeeLiveController::class, 'shopeeGetSessionDetail']);
+        Route::post('/end-session', [ShopeeLiveController::class, 'shopeeEndLiveSession']);
+        Route::post('/add-item-list', [ShopeeLiveController::class, 'shopeeAddItemList']);
+        Route::post('/get-item-list', [ShopeeLiveController::class, 'shopeeGetItemList']);
+        Route::post('/get-session-metric', [ShopeeLiveController::class, 'shopeeGetSessionMetric']);
+        Route::post('/get-session-item-metric', [ShopeeLiveController::class, 'shopeeGetSessionItemMetric']);
+        Route::post('/post-comment', [ShopeeLiveController::class, 'shopeePostComment']);
+        Route::post('/get-latest-comment-list', [ShopeeLiveController::class, 'shopeeGetLatestCommentList']);
     });
 
     Route::prefix('tiktok')->group(function () {

@@ -4,13 +4,14 @@ import axiosClient from "../../Axios";
 
 export default function TokenManager() {
     const [platform, setPlatform] = useState("shopee");
+    const [usageType, setUsageType] = useState("chat"); 
     const [callback, setCallback] = useState(
         import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/shopee"
     );
 
-    const [serviceId, setServiceId] = useState(""); 
-    const [partnerId, setPartnerId] = useState(""); 
-    const [partnerKey, setPartnerKey] = useState(""); 
+    const [serviceId, setServiceId] = useState("");
+    const [partnerId, setPartnerId] = useState("");
+    const [partnerKey, setPartnerKey] = useState("");
     const [description, setDescription] = useState("");
     const [authUrl, setAuthUrl] = useState("");
     const [tokenInfo, setTokenInfo] = useState(null);
@@ -20,7 +21,6 @@ export default function TokenManager() {
 
     const location = useLocation();
 
-    // ตั้งค่า callback URL ตาม platform
     useEffect(() => {
         if (platform === "shopee") {
             setCallback(import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/shopee");
@@ -31,14 +31,12 @@ export default function TokenManager() {
         }
     }, [platform]);
 
-    // โหลด list chat rooms
     useEffect(() => {
         axiosClient.get("/auto-tokens/rooms").then((res) => {
             setChatRooms(res.data.chat_rooms || []);
         });
     }, []);
 
-    // handle callback ที่ redirect กลับมาพร้อม code
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const code = params.get("code");
@@ -59,13 +57,12 @@ export default function TokenManager() {
             localStorage.setItem("description", description);
             localStorage.setItem("platform", platform);
             localStorage.setItem("room_default_id", roomDefaultId);
+            localStorage.setItem("usageType", usageType); // 👈 save usage_type
 
-            const params = {
-                callback_url: callback,
-            };
+            const params = { callback_url: callback };
 
             if (platform === "tiktok") {
-                params.service_id = serviceId; // ✅ ใช้ service_id
+                params.service_id = serviceId;
             } else {
                 params.partner_id = partnerId;
                 params.partner_key = partnerKey;
@@ -91,12 +88,14 @@ export default function TokenManager() {
             const savedCallback = localStorage.getItem("callback");
             const savedDescription = localStorage.getItem("description");
             const savedRoomId = localStorage.getItem("room_default_id");
+            const savedUsageType = localStorage.getItem("usageType") || "chat"; 
 
             const payload = {
                 code,
                 callback_url: savedCallback,
                 description: savedDescription,
                 room_default_id: savedRoomId,
+                usage_type: savedUsageType, 
             };
 
             if (currentPlatform === "shopee") {
@@ -107,9 +106,9 @@ export default function TokenManager() {
                 payload.partner_id = savedPartnerId;
                 payload.partner_key = savedPartnerKey;
             } else if (currentPlatform === "tiktok") {
-                payload.service_id = savedServiceId;   
-                payload.app_key = savedPartnerId;      
-                payload.app_secret = savedPartnerKey;  
+                payload.service_id = savedServiceId;
+                payload.app_key = savedPartnerId;
+                payload.app_secret = savedPartnerKey;
             }
 
             const resp = await axiosClient.post(
@@ -132,6 +131,7 @@ export default function TokenManager() {
                 {!tokenInfo && (
                     <>
                         <div style={styles.grid}>
+                            {/* เลือก platform */}
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Platform</label>
                                 <select
@@ -145,18 +145,22 @@ export default function TokenManager() {
                                 </select>
                             </div>
 
-                            {platform === "tiktok" && (
+                            {/* เลือก usage_type */}
+                            {platform === "shopee" && (
                                 <div style={styles.formGroup}>
-                                    <label style={styles.label}>Service ID (TikTok)</label>
-                                    <input
+                                    <label style={styles.label}>Usage Type</label>
+                                    <select
                                         style={styles.input}
-                                        value={serviceId}
-                                        onChange={(e) => setServiceId(e.target.value)}
-                                        placeholder="TikTok Service ID"
-                                    />
+                                        value={usageType}
+                                        onChange={(e) => setUsageType(e.target.value)}
+                                    >
+                                        <option value="chat">Chat</option>
+                                        <option value="livestream">Livestream</option>
+                                    </select>
                                 </div>
                             )}
 
+                            {/* Partner ID / Key */}
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>
                                     {platform === "tiktok"
@@ -169,13 +173,7 @@ export default function TokenManager() {
                                     style={styles.input}
                                     value={partnerId}
                                     onChange={(e) => setPartnerId(e.target.value)}
-                                    placeholder={
-                                        platform === "tiktok"
-                                            ? "TikTok App Key"
-                                            : platform === "shopee"
-                                                ? "Shopee Partner ID"
-                                                : "Lazada App Key"
-                                    }
+                                    placeholder="ใส่ Partner ID / App Key"
                                 />
                             </div>
 
@@ -191,26 +189,11 @@ export default function TokenManager() {
                                     style={styles.input}
                                     value={partnerKey}
                                     onChange={(e) => setPartnerKey(e.target.value)}
-                                    placeholder={
-                                        platform === "tiktok"
-                                            ? "TikTok App Secret"
-                                            : platform === "shopee"
-                                                ? "Shopee Partner Key"
-                                                : "Lazada App Secret"
-                                    }
+                                    placeholder="ใส่ Partner Key / App Secret"
                                 />
                             </div>
 
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Description</label>
-                                <input
-                                    style={styles.input}
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="ตั้งชื่อหรือรายละเอียด token"
-                                />
-                            </div>
-
+                            {/* Room Default */}
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Default Room</label>
                                 <select
@@ -228,11 +211,12 @@ export default function TokenManager() {
                             </div>
 
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Callback URL</label>
+                                <label style={styles.label}>Description</label>
                                 <input
-                                    style={{ ...styles.input, background: "#f3f4f6", color: "#555" }}
-                                    value={callback}
-                                    disabled
+                                    style={styles.input}
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="ตั้งชื่อ token"
                                 />
                             </div>
                         </div>
@@ -240,52 +224,23 @@ export default function TokenManager() {
                         <button style={styles.buttonPrimary} onClick={getAuthUrl}>
                             🚀 Connect {platform}
                         </button>
-
-                        {authUrl && (
-                            <p style={styles.redirect}>
-                                จะ redirect ไป:{" "}
-                                <a href={authUrl} target="_blank" rel="noreferrer">
-                                    {authUrl}
-                                </a>
-                            </p>
-                        )}
                     </>
                 )}
 
                 {tokenInfo && (
                     <div style={styles.tokenBox}>
                         <h3>🎫 Token Info ({tokenInfo.platform})</h3>
-                        {tokenInfo.platform === "shopee" && (
-                            <p><b>Shop ID:</b> {tokenInfo.shop_id}</p>
-                        )}
-                        {tokenInfo.platform === "lazada" && (
-                            <>
-                                <p><b>Lazada Seller ID:</b> {tokenInfo.laz_seller_id}</p>
-                                <p><b>Account:</b> {tokenInfo.account}</p>
-                                <p><b>Country:</b> {tokenInfo.country}</p>
-                                {tokenInfo.country_user_info && tokenInfo.country_user_info.map((info, idx) => (
-                                    <p key={idx}>
-                                        <b>{info.country}:</b> seller_id={info.seller_id}, user_id={info.user_id}
-                                    </p>
-                                ))}
-                            </>
-                        )}
-                        {tokenInfo.platform === "tiktok" && (
-                            <>
-                                <p><b>Open ID:</b> {tokenInfo.open_id}</p>
-                                <p><b>Seller Name:</b> {tokenInfo.seller_name}</p>
-                                <p><b>Region:</b> {tokenInfo.seller_base_region}</p>
-                            </>
-                        )}
+                        <p><b>Usage Type:</b> {tokenInfo.usage_type}</p>
                         <p><b>Access Token:</b> {tokenInfo.access_token}</p>
                         <p><b>Refresh Token:</b> {tokenInfo.refresh_token}</p>
-                        <p><b>Expire In:</b> {tokenInfo.expire_in} วินาที</p>
+                        <p><b>Expire In:</b> {tokenInfo.expire_in}</p>
                         <p><b>Description:</b> {tokenInfo.description}</p>
+
                         <button
                             style={styles.buttonSuccess}
                             onClick={() => window.location.href = "/accessToken"}
                         >
-                            ➡️ ไปที่ Access Token Page
+                            ⬅️ Back
                         </button>
                     </div>
                 )}

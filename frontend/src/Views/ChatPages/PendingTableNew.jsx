@@ -52,9 +52,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
             ...options,
             onPassed: async (confirm) => {
                 if (confirm) {
-                    // เริ่ม loading สำหรับปุ่มนี้
                     setLoadingStates(prev => ({ ...prev, [index]: true }));
-
                     try {
                         const { data, status } = await receiveApi(rateId, roomId);
                         if (status !== 200) {
@@ -66,10 +64,9 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                             text: 'ไม่สามารถรับเรื่องได้ กรุณาลองใหม่อีกครั้ง'
                         });
                     } finally {
-                        // หยุด loading
                         setLoadingStates(prev => ({ ...prev, [index]: false }));
                     }
-                } else {
+                } else { 
                     console.log('ไม่ได้ confirm');
                 }
             }

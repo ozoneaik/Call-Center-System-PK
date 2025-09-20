@@ -26,7 +26,6 @@ export default function MainChat() {
     const [loading, setLoading] = useState(false);
     const [showMyCasesOnly, setShowMyCasesOnly] = useState(false);
 
-    // สร้างฟังก์ชันสำหรับจัดเรียงเพื่อนำไปใช้ซ้ำ
     const sortChatsByLatestMessage = (chats) => {
         return [...chats].sort((a, b) => {
             const aTime = new Date(a.latest_message?.created_at || 0).getTime();
@@ -49,7 +48,6 @@ export default function MainChat() {
                         isUnread: unreadIds.includes(item.custId),
                     }));
 
-                    // ใช้ฟังก์ชันจัดเรียงที่สร้างไว้
                     const sortedProgress = sortChatsByLatestMessage(enrichedProgress);
 
                     setProgress(sortedProgress);
@@ -89,7 +87,6 @@ export default function MainChat() {
 
         console.log('notification >>> ', notification);
 
-
         if (notification.activeConversation.roomId === roomId) {
             if (notification.Rate.status === "progress") {
                 const find = filterProgress.find(
@@ -123,7 +120,6 @@ export default function MainChat() {
                         return item;
                     });
 
-                    // จัดเรียง array ใหม่ก่อน set state
                     const sortedUpdatedProgress = sortChatsByLatestMessage(updatedProgress);
                     setFilterProgress(sortedUpdatedProgress);
                     setProgress(sortedUpdatedProgress);
@@ -150,9 +146,8 @@ export default function MainChat() {
                         updated_at: notification.activeConversation.updated_at,
                         isUnread: true,
                     };
-                    const newProgress = filterProgress.concat(newChatItem);
 
-                    // จัดเรียง array ใหม่ก่อน set state
+                    const newProgress = filterProgress.concat(newChatItem);
                     const sortedNewProgress = sortChatsByLatestMessage(newProgress);
                     setFilterProgress(sortedNewProgress);
                     setProgress(sortedNewProgress);
@@ -194,7 +189,6 @@ export default function MainChat() {
                         return item;
                     });
 
-                    // จัดเรียง array ใหม่ก่อน set state
                     const sortedUpdatedPending = sortChatsByLatestMessage(updatedPending);
                     setFilterPending(sortedUpdatedPending);
                     setPending(sortedUpdatedPending);
@@ -223,7 +217,6 @@ export default function MainChat() {
                     };
                     const newPending = filterPending.concat(newChatItem);
 
-                    // จัดเรียง array ใหม่ก่อน set state
                     const sortedNewPending = sortChatsByLatestMessage(newPending);
                     setFilterPending(sortedNewPending);
                     setPending(sortedNewPending);
@@ -237,9 +230,13 @@ export default function MainChat() {
                 removeCase();
             }
         } else {
-            removeCase();
+            // removeCase();
+            let unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
+            if (!unreadIds.includes(notification.Rate.custId)) {
+                unreadIds.push(notification.Rate.custId);
+                localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
+            }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [notification]);
 
     const removeCase = () => {

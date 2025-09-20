@@ -188,60 +188,127 @@ class NewShopeeController extends Controller
                 $msg_formatted['content']     = $ct['video_url'] ?? ($ct['url'] ?? '');
                 $msg_formatted['contentType'] = 'video';
                 break;
-            case 'item_list':
-                $product_list = $ct['chat_product_infos'];
-                $message_real = '';
-                foreach ($product_list as $key => $product) {
-                    $imageUrl = "https://cf.shopee.co.th/file/" . $product['thumb_url'];
-                    $name     = $product['name'] ?? 'ไม่ทราบชื่อสินค้า';
-                    $minPrice = $product['min_price'] ?? 0;
-                    $maxPrice = $product['max_price'] ?? 0;
-                    $url      = "https://shopee.co.th/product/" . $product['shop_id'] . "/" . $product['item_id'];
+            // case 'item_list':
+            //     $product_list = $ct['chat_product_infos'];
+            //     $message_real = '';
+            //     foreach ($product_list as $key => $product) {
+            //         $imageUrl = "https://cf.shopee.co.th/file/" . $product['thumb_url'];
+            //         $name     = $product['name'] ?? 'ไม่ทราบชื่อสินค้า';
+            //         $minPrice = $product['min_price'] ?? 0;
+            //         $maxPrice = $product['max_price'] ?? 0;
+            //         $url      = "https://shopee.co.th/product/" . $product['shop_id'] . "/" . $product['item_id'];
 
-                    $message_real .= "รายการที่ " . ($key + 1) . "\n";
-                    $message_real .= "🖼️ รูป: {$imageUrl}\n";
-                    $message_real .= "{$name}\n";
-                    $message_real .= "ราคา : {$minPrice} - {$maxPrice} บาท\n";
-                    $message_real .= "รายละเอียด : {$url}\n\n";
+            //         $message_real .= "รายการที่ " . ($key + 1) . "\n";
+            //         $message_real .= "🖼️ รูป: {$imageUrl}\n";
+            //         $message_real .= "{$name}\n";
+            //         $message_real .= "ราคา : {$minPrice} - {$maxPrice} บาท\n";
+            //         $message_real .= "รายละเอียด : {$url}\n\n";
+            //     }
+
+            //     $msg_formatted['content']     = $message_real;
+            //     $msg_formatted['contentType'] = 'text';
+            //     break;
+            case 'item_list':
+                $product_list = $ct['chat_product_infos'] ?? [];
+                $items = [];
+
+                foreach ($product_list as $p) {
+                    $itemId  = $p['item_id'] ?? null;
+                    $shopId  = $p['shop_id'] ?? ($platform['shopee_shop_id'] ?? null);
+                    $name    = $p['name'] ?? 'ไม่ทราบชื่อสินค้า';
+                    $thumbId = $p['thumb_url'] ?? ''; // เช่น th-..._tn
+
+                    // ใช้ภาพใหญ่ขึ้น (ตัด _tn ออก ถ้ามี)
+                    $imageId = (is_string($thumbId) && str_ends_with($thumbId, '_tn'))
+                        ? substr($thumbId, 0, -3)
+                        : $thumbId;
+                    $image   = $imageId ? "https://cf.shopee.co.th/file/{$imageId}" : null;
+
+                    // ราคาเดี่ยว/ช่วงราคา/ราคาเดิม
+                    $price      = isset($p['price']) ? (float)$p['price'] : null;
+                    $priceMin   = isset($p['min_price']) ? (float)$p['min_price'] : null;
+                    $priceMax   = isset($p['max_price']) ? (float)$p['max_price'] : null;
+                    $orig       = isset($p['price_before_discount']) ? (float)$p['price_before_discount'] : null;
+
+                    $items[] = [
+                        'id'            => (string)($itemId ?? '0'),
+                        'shop_id'       => (string)($shopId ?? ''),
+                        'name'          => $name,
+                        'image'         => $image,
+                        'url'           => ($itemId && $shopId) ? "https://shopee.co.th/product/{$shopId}/{$itemId}" : null,
+                        'currency'      => 'THB',
+                        'price'         => $price ?? $priceMin ?? 0,
+                        'priceMin'      => $priceMin,
+                        'priceMax'      => $priceMax,
+                        'originalPrice' => $orig,
+                    ];
                 }
 
-                $msg_formatted['content']     = $message_real;
-                $msg_formatted['contentType'] = 'text';
+                $msg_formatted['content']     = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE);
+                $msg_formatted['contentType'] = 'item_list';
                 break;
             case 'item':
+                $itemId = $ct['item_id'] ?? null;
+                $shopId = $ct['shop_id'] ?? ($platform['shopee_shop_id'] ?? null);
+
                 $p_json = $this->getProduct(
-                    $ct['item_id'],
-                    $ct['shop_id'],
+                    $itemId,
+                    $shopId,
                     $platform['shopee_partner_id'],
                     $platform['shopee_partner_key'],
                     $platform['accessToken']
                 );
                 Log::channel('webhook_shopee_new')->info(json_encode($p_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-                $p_name = $p_json['response']['item_list'][0]['item_name'];
-                $p_name = $p_json['response']['item_list'][0]['item_name'];
-                $p_image = $p_json['response']['item_list'][0]['image']['image_url_list'][0]
-                    ?? 'ไม่มีรูป';
-                $p_action_url = "https://shopee.co.th/product/" .  $platform['shopee_shop_id'] . "/" . $p_json['response']['item_list'][0]['item_id'];
-                $p_final = "ชื่อสินค้า : $p_name\n" . "ราคา : ไม่ทราบ\n" . "รายละเอียด : $p_action_url";
+                $p = $p_json['response']['item_list'][0] ?? [];
+                $p_name   = $p['item_name'] ?? 'ไม่ทราบชื่อสินค้า';
+                $p_image  = $p['image']['image_url_list'][0] ?? null;
+                $hasModel = (bool)($p['has_model'] ?? false);
 
-                $pd['name'] = $p_name;
-                $pd['price'] = 0;
-                $pd['image'] = $p_image;
-                $pd['actionUrl'] = $p_action_url;
+                $priceInfo = $p['price_info'][0] ?? [];
+                $currency  = $priceInfo['currency'] ?? 'THB';
+                $price     = isset($priceInfo['current_price']) ? (float)$priceInfo['current_price'] : null;
+                $orig      = isset($priceInfo['original_price']) ? (float)$priceInfo['original_price'] : null;
+
+                $priceMin = null;
+                $priceMax = null;
+                if ($hasModel || $price === null) {
+                    $range = $this->getModelPriceRange(
+                        $itemId,
+                        $shopId,
+                        $platform['shopee_partner_id'],
+                        $platform['shopee_partner_key'],
+                        $platform['accessToken']
+                    );
+                    if (!empty($range)) {
+                        $currency = $range['currency'] ?? $currency;
+                        $priceMin = $range['min'] ?? null;
+                        $priceMax = $range['max'] ?? null;
+                        if ($price === null && $priceMin !== null) {
+                            $price = (float)$priceMin;
+                        }
+                    }
+                }
+
+                $p_action_url = "https://shopee.co.th/product/" .  $platform['shopee_shop_id'] . "/" . ($p['item_id'] ?? $itemId);
+
                 $pf = [
-                    "id"    => "0",
-                    "name"  => $pd['name'],
-                    "price" => $pd['price'],
-                    "image" => $pd['image'],
-                    "url"   => $pd['actionUrl']
+                    "id"             => (string)($p['item_id'] ?? $itemId ?? '0'),
+                    "name"           => $p_name,
+                    "image"          => $p_image ?: "https://cf.shopee.co.th/file/" . ($p['promotion_image']['image_id_list'][0] ?? ''),
+                    "url"            => $p_action_url,
+
+                    "currency"       => $currency,
+                    "price"          => (float)($price ?? 0),
+                    "originalPrice"  => $orig !== null ? (float)$orig : null,
+                    "priceMin"       => $priceMin !== null ? (float)$priceMin : null,
+                    "priceMax"       => $priceMax !== null ? (float)$priceMax : null
                 ];
                 $pf_json = json_encode($pf, JSON_UNESCAPED_UNICODE);
 
-                $msg_formatted['content'] = $pf_json;
+                $msg_formatted['content']     = $pf_json;
                 $msg_formatted['contentType'] = 'product';
                 break;
-
             case 'order': {
                     $ctRaw = $message_req['content'] ?? [];
                     $ct    = is_array($ctRaw) ? $ctRaw : [];
@@ -380,6 +447,54 @@ class NewShopeeController extends Controller
             'raw_content'  => $ct,
         ];
         return $msg_formatted;
+    }
+
+    private function getModelPriceRange($item_id, $shop_id, $partner_id, $partner_key, $access_token): array
+    {
+        if (empty($item_id) || empty($shop_id)) return [];
+
+        $host      = "https://partner.shopeemobile.com";
+        $path      = "/api/v2/product/get_model_list";
+        $timestamp = time();
+
+        $base_string = $partner_id . $path . $timestamp . $access_token . $shop_id;
+        $sign = hash_hmac('sha256', $base_string, $partner_key);
+
+        $url = $host . $path . '?' . http_build_query([
+            'partner_id'   => (int)$partner_id,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'shop_id'      => (int)$shop_id,
+            'access_token' => (string)$access_token,
+            'item_id'      => (string)$item_id,
+        ]);
+
+        $resp = Http::get($url);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            Log::channel('webhook_shopee_new')->warning('get_model_list error', ['resp' => $json]);
+            return [];
+        }
+
+        $models = $json['response']['model_list'] ?? $json['response']['model'] ?? [];
+        if (empty($models)) return [];
+
+        $min = null;
+        $max = null;
+        $currency = 'THB';
+        foreach ($models as $m) {
+            $pi = $m['price_info'][0] ?? [];
+            if (!isset($pi['current_price'])) continue;
+
+            $currency = $pi['currency'] ?? $currency;
+            $cp = (float)$pi['current_price'];
+            $min = ($min === null) ? $cp : min($min, $cp);
+            $max = ($max === null) ? $cp : max($max, $cp);
+        }
+
+        if ($min === null && $max === null) return [];
+        return ['min' => $min, 'max' => $max, 'currency' => $currency];
     }
 
     public static function pushReplyMessage($filter_case, $msg_id = null)
@@ -1071,7 +1186,7 @@ class NewShopeeController extends Controller
                     'message' => 'ไม่พบ Shopee platform token',
                 ], 404);
             }
-            
+
             $detailResp = $this->getOrderDetail(
                 [$orderSn],
                 $platform,

@@ -24,7 +24,7 @@ class PlatformAccessTokens extends Model
         'fb_page_id',
         'fb_verify_token',
         'room_default_id',
- 
+
         'shopee_partner_id',
         'shopee_partner_key',
         'shopee_shop_id',
@@ -32,6 +32,7 @@ class PlatformAccessTokens extends Model
         'shopee_code',
 
         'expire_at',
+        'usage_type',
 
         // 'tiktok_service_id',
         'tiktok_open_id',
