@@ -201,7 +201,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                             disabled={(index != 0 && user.role != 'admin') || loadingStates[index]}
                                             loading={loadingStates[index]}
                                         >
-                                            {loadingStates[index] ? 'กำลังรับเรื่อง...' : 'รับเรื่อง'}
+                                            {loadingStates[index] ? 'กำลังรับเรื่อง..' : 'รับเรื่อง'}
                                         </Button>
                                         <Button variant='soft' onClick={() => redirectChat(row)}>
                                             ดูข้อความ
