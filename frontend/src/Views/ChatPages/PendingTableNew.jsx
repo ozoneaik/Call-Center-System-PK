@@ -198,7 +198,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                                 roomId: row.roomId,
                                                 index: index
                                             })}
-                                            disabled={(index != 0 && user.role != 'admin') || loadingStates[index]}
+                                            // disabled={(index != 0 && user.role != 'admin') || loadingStates[index]}
                                             loading={loadingStates[index]}
                                         >
                                             {loadingStates[index] ? 'กำลังรับเรื่อง..' : 'รับเรื่อง'}
