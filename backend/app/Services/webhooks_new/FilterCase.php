@@ -287,7 +287,7 @@ class FilterCase
                     'type_send'    => 'menu',
                     'type_message' => 'reply',
                     'messages' => [[
-                        'content'     => 'ขณะนี้คุณกำลังอยู่ในห้องสแปม หากต้องการติดต่อกับเรา กรุณาโปรดเลือก เมนู ด้านล่าง',
+                        'content'     => 'ขณะนี้คุณกำลังอยู่ในห้องสแปม หากต้องการติดต่อกับเรา กรุณาโปรดเลือก เมนูด้านล่าง',
                         'contentType' => 'text',
                     ]],
                     'customer'             => $customer,
