@@ -34,6 +34,14 @@ export default function MainChat() {
         });
     };
 
+    const sortChatsByCreatedTimeAsc = (chats) => {
+        return [...chats].sort((a, b) => {
+            const aTime = new Date(a.created_at || 0).getTime();
+            const bTime = new Date(b.created_at || 0).getTime();
+            return aTime - bTime;
+        });
+    };
+
     useEffect(() => {
         const fetchChats = async () => {
             try {
@@ -49,11 +57,12 @@ export default function MainChat() {
                     }));
 
                     const sortedProgress = sortChatsByLatestMessage(enrichedProgress);
+                    const sortedPending = sortChatsByCreatedTimeAsc(data.pending);
 
                     setProgress(sortedProgress);
                     setFilterProgress(sortedProgress);
-                    setPending(data.pending);
-                    setFilterPending(data.pending);
+                    setPending(sortedPending);
+                    setFilterPending(sortedPending);
 
                     const count = sortedProgress.filter(
                         (item) => item.empCode === user.empCode
@@ -85,10 +94,9 @@ export default function MainChat() {
             return;
         }
 
-        console.log('notification >>> ', notification);
-
         if (notification.activeConversation.roomId === roomId) {
             if (notification.Rate.status === "progress") {
+                // === Progress ===
                 const find = filterProgress.find(
                     (item) => item.custId === notification.Rate.custId
                 );
@@ -158,6 +166,7 @@ export default function MainChat() {
                 );
                 setFilterPending(deletePending);
             } else if (notification.Rate.status === "pending") {
+                // === Pending ===
                 const find = filterPending.find(
                     (item) => item.custId === notification.Rate.custId
                 );
@@ -189,7 +198,7 @@ export default function MainChat() {
                         return item;
                     });
 
-                    const sortedUpdatedPending = sortChatsByLatestMessage(updatedPending);
+                    const sortedUpdatedPending = sortChatsByCreatedTimeAsc(updatedPending);
                     setFilterPending(sortedUpdatedPending);
                     setPending(sortedUpdatedPending);
 
@@ -217,7 +226,7 @@ export default function MainChat() {
                     };
                     const newPending = filterPending.concat(newChatItem);
 
-                    const sortedNewPending = sortChatsByLatestMessage(newPending);
+                    const sortedNewPending = sortChatsByCreatedTimeAsc(newPending);
                     setFilterPending(sortedNewPending);
                     setPending(sortedNewPending);
                 }
@@ -230,7 +239,6 @@ export default function MainChat() {
                 removeCase();
             }
         } else {
-            // removeCase();
             let unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
             if (!unreadIds.includes(notification.Rate.custId)) {
                 unreadIds.push(notification.Rate.custId);
@@ -250,38 +258,6 @@ export default function MainChat() {
         );
         setFilterPending(deletePending);
     };
-
-    const ContentComponent = () => (
-        <Stack
-            direction='column'
-            spacing={2}
-            sx={{
-                height: 'calc(100dvh - 140px)',
-                overflow: 'hidden'
-            }}
-        >
-            <Box>
-                <ProgressTable
-                    roomId={roomId}
-                    progress={progress}
-                    filterProgress={filterProgress}
-                    setFilterProgress={setFilterProgress}
-                    showMyCasesOnly={showMyCasesOnly}
-                    setShowMyCasesOnly={setShowMyCasesOnly}
-                />
-            </Box>
-            <Box>
-                <PendingTable
-                    setFilterPending={setFilterPending}
-                    filterPending={filterPending}
-                    disable={roomId === "ROOM00"}
-                    pending={pending}
-                    roomId={roomId}
-                    roomName={roomName}
-                />
-            </Box>
-        </Stack>
-    );
 
     return (
         <>
@@ -303,8 +279,6 @@ export default function MainChat() {
                             gap: 2,
                         }}
                     >
-                        {/* <ContentComponent/> */}
-                        {/* แบ่งพื้นที่เท่าๆ กัน 50/50 */}
                         <Box sx={{
                             flex: 1,
                             display: 'flex',
@@ -339,26 +313,8 @@ export default function MainChat() {
                             />
                         </Box>
                     </Box>
-                    // <ChatPageNew
-                    //     {...{
-                    //         setFilterPending,
-                    //         filterPending,
-                    //         disable: roomId === "ROOM00",
-                    //         pending,
-                    //         roomId,
-                    //         roomName,
-
-
-                    //         progress,
-                    //         filterProgress,
-                    //         setFilterProgress,
-                    //         showMyCasesOnly,
-                    //         setShowMyCasesOnly
-                    //     }}
-                    // />
                 )
             }
         </>
-
     );
 }

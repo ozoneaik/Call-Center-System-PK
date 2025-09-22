@@ -1,7 +1,7 @@
 import {
     Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton,
     listItemButtonClasses, ListItemContent, Typography, Sheet, GlobalStyles,
-    Button
+    Button, Input
 } from '@mui/joy';
 import Logo from '../assets/logo.png'
 import ColorSchemeToggle from '../ColorSchemeToggle';
@@ -17,6 +17,7 @@ import {
     Search, History, ThreeP, Home, Person,
     LogoutRounded, QuestionAnswerRounded
 } from '@mui/icons-material';
+import { useState } from "react";
 
 const menuList = [
     { label: 'หน้าหลัก', icon: <Home />, path: '/home' },
@@ -30,6 +31,9 @@ export default function Sidebar() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const currentRoomId = pathname.split('/')[3];
+
+    // 🔍 state สำหรับค้นหาเมนู
+    const [searchQuery, setSearchQuery] = useState("");
 
     const Logout = () => {
         AlertDiaLog({
@@ -47,14 +51,13 @@ export default function Sidebar() {
                                 localStorage.removeItem('myChatRooms');
                                 localStorage.removeItem('chatRooms');
                                 navigate('/')
-                            } else { }
+                            }
                         }
                     });
-                } else { }
+                }
             }
         });
     }
-
 
     return (
         <Sheet className="Sidebar" sx={[LayoutStyle.Sidebar.Layout]}>
@@ -70,38 +73,60 @@ export default function Sidebar() {
             />
             <Box sx={LayoutStyle.Sidebar.Overlay} onClick={() => closeSidebar()} />
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <IconButton variant="soft" color="danger" size="sm">
-                    <img src={Logo || ''} alt="" width={25} />
+                <IconButton variant="soft" color="danger" size="sm" onClick={() => navigate('/home')}>
+                    <img src={Logo || ''} alt="logo" width={25} />
                 </IconButton>
                 <Typography level="title-lg">Pumpkin Co.</Typography>
                 <ColorSchemeToggle sx={{ ml: 'auto' }} />
             </Box>
             <Box sx={{ ...LayoutStyle.Sidebar.ListItemButton, [`& .${listItemButtonClasses.root}`]: { gap: 1.5, }, }}>
+
+                {/* 🔍 กล่องค้นหาเมนู */}
+                <Box sx={{ my: 1 }}>
+                    <Input
+                        size="sm"
+                        placeholder="ค้นหาเมนู..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </Box>
+
                 <List size="sm" sx={LayoutStyle.Sidebar.List}>
-                    {menuList.map((item, index) => (
-                        <ListItem component={Link} to={item.path} key={index}>
-                            <ListItemButton selected={pathname === item.path}>
-                                {item.icon}
-                                <ListItemContent>
-                                    <Typography level="title-sm">{item.label}</Typography>
-                                </ListItemContent>
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                    {myRoomContext && myRoomContext.length > 0 && (
-                        myRoomContext.map((chatRoom, index) => (
-                            <ListItem key={index} component={Link}
-                                to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
-                                <ListItemButton selected={currentRoomId === chatRoom.roomId}>
-                                    <QuestionAnswerRounded />
+                    {menuList
+                        .filter((item) =>
+                            item.label.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((item, index) => (
+                            <ListItem component={Link} to={item.path} key={index}>
+                                <ListItemButton selected={pathname === item.path}>
+                                    {item.icon}
                                     <ListItemContent>
-                                        <Typography level="title-sm">{chatRoom.roomName}</Typography>
+                                        <Typography level="title-sm">{item.label}</Typography>
                                     </ListItemContent>
                                 </ListItemButton>
                             </ListItem>
-                        ))
+                        ))}
+
+                    {/* รายการห้องแชท */}
+                    {myRoomContext && myRoomContext.length > 0 && (
+                        myRoomContext
+                            .filter((chatRoom) =>
+                                chatRoom.roomName.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
+                            .map((chatRoom, index) => (
+                                <ListItem key={index} component={Link}
+                                    to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}>
+                                    <ListItemButton selected={currentRoomId === chatRoom.roomId}>
+                                        <QuestionAnswerRounded />
+                                        <ListItemContent>
+                                            <Typography level="title-sm">{chatRoom.roomName}</Typography>
+                                        </ListItemContent>
+                                    </ListItemButton>
+                                </ListItem>
+                            ))
                     )}
                 </List>
+
                 <Typography startDecorator={<Person />} level='body-sm' mt={3}>รายการของท่าน</Typography>
                 <Divider />
                 <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
@@ -112,7 +137,10 @@ export default function Sidebar() {
                         </ListItemButton>
                     </ListItem>
                 </List>
-                {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user} />}
+                {/* {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user} />} */}
+                {user.role === 'admin' && (
+                    <SidebarAdmin pathname={pathname} user={user} searchQuery={searchQuery} />
+                )}
             </Box>
             <Divider />
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', cursor: 'pointer' }} component={Link} to={'/profile'}>
