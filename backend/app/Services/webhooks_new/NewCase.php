@@ -8,6 +8,7 @@ use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class NewCase
@@ -119,6 +120,137 @@ class NewCase
             return ['status' => false, 'message' => 'เกิดข้อผิดพลาดในการสร้างเคสใหม่: ' . $e->getMessage()];
         }
     }
+
+    //กรองเคสสำหรับเคสที่คาดว่าเป็นสแปม 
+    // public function case($message, $customer, $platformAccessToken, $bot)
+    // {
+    //     try {
+    //         Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสใหม่ ไม่เคยสร้างเคส');
+    //         $now = Carbon::now();
+
+    //         $prediction = null;
+    //         try {
+    //             if ($message['contentType'] === 'image' && isset($message['file_path'])) {
+    //                 $response = Http::attach(
+    //                     'file',
+    //                     file_get_contents($message['file_path']),
+    //                     basename($message['file_path'])
+    //                 )->post("https://e30e4a913322.ngrok-free.app/predict");
+    //             } else {
+    //                 $response = Http::post("https://e30e4a913322.ngrok-free.app/predict_url", [
+    //                     'url' => $message['content']
+    //                 ]);
+    //             }
+
+    //             if ($response->successful()) {
+    //                 $prediction = $response->json('prediction');
+    //             }
+    //         } catch (\Exception $e) {
+    //             Log::channel('webhook_main')->error("Spam check API error: " . $e->getMessage());
+    //         }
+
+    //         if (in_array($prediction, ['GREETING', 'NSFW'])) {
+    //             $roomId = 'ROOM12';   // ห้องสแปม
+    //             $status = 'pending';
+    //         } else {
+    //             $keyword = $this->checkKeyword->check($message);
+    //             if ($keyword['status']) {
+    //                 $roomId = $keyword['redirectTo'];
+    //                 $status = 'pending';
+    //             } else {
+    //                 $roomId = 'ROOM00'; // ห้องบอท
+    //                 $status = 'progress';
+    //             }
+    //         }
+
+    //         $new_rate = Rates::query()->create([
+    //             'custId' => $customer['custId'],
+    //             'latestRoomId' => $roomId,
+    //             'status' => $status,
+    //             'rate' => 0,
+    //         ]);
+
+    //         $new_ac = ActiveConversations::query()->create([
+    //             'custId' => $customer['custId'],
+    //             'roomId' => $roomId,
+    //             'receiveAt' => $status === 'pending' ? null : $now,
+    //             'startTime' => $status === 'pending' ? null : $now,
+    //             'empCode' => $bot['empCode'],
+    //             'rateRef' => $new_rate['id']
+    //         ]);
+
+    //         ChatHistory::query()->create([
+    //             'custId' => $customer['custId'],
+    //             'content' => $message['content'],
+    //             'contentType' => $message['contentType'],
+    //             'sender' => json_encode($customer),
+    //             'conversationRef' => $new_ac['id'],
+    //             'line_message_id' => $message['line_message_id'] ?? null,
+    //             'line_quote_token' => $message['line_quote_token'] ?? null,
+    //             'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null,
+    //         ]);
+
+    //         $this->pusherService->sendNotification($customer['custId']);
+
+    //         if ($roomId === 'ROOM00') {
+    //             $content = "สวัสดีคุณ" . $customer['custName'];
+    //             $content .= " เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น";
+    //             $content .= " กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
+
+    //             return [
+    //                 'status' => true,
+    //                 'send_to_cust' => true,
+    //                 'type_send' => 'menu',
+    //                 'type_message' => 'reply',
+    //                 'messages' => [
+    //                     [
+    //                         'content' => $content,
+    //                         'contentType' => 'text'
+    //                     ]
+    //                 ],
+    //                 'customer' => $customer,
+    //                 'ac_id' => $new_ac['id'],
+    //                 'platform_access_token' => $platformAccessToken,
+    //                 'reply_token' => $message['reply_token'],
+    //                 'bot' => $bot
+    //             ];
+    //         } elseif ($roomId === 'ROOM12') {
+    //             return [
+    //                 'status' => true,
+    //                 'send_to_cust' => false,
+    //                 'type_send' => 'spam',
+    //                 'type_message' => 'system',
+    //                 'messages' => [],
+    //                 'customer' => $customer,
+    //                 'ac_id' => $new_ac['id'],
+    //                 'platform_access_token' => $platformAccessToken,
+    //                 'reply_token' => $message['reply_token'],
+    //                 'bot' => $bot
+    //             ];
+    //         } else {
+    //             return [
+    //                 'status' => true,
+    //                 'send_to_cust' => true,
+    //                 'type_send' => 'sended',
+    //                 'type_message' => 'reply',
+    //                 'messages' => [
+    //                     [
+    //                         'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+    //                         'contentType' => 'text'
+    //                     ]
+    //                 ],
+    //                 'customer' => $customer,
+    //                 'ac_id' => $new_ac['id'],
+    //                 'platform_access_token' => $platformAccessToken,
+    //                 'reply_token' => $message['reply_token'],
+    //                 'bot' => $bot
+    //             ];
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::channel('webhook_main')->error('เกิดข้อผิดพลาดในการสร้างเคสใหม่: ' . $e->getMessage());
+    //         return ['status' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
+    //     }
+    // }
 
     public static function formatBotMenu($custName, $platForm, $platFrom_id)
     {

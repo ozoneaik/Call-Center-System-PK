@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ImagePredictController;
 use App\Http\Controllers\PlatformTokenController;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
@@ -73,4 +74,10 @@ Route::prefix('webhook-new')->group(function () {
         Route::get('/', function () {});
         Route::post('/', function () {});
     });
+
+    //สำหรับวิเคราะห์เคสสแปม
+    // Route::prefix('predict')->group(function () {
+    //     Route::post('/url', [ImagePredictController::class, 'predictFromUrl']);
+    //     Route::post('/upload', [ImagePredictController::class, 'predictUpload']);
+    // });
 });
