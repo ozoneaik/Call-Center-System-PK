@@ -9,60 +9,54 @@ import {
   CircularProgress,
   Table,
 } from "@mui/joy";
-import { ChatPageStyle } from "../../styles/ChatPageStyle"; // Assuming this contains table styles
+import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs";
-import { useEffect, useState } from "react";
-import { myCaseApi } from "../../Api/Messages"; // Assuming myCaseApi fetches the data
-import { convertFullDate } from "../../Components/Options"; // Assuming convertFullDate formats as D/M/YYYY HH:MM:SS
+import { useEffect, useState, memo } from "react";
+import { myCaseApi } from "../../Api/Messages";
+import { convertFullDate } from "../../Components/Options";
 import { useLocation, useNavigate } from "react-router-dom";
-
-// Import specific Material-UI Icons
 import ChatIcon from "@mui/icons-material/Chat";
-import DateRangeIcon from "@mui/icons-material/DateRange"; // For calendar/date
-import AccessTimeIcon from "@mui/icons-material/AccessTime"; // For clock/time
-import SearchIcon from "@mui/icons-material/Search"; // For search time/duration
+import DateRangeIcon from "@mui/icons-material/DateRange";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { useNotification } from "../../context/NotiContext";
+import { useAuth } from "../../context/AuthContext";
 
-// Helper component for displaying the "เวลาที่สนทนา" (Chat Duration)
-// This component needs to calculate the elapsed time from a given startTime.
 const TimeDisplay = ({ startTime }) => {
   const [duration, setDuration] = useState("ยังไม่เริ่มสนทนา");
 
   useEffect(() => {
-    if (startTime) {
-      const start = new Date(startTime);
-      const updateDuration = () => {
-        const now = new Date();
-        const diffMs = now.getTime() - start.getTime(); // Difference in milliseconds
-
-        const seconds = Math.floor(diffMs / 1000) % 60;
-        const minutes = Math.floor(diffMs / (1000 * 60)) % 60;
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-
-        let durationText = "";
-        if (hours > 0) durationText += `${hours} ชั่วโมง `;
-        if (minutes > 0) durationText += `${minutes} นาที `;
-        durationText += `${seconds} วินาที`;
-
-        // Add "วันนี้เมื่อ" if it's today's conversation
-        const today = new Date();
-        if (start.toDateString() === today.toDateString()) {
-          durationText = `วันนี้เมื่อ ${durationText} ที่แล้ว`;
-        } else {
-          // For longer durations or past dates, you might want a different format
-          durationText = `${durationText} ที่แล้ว`;
-        }
-
-        setDuration(durationText.trim());
-      };
-
-      // Update every second for real-time duration
-      const interval = setInterval(updateDuration, 1000);
-      updateDuration(); // Initial call
-
-      return () => clearInterval(interval); // Cleanup on unmount
-    } else {
+    if (!startTime) {
       setDuration("ยังไม่เริ่มสนทนา");
+      return;
     }
+    const start = new Date(startTime);
+
+    const updateDuration = () => {
+      const now = new Date();
+      const diffMs = now.getTime() - start.getTime();
+
+      const seconds = Math.floor(diffMs / 1000) % 60;
+      const minutes = Math.floor(diffMs / (1000 * 60)) % 60;
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+
+      let durationText = "";
+      if (hours > 0) durationText += `${hours} ชั่วโมง `;
+      if (minutes > 0) durationText += `${minutes} นาที `;
+      durationText += `${seconds} วินาที`;
+
+      const today = new Date();
+      if (start.toDateString() === today.toDateString()) {
+        durationText = `วันนี้เมื่อ ${durationText} ที่แล้ว`;
+      } else {
+        durationText = `${durationText} ที่แล้ว`;
+      }
+
+      setDuration(durationText.trim());
+    };
+
+    const interval = setInterval(updateDuration, 1000);
+    updateDuration();
+    return () => clearInterval(interval);
   }, [startTime]);
 
   return (
@@ -72,42 +66,45 @@ const TimeDisplay = ({ startTime }) => {
   );
 };
 
-// Assuming IntroChat component looks something like this (adapted from previous solution)
-const IntroChat = ({ data }) => (
-  <Stack spacing={0.5}>
-    <Stack direction="row" spacing={1} alignItems="center">
-      <Avatar
-        color="primary"
-        variant="solid"
-        size="sm"
-        src={data.avatar || ""}
-      />
-      <Stack>
-        <Typography level="body-sm" color="primary" fontWeight="bold">
-          {data.custName}
-        </Typography>
-        <Typography level="body-xs" textColor="text.tertiary">
-          (รหัสอ้างอิง A{data.id}R{data.rateRef})
-        </Typography>
+const IntroChat = memo(({ data }) => {
+  return (
+    <Stack spacing={0.5}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Avatar
+          color="primary"
+          variant="solid"
+          size="sm"
+          src={data.avatar || ""}
+        />
+        <Stack>
+          <Typography level="body-sm" color="primary" fontWeight="bold">
+            {data.custName}
+          </Typography>
+          <Typography level="body-xs" textColor="text.tertiary">
+            (รหัสอ้างอิง A{data.id}R{data.rateRef})
+          </Typography>
+        </Stack>
       </Stack>
-    </Stack>
-    <Typography level="body-xs" textColor="text.secondary">
-      ติดต่อมาจาก {data.source || "cal-center"}{" "}
-      {/* Assuming data.source for "ติดต่อมาจาก cal-center" */}
-    </Typography>
-    <Chip
-      variant="soft"
-      color="neutral"
-      size="sm"
-      startDecorator={<ChatIcon sx={{ fontSize: "0.875rem" }} />}
-      sx={{ alignSelf: "flex-start" }} // Align chip to start within the stack
-    >
-      <Typography level="body-xs" noWrap maxWidth={250}>
-        ข้อความล่าสุด: {data.latest_message?.content || "ไม่มีข้อความ"}
+
+      <Typography level="body-xs" textColor="text.secondary">
+        ติดต่อมาจาก {data.source || "cal-center"}
       </Typography>
-    </Chip>
-  </Stack>
-);
+
+      <Chip
+        variant="soft"
+        color="neutral"
+        size="sm"
+        startDecorator={<ChatIcon sx={{ fontSize: "0.875rem" }} />}
+        sx={{ alignSelf: "flex-start" }}
+      >
+        <Typography level="body-xs" noWrap maxWidth={250}>
+          ข้อความล่าสุด: {data.latest_message?.content || "ไม่มีข้อความ"}
+        </Typography>
+      </Chip>
+    </Stack>
+  );
+});
+IntroChat.displayName = "IntroChat";
 
 const BreadcrumbsPath = [{ name: "เคสของฉัน" }, { name: "รายละเอียด" }];
 
@@ -116,35 +113,103 @@ export default function MyCasePage() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Use a different state name for filtered data if `filterProgress` is a derived state
-  // For this example, I'll directly use `list` from `myCaseApi` as `filterProgress`
-  // If you have a separate filtering logic, keep `filterProgress`
-  const filterProgress = list; // Assuming 'list' from API is what you want to display
+  const { notification } = useNotification();
+  const { user } = useAuth();
+  const filterProgress = list;
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!notification) return;
+    if (notification.message && notification.Rate?.status === "progress") {
+      if (notification.activeConversation?.empCode === user.empCode) {
+        setList((prev) => {
+          const index = prev.findIndex(
+            (item) => item.custId === notification.customer.custId
+          );
+          const sender = notification.message.sender || {};
+          const isCustomer = !!sender.custId;
+
+          if (index === -1) {
+            // ยังไม่มี → append
+            console.log(
+              "🟢 append เคสใหม่:",
+              notification.customer.custName,
+              "custId:",
+              notification.customer.custId
+            );
+            return [
+              ...prev,
+              {
+                id: notification.activeConversation.id,
+                custId: notification.customer.custId,
+                custName: notification.customer.custName,
+                avatar: notification.customer.avatar,
+                description: notification.customer.description,
+                empCode: notification.activeConversation.empCode,
+                empName: notification.activeConversation.empName,
+                rateRef: notification.Rate.id,
+                receiveAt: notification.activeConversation.receiveAt,
+                startTime: notification.activeConversation.startTime,
+                latest_message: {
+                  content: notification.message.content,
+                  contentType: notification.message.contentType,
+                  sender,
+                  created_at: notification.message.created_at,
+                },
+                has_new_message: isCustomer,
+              },
+            ];
+          } else {
+            console.log(
+              "✏️ update แถวเดิม:",
+              prev[index].custName,
+              "custId:",
+              prev[index].custId,
+              "isCustomer?",
+              isCustomer
+            );
+            const newList = [...prev];
+            newList[index] = {
+              ...newList[index],
+              has_new_message: isCustomer,
+              latest_message: {
+                content: notification.message.content,
+                contentType: notification.message.contentType,
+                sender,
+                created_at: notification.message.created_at,
+              },
+            };
+            return newList;
+          }
+        });
+      } else {
+        console.log("⏩ ข้าม update เพราะไม่ใช่เคสของ user นี้");
+      }
+    }
+  }, [notification, user.empCode]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const { data, status } = await myCaseApi();
-      console.log(data);
       if (status === 200 && data.result) {
         setList(data.result);
       } else {
-        setList([]); // Ensure list is empty on error or no results
+        setList([]);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      setList([]); // Set list to empty on error
+      setList([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleChat = (rateRef, id, custId) => {
+    localStorage.setItem("chat_update", Date.now());
     const params = `/select/message/${rateRef}/${id}/${custId}/1`;
     navigate(params, { state: { from: location } });
   };
@@ -179,8 +244,7 @@ export default function MyCasePage() {
                   <th style={{ width: 300 }}>ชื่อลูกค้า</th>
                   <th style={{ width: 200 }}>พนักงานรับเรื่อง</th>
                   <th style={{ width: 200 }}>วันที่รับเรื่อง</th>
-                  <th style={{ width: 200 }}>เวลาเริ่มต้น</th>{" "}
-                  {/* Corrected header text */}
+                  <th style={{ width: 200 }}>เวลาเริ่มต้น</th>
                   <th style={{ width: 200 }}>เวลาที่สนทนา</th>
                   <th style={{ width: 150 }}>จัดการ</th>
                 </tr>
@@ -188,8 +252,18 @@ export default function MyCasePage() {
               <tbody>
                 {filterProgress && filterProgress.length > 0 ? (
                   filterProgress.map((data, index) => (
+
                     <tr key={index}>
-                      <td style={{ overflow: "hidden" }}>
+                      <td
+                        style={{
+                          overflow: "hidden",
+                          position: "relative",
+                          ...(data.has_new_message && {
+                            borderLeft: "4px solid #4caf50",
+                            paddingLeft: "12px",
+                          }),
+                        }}
+                      >
                         <IntroChat data={data} />
                       </td>
                       <td>
@@ -201,8 +275,7 @@ export default function MyCasePage() {
                               sx={{ mr: 1 }}
                               src={data.empAvatar || ""}
                             />
-                          )}{" "}
-                          {/* Added src for avatar */}
+                          )}
                           <Typography>{data.empName || "-"}</Typography>
                         </div>
                       </td>
@@ -225,8 +298,6 @@ export default function MyCasePage() {
                           color="warning"
                           startDecorator={<AccessTimeIcon />}
                         >
-                          {" "}
-                          {/* Changed to AccessTimeIcon */}
                           <Typography sx={ChatPageStyle.TableText}>
                             {data.startTime
                               ? convertFullDate(data.startTime)
@@ -243,21 +314,17 @@ export default function MyCasePage() {
                             handleChat(data.rateRef, data.id, data.custId)
                           }
                           size="sm"
-                          variant="soft" // Changed to 'soft' for a lighter look, like the image
+                          variant="soft"
                           startDecorator={<ChatIcon />}
                         >
-                          <Typography>ข้อความ</Typography>{" "}
-                          {/* Changed to "ข้อความ" as in the image */}
+                          <Typography>ข้อความ</Typography>
                         </Button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan={6}
-                      style={{ textAlign: "center", padding: "20px" }}
-                    >
+                    <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
                       <Chip variant="solid" color="primary">
                         ไม่มีข้อมูล
                       </Chip>

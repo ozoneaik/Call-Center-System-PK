@@ -41,6 +41,83 @@ class DisplayController extends Controller
         ]);
     }
 
+    // public function selectMessage($custId, $from, selectMessageRequest $request): JsonResponse
+    // {
+    //     $detail = 'ไม่มีข้อผิดพลาด';
+    //     try {
+    //         $list = $this->displayService->selectMessage($custId);
+    //         if (!$list) throw new \Exception('เกิดปัญหาในการ query select');
+    //         if ($list->isEmpty()) throw new \Exception('ไม่พบรายการ Chat');
+    //         $sender = Customers::query()->where('custId', $custId)->first();
+    //         if (!$sender) throw new \Exception('ไม่พบ sender');
+    //         $emp = $this->displayService->getEmpReply($request['activeId']);
+    //         $room = ActiveConversations::query()->where('id', $request['activeId'])->first();
+    //         $room = ChatRooms::query()->where('roomId', $room['roomId'])->first();
+    //         if (!$emp) {
+    //             if ($from === 'S') {
+    //                 $emp = 0000;
+    //             } else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+    //         };
+    //         //            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+    //         $sender['emp'] = $emp;
+
+    //         $starList = Rates::query()
+    //             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+    //             ->select('rates.rate', 'rates.tag', 'rates.updated_at', 'tag_menus.tagName')
+    //             ->where('rates.custId', $custId)
+    //             ->orderBy('rates.updated_at', 'desc')
+    //             ->get();
+
+    //         $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
+
+
+    //         $platformRow = DB::table('platform_access_tokens')
+    //             ->where('id', $sender->platformRef)
+    //             ->first();
+
+    //         $platformName = $platformRow->platform ?? null;
+
+    //         $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')
+    //             ->where('platform_name', '!=', $platformName)
+    //             ->pluck('tag_id')
+    //             ->toArray();
+
+    //         $tags = DB::table('tag_by_platforms')
+    //             ->join('tag_menus', 'tag_by_platforms.tag_id', '=', 'tag_menus.id')
+    //             ->select('tag_menus.id', 'tag_menus.tagName')
+    //             ->where('tag_by_platforms.platform_name', $platformName)
+    //             ->whereNotIn('tag_menus.id', $usedTagsByOtherPlatforms)
+    //             ->distinct()
+    //             ->get();
+
+    //         if ($tags->isEmpty()) {
+    //             $tags = TagMenu::select('id', 'tagName', 'require_note')
+    //                 ->whereNotIn('id', $usedTagsByOtherPlatforms)
+    //                 ->distinct()
+    //                 ->get();
+    //         }
+
+    //         $message = 'ดึงข้อมูลสำเร็จ';
+    //         $status = 200;
+    //     } catch (\Exception $e) {
+    //         $detail = $e->getMessage();
+    //     } finally {
+    //         return response()->json([
+    //             'message' => $message ?? 'เกิดข้อผิดพลาด',
+    //             'detail' => $detail,
+    //             'room' => $room ?? [],
+    //             'rateId' => $request['rateId'],
+    //             'activeId' => $request['activeId'],
+    //             'sender' => $sender ?? [],
+    //             'custId' => $custId,
+    //             'list' => $list ?? [],
+    //             'starList' => $starList ?? [],
+    //             'notes' => $notes ?? [],
+    //             'tags' => $tags ?? []
+    //         ], $status ?? 400);
+    //     }
+    // }
+
     public function selectMessage($custId, $from, selectMessageRequest $request): JsonResponse
     {
         $detail = 'ไม่มีข้อผิดพลาด';
@@ -48,18 +125,28 @@ class DisplayController extends Controller
             $list = $this->displayService->selectMessage($custId);
             if (!$list) throw new \Exception('เกิดปัญหาในการ query select');
             if ($list->isEmpty()) throw new \Exception('ไม่พบรายการ Chat');
+
             $sender = Customers::query()->where('custId', $custId)->first();
             if (!$sender) throw new \Exception('ไม่พบ sender');
+
             $emp = $this->displayService->getEmpReply($request['activeId']);
             $room = ActiveConversations::query()->where('id', $request['activeId'])->first();
             $room = ChatRooms::query()->where('roomId', $room['roomId'])->first();
+
             if (!$emp) {
                 if ($from === 'S') {
                     $emp = 0000;
                 } else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
-            };
-            //            if (!$emp) throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
+            }
             $sender['emp'] = $emp;
+
+            // ⭐ Mark ข้อความจากลูกค้าในเคสนี้ว่าอ่านแล้ว
+            ChatHistory::where('custId', $custId)
+                ->whereRaw("jsonb_exists(sender::jsonb, 'custId')")
+                ->where(function ($q) {
+                    $q->where('is_read', false)->orWhereNull('is_read');
+                })
+                ->update(['is_read' => true]);
 
             $starList = Rates::query()
                 ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
@@ -69,7 +156,6 @@ class DisplayController extends Controller
                 ->get();
 
             $notes = Notes::query()->where('custId', $custId)->orderBy('created_at', 'desc')->get();
-
 
             $platformRow = DB::table('platform_access_tokens')
                 ->where('id', $sender->platformRef)
@@ -162,15 +248,51 @@ class DisplayController extends Controller
         ]);
     }
 
+    // public function myCase()
+    // {
+    //     $result = Rates::query()->leftJoin('active_conversations', 'active_conversations.rateRef', '=', 'rates.id')
+    //         ->leftJoin('customers', 'rates.custId', 'customers.custId')
+    //         ->leftJoin('users', 'active_conversations.empCode', 'users.empCode')
+    //         ->leftJoin('chat_rooms', 'active_conversations.from_roomId', 'chat_rooms.roomId')
+    //         ->where('rates.status', 'progress')
+    //         ->where('active_conversations.empCode', auth()->user()->empCode)
+    //         ->where('active_conversations.endTime', null)
+    //         ->select(
+    //             'chat_rooms.roomName',
+    //             'customers.custName',
+    //             'customers.avatar',
+    //             'customers.description',
+    //             'active_conversations.*',
+    //             'rates.status',
+    //             'users.name as empName',
+    //             'rates.created_at as rate_created_at',
+    //             'rates.updated_at as rate_updated_at'
+    //         )
+    //         ->orderBy('updated_at', 'asc')
+    //         ->get();
+
+    //     foreach ($result as $key => $value) {
+    //         $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
+    //             ->orderBy('id', 'desc')
+    //             ->first();
+    //         $value->latest_message = $latest_message;
+    //     }
+    //     return response()->json([
+    //         'message' => 'myCase',
+    //         'result' => $result
+    //     ]);
+    // }
+
     public function myCase()
     {
-        $result = Rates::query()->leftJoin('active_conversations', 'active_conversations.rateRef', '=', 'rates.id')
+        $result = Rates::query()
+            ->leftJoin('active_conversations', 'active_conversations.rateRef', '=', 'rates.id')
             ->leftJoin('customers', 'rates.custId', 'customers.custId')
             ->leftJoin('users', 'active_conversations.empCode', 'users.empCode')
             ->leftJoin('chat_rooms', 'active_conversations.from_roomId', 'chat_rooms.roomId')
             ->where('rates.status', 'progress')
             ->where('active_conversations.empCode', auth()->user()->empCode)
-            ->where('active_conversations.endTime', null)
+            ->whereNull('active_conversations.endTime')
             ->select(
                 'chat_rooms.roomName',
                 'customers.custName',
@@ -185,12 +307,25 @@ class DisplayController extends Controller
             ->orderBy('updated_at', 'asc')
             ->get();
 
-        foreach ($result as $key => $value) {
-            $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
-                ->orderBy('id', 'desc')
+        foreach ($result as $value) {
+            $latest_message = ChatHistory::query()
+                ->select('id', 'content', 'contentType', 'sender', 'is_read', 'created_at')
+                ->where('custId', $value->custId)
+                ->orderByDesc('id')
                 ->first();
+
             $value->latest_message = $latest_message;
+
+            // ✅ จุดเขียว = ข้อความจากลูกค้า + ยังไม่ได้อ่าน
+            $value->has_new_message = false;
+            if ($latest_message) {
+                $sender = json_decode($latest_message->sender, true);
+                if (isset($sender['custId']) && empty($latest_message->is_read)) {
+                    $value->has_new_message = true;
+                }
+            }
         }
+
         return response()->json([
             'message' => 'myCase',
             'result' => $result
