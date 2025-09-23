@@ -133,7 +133,6 @@ export default function MyCasePage() {
           const isCustomer = !!sender.custId;
 
           if (index === -1) {
-            // ยังไม่มี → append
             console.log(
               "🟢 append เคสใหม่:",
               notification.customer.custName,
