@@ -8,7 +8,6 @@ import {
   Chip,
   CircularProgress,
   Table,
-  Badge
 } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle"; // Assuming this contains table styles
 import BreadcrumbsComponent from "../../Components/Breadcrumbs";
@@ -16,13 +15,15 @@ import { useEffect, useState } from "react";
 import { myCaseApi } from "../../Api/Messages"; // Assuming myCaseApi fetches the data
 import { convertFullDate } from "../../Components/Options"; // Assuming convertFullDate formats as D/M/YYYY HH:MM:SS
 import { useLocation, useNavigate } from "react-router-dom";
-import { useNotification } from "../../context/NotiContext.jsx";
 
+// Import specific Material-UI Icons
 import ChatIcon from "@mui/icons-material/Chat";
 import DateRangeIcon from "@mui/icons-material/DateRange"; // For calendar/date
 import AccessTimeIcon from "@mui/icons-material/AccessTime"; // For clock/time
 import SearchIcon from "@mui/icons-material/Search"; // For search time/duration
 
+// Helper component for displaying the "เวลาที่สนทนา" (Chat Duration)
+// This component needs to calculate the elapsed time from a given startTime.
 const TimeDisplay = ({ startTime }) => {
   const [duration, setDuration] = useState("ยังไม่เริ่มสนทนา");
 
@@ -31,7 +32,7 @@ const TimeDisplay = ({ startTime }) => {
       const start = new Date(startTime);
       const updateDuration = () => {
         const now = new Date();
-        const diffMs = now.getTime() - start.getTime(); 
+        const diffMs = now.getTime() - start.getTime(); // Difference in milliseconds
 
         const seconds = Math.floor(diffMs / 1000) % 60;
         const minutes = Math.floor(diffMs / (1000 * 60)) % 60;
@@ -42,20 +43,23 @@ const TimeDisplay = ({ startTime }) => {
         if (minutes > 0) durationText += `${minutes} นาที `;
         durationText += `${seconds} วินาที`;
 
+        // Add "วันนี้เมื่อ" if it's today's conversation
         const today = new Date();
         if (start.toDateString() === today.toDateString()) {
           durationText = `วันนี้เมื่อ ${durationText} ที่แล้ว`;
         } else {
+          // For longer durations or past dates, you might want a different format
           durationText = `${durationText} ที่แล้ว`;
         }
 
         setDuration(durationText.trim());
       };
 
+      // Update every second for real-time duration
       const interval = setInterval(updateDuration, 1000);
-      updateDuration(); 
+      updateDuration(); // Initial call
 
-      return () => clearInterval(interval); 
+      return () => clearInterval(interval); // Cleanup on unmount
     } else {
       setDuration("ยังไม่เริ่มสนทนา");
     }
@@ -68,33 +72,16 @@ const TimeDisplay = ({ startTime }) => {
   );
 };
 
+// Assuming IntroChat component looks something like this (adapted from previous solution)
 const IntroChat = ({ data }) => (
   <Stack spacing={0.5}>
     <Stack direction="row" spacing={1} alignItems="center">
-      {data.isUnread ? (
-        <Badge
-          color="success"
-          variant="solid"
-          size="md"
-          anchorOrigin={{ vertical: "top", horizontal: "left" }}
-          badgeInset="8%"
-        >
-          <Avatar
-            color="primary"
-            variant="solid"
-            size="sm"
-            src={data.avatar || ""}
-          />
-        </Badge>
-      ) : (
-        <Avatar
-          color="primary"
-          variant="solid"
-          size="sm"
-          src={data.avatar || ""}
-        />
-      )}
-
+      <Avatar
+        color="primary"
+        variant="solid"
+        size="sm"
+        src={data.avatar || ""}
+      />
       <Stack>
         <Typography level="body-sm" color="primary" fontWeight="bold">
           {data.custName}
@@ -104,17 +91,16 @@ const IntroChat = ({ data }) => (
         </Typography>
       </Stack>
     </Stack>
-
     <Typography level="body-xs" textColor="text.secondary">
-      ติดต่อมาจาก {data.source || "cal-center"}
+      ติดต่อมาจาก {data.source || "cal-center"}{" "}
+      {/* Assuming data.source for "ติดต่อมาจาก cal-center" */}
     </Typography>
-
     <Chip
       variant="soft"
       color="neutral"
       size="sm"
       startDecorator={<ChatIcon sx={{ fontSize: "0.875rem" }} />}
-      sx={{ alignSelf: "flex-start" }}
+      sx={{ alignSelf: "flex-start" }} // Align chip to start within the stack
     >
       <Typography level="body-xs" noWrap maxWidth={250}>
         ข้อความล่าสุด: {data.latest_message?.content || "ไม่มีข้อความ"}
@@ -126,93 +112,39 @@ const IntroChat = ({ data }) => (
 const BreadcrumbsPath = [{ name: "เคสของฉัน" }, { name: "รายละเอียด" }];
 
 export default function MyCasePage() {
-  const { notification } = useNotification();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const filterProgress = list; 
+
+  // Use a different state name for filtered data if `filterProgress` is a derived state
+  // For this example, I'll directly use `list` from `myCaseApi` as `filterProgress`
+  // If you have a separate filtering logic, keep `filterProgress`
+  const filterProgress = list; // Assuming 'list' from API is what you want to display
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (!notification || !notification.message) return;
-
-    setList(prevList => {
-      const updatedList = updateOrInsert(prevList, notification);
-      return sortChatsByLatestMessage(updatedList);
-    });
-  }, [notification]);
-
   const fetchData = async () => {
     setLoading(true);
     try {
       const { data, status } = await myCaseApi();
+      console.log(data);
       if (status === 200 && data.result) {
-        const unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
-
-        let enrichedList = data.result.map(item => ({
-          ...item,
-          isUnread: unreadIds.includes(item.custId),
-        }));
-
-        enrichedList = sortChatsByLatestMessage(enrichedList);
-
-        setList(enrichedList);
+        setList(data.result);
       } else {
-        setList([]);
+        setList([]); // Ensure list is empty on error or no results
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      setList([]);
+      setList([]); // Set list to empty on error
     } finally {
       setLoading(false);
     }
   };
 
-  const updateOrInsert = (list, noti) => {
-    const existsIndex = list.findIndex(item => item.custId === noti.Rate.custId);
-    if (existsIndex >= 0) {
-      const newList = [...list];
-      newList[existsIndex] = {
-        ...newList[existsIndex],
-        latest_message: noti.message,
-        isUnread: true,
-      };
-      return newList;
-    }
-    return [...list, {
-      id: noti.activeConversation.id,
-      custId: noti.customer.custId,
-      custName: noti.customer.custName,
-      avatar: noti.customer.avatar,
-      rateRef: noti.Rate.id,
-      latest_message: noti.message,
-      isUnread: true,
-    }];
-  };
-
-  const sortChatsByLatestMessage = (chats) => {
-    return [...chats].sort((a, b) => {
-      const aTime = new Date(a.latest_message?.created_at || 0).getTime();
-      const bTime = new Date(b.latest_message?.created_at || 0).getTime();
-      return bTime - aTime;
-    });
-  };
-
   const handleChat = (rateRef, id, custId) => {
-    setList(prev =>
-      prev.map(item =>
-        item.custId === custId ? { ...item, isUnread: false } : item
-      )
-    );
-
-    let unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
-    unreadIds = unreadIds.filter(uid => uid !== custId);
-    localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
-
     const params = `/select/message/${rateRef}/${id}/${custId}/1`;
     navigate(params, { state: { from: location } });
   };

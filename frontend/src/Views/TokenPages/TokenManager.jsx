@@ -4,7 +4,7 @@ import axiosClient from "../../Axios";
 
 export default function TokenManager() {
     const [platform, setPlatform] = useState("shopee");
-    const [usageType, setUsageType] = useState("chat"); 
+    const [usageType, setUsageType] = useState("chat");
     const [callback, setCallback] = useState(
         import.meta.env.VITE_BACKEND_URL + "/api/auto-tokens/callback/shopee"
     );
@@ -57,7 +57,7 @@ export default function TokenManager() {
             localStorage.setItem("description", description);
             localStorage.setItem("platform", platform);
             localStorage.setItem("room_default_id", roomDefaultId);
-            localStorage.setItem("usageType", usageType); // 👈 save usage_type
+            localStorage.setItem("usageType", usageType);
 
             const params = { callback_url: callback };
 
@@ -88,14 +88,14 @@ export default function TokenManager() {
             const savedCallback = localStorage.getItem("callback");
             const savedDescription = localStorage.getItem("description");
             const savedRoomId = localStorage.getItem("room_default_id");
-            const savedUsageType = localStorage.getItem("usageType") || "chat"; 
+            const savedUsageType = localStorage.getItem("usageType") || "chat";
 
             const payload = {
                 code,
                 callback_url: savedCallback,
                 description: savedDescription,
                 room_default_id: savedRoomId,
-                usage_type: savedUsageType, 
+                usage_type: savedUsageType,
             };
 
             if (currentPlatform === "shopee") {
@@ -145,7 +145,7 @@ export default function TokenManager() {
                                 </select>
                             </div>
 
-                            {/* เลือก usage_type */}
+                            {/* Usage Type เฉพาะ Shopee */}
                             {platform === "shopee" && (
                                 <div style={styles.formGroup}>
                                     <label style={styles.label}>Usage Type</label>
@@ -157,6 +157,19 @@ export default function TokenManager() {
                                         <option value="chat">Chat</option>
                                         <option value="livestream">Livestream</option>
                                     </select>
+                                </div>
+                            )}
+
+                            {/* Service Id เฉพาะ TikTok */}
+                            {platform === "tiktok" && (
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Service Id (TikTok)</label>
+                                    <input
+                                        style={styles.input}
+                                        value={serviceId}
+                                        onChange={(e) => setServiceId(e.target.value)}
+                                        placeholder="ใส่ Service Id ของ TikTok"
+                                    />
                                 </div>
                             )}
 
@@ -280,7 +293,6 @@ const styles = {
         border: "none", borderRadius: "8px", cursor: "pointer",
         fontSize: "16px"
     },
-    redirect: { marginTop: "16px", fontSize: "14px", textAlign: "center" },
     tokenBox: {
         background: "#f3f4f6", padding: "20px", borderRadius: "12px",
         border: "1px solid #e5e7eb", marginTop: "24px", fontSize: "14px"
