@@ -214,7 +214,7 @@ class FilterCase
 
             $bot = User::query()->where('empCode', 'BOT')->first();
 
-            if ($room_spam) {
+            if ($room_spam) {                                                                                                                                                                                                                                                                                                                     
                 if ($new_ac) {
                     ChatHistory::query()->create([
                         'custId'            => $customer['custId'],

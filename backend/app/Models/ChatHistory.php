@@ -18,6 +18,7 @@ class ChatHistory extends Model
         'content',
         'contentType',
         'sender',
+        'is_read',
         'conversationRef',
         'line_message_id',
         'line_quote_token',
