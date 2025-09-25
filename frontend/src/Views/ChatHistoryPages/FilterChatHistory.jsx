@@ -5,6 +5,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 
 export const FilterChatHistory = ({ platforms, onPassed }) => {
     const [filter, setFilter] = useState({
+        custId: '',
         custName: '',
         directFrom: '',
         firstContactDate: '',
@@ -26,50 +27,51 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
         }));
     }
 
+    const handleReset = () => {
+        const resetData = {
+            custId: '',
+            custName: '',
+            directFrom: '',
+            firstContactDate: '',
+        };
+        setFilter(resetData);
+        onPassed(resetData);
+    };
+
     return (
-        <>
-            <Button onClick={() => setOpen(true)} startDecorator={<FilterListIcon />}>ตัวกรอง</Button>
-            <Drawer open={open} onClose={() => setOpen(false)}>
-                <Sheet sx={{ p: 3 }}>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        onPassed(filter)
-                        setOpen(false);
-                    }}>
-                        <Stack direction='column' spacing={2}>
-                            <FormControl>
-                                <FormLabel>ชื่อลูกค้า</FormLabel>
-                                <Input name="custName" onChange={(e) => handleOnChange(e)} />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel>ติดต่อมาจาก</FormLabel>
-                                <Select sx={{ width: '100%' }} onChange={(e, value) => searchDirectFrom(e, value)} name="directFrom" defaultValue=''>
-                                    <Option value={''}>ทั้งหมด</Option>
-                                    {platforms.map((platform, index) => (
-                                        <Option key={index} value={platform.id}>
-                                            {platform.description}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel>ทักครั้งแรกเมื่อ	</FormLabel>
-                                <Input type="date" name="firstContactDate" onChange={(e) => handleOnChange(e)} />
-                            </FormControl>
-                            <Stack direction='row' spacing={2}>
-                                <Button type="submit" startDecorator={<Search />}>
-                                    ค้นหา
-                                </Button>
-                                <Button type="reset" color="warning" startDecorator={<RotateLeft />}>
-                                    reset
-                                </Button>
-                            </Stack>
-                        </Stack>
-                    </form>
-                </Sheet>
-
-            </Drawer>
-
-        </>
-    )
-}
+        <form onSubmit={(e) => {
+            e.preventDefault();
+            onPassed(filter);
+        }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-end">
+                <FormControl>
+                    <FormLabel>รหัสลูกค้า</FormLabel>
+                    <Input name="custId" value={filter.custId} onChange={handleOnChange} />
+                </FormControl>
+                <FormControl>
+                    <FormLabel>ชื่อลูกค้า</FormLabel>
+                    <Input name="custName" value={filter.custName} onChange={handleOnChange} />
+                </FormControl>
+                <FormControl>
+                    <FormLabel>ติดต่อมาจาก</FormLabel>
+                    <Select sx={{ width: '200px' }} value={filter.directFrom} onChange={(e, value) => searchDirectFrom(e, value)}>
+                        <Option value={''}>ทั้งหมด</Option>
+                        {platforms.map((platform, index) => (
+                            <Option key={index} value={platform.id}>
+                                {platform.description}
+                            </Option>
+                        ))}
+                    </Select>
+                </FormControl>
+                <FormControl>
+                    <FormLabel>ทักครั้งแรกเมื่อ</FormLabel>
+                    <Input type="date" name="firstContactDate" value={filter.firstContactDate} onChange={handleOnChange} />
+                </FormControl>
+                <Stack direction="row" spacing={1}>
+                    <Button type="submit" startDecorator={<Search />}>ค้นหา</Button>
+                    <Button type="button" color="warning" startDecorator={<RotateLeft />} onClick={handleReset}>รีเซ็ต</Button>
+                </Stack>
+            </Stack>
+        </form>
+    );
+};

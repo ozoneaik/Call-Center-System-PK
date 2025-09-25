@@ -279,7 +279,10 @@ export default function ProgressTable({ roomId,
                                                 )
                                             }
                                             <Stack spacing={1}>
-                                                <Typography level="body-xs">{row.custName}</Typography>
+                                                <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
+                                                    <Typography level="body-xs">{row.custName}</Typography>
+                                                    <Typography level="body-xs" color='primary'>ไอดี : {row.pcust_id}</Typography>
+                                                </Box>
                                                 <Chip color='success' size='sm'>{row.description}</Chip>
                                             </Stack>
                                         </Stack>

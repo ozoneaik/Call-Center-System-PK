@@ -51,7 +51,7 @@ export default function ChatHistory() {
     };
 
     useEffect(() => {
-        fetchData().finally(()=>setLoading(false));
+        fetchData().finally(() => setLoading(false));
     }, [page_url]);
 
     const redirectChat = (select) => {
@@ -64,9 +64,9 @@ export default function ChatHistory() {
     const handleSearch = async (formData) => {
         console.log(formData);
         setLoading(true);
-        try{
-            const {data, status} = await axiosClient.get('/chatHistory',{
-                params : formData,
+        try {
+            const { data, status } = await axiosClient.get('/chatHistory', {
+                params: formData,
             });
             console.log(data, status);
             if (status === 200) {
@@ -76,9 +76,9 @@ export default function ChatHistory() {
                 setLinks(data.list.links);
                 setPlatform(data.platforms);
             }
-        }catch (error) {
+        } catch (error) {
             console.log(error)
-        }finally{
+        } finally {
             setLoading(false);
         }
     }
@@ -105,11 +105,11 @@ export default function ChatHistory() {
                 height: '100dvh',
                 gap: 2,
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center'}}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <BreadcrumbsComponent list={BreadcrumbsPath} />
                 </Box>
 
-                <FilterChatHistory {...{platforms}} onPassed={(formData)=>handleSearch(formData)}/>
+                <FilterChatHistory {...{ platforms }} onPassed={(formData) => handleSearch(formData)} />
 
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
@@ -136,7 +136,8 @@ export default function ChatHistory() {
                                             <CardContent>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                                                     <Stack direction="row" spacing={1} alignItems="center">
-                                                        <Avatar size="sm" />
+                                                        {/* <Avatar size="sm" /> */}
+                                                        <Avatar size="sm" src={item.avatar} />
                                                         <Typography level="title-md" fontWeight="bold">
                                                             {item.custName}
                                                         </Typography>
@@ -209,7 +210,8 @@ export default function ChatHistory() {
                                     <tr key={index}>
                                         <td>
                                             <Stack direction='row' spacing={1} alignItems='center'>
-                                                <Avatar size="sm" />
+                                                {/* <Avatar size="sm" /> */}
+                                                <Avatar size="sm" src={item.avatar} />
                                                 <Typography fontWeight="md">
                                                     {item.custName}
                                                 </Typography>
@@ -221,7 +223,8 @@ export default function ChatHistory() {
                                             </Typography>
                                         </td>
                                         <td>{convertFullDate(item.created_at)}</td>
-                                        <td>{item.name || '-'}</td>
+                                        {/* <td>{item.name || '-'}</td> */}
+                                        <td>{item.latest_staff_name || '-'}</td>
                                         <td>
                                             <Button
                                                 size="sm"

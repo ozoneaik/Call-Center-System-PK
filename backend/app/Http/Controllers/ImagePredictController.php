@@ -11,7 +11,7 @@ class ImagePredictController extends Controller
     public function predictFromUrl(Request $request)
     {
         $url = $request->input('url');
-        $response = Http::post("https://e30e4a913322.ngrok-free.app/predict_url", [
+        $response = Http::post(env("AI_API_BASE_URL") . "/predict_url", [
             'url' => $url
         ]);
         return response()->json($response->json());
@@ -29,8 +29,7 @@ class ImagePredictController extends Controller
             'file',
             file_get_contents($file->getRealPath()),
             $file->getClientOriginalName()
-        )->post('https://e30e4a913322.ngrok-free.app/predict');
-
+        )->post(env("AI_API_BASE_URL") . "/predict");
         return response()->json($response->json());
     }
 }

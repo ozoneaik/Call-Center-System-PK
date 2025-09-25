@@ -15,10 +15,11 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import { PauseTalk } from "./PauseTalk.jsx";
 import { useMediaQuery } from "@mui/material";
 import HelpChat from "./HelpChat.jsx";
+import Box from '@mui/joy/Box';
 
 function MessagePaneHeader(props) {
     const navigate = useNavigate();
-    const {prevUrlfrom} = props;
+    const { prevUrlfrom } = props;
     const { user } = useAuth();
     const { disable } = props;
     const { sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags, listAllChatRooms } = props;
@@ -59,9 +60,15 @@ function MessagePaneHeader(props) {
                     </Button>
                     <Avatar size="lg" src={sender.avatar} />
                     <div onClick={() => openMessagesPane()}>
-                        <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
-                            {sender.custName}
-                        </Typography>
+                        <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
+                            <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
+                                ชื่อลูกค้า : {sender.custName} | 
+                            </Typography>
+                            <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle} color="primary">
+                                ไอดี : {sender.id}
+                            </Typography>
+                        </Box>
+
                         <Chip>
                             {sender.description}
                         </Chip>

@@ -19,7 +19,7 @@ class DisplayService
                 ->where('rates.status', $status)
                 ->where('active_conversations.endTime', null)
                 ->where('active_conversations.roomId', $roomId)
-                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
+                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.id AS pcust_id', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
                 ->orderBy('updated_at', 'asc')
                 ->get();
 
@@ -41,7 +41,7 @@ class DisplayService
                 ->where('rates.status', $status)
                 ->where('active_conversations.receiveAt', null)
                 ->where('active_conversations.roomId', $roomId)
-                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
+                ->select('chat_rooms.roomName', 'customers.custName', 'customers.avatar', 'customers.id AS pcust_id', 'customers.description', 'active_conversations.*', 'rates.status', 'users.name as empName')
                 ->orderBy('updated_at', 'asc')
                 ->get();
 

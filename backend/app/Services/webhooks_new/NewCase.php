@@ -135,9 +135,9 @@ class NewCase
     //                     'file',
     //                     file_get_contents($message['file_path']),
     //                     basename($message['file_path'])
-    //                 )->post("https://e30e4a913322.ngrok-free.app/predict");
+    //                 )->post(env("AI_API_BASE_URL") . "/predict");
     //             } else {
-    //                 $response = Http::post("https://e30e4a913322.ngrok-free.app/predict_url", [
+    //                 $response = Http::post(env("AI_API_BASE_URL") . "/predict_url", [
     //                     'url' => $message['content']
     //                 ]);
     //             }

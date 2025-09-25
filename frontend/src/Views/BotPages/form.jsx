@@ -2,10 +2,13 @@ import Button from "@mui/joy/Button";
 import { Modal, ModalClose, Sheet, Table, Typography, Input, Box, Autocomplete, Stack } from "@mui/joy";
 import { TableContainer } from "@mui/material";
 import { Delete as DeleteIcon, Add as AddIcon, DragIndicator } from '@mui/icons-material';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { addOrUpdateBotApi } from "../../Api/BotMenu.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { Warning } from "./Warning.jsx";
+
+const MAX_NAME_LEN = 20;
+const textLen = (s) => Array.from(s || "").length; // นับอักษร (ไทย/อีโมจิ) ให้ถูก
 
 export const FormCreateOrUpdateBot = (props) => {
     const { setBots, setSelected, selected, chatRooms, showForm, setShowForm } = props;
@@ -16,15 +19,8 @@ export const FormCreateOrUpdateBot = (props) => {
         roomName: "",
     });
 
-    // ฟังก์ชันสำหรับอัปเดต menu_number ให้เรียงลำดับ
-    const updateMenuNumbers = (list) => {
-        return list.map((item, index) => ({
-            ...item,
-            menu_number: index + 1
-        }));
-    };
+    const updateMenuNumbers = (list) => list.map((item, index) => ({ ...item, menu_number: index + 1 }));
 
-    // ฟังก์ชันลบเมนู
     const handleDelete = (index) => {
         const updatedList = [...selected.list];
         updatedList.splice(index, 1);
@@ -32,7 +28,6 @@ export const FormCreateOrUpdateBot = (props) => {
         setSelected({ ...selected, list: reorderedList });
     };
 
-    // ฟังก์ชันเพิ่มเมนูใหม่
     const handleAddMenuItem = () => {
         if (selected.list.length >= 4) {
             AlertDiaLog({
@@ -42,107 +37,93 @@ export const FormCreateOrUpdateBot = (props) => {
             });
             return;
         }
-
-        const newItem = {
-            ...newMenuItem,
-            menu_number: selected.list.length + 1
-        };
-
-        setSelected({
-            ...selected,
-            list: [...selected.list, newItem],
-        });
-        setNewMenuItem({
-            menuName: "",
-            roomId: null,
-            roomName: "",
-        });
+        const newItem = { ...newMenuItem, menu_number: selected.list.length + 1 };
+        setSelected({ ...selected, list: [...selected.list, newItem] });
+        setNewMenuItem({ menuName: "", roomId: null, roomName: "" });
         setStringLength(0);
     };
 
-    // ฟังก์ชันจัดการการลาก
     const handleDragStart = (e, index) => {
         e.dataTransfer.setData('text/plain', index);
         e.dataTransfer.effectAllowed = 'move';
     };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
+    const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e, dropIndex) => {
         e.preventDefault();
         const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-
         if (dragIndex === dropIndex) return;
-
         const updatedList = [...selected.list];
         const draggedItem = updatedList[dragIndex];
-
-        // ลบ item ที่ถูกลาก
         updatedList.splice(dragIndex, 1);
-        // เพิ่ม item ในตำแหน่งใหม่
         updatedList.splice(dropIndex, 0, draggedItem);
-
         const reorderedList = updateMenuNumbers(updatedList);
         setSelected({ ...selected, list: reorderedList });
     };
 
-    // ฟังก์ชันยกเลิก
     const handleCancel = () => {
         setShowForm(false);
         setSelected(null);
-        setNewMenuItem({
-            menuName: "",
-            roomId: null,
-            roomName: "",
-        });
+        setNewMenuItem({ menuName: "", roomId: null, roomName: "" });
         setStringLength(0);
     };
 
-    // ฟังก์ชันบันทึก
+    // ---------- ตรวจ Validation ของทุกแถวในตาราง ----------
+    const tooLongRows = useMemo(
+        () => (selected?.list || []).map((it, i) => ({ i, len: textLen(it.menuName) }))
+            .filter(r => r.len > MAX_NAME_LEN),
+        [selected?.list]
+    );
+    const emptyNameRows = useMemo(
+        () => (selected?.list || []).map((it, i) => ({ i, name: it.menuName }))
+            .filter(r => !(r.name || "").trim()),
+        [selected?.list]
+    );
+    const noRoomRows = useMemo(
+        () => (selected?.list || []).map((it, i) => ({ i, roomId: it.roomId }))
+            .filter(r => !r.roomId),
+        [selected?.list]
+    );
+
+    const disableSave = useMemo(() => {
+        if (!selected?.list?.length) return true;
+        return tooLongRows.length > 0 || emptyNameRows.length > 0 || noRoomRows.length > 0;
+    }, [selected?.list, tooLongRows.length, emptyNameRows.length, noRoomRows.length]);
+
     const handleSave = async () => {
-        if (selected.list.length === 0) {
+        // กันพลาดอีกรอบก่อนส่ง
+        if (disableSave) {
+            const lines = [];
+            if (emptyNameRows.length) lines.push(`• ชื่อเมนูว่างที่แถว: ${emptyNameRows.map(r => r.i + 1).join(', ')}`);
+            if (tooLongRows.length) lines.push(`• เกิน ${MAX_NAME_LEN} ตัวอักษรที่แถว: ${tooLongRows.map(r => r.i + 1).join(', ')}`);
+            if (noRoomRows.length) lines.push(`• ยังไม่เลือกห้องที่แถว: ${noRoomRows.map(r => r.i + 1).join(', ')}`);
             AlertDiaLog({
                 icon: 'warning',
-                title: 'ไม่สามารถบันทึกได้',
-                text: 'ต้องมีเมนูอย่างน้อย 1 เมนู',
+                title: 'ตรวจสอบข้อมูลก่อนบันทึก',
+                text: lines.join('\n')
             });
             return;
         }
 
-        // เรียงลำดับ array ตาม menu_number ก่อนส่ง
-        const sortedList = selected.list.sort((a, b) => a.menu_number - b.menu_number);
-        const dataToSend = {
-            ...selected,
-            list: sortedList
-        };
+        const sortedList = [...selected.list].sort((a, b) => a.menu_number - b.menu_number);
+        const dataToSend = { ...selected, list: sortedList };
+
         setShowForm(false);
         const { data, status } = await addOrUpdateBotApi({ bot: dataToSend });
         AlertDiaLog({
             icon: status === 200 ? 'success' : 'error',
             title: data.message,
             text: data.detail,
-            onPassed: (confirm) => {
+            onPassed: () => {
                 if (status === 200) {
-                    setBots(prevBots => {
-                        return prevBots.map(bot => {
-                            if (bot.botTokenId === selected.botTokenId) {
-                                return { ...dataToSend };
-                            }
-                            return bot;
-                        });
-                    });
+                    setBots(prevBots => prevBots.map(bot =>
+                        bot.botTokenId === selected.botTokenId ? { ...dataToSend } : bot
+                    ));
                     setSelected(null);
-                } else {
-                    console.log('ไม่ได้กด confirm หรือมี error');
                 }
             }
         });
     };
 
-    // ฟังก์ชันแก้ไขชื่อเมนู
     const handleEditMenuItem = (index, newMenuName) => {
         const updatedList = [...selected.list];
         updatedList[index].menuName = newMenuName;
@@ -151,12 +132,8 @@ export const FormCreateOrUpdateBot = (props) => {
 
     return (
         <>
-            <Modal
-                open={showForm}
-                onClose={handleCancel}
-                sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-            >
-                <Sheet variant="outlined" sx={{ maxWidth: 700, borderRadius: 'md', p: 3, boxShadow: 'lg',overflow : 'auto' }}>
+            <Modal open={showForm} onClose={handleCancel} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Sheet variant="outlined" sx={{ maxWidth: 700, borderRadius: 'md', p: 3, boxShadow: 'lg', overflow: 'auto' }}>
                     <ModalClose variant="plain" sx={{ m: 1 }} />
                     <Typography component="h2" level="h4" sx={{ fontWeight: 'lg', mb: 1 }}>
                         {selected?.description}[{selected?.botTokenId}]
@@ -179,61 +156,76 @@ export const FormCreateOrUpdateBot = (props) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {selected?.list?.map((item, index) => (
-                                        <tr
-                                            key={index} draggable onDragOver={handleDragOver}
-                                            onDragStart={(e) => handleDragStart(e, index)}
-                                            onDrop={(e) => handleDrop(e, index)}
-                                            style={{ cursor: 'move' }}
-                                        >
-                                            <td>
-                                                <DragIndicator
-                                                    sx={{
-                                                        color: 'text.secondary',cursor: 'grab',
-                                                        '&:active': { cursor: 'grabbing' }
-                                                    }}
-                                                />
-                                            </td>
-                                            <td>
-                                                <Stack direction='row' alignItems='center' spacing={1}>
-                                                    <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>
-                                                        {item.menu_number}
-                                                    </Typography>
-                                                    <Input
-                                                        value={item.menuName || ""}
-                                                        onChange={(e) => handleEditMenuItem(index, e.target.value)}
-                                                        placeholder="ชื่อเมนู"
+                                    {selected?.list?.map((item, index) => {
+                                        const len = textLen(item.menuName);
+                                        const over = len > MAX_NAME_LEN;
+                                        return (
+                                            <tr
+                                                key={index}
+                                                draggable
+                                                onDragOver={handleDragOver}
+                                                onDragStart={(e) => handleDragStart(e, index)}
+                                                onDrop={(e) => handleDrop(e, index)}
+                                                style={{ cursor: 'move' }}
+                                            >
+                                                <td>
+                                                    <DragIndicator
+                                                        sx={{ color: 'text.secondary', cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <Stack direction='row' alignItems='center' spacing={1}>
+                                                        <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>
+                                                            {item.menu_number}
+                                                        </Typography>
+                                                        <Input
+                                                            value={item.menuName || ""}
+                                                            onChange={(e) => handleEditMenuItem(index, e.target.value)}
+                                                            placeholder="ชื่อเมนู"
+                                                            color={over ? 'danger' : 'neutral'}
+                                                            variant="outlined"
+                                                            sx={{ width: '100%' }}
+                                                            endDecorator={
+                                                                <Typography
+                                                                    level="body-xs"
+                                                                    sx={{
+                                                                        minWidth: 44,
+                                                                        textAlign: 'right',
+                                                                        opacity: 0.9,
+                                                                        color: over ? 'var(--joy-palette-danger-600)' : 'text.tertiary'
+                                                                    }}
+                                                                >
+                                                                    {len}/{MAX_NAME_LEN}
+                                                                </Typography>
+                                                            }
+                                                        />
+                                                    </Stack>
+                                                </td>
+                                                <td>
+                                                    <Autocomplete
+                                                        value={item.roomName || ""}
+                                                        options={chatRooms?.map((room) => room.roomName) || []}
+                                                        onChange={(_, newValue) => {
+                                                            const updatedList = [...selected.list];
+                                                            const selectedRoom = chatRooms?.find((room) => room.roomName === newValue);
+                                                            updatedList[index].roomId = selectedRoom?.roomId || null;
+                                                            updatedList[index].roomName = newValue || "";
+                                                            setSelected({ ...selected, list: updatedList });
+                                                        }}
+                                                        placeholder="เลือกห้อง"
                                                         sx={{ width: '100%' }}
                                                     />
-                                                </Stack>
-                                            </td>
-                                            <td>
-                                                <Autocomplete
-                                                    value={item.roomName || ""}
-                                                    options={chatRooms?.map((room) => room.roomName) || []}
-                                                    onChange={(_, newValue) => {
-                                                        const updatedList = [...selected.list];
-                                                        const selectedRoom = chatRooms?.find((room) => room.roomName === newValue);
-                                                        updatedList[index].roomId = selectedRoom?.roomId || null;
-                                                        updatedList[index].roomName = newValue || "";
-                                                        setSelected({ ...selected, list: updatedList });
-                                                    }}
-                                                    placeholder="เลือกห้อง"
-                                                    sx={{ width: '100%' }}
-                                                />
-                                            </td>
-                                            <td>
-                                                <Box>
-                                                    <Button
-                                                        variant='outlined' size='sm'
-                                                        color='danger' onClick={() => handleDelete(index)}
-                                                    >
-                                                        <DeleteIcon />
-                                                    </Button>
-                                                </Box>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td>
+                                                    <Box>
+                                                        <Button variant='outlined' size='sm' color='danger' onClick={() => handleDelete(index)}>
+                                                            <DeleteIcon />
+                                                        </Button>
+                                                    </Box>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </Table>
                         </TableContainer>
@@ -246,19 +238,24 @@ export const FormCreateOrUpdateBot = (props) => {
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     setNewMenuItem({ ...newMenuItem, menuName: value });
-                                    setStringLength(value.length);
+                                    setStringLength(textLen(value)); // ใช้ตัวนับใหม่
                                 }}
                                 placeholder="เพิ่มเมนู"
+                                color={stringLength > MAX_NAME_LEN ? 'danger' : 'neutral'}
+                                endDecorator={
+                                    <Typography
+                                        level="body-xs"
+                                        sx={{
+                                            minWidth: 44,
+                                            textAlign: 'right',
+                                            opacity: 0.9,
+                                            color: stringLength > MAX_NAME_LEN ? 'var(--joy-palette-danger-600)' : 'text.tertiary'
+                                        }}
+                                    >
+                                        {stringLength}/{MAX_NAME_LEN}
+                                    </Typography>
+                                }
                             />
-                            <Typography
-                                level="body-sm"
-                                sx={{
-                                    minWidth: '30px',
-                                    color: stringLength > 20 ? 'danger.main' : 'text.secondary'
-                                }}
-                            >
-                                {stringLength}/20
-                            </Typography>
                             <Autocomplete
                                 sx={{ width: '100%' }}
                                 value={newMenuItem.roomName || ""}
@@ -278,9 +275,8 @@ export const FormCreateOrUpdateBot = (props) => {
                                 onClick={handleAddMenuItem}
                                 disabled={
                                     !newMenuItem.roomId ||
-                                    !newMenuItem.menuName ||
-                                    stringLength > 20 ||
-                                    stringLength === 0 ||
+                                    !newMenuItem.menuName?.trim() ||
+                                    stringLength > MAX_NAME_LEN ||
                                     selected?.list?.length >= 4
                                 }
                             >
@@ -289,7 +285,7 @@ export const FormCreateOrUpdateBot = (props) => {
                         </Box>
 
                         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
-                            <Button size='sm' onClick={handleSave}>
+                            <Button size='sm' onClick={handleSave} disabled={disableSave}>
                                 บันทึก
                             </Button>
                             <Button size='sm' color='neutral' onClick={handleCancel}>
