@@ -62,10 +62,10 @@ function MessagePaneHeader(props) {
                     <div onClick={() => openMessagesPane()}>
                         <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
                             <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
-                                ชื่อลูกค้า : {sender.custName} | 
+                                {sender.custName} | 
                             </Typography>
                             <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle} color="primary">
-                                ไอดี : {sender.id}
+                                ID : {sender.id}
                             </Typography>
                         </Box>
 

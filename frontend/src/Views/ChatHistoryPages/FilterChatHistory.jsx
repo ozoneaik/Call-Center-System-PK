@@ -46,11 +46,11 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-end">
                 <FormControl>
                     <FormLabel>รหัสลูกค้า</FormLabel>
-                    <Input name="custId" value={filter.custId} onChange={handleOnChange} />
+                    <Input name="custId" value={filter.custId} placeholder="ID ลูกค้า" onChange={handleOnChange} />
                 </FormControl>
                 <FormControl>
                     <FormLabel>ชื่อลูกค้า</FormLabel>
-                    <Input name="custName" value={filter.custName} onChange={handleOnChange} />
+                    <Input name="custName" value={filter.custName} placeholder="ชื่อลูกค้า" onChange={handleOnChange} />
                 </FormControl>
                 <FormControl>
                     <FormLabel>ติดต่อมาจาก</FormLabel>

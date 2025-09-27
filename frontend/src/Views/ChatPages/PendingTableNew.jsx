@@ -35,6 +35,17 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
     const location = useLocation();
     const { user } = useAuth();
 
+    React.useEffect(() => {
+        console.log("✅ PendingTableNew received props:", {
+            setFilterPending,
+            filterPending,
+            disable,
+            pending,
+            roomId,
+            roomName
+        });
+    }, [setFilterPending, filterPending, disable, pending, roomId, roomName]);
+
     const redirectChat = (select) => {
         const params = `${select.rateRef}/${select.id}/${select.custId}`;
         navigate(`/select/message/${params}/0`, {
@@ -66,7 +77,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                     } finally {
                         setLoadingStates(prev => ({ ...prev, [index]: false }));
                     }
-                } else { 
+                } else {
                     console.log('ไม่ได้ confirm');
                 }
             }
@@ -166,7 +177,10 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                                         <Stack direction='row' spacing={1} alignItems='center'>
                                             <Avatar src={row.avatar} size="sm" />
                                             <Stack spacing={1}>
-                                                <Typography level="body-xs">{row.custName}</Typography>
+                                                <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
+                                                    <Typography level="body-xs">{row.custName}</Typography> |
+                                                    <Typography level="body-xs" color='primary'>ID : {row.pcust_id}</Typography>
+                                                </Box>
                                                 <Chip color='success' size='sm'>{row.description}</Chip>
                                             </Stack>
                                         </Stack>
