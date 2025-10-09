@@ -40,8 +40,18 @@ class LineReceiveController extends Controller
         try {
             DB::beginTransaction();
             if (!$rateId) throw new \Exception('ไม่พบ AcId');
-            $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id', 'desc')->first();
-            if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
+            // $updateAC = ActiveConversations::query()->where('rateRef', $rateId)->orderBy('id', 'desc')->first();
+
+            $updateAC = ActiveConversations::where('rateRef', $rateId)
+                ->whereNull('receiveAt')
+                ->orderBy('id', 'desc')
+                ->lockForUpdate()  // ✅ ป้องกันการแก้พร้อมกัน
+                ->first();
+
+            // if (!$updateAC) throw new \Exception('ไม่พบ AC จาก rateRef ที่ receiveAt = null');
+            if (!$updateAC) {
+                throw new \Exception('มีเจ้าหน้าที่ท่านอื่นรับเรื่องไปแล้ว');
+            }
             $updateAC['receiveAt'] = Carbon::now();
             $updateAC['startTime'] = Carbon::now();
             $updateAC['empCode'] = Auth::user()->empCode;
