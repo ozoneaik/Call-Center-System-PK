@@ -474,10 +474,18 @@ export default function ProgressTable({ roomId,
         }
     };
 
+    // const handleCheckboxChange = (event, value) => {
+    //     const isChecked = value;
+    //     setShowMyCasesOnly(isChecked);
+    //     handleMyCasesFilter(isChecked);
+    // };
+
     const handleCheckboxChange = (event, value) => {
         const isChecked = value;
         setShowMyCasesOnly(isChecked);
         handleMyCasesFilter(isChecked);
+
+        localStorage.setItem("showMyCasesOnly", JSON.stringify(isChecked));
     };
 
     const handleEndTalkAll = () => {

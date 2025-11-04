@@ -364,14 +364,56 @@ export default function MainChat() {
         });
     };
 
+    // useEffect(() => {
+    //     const fetchChats = async () => {
+    //         try {
+    //             const { data, status } = await MessageListApi(roomId);
+    //             if (status === 200) {
+    //                 const unreadIds = JSON.parse(
+    //                     localStorage.getItem("unreadCustIds") || "[]"
+    //                 );
+
+    //                 const enrichedProgress = data.progress.map((item) => ({
+    //                     ...item,
+    //                     isUnread: unreadIds.includes(item.custId),
+    //                 }));
+
+    //                 const sortedProgress = sortChatsByLatestMessage(enrichedProgress);
+    //                 const sortedPending = sortChatsByCreatedTimeAsc(data.pending);
+
+    //                 setProgress(sortedProgress);
+    //                 setPending(sortedPending);
+    //                 setFilterPending(sortedPending);
+
+    //                 const myCases = sortedProgress.filter(
+    //                     (data) => data.empCode === user.empCode || data.empId === user.id
+    //                 );
+    //                 setFilterProgress(myCases);
+    //                 setShowMyCasesOnly(true);
+
+    //                 const count = myCases.filter((item) => item.isUnread).length;
+    //                 setUnRead(count || 0);
+    //                 // const count = sortedProgress.filter(
+    //                 //     (item) => item.empCode === user.empCode
+    //                 // );
+    //                 // setUnRead(count ? count.length : 0);
+    //             }
+    //         } catch (error) {
+    //             AlertDiaLog({ title: "เกิดข้อผิดพลาด" });
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+    //     setLoading(true);
+    //     fetchChats().then();
+    // }, [roomId, user.empCode]);
+
     useEffect(() => {
         const fetchChats = async () => {
             try {
                 const { data, status } = await MessageListApi(roomId);
                 if (status === 200) {
-                    const unreadIds = JSON.parse(
-                        localStorage.getItem("unreadCustIds") || "[]"
-                    );
+                    const unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
 
                     const enrichedProgress = data.progress.map((item) => ({
                         ...item,
@@ -385,18 +427,28 @@ export default function MainChat() {
                     setPending(sortedPending);
                     setFilterPending(sortedPending);
 
-                    const myCases = sortedProgress.filter(
-                        (data) => data.empCode === user.empCode || data.empId === user.id
-                    );
-                    setFilterProgress(myCases);
-                    setShowMyCasesOnly(true);
+                    const lastRoom = localStorage.getItem("lastRoomId");
+                    const savedCaseFilter = JSON.parse(localStorage.getItem("showMyCasesOnly") || "false");
 
-                    const count = myCases.filter((item) => item.isUnread).length;
+                    if (lastRoom === roomId && savedCaseFilter) {
+                        // ถ้าอยู่ห้องเดิมและเคยเลือก "เคสของฉัน"
+                        const myCases = sortedProgress.filter(
+                            (data) => data.empCode === user.empCode || data.empId === user.id
+                        );
+                        setFilterProgress(myCases);
+                        setShowMyCasesOnly(true);
+                    } else {
+                        // ถ้าเปลี่ยนห้องใหม่หรือยังไม่เคยเลือก
+                        setFilterProgress(sortedProgress);
+                        setShowMyCasesOnly(false);
+                        localStorage.setItem("showMyCasesOnly", "false");
+                    }
+
+                    // บันทึก roomId ล่าสุดไว้
+                    localStorage.setItem("lastRoomId", roomId);
+
+                    const count = sortedProgress.filter((item) => item.isUnread).length;
                     setUnRead(count || 0);
-                    // const count = sortedProgress.filter(
-                    //     (item) => item.empCode === user.empCode
-                    // );
-                    // setUnRead(count ? count.length : 0);
                 }
             } catch (error) {
                 AlertDiaLog({ title: "เกิดข้อผิดพลาด" });
@@ -404,6 +456,7 @@ export default function MainChat() {
                 setLoading(false);
             }
         };
+
         setLoading(true);
         fetchChats().then();
     }, [roomId, user.empCode]);
