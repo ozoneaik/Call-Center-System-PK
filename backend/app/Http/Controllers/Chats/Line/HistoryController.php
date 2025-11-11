@@ -49,6 +49,61 @@ class HistoryController extends Controller
     // }
 
     //เพิ่มการแสดงชื่อของพนักงานที่คุยล่าสุด
+    // public function ChatHistory(Request $request)
+    // {
+    //     $query = Customers::query();
+
+    //     if ($request->filled('custId')) {
+    //         $message = 'ค้นหาด้วยรหัสลูกค้า';
+    //         $query->where('id', $request->custId);
+    //     }
+
+    //     if ($request->filled('custName')) {
+    //         $message = 'ค้นหาชื่อผู้ใช้';
+    //         $query->where('custName', 'ILIKE', '%' . $request->custName . '%');
+    //     }
+
+    //     if ($request->filled('directFrom')) {
+    //         $message = 'ค้นหาจากแหล่งที่มา';
+    //         $query->where('platformRef', 'ILIKE', $request->directFrom);
+    //     }
+
+    //     if ($request->filled('firstContactDate')) {
+    //         $message = 'ค้นหาจากวันที่';
+    //         $query->whereDate('created_at', $request->firstContactDate);
+    //     }
+    //     $customer_list = $query->orderBy('created_at', 'desc')->paginate(200);
+
+    //     foreach ($customer_list as $customer) {
+    //         $latestMessage = ChatHistory::query()
+    //             ->select(
+    //                 'chat_histories.content',
+    //                 'chat_histories.contentType',
+    //                 'chat_histories.created_at',
+    //                 'users.name as staff_name',
+    //                 'users.empCode'
+    //             )
+    //             ->where('chat_histories.custId', $customer->custId)
+    //             ->leftJoin('active_conversations', 'active_conversations.id', '=', 'chat_histories.conversationRef')
+    //             ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
+    //             ->orderBy('chat_histories.id', 'desc')
+    //             ->first();
+
+    //         $customer->latest_message    = $latestMessage;
+    //         $customer->latest_staff_name = $latestMessage?->staff_name;
+    //         $customer->latest_empCode    = $latestMessage?->empCode;
+    //     }
+
+    //     $platforms = PlatformAccessTokens::all();
+
+    //     return response()->json([
+    //         'message'   => $message ?? 'ดึงข้อมูลสำเร็จ',
+    //         'list'      => $customer_list,
+    //         'platforms' => $platforms,
+    //         'request'   => $request->all(),
+    //     ]);
+    // }
+
     public function ChatHistory(Request $request)
     {
         $query = Customers::query();
@@ -72,7 +127,16 @@ class HistoryController extends Controller
             $message = 'ค้นหาจากวันที่';
             $query->whereDate('created_at', $request->firstContactDate);
         }
-        $customer_list = $query->orderBy('created_at', 'desc')->paginate(200);
+
+        // เพิ่มการค้นหาด้วย NOTE (join กับตาราง notes)
+        if ($request->filled('note')) {
+            $message = 'ค้นหาจากหมายเหตุ (NOTE)';
+            $query->leftJoin('notes', 'notes.custId', '=', 'customers.custId')
+                ->where('notes.text', 'ILIKE', '%' . $request->note . '%')
+                ->select('customers.*'); // ป้องกันคอลัมน์ซ้ำจาก notes
+        }
+
+        $customer_list = $query->orderBy('customers.created_at', 'desc')->paginate(200);
 
         foreach ($customer_list as $customer) {
             $latestMessage = ChatHistory::query()
