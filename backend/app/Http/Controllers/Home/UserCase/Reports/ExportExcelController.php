@@ -101,6 +101,7 @@ class ExportExcelController extends Controller
 
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
+            ->leftJoin('platform_access_tokens', 'platform_access_tokens.id', '=', 'customers.platformRef')
             ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
             ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
@@ -108,6 +109,8 @@ class ExportExcelController extends Controller
                 'rates.*',
                 'rates.tag_description',
                 'customers.custName',
+                'platform_access_tokens.platform',
+                'platform_access_tokens.description as platform_name',
                 'tag_menus.tagName',
                 'rates.tag_description',
                 'tag_menus.group_id as tag_group_id',
@@ -258,6 +261,8 @@ class ExportExcelController extends Controller
 
         $headers = [
             'ID เคสหลัก',
+            'Platform',
+            'ชื่อร้านค้า/เพจ',
             'ชื่อลูกค้า',
             'สถานะ',
             'หมายเลขแท็ก',
@@ -287,7 +292,7 @@ class ExportExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('DetailedCases');
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:Z1')->getFont()->setBold(true);
 
         $colWidths = [
             'A' => 12,
@@ -313,7 +318,9 @@ class ExportExcelController extends Controller
             'U' => 18,
             'V' => 20,
             'W' => 20,
-            'X' => 24
+            'X' => 24,
+            'Y' => 24,
+            'Z' => 28,
         ];
         foreach ($colWidths as $col => $w) {
             $sheet->getColumnDimension($col)->setAutoSize(false);
@@ -332,11 +339,15 @@ class ExportExcelController extends Controller
         foreach ($mainCases as $rate) {
             $subs = $rate->sub_case;
             $blockStart = $r;
+            $pfType = $rate->platform ?? '-';
+            $pfName = $rate->platform_name ?? '-';
 
             if ($subs && $subs->isNotEmpty()) {
                 foreach ($subs as $sc) {
                     $sheet->fromArray([[
                         $rate->id,
+                        $pfType,
+                        $pfName,
                         $rate->custName ?? $rate->custId,
                         $rate->status,
                         $rate->tag ?? '',
@@ -366,12 +377,14 @@ class ExportExcelController extends Controller
                 }
                 $blockEnd = $r - 1;
                 if ($blockEnd >= $blockStart) {
-                    $paintRange("A{$blockStart}:X{$blockEnd}", $blockColors[$blockColorIdx]);
+                    $paintRange("A{$blockStart}:Z{$blockEnd}", $blockColors[$blockColorIdx]);
                     $blockColorIdx = 1 - $blockColorIdx;
                 }
             } else {
                 $sheet->fromArray([[
                     $rate->id,
+                    $pfType,
+                    $pfName,
                     $rate->custName ?? $rate->custId,
                     $rate->status,
                     $rate->tag ?? '',
@@ -395,13 +408,13 @@ class ExportExcelController extends Controller
                     '',
                     '',
                 ]], null, "A{$r}");
-                $paintRange("A{$blockStart}:X{$r}", $blockColors[$blockColorIdx]);
+                $paintRange("A{$blockStart}:Z{$r}", $blockColors[$blockColorIdx]);
                 $blockColorIdx = 1 - $blockColorIdx;
                 $r++;
             }
         }
 
-        foreach (range('A', 'X') as $col) {
+        foreach (range('A', 'Z') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -462,13 +475,16 @@ class ExportExcelController extends Controller
         $mainQuery = DB::connection('pgsql_real')->table('rates')
             ->where('rates.status', 'success')
             ->leftJoin('customers', 'customers.custId', '=', 'rates.custId')
-            ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id') 
-            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id') 
+            ->leftJoin('platform_access_tokens', 'platform_access_tokens.id', '=', 'customers.platformRef')
+            ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+            ->leftJoin('tag_groups', 'tag_groups.group_id', '=', 'tag_menus.group_id')
             ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
             ->whereExists($closedExists)
             ->select(
                 'rates.*',
                 'customers.custName',
+                'platform_access_tokens.platform',
+                'platform_access_tokens.description as platform_name',
                 'tag_menus.tagName',
                 'tag_menus.group_id as tag_group_id',
                 'tag_groups.group_name as tag_group_name',
@@ -485,8 +501,8 @@ class ExportExcelController extends Controller
         $rateIds   = $mainCases->pluck('id')->toArray();
 
         $acceptedExpr   = 'COALESCE(ac."receiveAt", ac."startTime")';
-        $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";                  
-        $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";                   
+        $acceptSecsExpr = "GREATEST(EXTRACT(EPOCH FROM ($acceptedExpr - r.\"created_at\")), 0)";
+        $closeSecsExpr  = "GREATEST(EXTRACT(EPOCH FROM (ac.\"endTime\" - $acceptedExpr)), 0)";
 
         $subCases = DB::connection('pgsql_real')->table('active_conversations as ac')
             ->join('rates as r', 'r.id', '=', 'ac.rateRef')
@@ -571,6 +587,8 @@ class ExportExcelController extends Controller
 
         $headers = [
             'ID เคสหลัก',
+            'Platform',
+            'ชื่อร้านค้า/เพจ',
             'ชื่อลูกค้า',
             'สถานะ',
             'หมายเลขแท็ก',
@@ -600,16 +618,20 @@ class ExportExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('DetailedCases');
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:Z1')->getFont()->setBold(true);
 
         $r = 2;
         foreach ($mainCases as $rate) {
             $subs = $rate->sub_case;
+            $pfType = $rate->platform ?? '-';
+            $pfName = $rate->platform_name ?? '-';
 
             if ($subs && $subs->isNotEmpty()) {
                 foreach ($subs as $sc) {
                     $sheet->fromArray([[
                         $rate->id,
+                        $pfType,
+                        $pfName,
                         $rate->custName ?? $rate->custId,
                         $rate->status,
                         $rate->tag ?? '',
@@ -640,6 +662,8 @@ class ExportExcelController extends Controller
             } else {
                 $sheet->fromArray([[
                     $rate->id,
+                    $pfType,
+                    $pfName,
                     $rate->custName ?? $rate->custId,
                     $rate->status,
                     $rate->tag ?? '',
@@ -667,7 +691,7 @@ class ExportExcelController extends Controller
             }
         }
 
-        foreach (range('A', 'X') as $col) {
+        foreach (range('A', 'Z') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
