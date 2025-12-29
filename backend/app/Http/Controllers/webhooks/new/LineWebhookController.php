@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\webhooks\new;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActiveConversations;
 use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
+use App\Models\Rates;
+use App\Models\SaleInformation;
 use App\Services\PusherService;
 use App\Services\webhooks_new\FilterCase;
 use Aws\S3\S3Client;
@@ -56,6 +59,16 @@ class LineWebhookController extends Controller
                         $message = $event['message'];
                         $formatted_message = $this->formatMessage($message, $platform['accessToken'], $event['replyToken']);
                         Log::channel('webhook_line_new')->info('ข้อความที่ได้รับ: ' . json_encode($formatted_message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+                        // สร้าง Sale Case ถ้าเป็น Sale Case
+                        if ($this->filterCaseSale($customer['custId'])) {
+                            Log::channel('webhook_line_new')->info('ลูกค้าเป็น Sale Case (bypass filterCase ปกติ)');
+                            $this->createSaleChat($customer, $formatted_message);
+
+                            // จบการทำงานรอบนี้ทันที ไม่ต้องเข้า FilterCase หรือ ReplyPushMessage
+                            // เพราะ Sale Case ปกติจะแค่รับเรื่อง ไม่ได้ตอบกลับอัตโนมัติ (ตาม Logic เดิม)
+                            continue;
+                        }
 
                         // เข้าสุ่ filterCase
                         $filter_case = $this->filterCase->filterCase($customer, $formatted_message, $platform, 1);
@@ -413,5 +426,65 @@ class LineWebhookController extends Controller
             'status' => true,
             'message' => 'ตอบกลับสำเร็จ'
         ];
+    }
+
+    private function filterCaseSale($custId)
+    {
+        $found = SaleInformation::query()->where('sale_cust_id', $custId)->first();
+        if ($found) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private function createSaleChat($customer, $formatted_message)
+    {
+        // ค้นหา Rate ล่าสุด
+        $current_rate = Rates::query()
+            ->where('custId', $customer['custId'])
+            ->orderBy('id', 'desc')
+            ->first();
+
+        // ปรับ Logic การสร้าง message ให้สอดคล้องกับ ChatHistory table
+        $chatParams = [
+            'custId' => $customer['custId'],
+            'content' => $formatted_message['content'] ?? '',
+            'contentType' => $formatted_message['contentType'],
+            'sender' => $customer->toJson(),
+            'line_quoteToken' => $formatted_message['line_quote_token'] ?? null,
+            'line_message_id' => $formatted_message['line_message_id'] ?? null
+        ];
+
+        $pusherService = new PusherService();
+
+        if (!isset($current_rate) || ($current_rate && $current_rate->status === 'success')) {
+            Log::channel('webhook_line_new')->info('Sale Case: สร้างเคสใหม่ ROOM20');
+            $new_rate = Rates::query()->create([
+                'custId' => $customer['custId'],
+                'rate' => 0,
+                'latestRoomId' => 'ROOM20',
+                'status' => 'pending',
+            ]);
+            $new_ac = ActiveConversations::query()->create([
+                'custId' => $customer['custId'],
+                'roomId' => 'ROOM20',
+                'rateRef' => $new_rate->id,
+            ]);
+
+            $chatParams['conversationRef'] = $new_ac->id;
+            ChatHistory::query()->create($chatParams);
+        } elseif (($current_rate && $current_rate->status === 'progress') || ($current_rate && $current_rate->status === 'pending')) {
+            Log::channel('webhook_line_new')->info('Sale Case: ต่อเนื่องเคสเดิม ' . $current_rate->latestRoomId);
+            $ac = ActiveConversations::query()->where('rateRef', $current_rate->id)->orderBy('id', 'desc')->first();
+
+            $chatParams['conversationRef'] = $ac->id;
+            ChatHistory::query()->create($chatParams);
+        } else {
+            Log::channel('webhook_line_new')->info('Sale Case: ไม่พบสถานะเคสที่เกี่ยวข้อง (อาจเกิด error)');
+        }
+
+        // แจ้งเตือนผ่าน Pusher
+        $pusherService->sendNotification($customer['custId']);
     }
 }
