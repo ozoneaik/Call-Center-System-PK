@@ -49,6 +49,7 @@ class DisplayService
                             ->count();
                     }
                 }
+                // แปลง sender จาก JSON string เป็น array
                 // $sender_json = json_decode($latest_message->sender);
                 // $value->latest_message->sender = $sender_json;
             }
@@ -92,7 +93,7 @@ class DisplayService
                     }
                 }
             }
-
+ 
             return $data;
         }
     }
