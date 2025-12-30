@@ -19,20 +19,30 @@ class HelpChatController extends Controller
 
     public function search(Request $request)
     {
-        if (!isset($request->value) || $request->value == null || $request->value == "") {
+        if (!$request->filled('value')) {
             return response()->json([
                 'message' => 'error',
-                'data' => null,
+                'data' => [],
             ]);
         }
         $search = $request->value;
-        $serachArray = explode(" ", $search);
-        $arrayString = "ARRAY[" . implode(',', array_map(fn($k) => DB::getPdo()->quote($k), $serachArray)) . "]";
-        $sql = "SELECT * FROM search_all_keywords($arrayString)";
-        $results = DB::select($sql);
+        $searchArray = explode(" ", $search);
+        $query = HelpChatModel::query();
+        $query->where(function ($q) use ($searchArray) {
+            foreach ($searchArray as $word) {
+                $q->where(function ($subQ) use ($word) {
+                    $subQ->where('search', 'LIKE', "%{$word}%")
+                        ->orWhere('problem', 'LIKE', "%{$word}%")
+                        ->orWhere('solve', 'LIKE', "%{$word}%")
+                        ->orWhere('cause', 'LIKE', "%{$word}%");
+                });
+            }
+        });
+
+        $results = $query->get();
         return response()->json([
             'search' => $search,
-            'searchArray' => $serachArray,
+            'searchArray' => $searchArray,
             'results' => $results,
         ]);
     }

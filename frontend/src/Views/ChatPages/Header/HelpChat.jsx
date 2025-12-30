@@ -1,23 +1,44 @@
 import {
     Input, FormLabel, Card, Stack, Typography,
-    Sheet, Button, Divider, Chip, ChipDelete
+    Sheet, Button, Divider, Chip, ChipDelete,
+    CircularProgress 
 } from "@mui/joy";
 import { Box, debounce, FormGroup, Grid2 } from "@mui/material";
 import { useCallback, useState } from "react";
 import axiosClient from "../../../Axios";
+import SearchIcon from '@mui/icons-material/Search'; 
 
 export default function HelpChat({ handle }) {
     const [search, setSearch] = useState('');
     const [resultList, setResultList] = useState([]);
-    const [selected, setSelected] = useState();
+    const [selected, setSelected] = useState(null);
+    const [loading, setLoading] = useState(false); 
+
     // debounce function เพื่อหน่วงการยิง API
     const fetchHelpChat = async (value) => {
+        if (!value.trim()) {
+            setResultList([]);
+            setLoading(false);
+            return;
+        }
+
         try {
-            const { data, status } = await axiosClient.post('/help-chat/search', { value });
+            setLoading(true); 
+            const { data, status } = await axiosClient.post('/help-chat/search',
+                { value: value },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
             console.log(data.results, status);
-            setResultList(data.results);
+            setResultList(data.results || []);
         } catch (error) {
             console.error('Error fetching help chat list:', error);
+            setResultList([]);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -26,6 +47,11 @@ export default function HelpChat({ handle }) {
     const handleSearch = (e) => {
         const { value } = e.target;
         setSearch(value);
+        
+        // ถ้าอยากให้โหลดหมุนทันทีที่พิมพ์ (แม้จะยังไม่ยิง API เพราะติด debounce) 
+        // ให้เปิดบรรทัดล่างนี้ครับ แต่ปกติจะรอให้ debounce ทำงานก่อนค่อยหมุน
+        // setLoading(true); 
+        
         debouncedFetch(value);
     };
 
@@ -42,7 +68,18 @@ export default function HelpChat({ handle }) {
             <Grid2 size={12}>
                 <FormGroup>
                     <FormLabel>ค้นหา</FormLabel>
-                    <Input value={search} onChange={handleSearch} />
+                    <Input 
+                        value={search} 
+                        onChange={handleSearch}
+                        placeholder="พิมพ์คำค้นหา..."
+                        endDecorator={
+                            loading ? (
+                                <CircularProgress size="sm" variant="plain" />
+                            ) : (
+                                <SearchIcon color="neutral" />
+                            )
+                        }
+                    />
                 </FormGroup>
             </Grid2>
             {selected && (<Grid2 size={12}>
@@ -60,8 +97,19 @@ export default function HelpChat({ handle }) {
                 <Divider />
             </Grid2>
             <Grid2 size={12}>
-                <Sheet sx={{ overflow: 'auto', maxHeight: '40vh' }}>
+                <Sheet sx={{ overflow: 'auto', maxHeight: '40vh', minHeight: '50px' }}>
                     <Stack direction='column' spacing={2}>
+                        {loading && resultList.length === 0 && (
+                            <Typography level="body-sm" textAlign="center" mt={2}>
+                                กำลังค้นหา...
+                            </Typography>
+                        )}
+                        
+                        {!loading && search && resultList.length === 0 && (
+                            <Typography level="body-sm" textAlign="center" mt={2} color="neutral">
+                                ไม่พบข้อมูล
+                            </Typography>
+                        )}
                         {resultList && resultList.length > 0 && resultList.map((item, index) => (
                             <Card
                                 onClick={() => handleSelect(item)}
@@ -80,7 +128,11 @@ export default function HelpChat({ handle }) {
             </Grid2>
             <Grid2 size={12}>
                 <Stack direction='row-reverse' spacing={2}>
-                    <Button size="sm" onClick={() => handle(selected.solve)}>
+                    <Button 
+                        size="sm" 
+                        disabled={!selected}
+                        onClick={() => selected && handle(selected.solve)}
+                    >
                         ส่ง
                     </Button>
                 </Stack>

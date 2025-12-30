@@ -223,9 +223,9 @@ function HelpChatList() {
               sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
             >
               {[
-                { label: "Search", key: "search", required: true },
-                { label: "Problem", key: "problem", required: true },
-                { label: "Solve", key: "solve", required: true },
+                { label: "Search (ใช้สำหรับการค้นหาในหน้าห้องแชท)", key: "search", required: true },
+                { label: "Problem (ปัญหาที่พบได้บ่อย)", key: "problem", required: true },
+                { label: "Solve (แนวทางการแก้ไขปัญหาหรือวิธีการแก้ไข ใช้สำหรับส่งตอบลูกค้า)", key: "solve", required: true },
                 { label: "SKU", key: "sku" },
                 { label: "Model", key: "model" },
                 { label: "Remark", key: "remark" },
