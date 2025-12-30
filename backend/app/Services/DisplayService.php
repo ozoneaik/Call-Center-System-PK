@@ -24,12 +24,33 @@ class DisplayService
                 ->get();
 
             foreach ($data as $key => $value) {
-                $latest_message = ChatHistory::query()->select('content','sender', 'contentType', 'created_at')->where('custId', $value->custId)
+                $latest_message = ChatHistory::query()->select('content','sender', 'contentType', 'created_at', 'is_read')->where('custId', $value->custId)
                     ->orderBy('id', 'desc')
                     ->first();
                 $value->latest_message = $latest_message;
-                $sender_json = json_decode($latest_message->sender);
-                $value->latest_message->sender = $sender_json;
+                $value->isUnread = false;
+                $value->unread_count = 0;
+
+                if ($latest_message) {
+                    $sender_json = json_decode($latest_message->sender, true);
+                    $value->latest_message->sender = $sender_json;
+
+                    // เช็ค: ถ้าคนส่งคือลูกค้า (มี custId) AND ยังไม่ได้อ่าน (is_read เป็น false/null)
+                    if (isset($sender_json['custId']) && empty($latest_message->is_read)) {
+                        $value->isUnread = true;
+
+                        $value->unread_count = ChatHistory::query()
+                            ->where('custId', $value->custId)
+                            ->where(function ($q) {
+                                $q->where('is_read', false)->orWhereNull('is_read');
+                            })
+                            // เช็คว่าเป็นข้อความจากลูกค้า (มี key "custId" ใน json sender)
+                            ->where('sender', 'like', '%"custId"%') 
+                            ->count();
+                    }
+                }
+                // $sender_json = json_decode($latest_message->sender);
+                // $value->latest_message->sender = $sender_json;
             }
             return $data;
         } else {
@@ -47,10 +68,29 @@ class DisplayService
 
 
             foreach ($data as $key => $value) {
-                $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at')->where('custId', $value->custId)
+                $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at', 'is_read')->where('custId', $value->custId)
                     ->orderBy('id', 'desc')
                     ->first();
                 $value->latest_message = $latest_message;
+                $value->isUnread = false;
+                $value->unread_count = 0;
+
+                if ($latest_message) {
+                    $sender_json = is_string($latest_message->sender) ? json_decode($latest_message->sender, true) : $latest_message->sender;
+                    $value->latest_message->sender = $sender_json;
+                    
+                    if (isset($sender_json['custId']) && empty($latest_message->is_read)) {
+                        $value->isUnread = true;
+
+                        $value->unread_count = ChatHistory::query()
+                            ->where('custId', $value->custId)
+                            ->where(function ($q) {
+                                $q->where('is_read', false)->orWhereNull('is_read');
+                            })
+                            ->where('sender', 'like', '%"custId"%')
+                            ->count();
+                    }
+                }
             }
 
             return $data;

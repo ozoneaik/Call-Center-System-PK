@@ -139,14 +139,24 @@ class DisplayController extends Controller
                 } else throw new \Exception('ไม่พบ พนักงานที่รับเรื่อง');
             }
             $sender['emp'] = $emp;
+            
+            $currentUser = auth()->user();
+            if ($currentUser && $currentUser->empCode == $emp) {
+                ChatHistory::where('custId', $custId)
+                    ->whereRaw("jsonb_exists(sender::jsonb, 'custId')")
+                    ->where(function ($q) {
+                        $q->where('is_read', false)->orWhereNull('is_read');
+                    })
+                    ->update(['is_read' => true]);
+            }
 
             // ⭐ Mark ข้อความจากลูกค้าในเคสนี้ว่าอ่านแล้ว
-            ChatHistory::where('custId', $custId)
-                ->whereRaw("jsonb_exists(sender::jsonb, 'custId')")
-                ->where(function ($q) {
-                    $q->where('is_read', false)->orWhereNull('is_read');
-                })
-                ->update(['is_read' => true]);
+            // ChatHistory::where('custId', $custId)
+            //     ->whereRaw("jsonb_exists(sender::jsonb, 'custId')")
+            //     ->where(function ($q) {
+            //         $q->where('is_read', false)->orWhereNull('is_read');
+            //     })
+            //     ->update(['is_read' => true]);
 
             $starList = Rates::query()
                 ->leftJoin('tag_menus', 'rates.tag', '=', 'tag_menus.id')
