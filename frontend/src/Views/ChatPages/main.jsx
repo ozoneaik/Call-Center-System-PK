@@ -52,6 +52,7 @@ export default function MainChat() {
                     const enrichedProgress = data.progress.map((item) => ({
                         ...item,
                         isUnread: item.isUnread,
+                        unread_count: item.unread_count || 0,
                     }));
 
                     const sortedProgress = sortChatsByLatestMessage(enrichedProgress);
@@ -110,7 +111,20 @@ export default function MainChat() {
             return;
         }
 
+        const isCustomerSender = notification.message.sender && notification.message.sender.custId;
+
         if (notification.activeConversation.roomId === roomId) {
+            let unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
+            if (isCustomerSender) {
+                if (!unreadIds.includes(notification.Rate.custId)) {
+                    unreadIds.push(notification.Rate.custId);
+                }
+            } else {
+                // ถ้าพนักงานตอบ ให้เอา ID ออกจาก unread list ทันที
+                unreadIds = unreadIds.filter(id => id !== notification.Rate.custId);
+            }
+            localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
+
             if (notification.Rate.status === "progress") {
                 // === Progress ===
                 const find = filterProgress.find(
@@ -118,20 +132,12 @@ export default function MainChat() {
                 );
 
                 if (find) {
-                    let unreadIds = JSON.parse(
-                        localStorage.getItem("unreadCustIds") || "[]"
-                    );
-                    if (!unreadIds.includes(notification.Rate.custId)) {
-                        unreadIds.push(notification.Rate.custId);
-                        localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
-                    }
-
                     const updatedProgress = filterProgress.map((item) => {
                         if (item.id === notification.activeConversation.id) {
                             return {
                                 ...item,
-                                isUnread: true,
-                                unread_count: (item.unread_count || 0) + 1,
+                                isUnread: isCustomerSender ? true : false,
+                                unread_count: isCustomerSender ? (item.unread_count || 0) + 1 : 0,
                                 latest_message: {
                                     ...item.latest_message,
                                     sender: notification.message.sender,
@@ -169,8 +175,8 @@ export default function MainChat() {
                         receiveAt: notification.activeConversation.receiveAt,
                         startTime: notification.activeConversation.startTime,
                         updated_at: notification.activeConversation.updated_at,
-                        unread_count: 1,
-                        isUnread: true,
+                        unread_count: isCustomerSender ? 1 : 0,
+                        isUnread: isCustomerSender ? true : false,
                     };
 
                     const newProgress = filterProgress.concat(newChatItem);
@@ -190,20 +196,12 @@ export default function MainChat() {
                 );
 
                 if (find) {
-                    let unreadIds = JSON.parse(
-                        localStorage.getItem("unreadCustIds") || "[]"
-                    );
-                    if (!unreadIds.includes(notification.Rate.custId)) {
-                        unreadIds.push(notification.Rate.custId);
-                        localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
-                    }
-
                     const updatedPending = filterPending.map((item) => {
                         if (item.id === notification.activeConversation.id) {
                             return {
                                 ...item,
-                                isUnread: true,
-                                unread_count: (item.unread_count || 0) + 1,
+                                isUnread: isCustomerSender ? true : false,
+                                unread_count: isCustomerSender ? (item.unread_count || 0) + 1 : 0,
                                 latest_message: {
                                     ...item.latest_message,
                                     sender: notification.message.sender,
@@ -241,8 +239,8 @@ export default function MainChat() {
                         receiveAt: notification.activeConversation.receiveAt,
                         startTime: notification.activeConversation.startTime,
                         updated_at: notification.activeConversation.updated_at,
-                        unread_count: 1,
-                        isUnread: true,
+                        unread_count: isCustomerSender ? 1 : 0,
+                        isUnread: isCustomerSender ? true : false,
                     };
                     const newPending = filterPending.concat(newChatItem);
 
@@ -260,10 +258,14 @@ export default function MainChat() {
             }
         } else {
             let unreadIds = JSON.parse(localStorage.getItem("unreadCustIds") || "[]");
-            if (!unreadIds.includes(notification.Rate.custId)) {
-                unreadIds.push(notification.Rate.custId);
-                localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
+            if (isCustomerSender) {
+                if (!unreadIds.includes(notification.Rate.custId)) {
+                    unreadIds.push(notification.Rate.custId);
+                }
+            } else {
+                unreadIds = unreadIds.filter(id => id !== notification.Rate.custId);
             }
+            localStorage.setItem("unreadCustIds", JSON.stringify(unreadIds));
         }
     }, [notification]);
 
