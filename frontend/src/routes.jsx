@@ -80,13 +80,14 @@ export const routes = createBrowserRouter([
                             { path: '/tags/groups/create', element: <CreateGroupPage /> },
                             { path: '/tags/groups/:id/edit', element: <EditGroupPage /> },
 
-                            { path: '/helpChat', element: <HelpChatList /> },
+                            // { path: '/helpChat', element: <HelpChatList /> },
                             { path: '/sticker', element: <StickerList /> },
                             { path: '/announces', element: <AnnouncesList /> },
                         ]
                     },
                     { path: '/report', element: <ReportPage /> },
                     { path: '/chatHistory', element: <ChatHistory /> },
+                    { path: '/helpChat', element: <HelpChatList /> },
                     { path: '/profile', element: <AuthPages /> },
 
                     { path: '/chat-pages-new', element: <ChatPageNew /> }

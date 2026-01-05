@@ -15,7 +15,7 @@ import { useChatRooms } from "../context/ChatRoomContext.jsx";
 import { SidebarAdmin } from "./SidebarAdmin.jsx";
 import {
     Search, History, ThreeP, Home, Person,
-    LogoutRounded, QuestionAnswerRounded
+    LogoutRounded, QuestionAnswerRounded, LiveHelp
 } from '@mui/icons-material';
 import { useState } from "react";
 
@@ -136,6 +136,14 @@ export default function Sidebar() {
                             <Typography level="title-sm">ประวัติการสนทนาทั้งหมด</Typography>
                         </ListItemButton>
                     </ListItem>
+                    {['68501', '68426', '68292'].includes(user.empCode) && (
+                        <ListItem component={Link} to="/helpChat">
+                            <ListItemButton selected={pathname === "/helpChat"}>
+                                <LiveHelp />
+                                <Typography level="title-sm">จัดการ help Chat</Typography>
+                            </ListItemButton>
+                        </ListItem>
+                    )}
                 </List>
                 {/* {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user} />} */}
                 {user.role === 'admin' && (
