@@ -10,7 +10,9 @@ class HelpChatController extends Controller
 {
     public function index()
     {
-        $helpChats = HelpChatModel::query()->paginate(300);
+        $helpChats = HelpChatModel::whereNull('deleted_by')
+            ->orderBy('id', 'asc')
+            ->paginate(300);
         return response()->json([
             'message' => 'success',
             'data' => $helpChats,
@@ -28,6 +30,7 @@ class HelpChatController extends Controller
         $search = $request->value;
         $searchArray = explode(" ", $search);
         $query = HelpChatModel::query();
+        $query->whereNull('deleted_by');
         $query->where(function ($q) use ($searchArray) {
             foreach ($searchArray as $word) {
                 $q->where(function ($subQ) use ($word) {
@@ -59,6 +62,10 @@ class HelpChatController extends Controller
             'skugroup' => 'required|string',
             'cause' => 'required|string',
         ]);
+        
+        if ($request->user()) {
+            $validated['created_by'] = $request->user()->empCode;
+        }
 
         $new = HelpChatModel::create($validated);
 
@@ -82,6 +89,9 @@ class HelpChatController extends Controller
         ]);
 
         $helpChat = HelpChatModel::findOrFail($id);
+        if ($request->user()) {
+            $validated['updated_by'] = $request->user()->empCode;
+        }
         $helpChat->update($validated);
 
         return response()->json([
@@ -89,10 +99,18 @@ class HelpChatController extends Controller
             'data' => $helpChat,
         ]);
     }
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $helpChat = HelpChatModel::findOrFail($id);
-        $helpChat->delete();
+
+        if ($request->user()) {
+            $helpChat->update(['deleted_by' => $request->user()->empCode]);
+        } else {
+            // กรณีไม่มี user login (ถ้ามีเคสนี้) อาจจะใส่ค่า default หรือปล่อยผ่าน
+            $helpChat->update(['deleted_by' => 'system']);
+        }
+
+        // $helpChat->delete();
 
         return response()->json([
             'message' => 'deleted',

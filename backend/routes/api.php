@@ -232,8 +232,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list', [HelpChatController::class, 'index']);
         Route::post('/search', [HelpChatController::class, 'search']);
         Route::post('/store', [HelpChatController::class, 'store']);
-        Route::put('{id}', [HelpChatController::class, 'update']);
-        Route::delete('{id}', [HelpChatController::class, 'destroy']);
+        // Route::put('{id}', [HelpChatController::class, 'update']);
+        // Route::delete('{id}', [HelpChatController::class, 'destroy']);
+
+        Route::put('/update/{id}', [HelpChatController::class, 'update']);
+        Route::delete('/delete/{id}', [HelpChatController::class, 'destroy']);
     });
 
     Route::get('/bot-room', [BotRoomController::class, 'index']);

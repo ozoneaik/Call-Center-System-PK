@@ -20,6 +20,9 @@ class HelpChatModel extends Model
         'remark',
         'search_vector',
         'skugroup',
-        'cause'
+        'cause',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 }

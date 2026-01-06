@@ -12,6 +12,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  GlobalStyles, 
 } from "@mui/joy";
 import { ChatPageStyle } from "../../styles/ChatPageStyle";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs";
@@ -24,47 +25,92 @@ import { AlertDiaLog } from "../../Dialogs/Alert";
 
 const BreadcrumbsPath = [{ name: "แชทช่วยเหลือ" }, { name: "รายการแชท" }];
 
+const initialFormData = {
+  search: "",
+  problem: "",
+  solve: "",
+  sku: "",
+  model: "",
+  remark: "",
+  search_vector: "",
+  skugroup: "",
+  cause: "",
+};
+
 function HelpChatList() {
   const [helpChatList, setHelpChatList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState({
-    search: "",
-    problem: "",
-    solve: "",
-    sku: "",
-    model: "",
-    remark: "",
-    search_vector: "",
-    skugroup: "",
-    cause: "",
-  });
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState(initialFormData);
 
   const requiredFields = ["search", "problem", "solve", "skugroup", "cause"];
 
   useEffect(() => {
-    fetchHelpChatList().finally(() => setLoading(false));
+    fetchHelpChatList();
   }, []);
 
   const fetchHelpChatList = async () => {
     try {
       setLoading(true);
       const { data } = await axiosClient.get("/help-chat/list");
-      console.log(data);
       setHelpChatList(data.data.data || []);
     } catch (error) {
       console.error("Error fetching help chat list:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAdd = () => setOpenModal(true);
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setEditingId(null);
+    setFormData(initialFormData);
+  };
 
-  const handleEdit = (item) => alert(`แก้ไข ID: ${item.id}`);
+  const handleAdd = () => {
+    setEditingId(null);
+    setFormData(initialFormData);
+    setOpenModal(true);
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setFormData({
+      search: item.search || "",
+      problem: item.problem || "",
+      solve: item.solve || "",
+      sku: item.sku || "",
+      model: item.model || "",
+      remark: item.remark || "",
+      search_vector: item.search_vector || "",
+      skugroup: item.skugroup || "",
+      cause: item.cause || "",
+    });
+    setOpenModal(true);
+  };
 
   const handleDelete = (item) => {
-    if (window.confirm(`คุณแน่ใจว่าต้องการลบ ID: ${item.id} ?`)) {
-      alert(`ลบ ID: ${item.id}`);
-    }
+    AlertDiaLog({
+      title: "ยืนยันการลบ",
+      text: `คุณแน่ใจว่าต้องการลบ ID: ${item.id} ?`,
+      icon: "warning",
+      onPassed: async (confirm) => {
+        if (confirm) {
+          try {
+            const { status } = await axiosClient.delete(
+              `/help-chat/delete/${item.id}`
+            );
+            if (status === 200) {
+              fetchHelpChatList();
+            }
+          } catch (err) {
+            console.error(err);
+            AlertDiaLog({ title: "ลบไม่สำเร็จ", icon: "error" });
+          }
+        }
+      },
+    });
   };
 
   const handleFormChange = (field, value) => {
@@ -79,44 +125,63 @@ function HelpChatList() {
     }
 
     AlertDiaLog({
-      title: "เพิ่มรายการใหม่เรียบร้อย",
+      title: editingId ? "ยืนยันการแก้ไขข้อมูล" : "ยืนยันการเพิ่มข้อมูล",
       icon: "question",
       onPassed: async (confirm) => {
         if (confirm) {
-          if (confirm) {
-            const { data, status } = await axiosClient.post(
-              "help-chat/store",
-              formData
-            );
-            console.log(data, status);
+          try {
+            let res;
+            if (editingId) {
+              res = await axiosClient.post(
+                `/help-chat/update/${editingId}`,
+                {
+                  ...formData,
+                  _method: 'PUT'
+                }
+              );
+            } else {
+              res = await axiosClient.post("/help-chat/store", formData);
+            }
+            const { status, data } = res;
+
+            if (status === 200 || status === 201) {
+              handleCloseModal();
+              fetchHelpChatList();
+              AlertDiaLog({
+                title: "สําเร็จ",
+                text: data.message || "บันทึกข้อมูลเรียบร้อย",
+                icon: "success",
+              });
+            } else {
+              AlertDiaLog({
+                title: "ไม่สําเร็จ",
+                text: data.message || "เกิดข้อผิดพลาด",
+                icon: "error",
+              });
+            }
+          } catch (error) {
+            console.error("Submit Error:", error);
             AlertDiaLog({
-              title: status === 200 ? "สําเร็จ" : "ไม่สําเร็จ",
-              icon: status === 200 ? "success" : "error",
-              onPassed: () => {
-                fetchHelpChatList().finally(() => setLoading(false));
-              },
+              title: "เกิดข้อผิดพลาด",
+              text: error.response?.data?.message || error.message,
+              icon: "error",
             });
           }
         }
       },
     });
-    // Reset form
-    setFormData({
-      search: "",
-      problem: "",
-      solve: "",
-      sku: "",
-      model: "",
-      remark: "",
-      search_vector: "",
-      skugroup: "",
-      cause: "",
-    });
-    setOpenModal(false);
   };
 
   return (
     <Sheet sx={ChatPageStyle.Layout}>
+      <GlobalStyles
+        styles={{
+          ".swal2-container": {
+            zIndex: "10000 !important",
+          },
+        }}
+      />
+
       <Box sx={ChatPageStyle.MainContent}>
         <Stack
           direction="row"
@@ -132,7 +197,7 @@ function HelpChatList() {
 
         <Box sx={{ ...ChatPageStyle.BoxTable, mt: 2 }}>
           <Typography level="h2" component="h1">
-            จัดการลูกค้า
+            จัดการ Help Chat
           </Typography>
         </Box>
 
@@ -153,17 +218,9 @@ function HelpChatList() {
                     <th>SKU</th>
                     <th>Model</th>
                     <th>Remark</th>
-                    <th>Vector</th>
                     <th>Group</th>
                     <th>Cause</th>
-                    <th
-                      onClick={() => {
-                        console.log(helpChatList);
-                      }}
-                      style={{ textAlign: "center" }}
-                    >
-                      Actions
-                    </th>
+                    <th style={{ textAlign: "center" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,24 +234,29 @@ function HelpChatList() {
                         <td>{item.sku}</td>
                         <td>{item.model}</td>
                         <td>{item.remark}</td>
-                        <td>{item.search_vector}</td>
                         <td>{item.skugroup}</td>
                         <td>{item.cause}</td>
                         <td style={{ textAlign: "center" }}>
-                          <IconButton
-                            onClick={() => handleEdit(item)}
-                            color="warning"
-                            size="sm"
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
                           >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            onClick={() => handleDelete(item)}
-                            color="danger"
-                            size="sm"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                            <IconButton
+                              onClick={() => handleEdit(item)}
+                              color="warning"
+                              size="sm"
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDelete(item)}
+                              color="danger"
+                              size="sm"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Stack>
                         </td>
                       </tr>
                     ))
@@ -211,21 +273,34 @@ function HelpChatList() {
           </Grid2>
         </Sheet>
 
-        {/* Modal จาก Joy UI */}
-        <Modal open={openModal} onClose={() => setOpenModal(false)}>
-          <ModalDialog sx={{ width: 500 }}>
+        <Modal open={openModal} onClose={handleCloseModal}>
+          <ModalDialog sx={{ width: 600, overflow: "auto", maxHeight: "90vh" }}>
             <ModalClose />
             <Typography level="h4" component="h2">
-              เพิ่มรายการใหม่
+              {editingId
+                ? `แก้ไขรายการ (ID: ${editingId})`
+                : "เพิ่มรายการใหม่"}
             </Typography>
 
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
             >
               {[
-                { label: "Search (ใช้สำหรับการค้นหาในหน้าห้องแชท)", key: "search", required: true },
-                { label: "Problem (ปัญหาที่พบได้บ่อย)", key: "problem", required: true },
-                { label: "Solve (แนวทางการแก้ไขปัญหาหรือวิธีการแก้ไข ใช้สำหรับส่งตอบลูกค้า)", key: "solve", required: true },
+                {
+                  label: "Search (ใช้สำหรับการค้นหาในหน้าห้องแชท)",
+                  key: "search",
+                  required: true,
+                },
+                {
+                  label: "Problem (ปัญหาที่พบได้บ่อย)",
+                  key: "problem",
+                  required: true,
+                },
+                {
+                  label: "Solve (แนวทางการแก้ไขปัญหา)",
+                  key: "solve",
+                  required: true,
+                },
                 { label: "SKU", key: "sku" },
                 { label: "Model", key: "model" },
                 { label: "Remark", key: "remark" },
@@ -245,11 +320,11 @@ function HelpChatList() {
             </Box>
 
             <Stack direction="row" justifyContent="flex-end" spacing={1} mt={3}>
-              <Button variant="plain" onClick={() => setOpenModal(false)}>
+              <Button variant="plain" onClick={handleCloseModal}>
                 ยกเลิก
               </Button>
               <Button onClick={handleSubmit} color="primary">
-                บันทึก
+                {editingId ? "อัปเดตข้อมูล" : "บันทึก"}
               </Button>
             </Stack>
           </ModalDialog>

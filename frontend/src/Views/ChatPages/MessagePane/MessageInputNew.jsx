@@ -33,7 +33,11 @@ export default function MessageInputNew(props) {
             return;
         }
         console.log('msg >>> ', msg);
-        setInputText(inputText + msg.content)
+        if (msg.content) {
+            const cleanContent = msg.content.replace(/^[\r\n\s]*-\s*/, '');
+            setInputText((prev) => prev + cleanContent);
+        }
+        // setInputText(inputText + msg.content)
     }, [msg])
 
     // ฟังก์ชันสำหรับจัดการการลากและวางไฟล์
