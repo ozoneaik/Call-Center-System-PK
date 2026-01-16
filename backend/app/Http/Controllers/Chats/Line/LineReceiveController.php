@@ -118,7 +118,8 @@ class LineReceiveController extends Controller
                     }
                 } else {
                     $message['contentType'] = 'text';
-                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                    // $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาตรับเรื่องดูแลคุณลูกค้าทางเรามีความยินดีเป็นอย่างยิ่งที่จะให้บริการและช่วยเหลือคุณลูกค้า";
                 }
             } elseif ($token->description === 'ศูนย์ซ่อม Pumpkin') {
                 if ($Rate->menu_select) {
@@ -150,7 +151,8 @@ class LineReceiveController extends Controller
                     }
                 } else {
                     $message['contentType'] = 'text';
-                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                    // $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาติดูแลคุณลูกค้า รบกวนแจ้งรายละเอียดเพิ่มเติมกับทางแอดมินพร้อมให้บริการ";
+                    $message['content'] = "สวัสดีคุณลูกค้า " . Auth::user()->name . " ขออนุญาตรับเรื่องดูแลคุณลูกค้าทางเรามีความยินดีเป็นอย่างยิ่งที่จะให้บริการและช่วยเหลือคุณลูกค้า";
                 }
             } else {
                 $message['contentType'] = 'text';
