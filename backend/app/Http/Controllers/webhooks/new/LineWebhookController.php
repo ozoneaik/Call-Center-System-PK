@@ -222,7 +222,17 @@ class LineWebhookController extends Controller
                 $url = Storage::disk('s3')->url($mediaPath);
                 $full_url = $url;
             } else {
-                throw new \Exception('ไม่สามารถดึงสื่อจาก LINE ได้');
+                // throw new \Exception('ไม่สามารถดึงสื่อจาก LINE ได้');
+                $errorBody = $response->body();
+                $statusCode = $response->status();
+
+                Log::channel('webhook_line_new')->error("❌ LINE Media API Error", [
+                    'status' => $statusCode,
+                    'body' => $errorBody,
+                    'mediaId' => $mediaId
+                ]);
+
+                throw new \Exception("LINE API Error: Status $statusCode - Message: $errorBody");
             }
         } catch (\Exception $e) {
             Log::channel('webhook_line_new')->error('❌ ไม่สามารถดึง URL ของสื่อได้: ' . $e->getMessage());
