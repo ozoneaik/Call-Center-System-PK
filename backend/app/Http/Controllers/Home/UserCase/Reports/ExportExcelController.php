@@ -35,12 +35,12 @@ class ExportExcelController extends Controller
     {
         if ($mins === null) return '-';
         $m = max(0, (float)$mins);
-        if ($m >= 1440) return 'มากกว่า 1 วัน';
-        if ($m >= 60)   return 'มากกว่า 1 ชั่วโมง';
-        if ($m >= 10)   return 'มากกว่า 10 นาที';
-        if ($m >= 5)    return 'มากกว่า 5 นาที';
-        if ($m >= 1)    return 'มากกว่า 1 นาที';
-        return 'ภายใน 1 นาที';
+        if ($m >= 1440) return 'มากกว่า 1 วัน'; //6
+        if ($m >= 60)   return 'มากกว่า 1 ชั่วโมง'; //5
+        if ($m >= 10)   return 'มากกว่า 10 นาที'; //4
+        if ($m >= 5)    return 'ภายใน 10 นาที'; //3 //ภายใน 10 นาที
+        if ($m >= 1)    return 'ภายใน 5 นาที'; //2 //ภายใน 5 นาที
+        return 'ภายใน 1 นาที'; //1
     }
 
     public function exportDetailedCasesRangeExcel(Request $request): StreamedResponse
