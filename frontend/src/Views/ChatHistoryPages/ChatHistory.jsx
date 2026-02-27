@@ -148,6 +148,21 @@ export default function ChatHistory() {
                                                     {item.description}
                                                 </Typography>
 
+                                                {item.matched_note && (
+                                                    <Box sx={{
+                                                        mb: 1,
+                                                        p: 1,
+                                                        bgcolor: 'warning.50',
+                                                        borderRadius: 'sm',
+                                                        borderLeft: '3px solid',
+                                                        borderColor: 'warning.400'
+                                                    }}>
+                                                        <Typography level="body-xs" sx={{ color: 'warning.700', fontWeight: 'md' }}>
+                                                            📌 พบคำในหมายเหตุ: {item.matched_note}
+                                                        </Typography>
+                                                    </Box>
+                                                )}
+
                                                 <Divider sx={{ my: 1 }} />
 
                                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -200,6 +215,7 @@ export default function ChatHistory() {
                                 <tr>
                                     <th>ชื่อลูกค้า</th>
                                     <th>คำอธิบาย</th>
+                                    <th>หมายเหตุที่ค้นพบ</th>
                                     <th>ทักครั้งแรกเมื่อ</th>
                                     <th>พนักงานที่คุยล่าสุด</th>
                                     <th style={{ width: '80px', textAlign: 'center' }}>จัดการ</th>
@@ -220,6 +236,16 @@ export default function ChatHistory() {
                                         <td>
                                             <Typography noWrap sx={{ maxWidth: '250px' }}>
                                                 {item.description}
+                                            </Typography>
+                                        </td>
+                                        <td>
+                                            <Typography sx={{
+                                                // ลบ noWrap และ maxWidth ออก เพื่อให้ข้อความตัดขึ้นบรรทัดใหม่ได้เต็มที่
+                                                color: item.matched_note ? 'warning.700' : 'text.secondary',
+                                                fontWeight: item.matched_note ? 'bold' : 'normal',
+                                                whiteSpace: 'pre-line'
+                                            }}>
+                                                {item.matched_note || '-'}
                                             </Typography>
                                         </td>
                                         <td>{convertFullDate(item.created_at)}</td>

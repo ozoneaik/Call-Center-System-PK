@@ -106,7 +106,8 @@ class HistoryController extends Controller
 
     public function ChatHistory(Request $request)
     {
-        $query = Customers::query();
+        // $query = Customers::query();
+        $query = Customers::query()->select('customers.*');
 
         if ($request->filled('custId')) {
             $message = 'ค้นหาด้วยรหัสลูกค้า';
@@ -129,33 +130,82 @@ class HistoryController extends Controller
         }
 
         // เพิ่มการค้นหาด้วย NOTE (join กับตาราง notes)
+        // if ($request->filled('note')) {
+        //     $message = 'ค้นหาจากหมายเหตุ (NOTE)';
+        //     $query->leftJoin('notes', 'notes.custId', '=', 'customers.custId')
+        //         ->where('notes.text', 'ILIKE', '%' . $request->note . '%')
+        //         ->select('customers.*'); // ป้องกันคอลัมน์ซ้ำจาก notes
+        // }
+
         if ($request->filled('note')) {
             $message = 'ค้นหาจากหมายเหตุ (NOTE)';
             $query->leftJoin('notes', 'notes.custId', '=', 'customers.custId')
                 ->where('notes.text', 'ILIKE', '%' . $request->note . '%')
-                ->select('customers.*'); // ป้องกันคอลัมน์ซ้ำจาก notes
+                // เพิ่ม alias (as matched_note) เพื่อส่งไปให้ React ใช้งาน
+                ->addSelect('notes.text as matched_note');
         }
 
-        $customer_list = $query->orderBy('customers.created_at', 'desc')->paginate(200);
+        // $customer_list = $query->orderBy('customers.created_at', 'desc')->paginate(200);
+        // $customer_list = $query->distinct()->orderBy('customers.created_at', 'desc')->paginate(200);
 
-        foreach ($customer_list as $customer) {
-            $latestMessage = ChatHistory::query()
+        // foreach ($customer_list as $customer) {
+        //     $latestMessage = ChatHistory::query()
+        //         ->select(
+        //             'chat_histories.content',
+        //             'chat_histories.contentType',
+        //             'chat_histories.created_at',
+        //             'users.name as staff_name',
+        //             'users.empCode'
+        //         )
+        //         ->where('chat_histories.custId', $customer->custId)
+        //         ->leftJoin('active_conversations', 'active_conversations.id', '=', 'chat_histories.conversationRef')
+        //         ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
+        //         ->orderBy('chat_histories.id', 'desc')
+        //         ->first();
+
+        //     $customer->latest_message    = $latestMessage;
+        //     $customer->latest_staff_name = $latestMessage?->staff_name;
+        //     $customer->latest_empCode    = $latestMessage?->empCode;
+        // }
+
+        $customer_list = $query->distinct()->orderBy('customers.created_at', 'desc')->paginate(200);
+
+        // 1. ดึง custId ของลูกค้าทั้ง 200 คนในหน้านี้ออกมาเป็น Array
+        $custIds = $customer_list->pluck('custId')->toArray();
+
+        if (!empty($custIds)) {
+            // 2. หา ID ของ ChatHistory "รายการล่าสุด" ของลูกค้าแต่ละคน (ยิง DB 1 ครั้ง)
+            $latestChatIds = ChatHistory::query()
+                ->whereIn('custId', $custIds)
+                ->selectRaw('MAX(id) as max_id')
+                ->groupBy('custId')
+                ->pluck('max_id');
+
+            // 3. ดึงข้อมูลแชท พนักงาน และรายละเอียดทั้งหมด เฉพาะ ID ล่าสุดที่หามาได้ (ยิง DB 1 ครั้ง)
+            $latestMessages = ChatHistory::query()
                 ->select(
+                    'chat_histories.custId', // ต้องดึงมาเพื่อใช้จับคู่
                     'chat_histories.content',
                     'chat_histories.contentType',
                     'chat_histories.created_at',
                     'users.name as staff_name',
                     'users.empCode'
                 )
-                ->where('chat_histories.custId', $customer->custId)
+                ->whereIn('chat_histories.id', $latestChatIds)
                 ->leftJoin('active_conversations', 'active_conversations.id', '=', 'chat_histories.conversationRef')
                 ->leftJoin('users', 'users.empCode', '=', 'active_conversations.empCode')
-                ->orderBy('chat_histories.id', 'desc')
-                ->first();
+                ->get()
+                ->keyBy('custId'); // จัดกลุ่มด้วย custId เพื่อให้ค้นหาในลูปได้เร็วขึ้น
 
-            $customer->latest_message    = $latestMessage;
-            $customer->latest_staff_name = $latestMessage?->staff_name;
-            $customer->latest_empCode    = $latestMessage?->empCode;
+            // 4. นำข้อมูลที่ได้ มา map ใส่ customer_list ด้วย PHP (ไม่กระทบ Database แล้ว)
+            foreach ($customer_list as $customer) {
+                // ค้นหาข้อความจาก Collection ที่ดึงมาแล้ว
+                $latestMessage = $latestMessages->get($customer->custId);
+
+                $customer->latest_message    = $latestMessage;
+                $customer->latest_staff_name = $latestMessage?->staff_name;
+                $customer->latest_empCode    = $latestMessage?->empCode;
+            }
         }
 
         $platforms = PlatformAccessTokens::all();
