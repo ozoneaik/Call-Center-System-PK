@@ -333,10 +333,16 @@ class MessageController extends Controller
                                     'send_to_cust' => true,
                                     'type_send' => 'evaluation',
                                     'type_message' => 'push',
-                                    'messages' => [[
-                                        'contentType' => 'text',
-                                        'content' => 'เพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏'
-                                    ]],
+                                    'messages' => [
+                                        [
+                                            'contentType' => 'text',
+                                            'content' => 'หากต้องการสอบถามข้อมูลเพิ่มเติมแจ้งแอดมินเข้ามาได้เลยนะคะ เราพร้อมให้บริการและช่วยเหลือคุณลูกค้าอย่างเต็มที่ค่ะ ขอบพระคุณที่ให้พัมคินดูแลค่ะ 🎃'
+                                        ],
+                                        [
+                                            'contentType' => 'text',
+                                            'content' => 'เพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏'
+                                        ]
+                                    ],
                                     'customer' => $customer,
                                     'ac_id' => $updateAC['id'],
                                     'rate_id' => $updateRate['id'],
