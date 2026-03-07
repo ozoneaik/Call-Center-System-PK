@@ -281,117 +281,117 @@ export default function MainChat() {
         setFilterPending(deletePending);
     };
 
-    // return (
-    //     <>
-    //         {
-    //             loading ? (
-    //                 <CircularProgress />
-    //             ) : (
-    //                 <Box
-    //                     component="main"
-    //                     className="MainContent"
-    //                     sx={{
-    //                         backgroundColor: 'background.body',
-    //                         p: 2,
-    //                         flex: 1,
-    //                         display: 'flex',
-    //                         flexDirection: 'column',
-    //                         minWidth: 0,
-    //                         height: '100dvh',
-    //                         gap: 2,
-    //                     }}
-    //                 >
-    //                     <Box sx={{
-    //                         flex: 1,
-    //                         display: 'flex',
-    //                         flexDirection: 'column',
-    //                         minHeight: 0,
-    //                         overflow: 'hidden'
-    //                     }}>
-    //                         <OrderTable
-    //                             roomId={roomId}
-    //                             progress={progress}
-    //                             filterProgress={filterProgress}
-    //                             setFilterProgress={setFilterProgress}
-    //                             showMyCasesOnly={showMyCasesOnly}
-    //                             setShowMyCasesOnly={setShowMyCasesOnly}
-    //                         />
-    //                     </Box>
-
-    //                     <Box sx={{
-    //                         flex: 1,
-    //                         display: 'flex',
-    //                         flexDirection: 'column',
-    //                         minHeight: 0,
-    //                         overflow: 'hidden'
-    //                     }}>
-    //                         <PendingTableNew
-    //                             setFilterPending={setFilterPending}
-    //                             filterPending={filterPending}
-    //                             disable={roomId === "ROOM00"}
-    //                             pending={pending}
-    //                             roomId={roomId}
-    //                             roomName={roomName}
-    //                         />
-    //                     </Box>
-    //                 </Box>
-    //             )
-    //         }
-    //     </>
-    // );
-
     return (
         <>
-            <Box
-                component="main"
-                className="MainContent"
-                sx={{
-                    backgroundColor: 'background.body',
-                    p: 2,
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: 0,
-                    height: '100dvh',
-                    gap: 2,
-                }}
-            >
-                <Box sx={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                    overflow: 'hidden'
-                }}>
-                    <OrderTable
-                        roomId={roomId}
-                        progress={progress}
-                        filterProgress={filterProgress}
-                        setFilterProgress={setFilterProgress}
-                        showMyCasesOnly={showMyCasesOnly}
-                        setShowMyCasesOnly={setShowMyCasesOnly}
-                        isLoading={loading} /* ส่ง State loading */
-                    />
-                </Box>
+            {
+                loading ? (
+                    <CircularProgress />
+                ) : (
+                    <Box
+                        component="main"
+                        className="MainContent"
+                        sx={{
+                            backgroundColor: 'background.body',
+                            p: 2,
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minWidth: 0,
+                            height: '100dvh',
+                            gap: 2,
+                        }}
+                    >
+                        <Box sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            overflow: 'hidden'
+                        }}>
+                            <OrderTable
+                                roomId={roomId}
+                                progress={progress}
+                                filterProgress={filterProgress}
+                                setFilterProgress={setFilterProgress}
+                                showMyCasesOnly={showMyCasesOnly}
+                                setShowMyCasesOnly={setShowMyCasesOnly}
+                            />
+                        </Box>
 
-                <Box sx={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                    overflow: 'hidden'
-                }}>
-                    <PendingTableNew
-                        setFilterPending={setFilterPending}
-                        filterPending={filterPending}
-                        disable={roomId === "ROOM00"}
-                        pending={pending}
-                        roomId={roomId}
-                        roomName={roomName}
-                        isLoading={loading} /* ส่ง State loading */
-                    />
-                </Box>
-            </Box>
+                        <Box sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            overflow: 'hidden'
+                        }}>
+                            <PendingTableNew
+                                setFilterPending={setFilterPending}
+                                filterPending={filterPending}
+                                disable={roomId === "ROOM00"}
+                                pending={pending}
+                                roomId={roomId}
+                                roomName={roomName}
+                            />
+                        </Box>
+                    </Box>
+                )
+            }
         </>
     );
+
+    // return (
+    //     <>
+    //         <Box
+    //             component="main"
+    //             className="MainContent"
+    //             sx={{
+    //                 backgroundColor: 'background.body',
+    //                 p: 2,
+    //                 flex: 1,
+    //                 display: 'flex',
+    //                 flexDirection: 'column',
+    //                 minWidth: 0,
+    //                 height: '100dvh',
+    //                 gap: 2,
+    //             }}
+    //         >
+    //             <Box sx={{
+    //                 flex: 1,
+    //                 display: 'flex',
+    //                 flexDirection: 'column',
+    //                 minHeight: 0,
+    //                 overflow: 'hidden'
+    //             }}>
+    //                 <OrderTable
+    //                     roomId={roomId}
+    //                     progress={progress}
+    //                     filterProgress={filterProgress}
+    //                     setFilterProgress={setFilterProgress}
+    //                     showMyCasesOnly={showMyCasesOnly}
+    //                     setShowMyCasesOnly={setShowMyCasesOnly}
+    //                     isLoading={loading} /* ส่ง State loading */
+    //                 />
+    //             </Box>
+
+    //             <Box sx={{
+    //                 flex: 1,
+    //                 display: 'flex',
+    //                 flexDirection: 'column',
+    //                 minHeight: 0,
+    //                 overflow: 'hidden'
+    //             }}>
+    //                 <PendingTableNew
+    //                     setFilterPending={setFilterPending}
+    //                     filterPending={filterPending}
+    //                     disable={roomId === "ROOM00"}
+    //                     pending={pending}
+    //                     roomId={roomId}
+    //                     roomName={roomName}
+    //                     isLoading={loading} /* ส่ง State loading */
+    //                 />
+    //             </Box>
+    //         </Box>
+    //     </>
+    // );
 }
