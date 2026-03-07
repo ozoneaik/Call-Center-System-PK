@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertDiaLog } from '../../Dialogs/Alert';
 import { receiveApi } from '../../Api/Messages';
 import { useAuth } from '../../context/AuthContext';
+import Skeleton from '@mui/joy/Skeleton';
 
 function descendingComparator(a, b, orderBy) {
     if (b[orderBy] < a[orderBy]) {
@@ -26,7 +27,7 @@ function descendingComparator(a, b, orderBy) {
     return 0;
 }
 
-export default function PendingTableNew({ setFilterPending, filterPending, disable, pending, roomId, roomName }) {
+export default function PendingTableNew({ setFilterPending, filterPending, disable, pending, roomId, roomName, isLoading }) {
     const [order, setOrder] = React.useState('desc');
     const [selected, setSelected] = React.useState([]);
     const [open, setOpen] = React.useState(false);
@@ -170,60 +171,97 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                         </tr>
                     </thead>
                     <tbody>
-                        {filterPending.map((row, index) => (
-                            <tr key={index}>
-                                <td>
-                                    <Stack spacing={1}>
-                                        <Stack direction='row' spacing={1} alignItems='center'>
-                                            <Avatar src={row.avatar} size="sm" />
-                                            <Stack spacing={1}>
-                                                <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
-                                                    <Typography level="body-xs">{row.custName}</Typography> |
-                                                    <Typography level="body-xs" color='primary'>ID : {row.pcust_id}</Typography>
-                                                </Box>
-                                                <Chip color='success' size='sm'>{row.description}</Chip>
+                        {isLoading ? (
+                            // ส่วนนี้คือ Effect ตอนโหลดข้อมูล (Skeleton)
+                            Array.from(new Array(5)).map((_, index) => (
+                               <tr key={index}>
+                                    <td>
+                                        <Stack spacing={1} py={1}>
+                                            <Stack direction='row' spacing={1} alignItems='center'>
+                                                <Skeleton variant="circular" width={40} height={40} />
+                                                <Stack spacing={1}>
+                                                    <Skeleton variant="text" width={120} />
+                                                    <Skeleton variant="text" width={80} />
+                                                </Stack>
                                             </Stack>
+                                            <Skeleton variant="text" width={200} />
                                         </Stack>
-                                        <Chip color='primary' startDecorator={<MessageSharp />}>
-                                            {row.latest_message.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
-                                        </Chip>
-                                    </Stack>
-                                </td>
-                                <td>
-                                    <Stack spacing={1}>
-                                        <Chip size='sm'>
-                                            เมื่อ : {convertFullDate(row.updated_at)}
-                                        </Chip>
-                                        <TimeDisplay startTime={row.created_at} />
-                                    </Stack>
-                                </td>
-                                <td>
-                                    <Box sx={{ display: 'block', gap: 2, alignItems: 'center' }}>
-                                        <Typography level="body-xs">{row.roomName}</Typography>
-                                        <Typography level="body-xs">(พนักงาน : {row.from_empCode})</Typography>
-                                    </Box>
-                                </td>
-                                <td>
-                                    <Stack spacing={1}>
-                                        <Button
-                                            variant='soft'
-                                            onClick={() => handleChat({
-                                                rateId: row.rateRef,
-                                                roomId: row.roomId,
-                                                index: index
-                                            })}
-                                            // disabled={(index != 0 && user.role != 'admin') || loadingStates[index]}
-                                            loading={loadingStates[index]}
-                                        >
-                                            {loadingStates[index] ? 'กำลังรับเรื่อง..' : 'รับเรื่อง'}
-                                        </Button>
-                                        <Button variant='soft' onClick={() => redirectChat(row)}>
-                                            ดูข้อความ
-                                        </Button>
-                                    </Stack>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Skeleton variant="rectangular" width={180} height={28} sx={{ borderRadius: 'sm' }} />
+                                            <Skeleton variant="rectangular" width={150} height={28} sx={{ borderRadius: 'sm' }} />
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Skeleton variant="text" width={100} />
+                                            <Skeleton variant="text" width={120} />
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1} py={1}>
+                                            <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 'sm' }} />
+                                            <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 'sm' }} />
+                                        </Stack>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            filterPending.map((row, index) => (
+                                <tr key={index}>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Stack direction='row' spacing={1} alignItems='center'>
+                                                <Avatar src={row.avatar} size="sm" />
+                                                <Stack spacing={1}>
+                                                    <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
+                                                        <Typography level="body-xs">{row.custName}</Typography> |
+                                                        <Typography level="body-xs" color='primary'>ID : {row.pcust_id}</Typography>
+                                                    </Box>
+                                                    <Chip color='success' size='sm'>{row.description}</Chip>
+                                                </Stack>
+                                            </Stack>
+                                            <Chip color='primary' startDecorator={<MessageSharp />}>
+                                                {row.latest_message?.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
+                                            </Chip>
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Chip size='sm'>
+                                                เมื่อ : {convertFullDate(row.updated_at)}
+                                            </Chip>
+                                            <TimeDisplay startTime={row.created_at} />
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Box sx={{ display: 'block', gap: 2, alignItems: 'center' }}>
+                                            <Typography level="body-xs">{row.roomName}</Typography>
+                                            <Typography level="body-xs">(พนักงาน : {row.from_empCode})</Typography>
+                                        </Box>
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Button
+                                                variant='soft'
+                                                onClick={() => handleChat({
+                                                    rateId: row.rateRef,
+                                                    roomId: row.roomId,
+                                                    index: index
+                                                })}
+                                                loading={loadingStates[index]}
+                                            >
+                                                {loadingStates[index] ? 'กำลังรับเรื่อง..' : 'รับเรื่อง'}
+                                            </Button>
+                                            <Button variant='soft' onClick={() => redirectChat(row)}>
+                                                ดูข้อความ
+                                            </Button>
+                                        </Stack>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </Table>
             </Sheet>

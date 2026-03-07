@@ -29,7 +29,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AlertDiaLog } from '../../Dialogs/Alert';
 import { endTalkAllProgressApi } from '../../Api/Messages';
-
+import Skeleton from '@mui/joy/Skeleton';
 
 
 function descendingComparator(a, b, orderBy) {
@@ -47,7 +47,9 @@ export default function ProgressTable({ roomId,
     filterProgress,
     setFilterProgress,
     showMyCasesOnly,
-    setShowMyCasesOnly, }) {
+    setShowMyCasesOnly,
+    isLoading
+}) {
     console.log(filterProgress);
 
     const [order, setOrder] = React.useState('desc');
@@ -339,91 +341,128 @@ export default function ProgressTable({ roomId,
                         </tr>
                     </thead>
                     <tbody>
-                        {filterProgress.map((row, index) => (
-                            <tr key={index}>
-                                <td>
-                                    <Stack spacing={1}>
-                                        <Stack direction='row' spacing={1} alignItems='center'>
-                                            {
-                                                row.unread_count > 0 ? (
-                                                    <Badge
-                                                        badgeContent={row.unread_count}
-                                                        color="success"
-                                                        variant="solid"
-                                                        size="md"
-                                                        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-                                                        badgeInset="8%"
-                                                        sx={{
-                                                            zIndex: 2,
-                                                            '& .MuiBadge-badge': {
-                                                                fontSize: '0.75rem', 
-                                                                minWidth: '20px',    
-                                                                height: '20px'       
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Avatar size="md" sx={{ mr: 0 }} src={row.avatar || ""} />
-                                                    </Badge>
-                                                ) : (
-                                                    <Avatar src={row.avatar} size="sm" />
-                                                )
-                                            }
-                                            <Stack spacing={1}>
-                                                <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
-                                                    <Typography level="body-xs">{row.custName}</Typography>|
-                                                    <Typography level="body-xs" color='primary'>ID : {row.pcust_id}</Typography>
-                                                </Box>
-                                                <Chip color='success' size='sm'>{row.description}</Chip>
+                        {isLoading ? (
+                            // ส่วน Effect ตอนโหลดข้อมูล (Skeleton)
+                            Array.from(new Array(5)).map((_, index) => (
+                                <tr key={index}>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Stack direction='row' spacing={1} alignItems='center'>
+                                                <Skeleton variant="circular" width={40} height={40} />
+                                                <Stack spacing={1}>
+                                                    <Skeleton variant="text" width={120} />
+                                                    <Skeleton variant="text" width={80} />
+                                                </Stack>
                                             </Stack>
+                                            <Skeleton variant="text" width={200} />
                                         </Stack>
-                                        <Chip color='primary' startDecorator={<MessageSharp />}>
-                                            {row.latest_message.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
-                                        </Chip>
-                                    </Stack>
-                                </td>
-                                <td>
-                                    <Typography level="body-xs">{row.empName}</Typography>
-                                </td>
-                                <td>
-                                    <Chip
-                                        variant="soft"
-                                        color="success"
-                                        startDecorator={<DateRange />}
-                                    >
-                                        <Typography sx={ChatPageStyle.TableText}>
-                                            วันที่รับเรื่อง	:
-                                            {row.receiveAt
-                                                ? convertFullDate(row.receiveAt)
-                                                : "ยังไม่เริ่มสนทนา"}
-                                        </Typography>
-                                    </Chip>
-                                </td>
-                                <td>
-                                    <Stack spacing={1}>
+                                    </td>
+                                    <td>
+                                        <Skeleton variant="text" width={100} />
+                                    </td>
+                                    <td>
+                                        <Skeleton variant="rectangular" width={140} height={32} sx={{ borderRadius: 'sm' }} />
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Skeleton variant="rectangular" width={150} height={32} sx={{ borderRadius: 'sm' }} />
+                                            <Skeleton variant="rectangular" width={150} height={32} sx={{ borderRadius: 'sm' }} />
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                            <Skeleton variant="rectangular" width={80} height={36} sx={{ borderRadius: 'sm' }} />
+                                        </Box>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            filterProgress.map((row, index) => (
+                                <tr key={index}>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Stack direction='row' spacing={1} alignItems='center'>
+                                                {
+                                                    row.unread_count > 0 ? (
+                                                        <Badge
+                                                            badgeContent={row.unread_count}
+                                                            color="success"
+                                                            variant="solid"
+                                                            size="md"
+                                                            anchorOrigin={{ vertical: "top", horizontal: "left" }}
+                                                            badgeInset="8%"
+                                                            sx={{
+                                                                zIndex: 2,
+                                                                '& .MuiBadge-badge': {
+                                                                    fontSize: '0.75rem',
+                                                                    minWidth: '20px',
+                                                                    height: '20px'
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Avatar size="md" sx={{ mr: 0 }} src={row.avatar || ""} />
+                                                        </Badge>
+                                                    ) : (
+                                                        <Avatar src={row.avatar} size="sm" />
+                                                    )
+                                                }
+                                                <Stack spacing={1}>
+                                                    <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
+                                                        <Typography level="body-xs">{row.custName}</Typography>|
+                                                        <Typography level="body-xs" color='primary'>ID : {row.pcust_id}</Typography>
+                                                    </Box>
+                                                    <Chip color='success' size='sm'>{row.description}</Chip>
+                                                </Stack>
+                                            </Stack>
+                                            <Chip color='primary' startDecorator={<MessageSharp />}>
+                                                {row.latest_message.contentType === 'text' ? row.latest_message.content : 'ส่งรูปภาพหรือสติกเกอร์'}
+                                            </Chip>
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Typography level="body-xs">{row.empName}</Typography>
+                                    </td>
+                                    <td>
                                         <Chip
                                             variant="soft"
-                                            color="warning"
+                                            color="success"
                                             startDecorator={<DateRange />}
                                         >
                                             <Typography sx={ChatPageStyle.TableText}>
-                                                เวลาเรื่ม :{" "}
-                                                {row.startTime
-                                                    ? convertFullDate(row.startTime)
+                                                วันที่รับเรื่อง	:
+                                                {row.receiveAt
+                                                    ? convertFullDate(row.receiveAt)
                                                     : "ยังไม่เริ่มสนทนา"}
                                             </Typography>
                                         </Chip>
-                                        <TimeDisplay startTime={row.startTime} />
-                                    </Stack>
-                                </td>
-                                <td>
-                                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
-                                        <Button onClick={() => handleChat(row.rateRef, row.id, row.custId)}>
-                                            ดูข้อความ
-                                        </Button>
-                                    </Box>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td>
+                                        <Stack spacing={1}>
+                                            <Chip
+                                                variant="soft"
+                                                color="warning"
+                                                startDecorator={<DateRange />}
+                                            >
+                                                <Typography sx={ChatPageStyle.TableText}>
+                                                    เวลาเรื่ม :{" "}
+                                                    {row.startTime
+                                                        ? convertFullDate(row.startTime)
+                                                        : "ยังไม่เริ่มสนทนา"}
+                                                </Typography>
+                                            </Chip>
+                                            <TimeDisplay startTime={row.startTime} />
+                                        </Stack>
+                                    </td>
+                                    <td>
+                                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+                                            <Button onClick={() => handleChat(row.rateRef, row.id, row.custId)}>
+                                                ดูข้อความ
+                                            </Button>
+                                        </Box>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </Table>
             </Sheet>
