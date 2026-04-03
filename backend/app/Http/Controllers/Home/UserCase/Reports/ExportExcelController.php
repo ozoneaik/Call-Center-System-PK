@@ -194,7 +194,9 @@ class ExportExcelController extends Controller
             ->select(
                 'ac.*',
                 'users.name as empName',
+                'users.real_name as empRealName', 
                 'from_emp.name as from_empName',
+                'from_emp.real_name as from_empRealName',
                 DB::raw('chat_rooms."roomName" as "roomName"'),
                 DB::raw('from_chat_room."roomName" as "from_roomName"'),
                 DB::raw("$acceptedExpr as accepted_at"),
@@ -276,8 +278,10 @@ class ExportExcelController extends Controller
             'ID เคสย่อย',
             'Tag เคสย่อย',
             'พนักงานที่รับเรื่อง',
+            'ชื่อ-สกุลจริง (พนักงานที่รับเรื่อง)', 
             'ห้องที่รับเรื่อง',
             'จากพนักงาน',
+            'ชื่อ-สกุลจริง (จากพนักงาน)',  
             'จากห้อง',
             'วันที่สร้าง',
             'วันรับเรื่อง',
@@ -292,35 +296,13 @@ class ExportExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('DetailedCases');
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:Z1')->getFont()->setBold(true);
+        // 🟢 เปลี่ยนจาก A1:Z1 เป็น A1:AB1 (รองรับ 28 คอลัมน์)
+        $sheet->getStyle('A1:AB1')->getFont()->setBold(true);
 
         $colWidths = [
-            'A' => 12,
-            'B' => 24,
-            'C' => 12,
-            'D' => 12,
-            'E' => 24,
-            'F' => 12,
-            'G' => 24,
-            'H' => 30,
-            'I' => 18,
-            'J' => 20,
-            'K' => 14,
-            'L' => 12,
-            'M' => 20,
-            'N' => 22,
-            'O' => 22,
-            'P' => 16,
-            'Q' => 22,
-            'R' => 20,
-            'S' => 20,
-            'T' => 16,
-            'U' => 18,
-            'V' => 20,
-            'W' => 20,
-            'X' => 24,
-            'Y' => 24,
-            'Z' => 28,
+            'A' => 12, 'B' => 18, 'C' => 20, 'D' => 20, 'E' => 15, 'F' => 15, 'G' => 20, 'H' => 15, 'I' => 20, 'J' => 25,
+            'K' => 20, 'L' => 20, 'M' => 15, 'N' => 12, 'O' => 20, 'P' => 20, 'Q' => 25, 'R' => 20, 'S' => 20, 'T' => 25,
+            'U' => 20, 'V' => 20, 'W' => 20, 'X' => 20, 'Y' => 20, 'Z' => 20, 'AA' => 20, 'AB' => 25
         ];
         foreach ($colWidths as $col => $w) {
             $sheet->getColumnDimension($col)->setAutoSize(false);
@@ -362,8 +344,10 @@ class ExportExcelController extends Controller
                         $sc->id,
                         $sc->tagName,
                         $sc->empName,
+                        $sc->empRealName ?? '-', // 🟢 ข้อมูลชื่อจริง
                         $sc->roomName,
                         $sc->from_empName,
+                        $sc->from_empRealName ?? '-', // 🟢 ข้อมูลชื่อจริง
                         $sc->from_roomName,
                         $sc->created_at ? Carbon::parse($sc->created_at)->format('Y-m-d H:i:s') : null,
                         $sc->accepted_at ? Carbon::parse($sc->accepted_at)->format('Y-m-d H:i:s') : null,
@@ -377,7 +361,7 @@ class ExportExcelController extends Controller
                 }
                 $blockEnd = $r - 1;
                 if ($blockEnd >= $blockStart) {
-                    $paintRange("A{$blockStart}:Z{$blockEnd}", $blockColors[$blockColorIdx]);
+                    $paintRange("A{$blockStart}:AB{$blockEnd}", $blockColors[$blockColorIdx]);
                     $blockColorIdx = 1 - $blockColorIdx;
                 }
             } else {
@@ -396,26 +380,12 @@ class ExportExcelController extends Controller
                     $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
                     0,
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
-                    '',
-                    '',
-                    '',
-                    '',
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '' // 🟢 Pad คอลัมน์ว่างให้ครบ
                 ]], null, "A{$r}");
-                $paintRange("A{$blockStart}:Z{$r}", $blockColors[$blockColorIdx]);
+                $paintRange("A{$blockStart}:AB{$r}", $blockColors[$blockColorIdx]);
                 $blockColorIdx = 1 - $blockColorIdx;
                 $r++;
             }
-        }
-
-        foreach (range('A', 'Z') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         $filename = 'DetailedCases_' . $start->format('Ymd') . '-' . $end->format('Ymd') . '.xlsx';
@@ -520,7 +490,9 @@ class ExportExcelController extends Controller
             ->select(
                 'ac.*',
                 'users.name as empName',
+                'users.real_name as empRealName', 
                 'from_emp.name as from_empName',
+                'from_emp.real_name as from_empRealName',
                 DB::raw('chat_rooms."roomName" as "roomName"'),
                 DB::raw('from_chat_room."roomName" as "from_roomName"'),
                 DB::raw("$acceptedExpr as accepted_at"),
@@ -602,8 +574,10 @@ class ExportExcelController extends Controller
             'ID เคสย่อย',
             'Tag เคสย่อย',
             'พนักงานที่รับเรื่อง',
+            'ชื่อ-สกุลจริง (พนักงานที่รับเรื่อง)', 
             'ห้องที่รับเรื่อง',
             'จากพนักงาน',
+            'ชื่อ-สกุลจริง (จากพนักงาน)',      
             'จากห้อง',
             'วันที่สร้าง',
             'วันรับเรื่อง',
@@ -618,7 +592,7 @@ class ExportExcelController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('DetailedCases');
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:Z1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:AB1')->getFont()->setBold(true);
 
         $r = 2;
         foreach ($mainCases as $rate) {
@@ -646,8 +620,10 @@ class ExportExcelController extends Controller
                         $sc->id,
                         $sc->tagName,
                         $sc->empName,
+                        $sc->empRealName ?? '-', 
                         $sc->roomName,
                         $sc->from_empName,
+                        $sc->from_empRealName ?? '-', 
                         $sc->from_roomName,
                         $sc->created_at ? Carbon::parse($sc->created_at)->format('Y-m-d H:i:s') : null,
                         $sc->accepted_at ? Carbon::parse($sc->accepted_at)->format('Y-m-d H:i:s') : null,
@@ -675,23 +651,14 @@ class ExportExcelController extends Controller
                     $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
 
                     0,
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    $rate->created_at ? Carbon::parse($rate->created_at)->format('Y-m-d H:i:s') : null,
-                    '',
-                    '',
-                    '',
-                    '',
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '' 
                 ]], null, "A{$r}");
                 $r++;
             }
         }
 
-        foreach (range('A', 'Z') as $col) {
+        // จัดความกว้างคอลัมน์ให้อ่านง่าย (คลุมตั้งแต่ A ถึง AB)
+        foreach (array_merge(range('A', 'Z'), ['AA', 'AB']) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
