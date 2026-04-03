@@ -22,7 +22,11 @@ class SyncLazadaOrders extends Command
         $this->info("🚀 เริ่มต้น Sync ออเดอร์ Lazada ย้อนหลัง {$days} วัน...");
 
         // ดึงร้านค้า Lazada ทั้งหมดที่มีในระบบ
-        $platforms = PlatformAccessTokens::where('platform', 'lazada')->get();
+        // $platforms = PlatformAccessTokens::where('platform', 'lazada')->get();
+
+        $platforms = PlatformAccessTokens::where('platform', 'lazada')
+            ->where('description', '!=', 'OZONEAIK Shoping')
+            ->get();
 
         if ($platforms->isEmpty()) {
             $this->error('❌ ไม่พบร้านค้า Lazada ในระบบ');

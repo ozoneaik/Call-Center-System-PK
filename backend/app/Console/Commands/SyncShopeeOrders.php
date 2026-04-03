@@ -20,8 +20,12 @@ class SyncShopeeOrders extends Command
         $this->info("🚀 เริ่มต้น Sync ออเดอร์ Shopee ย้อนหลัง {$days} วัน...");
 
         // ดึงร้านค้า Shopee ทั้งหมดที่มีในระบบ
-        $platforms = PlatformAccessTokens::where('platform', 'shopee')->get();
+        // $platforms = PlatformAccessTokens::where('platform', 'shopee')->get();
 
+        $platforms = PlatformAccessTokens::where('platform', 'shopee')
+            ->where('description', '!=', 'AofTest')
+            ->get();
+            
         if ($platforms->isEmpty()) {
             $this->error('❌ ไม่พบร้านค้า Shopee ในระบบ');
             return;
