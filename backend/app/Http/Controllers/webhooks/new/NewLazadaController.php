@@ -994,10 +994,10 @@ class NewLazadaController extends Controller
         }
 
         try {
-            // 🚀 โค้ดใหม่: ดึงข้อมูลออเดอร์จาก Database ของเราโดยตรง (เร็วฟ้าผ่า)
             $orders = DB::table('orders')
                 ->where('buyer_user_id', (string)$customer->buyerId)
                 ->where('platform', 'lazada')
+                ->where('shop_id', (string)$platform->laz_seller_id)
                 ->orderBy('order_create_time', 'desc')
                 ->get();
 
@@ -1013,12 +1013,23 @@ class NewLazadaController extends Controller
 
             // Map ข้อมูลในรูปแบบที่หน้า UI (React) ต้องการ
             $mappedOrders = $orders->map(function ($o) {
+                $rawData = json_decode($o->raw_data, true);
+
+                // สำหรับ Lazada ที่เราทำ Command ไว้ ข้อมูลสินค้าจะอยู่ใน ['items']
+                $items = $rawData['items'] ?? [];
+
+                // รวมชื่อสินค้า
+                $productNames = collect($items)->map(function ($item) {
+                    return $item['name'] ?? 'ไม่ทราบชื่อสินค้า';
+                })->join(', ');
+
                 return [
                     'order_number' => $o->order_sn,
-                    'status'       => [$o->order_status ?? 'unknown'], // React ใช้ .join() เลยต้องส่งเป็น Array
+                    'status'       => [$o->order_status ?? 'unknown'],
                     'price'        => (float)$o->total_amount,
                     'created_at'   => $o->order_create_time ? Carbon::parse($o->order_create_time)->format('Y-m-d H:i') : '-',
-                    'items_count'  => 0 // ถ้าจะโชว์จำนวนสินค้า ต้อง decode JSON raw_data (ใส่ 0 ไว้ก่อนถ้าไม่ซีเรียส)
+                    'product_names' => $productNames, // ส่งชื่อสินค้าไปที่ React
+                    'items_count'  => count($items)
                 ];
             })->toArray();
 

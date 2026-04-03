@@ -33,8 +33,8 @@ export default function Info(props) {
 
     const fetchLazadaOrders = async () => {
         try {
-            setOrdersPlatform('Lazada'); 
-            setIsLoadingOrders(true);  
+            setOrdersPlatform('Lazada');
+            setIsLoadingOrders(true);
 
             const res = await axiosClient.get(`/webhook-new/lazada/customer-orders/${sender?.custId}`);
             setOrders(res.data.orders || []);
@@ -50,7 +50,7 @@ export default function Info(props) {
 
     const fetchShopeeOrders = async () => {
         try {
-            setOrdersPlatform('Shopee'); 
+            setOrdersPlatform('Shopee');
             setIsLoadingOrders(true);
 
             const res = await axiosClient.get(`/webhook-new/shopee/customer-orders/${sender?.custId}`);
@@ -87,6 +87,9 @@ export default function Info(props) {
             <Typography level="body-sm" fontWeight="bold">
                 📦 Order No: {order.order_number}
             </Typography>
+            <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.5, fontStyle: 'italic' }}>
+                🛒 {order.product_names || 'ไม่มีข้อมูลสินค้า'}
+            </Typography>
             <Typography level="body-sm" color={getStatusColor(order.statuses?.[0])}>
                 📌 สถานะ: {order.statuses?.join(", ") || order.status || '-'}
             </Typography>
@@ -108,6 +111,9 @@ export default function Info(props) {
         <Box key={index} sx={{ my: 1, p: 2, borderRadius: 1, bgcolor: 'background.level1' }}>
             <Typography level="body-sm" fontWeight="bold">
                 📦 Order SN: {order.order_sn}
+            </Typography>
+            <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.5, fontStyle: 'italic' }}>
+                🛒 {order.product_names || 'ไม่มีข้อมูลสินค้า'}
             </Typography>
             <Typography level="body-sm" color={getStatusColor(order.status)}>
                 📌 สถานะ: {order.status}

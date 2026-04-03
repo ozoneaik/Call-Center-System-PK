@@ -1299,6 +1299,7 @@ class NewShopeeController extends Controller
     public function customerOrders($custId)
     {
         $customer = Customers::where('custId', $custId)->firstOrFail();
+        $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
 
         Log::channel('webhook_shopee_new')->info("📌 กดดูออเดอร์ของลูกค้าจาก DB", [
             'custId'   => $custId,
@@ -1320,6 +1321,7 @@ class NewShopeeController extends Controller
             $orders = DB::table('orders')
                 ->where('buyer_user_id', (string)$customer->buyerId)
                 ->where('platform', 'shopee')
+                ->where('shop_id', (string)$platform->shopee_shop_id)
                 ->orderBy('order_create_time', 'desc')
                 ->get();
 
@@ -1335,12 +1337,25 @@ class NewShopeeController extends Controller
 
             // Map ข้อมูลเพื่อส่งไปให้หน้าบ้าน (React) ในฟอร์แมตที่ต้องการ
             $mappedOrders = $orders->map(function ($o) {
+                // แกะ raw_data ที่เราเก็บเป็น JSON ไว้
+                $rawData = json_decode($o->raw_data, true);
+
+                // สำหรับ Shopee รายการสินค้าจะอยู่ที่ item_list
+                // สำหรับ Lazada รายการสินค้าจะอยู่ที่ items
+                $items = $rawData['item_list'] ?? $rawData['items'] ?? [];
+
+                // รวมชื่อสินค้าทุกรายการในออเดอร์นั้นมาเป็นสายอักขระเดียว (String)
+                $productNames = collect($items)->map(function ($item) {
+                    // Shopee ใช้ 'item_name', Lazada ใช้ 'name'
+                    return $item['item_name'] ?? $item['name'] ?? 'ไม่ทราบชื่อสินค้า';
+                })->join(', ');
                 return [
                     'order_sn'   => $o->order_sn,
                     'status'     => $o->order_status ?? '-',
                     'price'      => (float)$o->total_amount,
                     'currency'   => $o->currency ?? 'THB',
                     'created_at' => $o->order_create_time ? Carbon::parse($o->order_create_time)->format('Y-m-d H:i') : null,
+                    'product_names' => $productNames,
                 ];
             })->toArray();
 
