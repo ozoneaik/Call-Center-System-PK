@@ -28,17 +28,20 @@ export default function Info(props) {
         setStarList(props.starList);
     }, [props.starList]);
 
+    const isShopeeCustomer = sender?.description?.toLowerCase().includes('shopee') || sender?.custName?.toLowerCase().includes('shopee');
+    const isLazadaCustomer = sender?.description?.toLowerCase().includes('lazada') || sender?.custName?.toLowerCase().includes('laz');
+
     const fetchLazadaOrders = async () => {
         try {
-            setIsLoadingOrders(true);
+            setOrdersPlatform('Lazada'); 
+            setIsLoadingOrders(true);  
+
             const res = await axiosClient.get(`/webhook-new/lazada/customer-orders/${sender?.custId}`);
             setOrders(res.data.orders || []);
-            setOrdersPlatform('Lazada');
             setOpenOrdersModal(true);
         } catch (err) {
             console.error("โหลดออเดอร์ Lazada ไม่สำเร็จ", err);
             setOrders([]);
-            setOrdersPlatform('Lazada');
             setOpenOrdersModal(true);
         } finally {
             setIsLoadingOrders(false);
@@ -47,15 +50,15 @@ export default function Info(props) {
 
     const fetchShopeeOrders = async () => {
         try {
+            setOrdersPlatform('Shopee'); 
             setIsLoadingOrders(true);
+
             const res = await axiosClient.get(`/webhook-new/shopee/customer-orders/${sender?.custId}`);
             setOrders(res.data.orders || []);
-            setOrdersPlatform('Shopee');
             setOpenOrdersModal(true);
         } catch (err) {
             console.error("โหลดออเดอร์ Shopee ไม่สำเร็จ", err);
             setOrders([]);
-            setOrdersPlatform('Shopee');
             setOpenOrdersModal(true);
         } finally {
             setIsLoadingOrders(false);
@@ -146,27 +149,33 @@ export default function Info(props) {
 
             {/* ปุ่มดูออเดอร์ */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, m: 1 }}>
-                <Button
-                    variant="soft"
-                    color="primary"
-                    onClick={fetchLazadaOrders}
-                    loading={isLoadingOrders && ordersPlatform === 'Lazada'}
-                    disabled={isLoadingOrders}
-                    sx={{ width: '100%' }}
-                >
-                    ดูประวัติ Lazada
-                </Button>
+                {/* แสดงปุ่ม Lazada ก็ต่อเมื่อเป็นลูกค้า Lazada */}
+                {isLazadaCustomer && (
+                    <Button
+                        variant="soft"
+                        color="primary"
+                        onClick={fetchLazadaOrders}
+                        loading={isLoadingOrders && ordersPlatform === 'Lazada'}
+                        disabled={isLoadingOrders}
+                        sx={{ width: '100%' }}
+                    >
+                        ดูประวัติออเดอร์ Lazada
+                    </Button>
+                )}
 
-                <Button
-                    variant="soft"
-                    color="success"
-                    onClick={fetchShopeeOrders}
-                    loading={isLoadingOrders && ordersPlatform === 'Shopee'}
-                    disabled={isLoadingOrders}
-                    sx={{ width: '100%' }}
-                >
-                    ดูประวัติ Shopee
-                </Button>
+                {/* แสดงปุ่ม Shopee ก็ต่อเมื่อเป็นลูกค้า Shopee */}
+                {isShopeeCustomer && (
+                    <Button
+                        variant="soft"
+                        color="warning" // เปลี่ยนสีปุ่มให้ตรง Theme Shopee (สีส้ม)
+                        onClick={fetchShopeeOrders}
+                        loading={isLoadingOrders && ordersPlatform === 'Shopee'}
+                        disabled={isLoadingOrders}
+                        sx={{ width: '100%', bgcolor: '#ff5722', color: 'white', '&:hover': { bgcolor: '#e64a19' } }}
+                    >
+                        ดูประวัติออเดอร์ Shopee
+                    </Button>
+                )}
             </Box>
 
             <Modal open={openOrdersModal} onClose={() => setOpenOrdersModal(false)}>

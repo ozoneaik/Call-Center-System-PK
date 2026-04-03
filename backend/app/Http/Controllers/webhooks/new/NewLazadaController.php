@@ -15,6 +15,7 @@ use Lazada\LazopRequest;
 use App\Services\webhooks_new\FilterCase;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class NewLazadaController extends Controller
@@ -28,11 +29,82 @@ class NewLazadaController extends Controller
         $this->filterCase = $filterCase;
     }
 
+    // public function webhook(Request $request)
+    // {
+    //     try {
+    //         $req = $request->all();
+
+    //         if (isset($req['message_type']) && $req['message_type'] === 2 && $req['data']['from_account_type'] === 1) {
+    //             $check_message_id_same = ChatHistory::query()->where('line_message_id', $req['data']['message_id'])->first();
+    //             if ($check_message_id_same) {
+    //                 Log::channel('webhook_lazada_new')->info('จับได้ 1 webhook เป็น message_id ที่เคยสร้าง');
+    //                 return response()->json([
+    //                     'message' => 'ตอบกลับ webhook สําเร็จ เป็นข้อความที่เคยส่งมาแล้ว',
+    //                 ]);
+    //             }
+
+    //             Log::channel('webhook_lazada_new')->info($this->start_log_line);
+    //             Log::channel('webhook_lazada_new')->info('รับ webhook จาก Lazada');
+    //             Log::channel('webhook_lazada_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
+    //             Log::channel('webhook_lazada_new')->info(json_encode($req, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    //             // return response('ok');
+
+    //             $session_id = $req['data']['session_id'] ?? null;
+    //             // $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id);
+    //             $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id, $req);
+    //             $customer = $check_customer_and_get_platform['customer'];
+    //             $platform = $check_customer_and_get_platform['platform'];
+
+    //             $msg_id = $req['data']['message_id'] ?? null;
+    //             $message_req = [
+    //                 'message_id' => $req['data']['message_id'],
+    //                 'content' =>  json_decode($req['data']['content'], true),
+    //                 'template_id' => $req['data']['template_id']
+    //             ];
+    //             $message_formatted = $this->format_message($message_req, $platform);
+    //             $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform, 2);
+    //             Log::channel('webhook_lazada_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    //             $send_message = $this->pushReplyMessage($filter_case, $msg_id);
+    //         } else {
+    //             return response()->json([
+    //                 'message' => 'รับ webhook สำเร็จแต่ไม่ใช่ event ส่งข้อความ'
+    //             ]);
+    //         }
+    //     } catch (\Exception $e) {
+    //         $message_error = 'เกิดข้อผิดพลาดในการตอบกลับ webhook: ';
+    //         $message_error .= $e->getMessage() . ' | ' . 'ไฟล์ที่: ' . $e->getFile() . ' | ' . 'บรรทัดที่: ' . $e->getLine();
+    //         Log::channel('webhook_lazada_new')->error('เกิดข้อผิดพลาด ❌ : ' . $e->getMessage());
+    //     }
+    //     Log::channel('webhook_lazada_new')->info($this->end_log_line);
+    //     return response()->json([
+    //         'message' => 'ตอบกลับ webhook สําเร็จ',
+    //     ]);
+    // }
+
     public function webhook(Request $request)
     {
         try {
             $req = $request->all();
 
+            // CASE 1: Webhook แจ้งเตือนสถานะออเดอร์ Lazada (Real-time Sync)
+            // Lazada มักจะส่งประเภท Webhook มาในฟิลด์ type หรือ type_id เช่น '0' สำหรับ TradeOrder
+            $messageType = $req['type'] ?? $req['message_type'] ?? null;
+
+            // 0 มักจะเป็น TradeOrder แต่เพื่อความชัวร์เราจะเช็คว่ามี order_id หรือไม่
+            if ($messageType === 0 || isset($req['data']['order_id']) || isset($req['order_id'])) {
+                Log::channel('webhook_lazada_new')->info("📦 ตรวจพบ event อัปเดตออเดอร์ Lazada");
+
+                $orderId = $req['data']['order_id'] ?? $req['order_id'] ?? null;
+                $sellerId = $req['seller_id'] ?? null;
+
+                if ($orderId) {
+                    $this->syncOrderToDatabase($orderId, $sellerId);
+                }
+
+                return response()->json(['message' => 'Lazada order synced']);
+            }
+
+            // CASE 2: Webhook ข้อความแชท
             if (isset($req['message_type']) && $req['message_type'] === 2 && $req['data']['from_account_type'] === 1) {
                 $check_message_id_same = ChatHistory::query()->where('line_message_id', $req['data']['message_id'])->first();
                 if ($check_message_id_same) {
@@ -46,10 +118,8 @@ class NewLazadaController extends Controller
                 Log::channel('webhook_lazada_new')->info('รับ webhook จาก Lazada');
                 Log::channel('webhook_lazada_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
                 Log::channel('webhook_lazada_new')->info(json_encode($req, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                // return response('ok');
 
                 $session_id = $req['data']['session_id'] ?? null;
-                // $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id);
                 $check_customer_and_get_platform = $this->check_customer_and_get_platform($session_id, $req);
                 $customer = $check_customer_and_get_platform['customer'];
                 $platform = $check_customer_and_get_platform['platform'];
@@ -66,7 +136,7 @@ class NewLazadaController extends Controller
                 $send_message = $this->pushReplyMessage($filter_case, $msg_id);
             } else {
                 return response()->json([
-                    'message' => 'รับ webhook สำเร็จแต่ไม่ใช่ event ส่งข้อความ'
+                    'message' => 'รับ webhook สำเร็จแต่ไม่ใช่ event ส่งข้อความหรืออัปเดตออเดอร์'
                 ]);
             }
         } catch (\Exception $e) {
@@ -78,6 +148,68 @@ class NewLazadaController extends Controller
         return response()->json([
             'message' => 'ตอบกลับ webhook สําเร็จ',
         ]);
+    }
+
+    // ฟังก์ชันเพิ่มเข้ามาใหม่สำหรับดึงข้อมูลและอัปเดต DB ทันที
+    private function syncOrderToDatabase($orderId, $sellerId = null)
+    {
+        try {
+            $platformQuery = PlatformAccessTokens::where('platform', 'lazada');
+            if ($sellerId) {
+                $platformQuery->where('laz_seller_id', $sellerId);
+            }
+            $platformRow = $platformQuery->first();
+
+            if (!$platformRow) {
+                Log::channel('webhook_lazada_new')->error("syncOrder: ไม่พบ Token Lazada สำหรับ seller_id {$sellerId}");
+                return;
+            }
+
+            // ตรวจสอบ Token ก่อนดึงข้อมูล
+            $platformArr = $this->refreshAccessTokenIfNeeded($platformRow);
+
+            // ดึงรายละเอียด Order (เรามีฟังก์ชันนี้อยู่แล้วในคลาส)
+            $orderDetail = $this->getOrderDetail($orderId, $platformArr);
+            $orderItems  = $this->getOrderItems($orderId, $platformArr);
+
+            if ($orderDetail && !empty($orderItems)) {
+                $buyerId = $orderItems[0]['buyer_id'] ?? null;
+
+                // บันทึก/อัปเดต ลงฐานข้อมูล
+                DB::table('orders')->updateOrInsert(
+                    ['order_sn' => (string)$orderId],
+                    [
+                        'platform'          => 'lazada',
+                        'shop_id'           => (string)$platformRow->laz_seller_id,
+                        'buyer_user_id'     => (string)$buyerId,
+                        'buyer_username'    => $orderDetail['customer']['name'] ?? null,
+                        'order_status'      => $orderDetail['status'] ?? null,
+                        'total_amount'      => (float)($orderDetail['total_amount'] ?? 0),
+                        'currency'          => 'THB',
+                        'order_create_time' => isset($orderDetail['created_at']) ? Carbon::parse($orderDetail['created_at']) : null,
+                        'raw_data'          => json_encode([
+                            'detail' => $orderDetail,
+                            'items'  => $orderItems
+                        ], JSON_UNESCAPED_UNICODE),
+                        'updated_at'        => now(),
+                        'created_at'        => now(),
+                    ]
+                );
+
+                Log::channel('webhook_lazada_new')->info("🚀 บันทึกออเดอร์ Lazada {$orderId} ลงฐานข้อมูลเรียบร้อย");
+
+                // อัปเดต buyerId ในตารางลูกคัา
+                if ($buyerId) {
+                    DB::table('customers')
+                        ->where('platformRef', $platformRow->id)
+                        ->whereNull('buyerId')
+                        ->where('custId', (string)$orderId) // หากมีการใช้ OrderID ใน CustID
+                        ->update(['buyerId' => $buyerId]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::channel('webhook_lazada_new')->error("❌ Lazada syncOrderToDatabase Fail: " . $e->getMessage());
+        }
     }
 
     private function check_customer_and_get_platform($session_id, $req)
@@ -816,12 +948,39 @@ class NewLazadaController extends Controller
         }
     }
 
+    // public function customerOrders($custId)
+    // {
+    //     $customer = Customers::where('custId', $custId)->firstOrFail();
+    //     $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
+
+    //     Log::channel('webhook_lazada_new')->info("🔎 customerOrders()", [
+    //         'custId'      => $custId,
+    //         'buyerId'     => $customer->buyerId,
+    //         'platform_id' => $platform->id,
+    //     ]);
+
+    //     if (empty($customer->buyerId)) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'ยังไม่มี buyerId สำหรับลูกค้าคนนี้'
+    //         ]);
+    //     }
+
+    //     $orders = $this->getOrdersByCustomer($platform, $customer->buyerId, 90);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'orders' => $orders,
+    //         'count'  => count($orders)
+    //     ]);
+    // }
+
     public function customerOrders($custId)
     {
         $customer = Customers::where('custId', $custId)->firstOrFail();
         $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
 
-        Log::channel('webhook_lazada_new')->info("🔎 customerOrders()", [
+        Log::channel('webhook_lazada_new')->info("🔎 กดดูออเดอร์ของลูกค้าจาก DB", [
             'custId'      => $custId,
             'buyerId'     => $customer->buyerId,
             'platform_id' => $platform->id,
@@ -834,13 +993,47 @@ class NewLazadaController extends Controller
             ]);
         }
 
-        $orders = $this->getOrdersByCustomer($platform, $customer->buyerId, 90);
+        try {
+            // 🚀 โค้ดใหม่: ดึงข้อมูลออเดอร์จาก Database ของเราโดยตรง (เร็วฟ้าผ่า)
+            $orders = DB::table('orders')
+                ->where('buyer_user_id', (string)$customer->buyerId)
+                ->where('platform', 'lazada')
+                ->orderBy('order_create_time', 'desc')
+                ->get();
 
-        return response()->json([
-            'status' => true,
-            'orders' => $orders,
-            'count'  => count($orders)
-        ]);
+            // ถ้าใน DB ของเรายังไม่มี (กรณีที่เป็นลูกค้าใหม่จริงๆ)
+            if ($orders->isEmpty()) {
+                Log::channel('webhook_lazada_new')->info("✅ ไม่พบประวัติออเดอร์ Lazada ในระบบ");
+                return response()->json([
+                    'status' => true,
+                    'orders' => [],
+                    'count'  => 0
+                ]);
+            }
+
+            // Map ข้อมูลในรูปแบบที่หน้า UI (React) ต้องการ
+            $mappedOrders = $orders->map(function ($o) {
+                return [
+                    'order_number' => $o->order_sn,
+                    'status'       => [$o->order_status ?? 'unknown'], // React ใช้ .join() เลยต้องส่งเป็น Array
+                    'price'        => (float)$o->total_amount,
+                    'created_at'   => $o->order_create_time ? Carbon::parse($o->order_create_time)->format('Y-m-d H:i') : '-',
+                    'items_count'  => 0 // ถ้าจะโชว์จำนวนสินค้า ต้อง decode JSON raw_data (ใส่ 0 ไว้ก่อนถ้าไม่ซีเรียส)
+                ];
+            })->toArray();
+
+            return response()->json([
+                'status' => true,
+                'orders' => $mappedOrders,
+                'count'  => count($mappedOrders)
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error("❌ customerOrders Error: " . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     private function getOrdersByCustomer($platform, $buyerId, $days = 90)

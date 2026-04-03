@@ -33,83 +33,223 @@ class NewShopeeController extends Controller
         return response('ok');
     }
 
+    // public function webhooks(Request $request)
+    // {
+    //     try {
+    //         $raw  = $request->getContent();
+    //         $payload = json_decode($raw, true);
+
+    //         $shopIdTop = $payload['shop_id'] ?? null;
+    //         $exists = DB::table('platform_access_tokens')
+    //             ->where('platform', 'shopee')
+    //             ->where('shopee_shop_id', $shopIdTop)
+    //             ->exists();
+
+    //         if (!$exists) {
+    //             Log::channel('webhook_shopee_new')->warning("Shopee webhook: ข้าม shop_id {$shopIdTop} (ไม่พบใน platform_access_tokens)");
+    //             return response()->json(['message' => "skip shop_id {$shopIdTop}"], 200);
+    //         }
+
+    //         Log::channel('webhook_shopee_new')->info(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+    //         $msgId = $payload['msg_id'] ?? null;
+    //         $code = $payload['code'] ?? null;
+    //         $data = $payload['data'] ?? [];
+    //         $c = $data['content'] ?? [];
+    //         $messageId = $c['message_id'] ?? null;
+    //         $messageType = $c['message_type'] ?? null;
+    //         $conversationId = $c['conversation_id'] ?? null;
+    //         $fromId = $c['from_id'] ?? null;
+    //         $fromName = $c['from_user_name'] ?? null;
+    //         $textPayload = $c['content']['text'] ?? null;
+    //         $shopIdTop = $payload['shop_id'] ?? null;
+
+    //         $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order'];
+    //         if ($messageType === 'bundle_message') {
+    //             Log::channel('webhook_shopee_new')->info("Shopee webhook: ข้าม bundle_message", ['message_id' => $messageId]);
+    //             return response()->json(['message' => 'skip bundle_message'], 200);
+    //         }
+    //         if ($code === 10 && ($data['type'] ?? null) === 'message' && in_array($messageType, $allowedTypes, true)) {
+    //             $DuplicateId = ChatHistory::query()
+    //                 ->where('line_message_id', $messageId)
+    //                 ->first();
+    //             if ($DuplicateId) {
+    //                 Log::channel('webhook_shopee_new')->info('Shopee webhook duplicated', ['message_id' => $messageId]);
+    //                 return response()->json(['message' => 'duplicate webhook'], 200);
+    //             }
+    //             Log::channel('webhook_shopee_new')->info($this->start_log_line);
+    //             Log::channel('webhook_shopee_new')->info('รับ webhook จาก Shopee');
+    //             Log::channel('webhook_shopee_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
+    //             $check = $this->check_customer_and_get_platform(
+    //                 $conversationId,
+    //                 $fromId,
+    //                 $shopIdTop,
+    //                 $fromName
+    //             );
+    //             $customer = $check['customer'];
+    //             $platform = $check['platform'];
+    //             $message_req = [
+    //                 'message_id'   => $messageId,
+    //                 'message_type' => $messageType,
+    //                 'content'      => $c['content'] ?? [],
+    //             ];
+    //             $message_formatted = $this->format_message($message_req, $platform);
+
+    //             $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform, 2);
+    //             Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    //             $push_result = $this->pushReplyMessage($filter_case, $messageId);
+    //         } else {
+    //             Log::channel('webhook_shopee_new')->info('ไม่เข้า');
+    //         }
+    //     } catch (\Throwable $e) {
+    //         Log::channel('webhook_shopee_new')->error('Shopee webhook error ❌', [
+    //             'error' => $e->getMessage(),
+    //             'file'  => $e->getFile(),
+    //             'line'  => $e->getLine(),
+    //         ]);
+    //     }
+    //     Log::channel('webhook_shopee_new')->info($this->end_log_line);
+    //     return response()->json(['message' => 'ok'], 200);
+    // }
+
     public function webhooks(Request $request)
     {
         try {
             $raw  = $request->getContent();
-            $payload = json_decode($raw, true);
 
+            // LOG RAW PAYLOAD: พิมพ์ทุกอย่างที่เข้ามา เพื่อตรวจสอบว่า Shopee ส่ง Code อะไรมาให้
+            Log::channel('webhook_shopee_new')->info("--- เริ่มรับ Webhook Shopee ---");
+            Log::channel('webhook_shopee_new')->info($raw);
+
+            $payload = json_decode($raw, true);
             $shopIdTop = $payload['shop_id'] ?? null;
+            $code = $payload['code'] ?? null;
+            $data = $payload['data'] ?? [];
+
+            // ตรวจสอบว่า shop_id นี้มีอยู่ในระบบเราหรือไม่
             $exists = DB::table('platform_access_tokens')
                 ->where('platform', 'shopee')
                 ->where('shopee_shop_id', $shopIdTop)
                 ->exists();
 
             if (!$exists) {
-                Log::channel('webhook_shopee_new')->warning("Shopee webhook: ข้าม shop_id {$shopIdTop} (ไม่พบใน platform_access_tokens)");
+                Log::channel('webhook_shopee_new')->warning("Shopee webhook: ข้าม shop_id {$shopIdTop} (ไม่พบในตาราง)");
                 return response()->json(['message' => "skip shop_id {$shopIdTop}"], 200);
             }
 
-            Log::channel('webhook_shopee_new')->info(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-            $msgId = $payload['msg_id'] ?? null;
-            $code = $payload['code'] ?? null;
-            $data = $payload['data'] ?? [];
-            $c = $data['content'] ?? [];
-            $messageId = $c['message_id'] ?? null;
-            $messageType = $c['message_type'] ?? null;
-            $conversationId = $c['conversation_id'] ?? null;
-            $fromId = $c['from_id'] ?? null;
-            $fromName = $c['from_user_name'] ?? null;
-            $textPayload = $c['content']['text'] ?? null;
-            $shopIdTop = $payload['shop_id'] ?? null;
-
-            $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order'];
-            if ($messageType === 'bundle_message') {
-                Log::channel('webhook_shopee_new')->info("Shopee webhook: ข้าม bundle_message", ['message_id' => $messageId]);
-                return response()->json(['message' => 'skip bundle_message'], 200);
+            // CASE 1: Webhook แจ้งเตือนสถานะออเดอร์ (Code 3)
+            if ($code == 3) {
+                Log::channel('webhook_shopee_new')->info("📦 ตรวจพบ event อัปเดตออเดอร์");
+                $this->syncOrderToDatabase($data, $shopIdTop);
+                return response()->json(['message' => 'order synced'], 200);
             }
-            if ($code === 10 && ($data['type'] ?? null) === 'message' && in_array($messageType, $allowedTypes, true)) {
-                $DuplicateId = ChatHistory::query()
-                    ->where('line_message_id', $messageId)
-                    ->first();
-                if ($DuplicateId) {
-                    Log::channel('webhook_shopee_new')->info('Shopee webhook duplicated', ['message_id' => $messageId]);
-                    return response()->json(['message' => 'duplicate webhook'], 200);
-                }
-                Log::channel('webhook_shopee_new')->info($this->start_log_line);
-                Log::channel('webhook_shopee_new')->info('รับ webhook จาก Shopee');
-                Log::channel('webhook_shopee_new')->info('รับ webhook สำเร็จเป็น event ส่งข้อความ');
-                $check = $this->check_customer_and_get_platform(
-                    $conversationId,
-                    $fromId,
-                    $shopIdTop,
-                    $fromName
-                );
-                $customer = $check['customer'];
-                $platform = $check['platform'];
-                $message_req = [
-                    'message_id'   => $messageId,
-                    'message_type' => $messageType,
-                    'content'      => $c['content'] ?? [],
-                ];
-                $message_formatted = $this->format_message($message_req, $platform);
 
-                $filter_case = $this->filterCase->filterCase($customer, $message_formatted, $platform, 2);
-                Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-                $push_result = $this->pushReplyMessage($filter_case, $messageId);
-            } else {
-                Log::channel('webhook_shopee_new')->info('ไม่เข้า');
+            // CASE 2: Webhook ข้อความแชท (Code 10)
+            if ($code == 10 && ($data['type'] ?? null) === 'message') {
+                $c = $data['content'] ?? [];
+                $messageId = $c['message_id'] ?? null;
+                $messageType = $c['message_type'] ?? null;
+                $conversationId = $c['conversation_id'] ?? null;
+                $fromId = $c['from_id'] ?? null;
+                $fromName = $c['from_user_name'] ?? null;
+
+                $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order'];
+                if ($messageType === 'bundle_message') return response()->json(['message' => 'skip'], 200);
+
+                if (in_array($messageType, $allowedTypes, true)) {
+                    // เช็ค Webhook ซ้ำ
+                    $DuplicateId = ChatHistory::where('line_message_id', $messageId)->exists();
+                    if ($DuplicateId) return response()->json(['message' => 'duplicate'], 200);
+
+                    Log::channel('webhook_shopee_new')->info($this->start_log_line);
+
+                    $check = $this->check_customer_and_get_platform(
+                        $conversationId ?? '',
+                        $fromId,
+                        $shopIdTop,
+                        $fromName
+                    );
+
+                    if ($check['customer'] && $check['platform']) {
+                        $message_req = [
+                            'message_id'   => $messageId,
+                            'message_type' => $messageType,
+                            'content'      => $c['content'] ?? [],
+                        ];
+                        $message_formatted = $this->format_message($message_req, $check['platform']);
+                        $filter_case = $this->filterCase->filterCase($check['customer'], $message_formatted, $check['platform'], 2);
+
+                        Log::channel('webhook_shopee_new')->info(json_encode($filter_case, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                        $this->pushReplyMessage($filter_case, $messageId);
+                    }
+                    Log::channel('webhook_shopee_new')->info($this->end_log_line);
+                }
             }
         } catch (\Throwable $e) {
             Log::channel('webhook_shopee_new')->error('Shopee webhook error ❌', [
                 'error' => $e->getMessage(),
-                'file'  => $e->getFile(),
                 'line'  => $e->getLine(),
             ]);
         }
-        Log::channel('webhook_shopee_new')->info($this->end_log_line);
         return response()->json(['message' => 'ok'], 200);
+    }
+
+    private function syncOrderToDatabase(array $data, $shopId)
+    {
+        $orderSn = $data['order_sn'] ?? null;
+        if (!$orderSn) return;
+
+        try {
+            // ดึงข้อมูล Platform จาก DB เพื่อเอา Token
+            $platformRow = DB::table('platform_access_tokens')
+                ->where('shopee_shop_id', (string)$shopId)
+                ->first();
+
+            if (!$platformRow) {
+                Log::channel('webhook_shopee_new')->error("syncOrder: ไม่พบ Token สำหรับ shop_id {$shopId}");
+                return;
+            }
+
+            $platformArr = (array)$platformRow;
+
+            // ดึงฟิลด์ที่จำเป็นสำหรับการค้นหาและแสดงผลหน้า Chat
+            $fields = 'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time,item_list';
+            $detailResp = $this->getOrderDetail([$orderSn], $platformArr, $fields);
+
+            $od = $detailResp['order_list'][0] ?? null;
+
+            if ($od) {
+                // บันทึกลงตาราง orders (ถ้ามีอยู่แล้วให้ Update ถ้าไม่มีให้ Insert)
+                DB::table('orders')->updateOrInsert(
+                    ['order_sn' => $orderSn],
+                    [
+                        'platform'          => 'shopee',
+                        'shop_id'           => (string)$shopId,
+                        'buyer_user_id'     => (string)($od['buyer_user_id'] ?? ''),
+                        'buyer_username'    => $od['buyer_username'] ?? null,
+                        'order_status'      => $od['order_status'] ?? null,
+                        'total_amount'      => (float)($od['total_amount'] ?? 0),
+                        'currency'          => $od['currency'] ?? 'THB',
+                        'order_create_time' => isset($od['create_time']) ? Carbon::createFromTimestamp($od['create_time']) : null,
+                        'raw_data'          => json_encode($od, JSON_UNESCAPED_UNICODE),
+                        'updated_at'        => now(),
+                        'created_at'        => now(),
+                    ]
+                );
+
+                Log::channel('webhook_shopee_new')->info("🚀 บันทึกออเดอร์ {$orderSn} ลงฐานข้อมูลเรียบร้อย");
+
+                // อัปเดต buyerId ในตาราง Customers
+                if (!empty($od['buyer_user_id'])) {
+                    DB::table('customers')
+                        ->where('buyerId', null)
+                        ->where('custId', 'like', $od['buyer_user_id'] . '%')
+                        ->update(['buyerId' => $od['buyer_user_id']]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::channel('webhook_shopee_new')->error("❌ syncOrderToDatabase Fail: " . $e->getMessage());
+        }
     }
 
     private function check_customer_and_get_platform(
@@ -761,14 +901,44 @@ class NewShopeeController extends Controller
             if (!is_file($imagePath)) throw new \Exception("Shopee: ไม่พบไฟล์รูปที่ระบุ: {$imagePath}");
         }
 
+        // try {
+        //     $response = Http::asMultipart()
+        //         ->attach('file', file_get_contents($imagePath), basename($imagePath))
+        //         ->post($url);
+
+        //     $json = $response->json();
+        //     if (!$response->successful()) {
+        //         throw new \Exception('HTTP error: ' . $response->status());
+        //     }
+        //     if (!empty($json['error'])) {
+        //         throw new \Exception('Shopee upload_image error: ' . ($json['message'] ?? $json['error']));
+        //     }
+
+        //     $resp = $json['response'] ?? [];
+        //     if (empty($resp['url'])) {
+        //         throw new \Exception('Shopee upload_image ไม่คืน url');
+        //     }
+
+        //     Log::channel('webhook_shopee_new')->info('Shopee: upload_image success', $json);
+        //     return $resp;
+        // } finally {
+        //     if ($cleanup && !empty($imagePath) && is_file($imagePath)) @unlink($imagePath);
+        // }
+
         try {
-            $response = Http::asMultipart()
+            // เพิ่ม User-Agent เพื่อหลบการบล็อกของ Firewall Shopee
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ])
+                ->asMultipart()
                 ->attach('file', file_get_contents($imagePath), basename($imagePath))
                 ->post($url);
 
             $json = $response->json();
+
+            // เปลี่ยนมาดึง Body เพื่อดูข้อความ Error ที่แท้จริงจาก Shopee
             if (!$response->successful()) {
-                throw new \Exception('HTTP error: ' . $response->status());
+                throw new \Exception('HTTP error: ' . $response->status() . ' | รายละเอียด: ' . $response->body());
             }
             if (!empty($json['error'])) {
                 throw new \Exception('Shopee upload_image error: ' . ($json['message'] ?? $json['error']));
@@ -776,10 +946,9 @@ class NewShopeeController extends Controller
 
             $resp = $json['response'] ?? [];
             if (empty($resp['url'])) {
-                throw new \Exception('Shopee upload_image ไม่คืน url');
+                throw new \Exception('Shopee upload_image ไม่คืน url | รายละเอียด: ' . $response->body());
             }
 
-            Log::channel('webhook_shopee_new')->info('Shopee: upload_image success', $json);
             return $resp;
         } finally {
             if ($cleanup && !empty($imagePath) && is_file($imagePath)) @unlink($imagePath);
@@ -820,13 +989,28 @@ class NewShopeeController extends Controller
             $videoPath = $videoPathOrUrl;
         }
 
-        $resp = Http::asMultipart()
+        // $resp = Http::asMultipart()
+        //     ->attach('file', file_get_contents($videoPath), basename($videoPath))
+        //     ->post($url);
+
+        // $json = $resp->json();
+        // if (!$resp->successful() || !empty($json['error'])) {
+        //     throw new \Exception("Shopee upload_video error: " . json_encode($json));
+        // }
+
+        // เพิ่ม User-Agent
+        $resp = Http::withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ])
+            ->asMultipart()
             ->attach('file', file_get_contents($videoPath), basename($videoPath))
             ->post($url);
 
         $json = $resp->json();
+
+        // ดึงรายละเอียด Body มาโชว์ใน Error
         if (!$resp->successful() || !empty($json['error'])) {
-            throw new \Exception("Shopee upload_video error: " . json_encode($json));
+            throw new \Exception("Shopee upload_video error HTTP " . $resp->status() . " : " . $resp->body());
         }
 
         $vid = $json['response']['vid'] ?? null;
@@ -1025,16 +1209,100 @@ class NewShopeeController extends Controller
         ];
     }
 
+    // public function customerOrders($custId)
+    // {
+    //     $customer = Customers::where('custId', $custId)->firstOrFail();
+    //     $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
+
+    //     Log::channel('webhook_shopee_new')->info("📌 กดดูออเดอร์ของลูกค้า", [
+    //         'custId'   => $custId,
+    //         'buyerId'  => $customer->buyerId,
+    //         'platform' => $platform->platform ?? null,
+    //         'shop_id'  => $platform->shopee_shop_id ?? null,
+    //     ]);
+
+    //     if (empty($customer->buyerId)) {
+    //         Log::channel('webhook_shopee_new')->warning("⚠️ ยังไม่มี buyerId สำหรับลูกค้า", [
+    //             'custId' => $custId
+    //         ]);
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'ยังไม่มี buyerId สำหรับลูกค้าคนนี้'
+    //         ]);
+    //     }
+
+    //     try {
+    //         $orderSnList = $this->getRecentOrderSnList($platform, 90);
+    //         Log::channel('webhook_shopee_new')->info("✅ ได้ order_sn list", [
+    //             'custId'   => $custId,
+    //             'count'    => count($orderSnList),
+    //             'order_sn' => $orderSnList,
+    //         ]);
+
+    //         if (empty($orderSnList)) {
+    //             return response()->json([
+    //                 'status' => true,
+    //                 'orders' => [],
+    //                 'count'  => 0,
+    //             ]);
+    //         }
+
+    //         $detailResp = $this->getOrderDetail(
+    //             $orderSnList,
+    //             $platform,
+    //             'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time'
+    //         );
+
+    //         Log::channel('webhook_shopee_new')->info("📦 getOrderDetail response", [
+    //             'custId' => $custId,
+    //             'orders' => $detailResp['order_list'] ?? []
+    //         ]);
+
+    //         $orders = collect($detailResp['order_list'] ?? [])
+    //             ->filter(fn($o) => ($o['buyer_user_id'] ?? null) == $customer->buyerId)
+    //             ->map(fn($o) => [
+    //                 'order_sn'   => $o['order_sn'] ?? null,
+    //                 'status'     => $o['order_status'] ?? '-',
+    //                 'price'      => $o['total_amount'] ?? 0,
+    //                 'currency'   => $o['currency'] ?? 'THB',
+    //                 'created_at' => isset($o['create_time'])
+    //                     ? Carbon::createFromTimestamp($o['create_time'])->format('Y-m-d H:i')
+    //                     : null,
+    //             ])
+    //             ->values()
+    //             ->toArray();
+
+    //         Log::channel('webhook_shopee_new')->info("🎯 Orders filtered by buyerId", [
+    //             'custId' => $custId,
+    //             'count'  => count($orders),
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'orders' => $orders,
+    //             'count'  => count($orders),
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         Log::channel('webhook_shopee_new')->error('customerOrders error', [
+    //             'custId' => $custId,
+    //             'error'  => $e->getMessage(),
+    //             'line'   => $e->getLine(),
+    //             'file'   => $e->getFile(),
+    //         ]);
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function customerOrders($custId)
     {
         $customer = Customers::where('custId', $custId)->firstOrFail();
-        $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
 
-        Log::channel('webhook_shopee_new')->info("📌 กดดูออเดอร์ของลูกค้า", [
+        Log::channel('webhook_shopee_new')->info("📌 กดดูออเดอร์ของลูกค้าจาก DB", [
             'custId'   => $custId,
             'buyerId'  => $customer->buyerId,
-            'platform' => $platform->platform ?? null,
-            'shop_id'  => $platform->shopee_shop_id ?? null,
         ]);
 
         if (empty($customer->buyerId)) {
@@ -1048,14 +1316,16 @@ class NewShopeeController extends Controller
         }
 
         try {
-            $orderSnList = $this->getRecentOrderSnList($platform, 90);
-            Log::channel('webhook_shopee_new')->info("✅ ได้ order_sn list", [
-                'custId'   => $custId,
-                'count'    => count($orderSnList),
-                'order_sn' => $orderSnList,
-            ]);
+            // 🚀 โค้ดใหม่: ดึงข้อมูลจากฐานข้อมูลโดยตรง (เร็วแบบไม่ต้องรอ API)
+            $orders = DB::table('orders')
+                ->where('buyer_user_id', (string)$customer->buyerId)
+                ->where('platform', 'shopee')
+                ->orderBy('order_create_time', 'desc')
+                ->get();
 
-            if (empty($orderSnList)) {
+            // ถ้าไม่มีออเดอร์ในระบบ
+            if ($orders->isEmpty()) {
+                Log::channel('webhook_shopee_new')->info("✅ ไม่พบประวัติออเดอร์ในระบบ");
                 return response()->json([
                     'status' => true,
                     'orders' => [],
@@ -1063,40 +1333,26 @@ class NewShopeeController extends Controller
                 ]);
             }
 
-            $detailResp = $this->getOrderDetail(
-                $orderSnList,
-                $platform,
-                'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time'
-            );
+            // Map ข้อมูลเพื่อส่งไปให้หน้าบ้าน (React) ในฟอร์แมตที่ต้องการ
+            $mappedOrders = $orders->map(function ($o) {
+                return [
+                    'order_sn'   => $o->order_sn,
+                    'status'     => $o->order_status ?? '-',
+                    'price'      => (float)$o->total_amount,
+                    'currency'   => $o->currency ?? 'THB',
+                    'created_at' => $o->order_create_time ? Carbon::parse($o->order_create_time)->format('Y-m-d H:i') : null,
+                ];
+            })->toArray();
 
-            Log::channel('webhook_shopee_new')->info("📦 getOrderDetail response", [
+            Log::channel('webhook_shopee_new')->info("🎯 ส่งข้อมูลออเดอร์จาก DB สำเร็จ", [
                 'custId' => $custId,
-                'orders' => $detailResp['order_list'] ?? []
-            ]);
-
-            $orders = collect($detailResp['order_list'] ?? [])
-                ->filter(fn($o) => ($o['buyer_user_id'] ?? null) == $customer->buyerId)
-                ->map(fn($o) => [
-                    'order_sn'   => $o['order_sn'] ?? null,
-                    'status'     => $o['order_status'] ?? '-',
-                    'price'      => $o['total_amount'] ?? 0,
-                    'currency'   => $o['currency'] ?? 'THB',
-                    'created_at' => isset($o['create_time'])
-                        ? Carbon::createFromTimestamp($o['create_time'])->format('Y-m-d H:i')
-                        : null,
-                ])
-                ->values()
-                ->toArray();
-
-            Log::channel('webhook_shopee_new')->info("🎯 Orders filtered by buyerId", [
-                'custId' => $custId,
-                'count'  => count($orders),
+                'count'  => count($mappedOrders),
             ]);
 
             return response()->json([
                 'status' => true,
-                'orders' => $orders,
-                'count'  => count($orders),
+                'orders' => $mappedOrders,
+                'count'  => count($mappedOrders),
             ]);
         } catch (\Throwable $e) {
             Log::channel('webhook_shopee_new')->error('customerOrders error', [

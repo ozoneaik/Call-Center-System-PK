@@ -7,6 +7,7 @@ use App\Models\UserRooms;
 use App\Services\PusherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ChatRoomsController extends Controller
 {
@@ -18,16 +19,79 @@ class ChatRoomsController extends Controller
         $this->pusherService = $pusherService;
     }
 
+    // public function list(): JsonResponse
+    // {
+    //     $user = auth()->user();
+    //     $role = $user['role'];
+
+    //     $unreadSubquery = DB::table('active_conversations')
+    //         ->join('chat_histories', 'active_conversations.custId', '=', 'chat_histories.custId')
+    //         ->selectRaw('count(chat_histories.id)')
+    //         ->whereColumn('active_conversations.roomId', 'chat_rooms.roomId')
+    //         ->whereIn('chat_histories.is_read', [0, '0', false]) // <--- เพิ่ม whereIn ดักชนิดข้อมูล
+    //         ->where('chat_histories.sender', '!=', 'admin');     // <--- เพิ่มเงื่อนไขไม่นับข้อความของแอดมิน
+
+    //     if ($role === 'admin') {
+    //         $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)
+    //             ->select('chat_rooms.*')
+    //             ->selectSub($unreadSubquery, 'is_read') // <-- ดึงข้อมูลเข้าฟิลด์ unread_count
+    //             ->get();
+    //     } else {
+    //         $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
+    //             ->where('empCode', $user['empCode'])
+    //             ->where('chat_rooms.is_active', 1)
+    //             ->select('chat_rooms.*', 'user_rooms.empCode')
+    //             ->selectSub($unreadSubquery, 'is_read') // <-- ดึงข้อมูลเข้าฟิลด์ unread_count
+    //             ->get();
+    //     }
+
+    //     // if ($role === 'admin') $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)->get();
+    //     // else {
+    //     //     // $chatRooms = ChatRooms::all();
+    //     //     $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
+    //     //         ->where('empCode', $user['empCode'])
+    //     //         ->where('chat_rooms.is_active', 1)
+    //     //         ->get();
+    //     // }
+
+    //     $listAll = ChatRooms::where('chat_rooms.is_active', 1)->get();
+    //     return response()->json([
+    //         'message' => 'success',
+    //         'chatRooms' => $chatRooms,
+    //         'listAll' => $listAll
+    //     ]);
+    // }
+
     public function list(): JsonResponse
     {
         $user = auth()->user();
         $role = $user['role'];
-        if ($role === 'admin') $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)->get();
-        else {
-            // $chatRooms = ChatRooms::all();
+
+        $unreadSubquery = DB::table('active_conversations')
+            ->join('chat_histories', 'active_conversations.custId', '=', 'chat_histories.custId')
+            ->selectRaw('count(chat_histories.id)')
+            ->whereColumn('active_conversations.roomId', 'chat_rooms.roomId')
+            // จุดที่ 1: แก้ไขเรื่องการเช็ค is_read (ถ้าเป็น boolean ใน Postgres)
+            ->where(function ($query) {
+                $query->where('chat_histories.is_read', 0)
+                    ->orWhere('chat_histories.is_read', false);
+            })
+            // จุดที่ 2: แก้ไขเรื่อง JSON Comparison (ใช้ ->> เพื่อดึงค่าออกมาเป็น text ก่อนเทียบ)
+            // หรือถ้า sender เก็บเป็น string ธรรมดาใน JSON ให้ใช้เครื่องหมาย ->> 0 (ถ้าเป็น array)
+            // แต่ถ้าเก็บเป็น string ธรรมดาแต่ type column เป็น json ให้ใช้แคสต์เป็น text ดังนี้:
+            ->whereRaw('chat_histories.sender::text != ?', ['"admin"']);
+
+        if ($role === 'admin') {
+            $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)
+                ->select('chat_rooms.*')
+                ->selectSub($unreadSubquery, 'unread_count') // เปลี่ยนชื่อ alias ให้สื่อความหมาย
+                ->get();
+        } else {
             $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
                 ->where('empCode', $user['empCode'])
                 ->where('chat_rooms.is_active', 1)
+                ->select('chat_rooms.*', 'user_rooms.empCode')
+                ->selectSub($unreadSubquery, 'unread_count')
                 ->get();
         }
 
