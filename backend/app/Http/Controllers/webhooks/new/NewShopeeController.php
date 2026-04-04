@@ -153,7 +153,7 @@ class NewShopeeController extends Controller
                 $fromId = $c['from_id'] ?? null;
                 $fromName = $c['from_user_name'] ?? null;
 
-                $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order'];
+                $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order', 'sticker'];
                 if ($messageType === 'bundle_message') return response()->json(['message' => 'skip'], 200);
 
                 if (in_array($messageType, $allowedTypes, true)) {
@@ -327,6 +327,27 @@ class NewShopeeController extends Controller
             case 'video':
                 $msg_formatted['content']     = $ct['video_url'] ?? ($ct['url'] ?? '');
                 $msg_formatted['contentType'] = 'video';
+                break;
+            // เพิ่ม Case สำหรับสติ๊กเกอร์
+            case 'sticker':
+                $sticker_id = $ct['sticker_id'] ?? null;
+                $package_id = $ct['sticker_package_id'] ?? null;
+
+                Log::channel('webhook_shopee_new')->info('🎭 sticker data', [
+                    'sticker_id' => $sticker_id,
+                    'package_id' => $package_id,
+                    'ct'         => $ct,
+                ]);
+
+                if ($sticker_id && $package_id) {
+                    $imageUrl = "https://deo.shopeemobile.com/shopee/shopee-sticker-live-th/packs/{$package_id}/{$sticker_id}@1x.png";
+                    Log::channel('webhook_shopee_new')->info('🎭 sticker URL: ' . $imageUrl);
+                    $msg_formatted['content']     = $imageUrl;
+                    $msg_formatted['contentType'] = 'image';
+                } else {
+                    $msg_formatted['content']     = "[ลูกค้าส่งสติ๊กเกอร์]";
+                    $msg_formatted['contentType'] = 'text';
+                }
                 break;
             // case 'item_list':
             //     $product_list = $ct['chat_product_infos'];
@@ -765,7 +786,7 @@ class NewShopeeController extends Controller
                 $cut_underscore_custId = $customer['custId'];
                 $cut_underscore_custId = explode("_", $cut_underscore_custId)[0];
                 $toId = (int) $cut_underscore_custId;
-                $body = array_merge(['to_id' => $toId], $msg);
+                $body = array_merge(['to_id' => $toId, 'quote_message_id' => $msg_id], $msg);
 
                 $response = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $body);
                 $json = $response->json();

@@ -11,7 +11,7 @@ import {chatRoomListApi} from "../Api/ChatRooms.js";
 export default function MainLayout() {
     const {user, setUser} = useAuth();
     const {setNotification, setUnRead} = useNotification();
-    const {setChatRoomsContext, setMyRoomContext} = useChatRooms();
+    const {setChatRoomsContext, setMyRoomContext, incrementRoomUnread} = useChatRooms();
     const {setMessage} = useMessage();
 
     useEffect(() => {
@@ -26,18 +26,29 @@ export default function MainLayout() {
             } else {
             }
         })();
-        newMessage({
+        const unsubscribeMessage = newMessage({
             onPassed: (status, event) => {
                 setNotification(event);
                 setMessage(event);
-                setUnRead(event.countCustomer)
+                setUnRead(event.countCustomer);
+                // ถ้าผู้ส่งเป็นลูกค้า และผู้ใช้ไม่ได้อยู่ในห้องนั้น ให้เพิ่มนับแจ้งเตือน
+                if (event?.message?.sender?.custId && event?.activeConversation?.roomId) {
+                    const currentRoomId = window.location.pathname.split('/')[3];
+                    if (currentRoomId !== event.activeConversation.roomId) {
+                        incrementRoomUnread(event.activeConversation.roomId);
+                    }
+                }
             }
         });
-        newChatRooms({
+        const unsubscribeChatRooms = newChatRooms({
             onPassed: (status, event) => {
                 setChatRoomsContext(event)
             }
-        })
+        });
+        return () => {
+            unsubscribeMessage();
+            unsubscribeChatRooms();
+        };
     }, []);
 
     const fetchChatRoom = async () => {

@@ -5,6 +5,9 @@ const ChatRoomsContent = createContext({
     setChatRoomsContext: () => {},
     myRoomContext : null,
     setMyRoomContext: () => {},
+    roomUnread: {},
+    incrementRoomUnread: () => {},
+    clearRoomUnread: () => {},
 });
 
 export const ChatRoomsProvider = ({ children }) => {
@@ -16,6 +19,7 @@ export const ChatRoomsProvider = ({ children }) => {
         JSON.parse(localStorage.getItem('myChatRooms')) || null
     );
 
+    const [roomUnread, setRoomUnread] = useState({});
 
     // set user to local storage
     const setChatRoomsContext = (chatRooms) => {
@@ -36,8 +40,23 @@ export const ChatRoomsProvider = ({ children }) => {
         _setMyRoomContext(myChatRooms);
     }
 
+    const incrementRoomUnread = (roomId) => {
+        setRoomUnread((prev) => ({
+            ...prev,
+            [roomId]: (prev[roomId] || 0) + 1,
+        }));
+    };
+
+    const clearRoomUnread = (roomId) => {
+        setRoomUnread((prev) => {
+            const updated = { ...prev };
+            delete updated[roomId];
+            return updated;
+        });
+    };
+
     return (
-        <ChatRoomsContent.Provider value={{ chatRoomsContext, setChatRoomsContext,myRoomContext, setMyRoomContext }}>
+        <ChatRoomsContent.Provider value={{ chatRoomsContext, setChatRoomsContext, myRoomContext, setMyRoomContext, roomUnread, incrementRoomUnread, clearRoomUnread }}>
             {children}
         </ChatRoomsContent.Provider>
     );

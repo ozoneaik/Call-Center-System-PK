@@ -12,12 +12,13 @@ import { AlertDiaLog } from "../Dialogs/Alert.js";
 import { logoutApi } from "../Api/Auth.js";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useChatRooms } from "../context/ChatRoomContext.jsx";
+import { Chip } from '@mui/joy';
 import { SidebarAdmin } from "./SidebarAdmin.jsx";
 import {
     Search, History, ThreeP, Home, Person,
     LogoutRounded, QuestionAnswerRounded, LiveHelp
 } from '@mui/icons-material';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const menuList = [
     { label: 'หน้าหลัก', icon: <Home />, path: '/home' },
@@ -26,11 +27,16 @@ const menuList = [
 ];
 
 export default function Sidebar() {
-    const { myRoomContext } = useChatRooms()
+    const { myRoomContext, roomUnread, clearRoomUnread } = useChatRooms()
     const { user, setUser } = useAuth();
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const currentRoomId = pathname.split('/')[3];
+
+    // เคลียร์แจ้งเตือนของห้องที่กำลังดูอยู่
+    useEffect(() => {
+        if (currentRoomId) clearRoomUnread(currentRoomId);
+    }, [currentRoomId]);
 
     // 🔍 state สำหรับค้นหาเมนู
     const [searchQuery, setSearchQuery] = useState("");
@@ -121,6 +127,11 @@ export default function Sidebar() {
                                         <ListItemContent>
                                             <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                         </ListItemContent>
+                                        {roomUnread[chatRoom.roomId] > 0 && (
+                                            <Chip size="sm" color="danger" variant="solid">
+                                                {roomUnread[chatRoom.roomId]}
+                                            </Chip>
+                                        )}
                                     </ListItemButton>
                                 </ListItem>
                             ))
