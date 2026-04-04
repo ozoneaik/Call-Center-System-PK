@@ -380,7 +380,13 @@ class NewLazadaController extends Controller
                 $msg_formatted['content'] = $message_req['content']['ext']['summary'] ?? 'ลูกค้าส่งโปรโมชั่นมา';
                 $msg_formatted['contentType'] = 'text';
             default:
-                $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : ' . $message_req['template_id'];
+                // $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : ' . $message_req['template_id'];
+                // $msg_formatted['contentType'] = 'text';
+                // แปลง Array ของ content ทั้งก้อนให้เป็น String 
+                $rawContent = json_encode($message_req['content'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                // เอามาต่อกับข้อความเพื่อให้รู้ว่าเป็น template_id อะไร
+                $msg_formatted['content'] = "ประเภทข้อความ ({$message_req['template_id']}) ข้อมูล: {$rawContent}";
                 $msg_formatted['contentType'] = 'text';
                 break;
         }

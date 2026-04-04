@@ -56,6 +56,7 @@ export default function Sidebar() {
                                 localStorage.removeItem('notification');
                                 localStorage.removeItem('myChatRooms');
                                 localStorage.removeItem('chatRooms');
+                                localStorage.removeItem('roomUnread');
                                 navigate('/')
                             }
                         }
@@ -128,7 +129,7 @@ export default function Sidebar() {
                                             <Typography level="title-sm">{chatRoom.roomName}</Typography>
                                         </ListItemContent>
                                         {roomUnread[chatRoom.roomId] > 0 && (
-                                            <Chip size="sm" color="danger" variant="solid">
+                                            <Chip size="sm" color="success" variant="solid">
                                                 {roomUnread[chatRoom.roomId]}
                                             </Chip>
                                         )}

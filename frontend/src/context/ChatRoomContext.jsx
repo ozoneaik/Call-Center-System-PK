@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const ChatRoomsContent = createContext({
     chatRoomsContext: null,
@@ -19,7 +19,22 @@ export const ChatRoomsProvider = ({ children }) => {
         JSON.parse(localStorage.getItem('myChatRooms')) || null
     );
 
-    const [roomUnread, setRoomUnread] = useState({});
+    const [roomUnread, setRoomUnread] = useState(() => {
+        const storedRooms = JSON.parse(localStorage.getItem('myChatRooms'));
+        const initial = {};
+        if (storedRooms && Array.isArray(storedRooms)) {
+            storedRooms.forEach(room => {
+                if (room.unread_count && parseInt(room.unread_count, 10) > 0) {
+                    initial[room.roomId] = parseInt(room.unread_count, 10);
+                }
+            });
+        }
+        return JSON.parse(localStorage.getItem('roomUnread')) || initial;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('roomUnread', JSON.stringify(roomUnread));
+    }, [roomUnread]);
 
     // set user to local storage
     const setChatRoomsContext = (chatRooms) => {
@@ -34,6 +49,14 @@ export const ChatRoomsProvider = ({ children }) => {
     const setMyRoomContext = (myChatRooms) => {
         if (myChatRooms) {
             localStorage.setItem('myChatRooms', JSON.stringify(myChatRooms));
+            // Update roomUnread based on fresh API data
+            const freshUnread = {};
+            myChatRooms.forEach((room) => {
+                if (room.unread_count && parseInt(room.unread_count, 10) > 0) {
+                    freshUnread[room.roomId] = parseInt(room.unread_count, 10);
+                }
+            });
+            setRoomUnread(freshUnread);
         } else {
             localStorage.removeItem('myChatRooms');
         }
