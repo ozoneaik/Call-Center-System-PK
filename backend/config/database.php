@@ -126,6 +126,21 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'n8n' => [
+            'driver' => 'pgsql', // ในไฟล์ sql เป็น PostgreSQL
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_N8N_HOST', '192.168.88.6'),
+            'port' => env('DB_N8N_PORT', '5432'),
+            'database' => env('DB_N8N_DATABASE', 'n8n_database'),
+            'username' => env('DB_N8N_USERNAME', 'postgres'), // ⚠️ ใส่ username
+            'password' => env('DB_N8N_PASSWORD', 'bmOhcz*&'), // ⚠️ ใส่ password
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
     ],
 
     /*

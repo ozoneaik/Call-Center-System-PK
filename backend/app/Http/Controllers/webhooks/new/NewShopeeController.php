@@ -761,6 +761,20 @@ class NewShopeeController extends Controller
                                 ],
                                 'content_original' => $message['content']
                             ];
+                        } elseif ($message['contentType'] === 'item' || $message['contentType'] === 'product') {
+                            $itemIdStr = is_numeric($message['content'])
+                                ? (string)$message['content']
+                                : (string)(json_decode($message['content'])->id ?? 0);
+
+                            if (!empty($itemIdStr) && $itemIdStr !== '0') {
+                                $messages_to_send[] = [
+                                    'message_type'     => 'item',
+                                    'content'          => [
+                                        'item_id' => (int)$itemIdStr // 💡 ลบ shop_id ออก ส่งแค่ item_id
+                                    ],
+                                    'content_original' => (string)$message['content']
+                                ];
+                            }
                         }
                     }
                     break;
@@ -770,7 +784,25 @@ class NewShopeeController extends Controller
                         'message' => 'Shopee: รับข้อความแบบประเมิน แต่ไม่สามารถส่งแบบประเมินได้'
                     ];
                 case 'item':
-                    return [];
+                    // เดิม: return [];
+                    $itemData = is_array($messages[0]['content'] ?? null)
+                        ? $messages[0]['content']
+                        : json_decode($messages[0]['content'] ?? '{}', true);
+
+                    $itemId = $itemData['id'] ?? null;
+                    $itemShopId = $itemData['shop_id'] ?? $platformToken['shopee_shop_id'];
+
+                    if ($itemId) {
+                        $messages_to_send[] = [
+                            'message_type'     => 'item',
+                            'content'          => [
+                                'item_id' => (int)$itemId,
+                                // 'shop_id' => (int)$itemShopId,
+                            ],
+                            'content_original' => $itemData['name'] ?? "สินค้า #{$itemId}",
+                        ];
+                    }
+                    break;
                 default:
                     $text = "ระบบไม่รองรับ type_send: " . $filter_case_response['type_send'];
                     $messages_to_send[] = [
@@ -786,18 +818,41 @@ class NewShopeeController extends Controller
                 $cut_underscore_custId = $customer['custId'];
                 $cut_underscore_custId = explode("_", $cut_underscore_custId)[0];
                 $toId = (int) $cut_underscore_custId;
-                $body = array_merge(['to_id' => $toId, 'quote_message_id' => $msg_id], $msg);
 
-                $response = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $body);
+                // $body = array_merge(['to_id' => $toId, 'quote_message_id' => $msg_id], $msg);
+
+                $shopeebody = [
+                    'to_id'        => $toId,
+                    'message_type' => $msg['message_type'],
+                    'content'      => $msg['content']
+                ];
+
+                if (!empty($msg_id)) {
+                    $shopeebody['quote_message_id'] = (string)$msg_id;
+                }
+
+                // $response = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $body);
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $shopeebody);
                 $json = $response->json();
 
                 if ($response->successful() && empty($json['error'])) {
-                    Log::channel('webhook_shopee_new')->info('Shopee: ส่งข้อความสำเร็จ', ['resp' => $json, 'body' => $body]);
+                    Log::channel('webhook_shopee_new')->info('Shopee: ส่งข้อความสำเร็จ', ['resp' => $json, 'body' => $shopeebody]);
+                    // $sent_messages[] = [
+                    //     'content'     => $msg['content']['text']
+                    //         ?? $msg['content']['image_url']
+                    //         ?? $msg['content']['video_url']
+                    //         ?? '',
+                    //     'contentType' => $msg['message_type'],
+                    //     'response'    => $json,
+                    //     'content_original' => $msg['content_original']
+                    // ];
                     $sent_messages[] = [
                         'content'     => $msg['content']['text']
                             ?? $msg['content']['image_url']
                             ?? $msg['content']['video_url']
-                            ?? '',
+                            ?? (isset($msg['content']['item_id'])
+                                ? json_encode($msg['content'])
+                                : ''),
                         'contentType' => $msg['message_type'],
                         'response'    => $json,
                         'content_original' => $msg['content_original']
@@ -1567,6 +1622,74 @@ class NewShopeeController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function searchProducts(Request $request)
+    {
+        $keyword = trim($request->input('keyword', ''));
+        $custId  = $request->input('custId');
+
+        try {
+            $customer = Customers::where('custId', $custId)->firstOrFail();
+            $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
+            $shopId   = (string)$platform->shopee_shop_id;
+
+            // Query จาก shopee_product_mapping ใน PostgreSQL DB
+            $items = DB::connection('n8n')  // ชื่อ connection ที่ต่อไปยัง n8n_database
+                ->table('shopee_product_mapping')
+                ->where('shop_id', $shopId)
+                ->where(function ($q) use ($keyword) {
+                    if ($keyword !== '') {
+                        // 💡 แก้ไขที่ 1: บังคับแปลง (Cast) คอลัมน์เป็น ::text ก่อนใช้ ilike เพื่อให้ PostgreSQL ค้นหาตัวเลขได้ไม่พัง
+                        $q->whereRaw('item_name::text ilike ?', ["%{$keyword}%"])
+                            ->orWhereRaw('item_id::text ilike ?', ["%{$keyword}%"])
+                            ->orWhereRaw('seller_sku::text ilike ?', ["%{$keyword}%"]);
+                    }
+                })
+                ->select('item_id', 'item_name', 'seller_sku', 'current_stock', 'shop_id', 'shop_name', 'current_price')
+                // 💡 แก้ไขที่ 2: distinct ต้องเรียงลำดับ column เดียวกันกับ orderBy ตัวแรกเสมอ!
+                ->distinct('item_id')
+                ->orderBy('item_id')   // <-- เพิ่มบรรทัดนี้เข้ามา
+                ->orderBy('item_name')
+                ->limit(20)
+                ->get();
+
+            // นำข้อมูลมา Map ให้หน้าบ้าน React อ่านออก
+            $result = $items->map(function ($p) {
+                return [
+                    'id'         => (string)$p->item_id,
+                    'shop_id'    => (string)$p->shop_id,
+                    'name'       => $p->item_name ?? '-',
+                    'seller_sku' => $p->seller_sku ?? '',
+                    // ใส่รูป Default ของ Shopee ไปก่อน เผื่อตารางไม่มีคอลัมน์รูป
+                    'image'      => 'https://pumpkin-image-sku.s3.ap-southeast-1.amazonaws.com/pumpkin-image-logo/logo.png',
+                    'price'      => $p->current_price ?? 0,
+                    'stock'      => $p->current_stock ?? 0,
+                ];
+            })->toArray();
+
+            Log::channel('webhook_shopee_new')->info("🔍 ค้นหาสินค้าใน DB", [
+                'custId'  => $custId,
+                'keyword' => $keyword,
+                'results' => $result,
+            ]);
+
+
+            // ส่งข้อมูลกลับให้ React รูปแบบที่ ShopeeProductPicker.jsx ต้องการ
+            return response()->json([
+                'items' => $result
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_shopee_new')->error('searchProducts error ❌', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+                'file'  => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาดในการค้นหาสินค้า: ' . $e->getMessage()
             ], 500);
         }
     }

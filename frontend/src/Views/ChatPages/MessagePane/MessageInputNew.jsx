@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Textarea, Typography, Button, Stack, Card } from '@mui/joy';
-import { Delete, EmojiEmotions, Info, RemoveRedEye, Send } from '@mui/icons-material';
+import { Delete, EmojiEmotions, Info, RemoveRedEye, Send, ShoppingBag } from '@mui/icons-material';
 import { sendApi } from '../../../Api/Messages';
 import { AlertDiaLog } from '../../../Dialogs/Alert';
 import { useNotification } from '../../../context/NotiContext';
 import { useAuth } from '../../../context/AuthContext';
 import StickerPkNew from './StickerPkNew';
 import ModalHelperSendMsg from '../../../Components/ModalHelperSendMsg';
+import ShopeeProductPicker from './ShopeeProductPicker';
 
 export default function MessageInputNew(props) {
     const { sender, activeId, msg, setMsg } = props;
@@ -17,6 +18,8 @@ export default function MessageInputNew(props) {
     const [loading, setLoading] = useState(false);
     const { notification } = useNotification();
     const [stickerOpen, setStickerOpen] = useState(false);
+    const [productOpen, setProductOpen] = useState(false);
+
     const { user } = useAuth();
     const textareaRef = useRef(null);
 
@@ -39,6 +42,36 @@ export default function MessageInputNew(props) {
         }
         // setInputText(inputText + msg.content)
     }, [msg])
+
+    const handleSendProduct = async (product) => {
+        if (!product?.id || loading) return;
+        setLoading(true);
+        try {
+            const { data, status } = await sendApi({
+                msg: JSON.stringify({
+                    id: product.id,
+                    shop_id: product.shop_id,
+                    name: product.name,
+                }),
+                contentType: 'product',   // backend จะ map เป็น type_send: 'item'
+                custId: sender.custId,
+                conversationId: activeId,
+            });
+
+            if (status !== 200) {
+                AlertDiaLog({
+                    icon: 'error',
+                    title: data.message || 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถส่งสินค้าได้',
+                });
+            }
+        } catch (error) {
+            console.error('Send product error:', error);
+        } finally {
+            setLoading(false);
+            setProductOpen(false);
+        }
+    };
 
     // ฟังก์ชันสำหรับจัดการการลากและวางไฟล์
     const handleDrop = useCallback((e) => {
@@ -117,6 +150,7 @@ export default function MessageInputNew(props) {
     };
 
     const isDisabled = (sender.emp !== user.empCode) && (user.role !== 'admin');
+    const isShopee = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
 
     return (
         <Box
@@ -208,6 +242,17 @@ export default function MessageInputNew(props) {
                 >
                     ส่ง
                 </Button>
+                {isShopee && (
+                    <Button
+                        disabled={isDisabled}
+                        size='sm'
+                        color='danger'
+                        endDecorator={<ShoppingBag />}
+                        onClick={() => setProductOpen(true)}
+                    >
+                        ส่งสินค้า
+                    </Button>
+                )}
                 <Button
                     disabled={isDisabled}
                     size='sm'
@@ -227,6 +272,14 @@ export default function MessageInputNew(props) {
             </Stack>
             {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
             {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
+            {productOpen && (
+                <ShopeeProductPicker
+                    open={productOpen}
+                    setOpen={setProductOpen}
+                    sender={sender}
+                    onSelect={handleSendProduct}
+                />
+            )}
         </Box>
     );
 }

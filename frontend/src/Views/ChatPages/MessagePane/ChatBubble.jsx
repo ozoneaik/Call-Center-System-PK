@@ -13,6 +13,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 import ChatBubbleItemList from "./ChatBubbleItemList.jsx"; 
+import StorefrontIcon from '@mui/icons-material/Storefront';
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -201,6 +202,89 @@ export default function Bubble(props) {
                         </Sheet>
                     ) : contentType === 'product' ? (
                         <ChatBubbleProduct content={content} />
+                    ) : contentType === 'item' ? (
+                        <Sheet
+                            variant="soft"
+                            sx={[
+                                { px: 2, py: 1.5, borderRadius: 'lg', maxWidth: '300px' },
+                                isSent ? { borderTopRightRadius: 0 } : { borderTopRightRadius: 'lg' },
+                                isSent ? { borderTopLeftRadius: 'lg' } : { borderTopLeftRadius: 0 },
+                                { bgcolor: '#fff0e5', border: '1px solid #ff7337' } // ธีมสีส้ม Shopee
+                            ]}
+                        >
+                            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                                <Avatar sx={{ bgcolor: '#ff7337', color: 'white', mt: 0.5 }} size="sm">
+                                    <StorefrontIcon fontSize="small" />
+                                </Avatar>
+                                <Stack direction="column" sx={{ minWidth: 0, width: '100%' }}>
+                                    <Typography level="body-xs" fontWeight="bold" sx={{ color: '#ff7337', mb: 0.5 }}>
+                                        ส่งการ์ดสินค้าแล้ว
+                                    </Typography>
+
+                                    {/* 💡 แยกชื่อสินค้า และ รหัสสินค้า ให้แสดงผลชัดเจน 💡 */}
+                                    {(() => {
+                                        try {
+                                            const parsed = JSON.parse(content);
+                                            const id = parsed.item_id || parsed.id || '';
+                                            const name = parsed.name || '';
+
+                                            return (
+                                                <Box>
+                                                    {name && (
+                                                        <Typography
+                                                            level="title-sm"
+                                                            sx={{
+                                                                color: '#ee4d2d',
+                                                                display: '-webkit-box',
+                                                                WebkitLineClamp: 2,
+                                                                WebkitBoxOrient: 'vertical',
+                                                                overflow: 'hidden',
+                                                                mb: 0.5,
+                                                                lineHeight: 1.4
+                                                            }}
+                                                            title={name} // เอาเมาส์ชี้เพื่อดูชื่อเต็ม
+                                                        >
+                                                            {name}
+                                                        </Typography>
+                                                    )}
+                                                    {/* ทำรหัสสินค้าเป็น Badge กรอบสีส้มอ่อน */}
+                                                    <Typography
+                                                        level="body-xs"
+                                                        sx={{
+                                                            color: '#d03b11',
+                                                            bgcolor: '#ffe4d6',
+                                                            px: 1,
+                                                            py: 0.5,
+                                                            borderRadius: 'sm',
+                                                            display: 'inline-block'
+                                                        }}
+                                                    >
+                                                        รหัส: {id || content}
+                                                    </Typography>
+                                                </Box>
+                                            );
+                                        } catch {
+                                            // กรณีแอดมินพิมพ์แค่รหัสตัวเลขลงไปตรงๆ (ไม่มีชื่อสินค้า)
+                                            return (
+                                                <Typography
+                                                    level="body-xs"
+                                                    sx={{
+                                                        color: '#d03b11',
+                                                        bgcolor: '#ffe4d6',
+                                                        px: 1,
+                                                        py: 0.5,
+                                                        borderRadius: 'sm',
+                                                        display: 'inline-block'
+                                                    }}
+                                                >
+                                                    รหัส: {content}
+                                                </Typography>
+                                            );
+                                        }
+                                    })()}
+                                </Stack>
+                            </Stack>
+                        </Sheet>
                     ) : isItemList ? (
                         <Box sx={{ p: 0.5 }}>
                             <ChatBubbleItemList content={itemListPayload} />

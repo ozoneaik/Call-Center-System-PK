@@ -169,8 +169,9 @@ export default function ChatBubbleItemList({ content }) {
                 pb: { xs: 0.5, sm: 0 },
             }}
         >
-            {items.map((it) => (
-                <ItemCard key={`${it.id}-${it.shop_id}`} item={it} />
+            {items.map((it, index) => (
+                // <ItemCard key={`${it.id}-${it.shop_id}`} item={it} />
+                <ItemCard key={`${it.id}-${it.shop_id}-${index}`} item={it} />
             ))}
         </Box>
     );
