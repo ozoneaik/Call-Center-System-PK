@@ -36,6 +36,22 @@ export default function ContextMenuButton(props) {
         text: '',
         type: 'text'
     });
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     try {
+    //         setLoading(true);
+    //         const { data, status } = await axiosClient.post('/messages/reply', {
+    //             sender, content, line_message_id, line_quote_token, line_quoted_message_id,
+    //             rateId, activeId, custId, replyContent
+    //         });
+    //         setShowModal(false);
+    //     } catch (error) {
+    //         alert(error.status)
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -46,7 +62,10 @@ export default function ContextMenuButton(props) {
             });
             setShowModal(false);
         } catch (error) {
-            alert(error.status)
+            // 👇 แก้ไขตรงนี้ เพื่อดึงข้อความ Error ที่แท้จริงจาก Laravel มาแสดง
+            const errorMessage = error.response?.data?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+            alert(`Backend Error: ${errorMessage}`);
+            console.error('รายละเอียด Error:', error.response?.data);
         } finally {
             setLoading(false);
         }

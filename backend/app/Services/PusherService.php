@@ -68,6 +68,7 @@ class PusherService
         $Json['activeConversation'] = $activeConversation;
         $Json['message'] = $message;
         $Json['customer'] = $customer;
+        $Json['title'] = $title; // ส่ง title ไปยัง frontend
         $AppCluster = env('PUSHER_APP_CLUSTER');
         $AppKey = env('PUSHER_APP_KEY');
         $AppSecret = env('PUSHER_APP_SECRET');
@@ -144,6 +145,26 @@ class PusherService
             $pusher->trigger('notifications', 'my-event', $Json);
         } catch (\Exception $e) {
             Log::error('PusherService->sendNotification Error: ' . $e->getMessage() . ' on line ' . $e->getLine());
+        }
+    }
+
+    public function markAsReadNotification($roomId): void
+    {
+        try {
+            $AppCluster = env('PUSHER_APP_CLUSTER');
+            $AppKey = env('PUSHER_APP_KEY');
+            $AppSecret = env('PUSHER_APP_SECRET');
+            $AppID = env('PUSHER_APP_ID');
+            $options = ['cluster' => $AppCluster, 'useTLS' => true];
+
+            $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
+
+            // ส่งสัญญาณชื่อ 'chat-marked-as-read' ไปที่ Channel 'notifications'
+            $pusher->trigger('notifications', 'chat-marked-as-read', [
+                'roomId' => $roomId
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Pusher markAsRead Error: ' . $e->getMessage());
         }
     }
 }

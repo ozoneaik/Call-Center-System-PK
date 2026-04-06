@@ -43,3 +43,13 @@ export const newChatRooms = ({onPassed}) => {
         echo.leaveChannel(`newChatRooms`);
     };
 }
+
+export const chatMarkedAsRead = ({ onPassed }) => {
+    const channel = echo.channel('notifications');
+    channel.listen('.chat-marked-as-read', (event) => {
+        onPassed('success', event);
+    });
+    return () => {
+        channel.stopListening('.chat-marked-as-read');
+    };
+};

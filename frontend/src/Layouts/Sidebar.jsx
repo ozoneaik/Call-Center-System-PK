@@ -35,7 +35,7 @@ import {
   QuestionAnswerRounded,
   LiveHelp,
 } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const menuList = [
   { label: "หน้าหลัก", icon: <Home />, path: "/home" },
@@ -44,19 +44,21 @@ const menuList = [
 ];
 
 export default function Sidebar() {
-  const { myRoomContext, roomUnread, clearRoomUnread } = useChatRooms();
+  const { myRoomContext, roomUnread, roomPending, clearRoomUnread } = useChatRooms();
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const currentRoomId = pathname.split("/")[3];
 
-  // เคลียร์แจ้งเตือนของห้องที่กำลังดูอยู่
-  useEffect(() => {
-    if (currentRoomId) clearRoomUnread(currentRoomId);
-  }, [currentRoomId]);
-
   // 🔍 state สำหรับค้นหาเมนู
   const [searchQuery, setSearchQuery] = useState("");
+
+  // คำนวณจำนวนแจ้งเตือนรวมต่อห้อง (Pending เคส + Progress ข้อความ)
+  const getRoomNotificationCount = (roomId) => {
+    const pendingCases = roomPending[roomId] || 0;    // นับตามจำนวนเคส
+    const unreadMessages = roomUnread[roomId] || 0;   // นับตามจำนวนข้อความ
+    return pendingCases + unreadMessages;
+  };
 
   const Logout = () => {
     AlertDiaLog({
@@ -75,6 +77,8 @@ export default function Sidebar() {
                 localStorage.removeItem("notification");
                 localStorage.removeItem("myChatRooms");
                 localStorage.removeItem("chatRooms");
+                localStorage.removeItem("roomUnread");
+                localStorage.removeItem("roomPending");
                 navigate("/");
               }
             },
@@ -150,27 +154,33 @@ export default function Sidebar() {
                   .toLowerCase()
                   .includes(searchQuery.toLowerCase()),
               )
-              .map((chatRoom, index) => (
-                <ListItem
-                  key={index}
-                  component={Link}
-                  to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}
-                >
-                  <ListItemButton selected={currentRoomId === chatRoom.roomId}>
-                    <QuestionAnswerRounded />
-                    <ListItemContent>
-                      <Typography level="title-sm">
-                        {chatRoom.roomName}
-                      </Typography>
-                    </ListItemContent>
-                    {roomUnread[chatRoom.roomId] > 0 && (
-                      <Chip size="sm" color="success" variant="solid">
-                        {roomUnread[chatRoom.roomId]}
-                      </Chip>
-                    )}
-                  </ListItemButton>
-                </ListItem>
-              ))}
+              .map((chatRoom, index) => {
+                const pendingCases = roomPending[chatRoom.roomId] || 0;
+                const unreadMessages = roomUnread[chatRoom.roomId] || 0;
+                const totalCount = pendingCases + unreadMessages;
+
+                return (
+                  <ListItem
+                    key={index}
+                    component={Link}
+                    to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}
+                  >
+                    <ListItemButton selected={currentRoomId === chatRoom.roomId}>
+                      <QuestionAnswerRounded />
+                      <ListItemContent>
+                        <Typography level="title-sm">
+                          {chatRoom.roomName}
+                        </Typography>
+                      </ListItemContent>
+                      {totalCount > 0 && (
+                        <Chip size="sm" color="success" variant="solid">
+                          {totalCount}
+                        </Chip>
+                      )}
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
         </List>
 
         <Typography startDecorator={<Person />} level="body-sm" mt={3}>

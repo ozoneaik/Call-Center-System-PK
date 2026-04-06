@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Chats\Line\LineReceiveController;
+use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Http\Controllers\webhooks\new\NewLazadaController;
+use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Requests\endTalkRequest;
 use App\Http\Requests\sendMessageRequest;
 use App\Http\Requests\sendToRequest;
@@ -142,28 +145,71 @@ class MessageController extends Controller
             $replyContent['contentType'] = $replyContent['type'];
             $replyContent['content'] = $replyContent['text'];
             $replyContent['line_quote_token'] = $request['line_quote_token'];
+
+            $custId = $request['custId'];
+            $customer = Customers::where('custId', $custId)->first();
+            if (!$customer) throw new \Exception('ไม่พบลูกค้า');
+            $platformToken = PlatformAccessTokens::find($customer->platformRef);
+            if (!$platformToken) throw new \Exception('ไม่พบ Platform Token');
+            $platform = $platformToken->platform;
+
             $storeChatHistory = new ChatHistory();
-            $storeChatHistory['custId'] = $request['custId'];
+            $storeChatHistory['custId'] = $custId;
             $storeChatHistory['contentType'] = $replyContent['type'];
             $storeChatHistory['content'] = $replyContent['text'];
             $storeChatHistory['sender'] = json_encode(auth()->user());
             $storeChatHistory['conversationRef'] = $request['activeId'];
             $storeChatHistory['line_quoted_message_id'] = $request['line_message_id'];
-            //            throw new \Exception('joker');
+            
             if ($storeChatHistory->save()) {
-                $sendMsgByLine = $this->messageService->sendMsgByLine($request['custId'], $replyContent);
-                if ($sendMsgByLine['status']) {
-                    $message = 'ส่งข้อความสำเร็จ';
-                    $storeChatHistory['line_message_id'] = $sendMsgByLine['responseJson']['id'];
-                    $storeChatHistory['line_quote_token'] = $sendMsgByLine['responseJson']['quoteToken'];
-                    Log::info('----------------------------------------');
-                    Log::info($sendMsgByLine['responseJson']['id']);
-                    Log::info($sendMsgByLine['responseJson']['quoteToken']);
-                    Log::info('----------------------------------------');
-                    $storeChatHistory->save();
-                    $this->pusherService->sendNotification($request['custId']);
+                if ($platform === 'line') {
+                    $sendMsgByLine = $this->messageService->sendMsgByLine($custId, $replyContent);
+                    if ($sendMsgByLine['status']) {
+                        $message = 'ส่งข้อความสำเร็จ';
+                        $storeChatHistory['line_message_id'] = $sendMsgByLine['responseJson']['id'];
+                        $storeChatHistory['line_quote_token'] = $sendMsgByLine['responseJson']['quoteToken'];
+                        Log::info('----------------------------------------');
+                        Log::info($sendMsgByLine['responseJson']['id']);
+                        Log::info($sendMsgByLine['responseJson']['quoteToken']);
+                        Log::info('----------------------------------------');
+                        $storeChatHistory->save();
+                        $this->pusherService->sendNotification($custId);
+                    } else {
+                        throw new \Exception('ไม่สามารถส่งข้อความไปยังไลน์ลูกค้าได้');
+                    }
                 } else {
-                    throw new \Exception('ไม่สามารถส่ง ข้อความไปยังไลน์ลูกค้าได้');
+                    $send_message_data = [
+                        'status' => true,
+                        'case' => [
+                            'send_to_cust'         => true,
+                            'type_send'            => 'normal',
+                            'messages'             => [['contentType' => $replyContent['contentType'], 'content' => $replyContent['content']]],
+                            'customer'             => $customer,
+                            'ac_id'                => $request['activeId'],
+                            'platform_access_token' => $platformToken,
+                            'employee'             => Auth::user(),
+                        ],
+                    ];
+                    $msgId = $request['line_message_id'] ?? null;
+                    switch ($platform) {
+                        case 'shopee':
+                            $send_message = NewShopeeController::pushReplyMessage($send_message_data, $msgId);
+                            break;
+                        case 'lazada':
+                            $send_message = NewLazadaController::pushReplyMessage($send_message_data, $msgId);
+                            break;
+                        case 'facebook':
+                            $send_message = FacebookController::reply_push_message($send_message_data);
+                            break;
+                        default:
+                            throw new \Exception("ไม่รองรับ platform: {$platform}");
+                    }
+                    if ($send_message['status']) {
+                        $message = 'ส่งข้อความสำเร็จ';
+                        $this->pusherService->sendNotification($custId);
+                    } else {
+                        throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งข้อความได้');
+                    }
                 }
             } else throw new \Exception('บันทึกลงฐานข้อมูลไม่สำเร็จ');
             DB::commit();
@@ -274,7 +320,7 @@ class MessageController extends Controller
                     } else throw new \Exception('ไม่สามารถส่งต่อได้ (storeAC error)');
                 } else throw new \Exception('ไม่สามารถอัพเดท ActiveConversation ได้');
             } else throw new \Exception('ไม่สามารถอัพเดท Rate ได้');
-            $this->pusherService->sendNotification($updateRate['custId']);
+            $this->pusherService->sendNotification($updateRate['custId'], 'มีการส่งต่อ');
             //            $notification = $this->pusherService->newMessage(null, false, 'มีการส่งต่อ');
             //            if (!$notification['status']) {
             //                $status = 400;

@@ -148,6 +148,7 @@ class DisplayController extends Controller
                         $q->where('is_read', false)->orWhereNull('is_read');
                     })
                     ->update(['is_read' => true]);
+                app(\App\Services\PusherService::class)->markAsReadNotification($room['roomId']);
             }
 
             // ⭐ Mark ข้อความจากลูกค้าในเคสนี้ว่าอ่านแล้ว

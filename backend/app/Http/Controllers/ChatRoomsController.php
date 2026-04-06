@@ -67,24 +67,30 @@ class ChatRoomsController extends Controller
         $user = auth()->user();
         $role = $user['role'];
 
+        // Subquery: นับจำนวนข้อความที่ยังไม่ได้อ่าน (สำหรับ Progress)
         $unreadSubquery = DB::table('active_conversations')
             ->join('chat_histories', 'active_conversations.custId', '=', 'chat_histories.custId')
             ->selectRaw('count(chat_histories.id)')
             ->whereColumn('active_conversations.roomId', 'chat_rooms.roomId')
-            // จุดที่ 1: แก้ไขเรื่องการเช็ค is_read (ถ้าเป็น boolean ใน Postgres)
             ->where(function ($query) {
                 $query->where('chat_histories.is_read', 0)
                     ->orWhere('chat_histories.is_read', false);
             })
-            // จุดที่ 2: แก้ไขเรื่อง JSON Comparison (ใช้ ->> เพื่อดึงค่าออกมาเป็น text ก่อนเทียบ)
-            // หรือถ้า sender เก็บเป็น string ธรรมดาใน JSON ให้ใช้เครื่องหมาย ->> 0 (ถ้าเป็น array)
-            // แต่ถ้าเก็บเป็น string ธรรมดาแต่ type column เป็น json ให้ใช้แคสต์เป็น text ดังนี้:
             ->whereRaw('chat_histories.sender::text != ?', ['"admin"']);
+
+        // Subquery: นับจำนวนเคส Pending (นับตามจำนวนเคส ไม่ใช่ข้อความ)
+        $pendingSubquery = DB::table('active_conversations')
+            ->join('rates', 'active_conversations.rateRef', '=', 'rates.id')
+            ->selectRaw('count(active_conversations.id)')
+            ->whereColumn('active_conversations.roomId', 'chat_rooms.roomId')
+            ->where('rates.status', 'pending')
+            ->whereNull('active_conversations.receiveAt');
 
         if ($role === 'admin') {
             $chatRooms = ChatRooms::where('chat_rooms.is_active', 1)
                 ->select('chat_rooms.*')
-                ->selectSub($unreadSubquery, 'unread_count') // เปลี่ยนชื่อ alias ให้สื่อความหมาย
+                ->selectSub($unreadSubquery, 'unread_count')
+                ->selectSub($pendingSubquery, 'pending_count')
                 ->get();
         } else {
             $chatRooms = UserRooms::leftJoin('chat_rooms', 'user_rooms.roomId', '=', 'chat_rooms.roomId')
@@ -92,6 +98,7 @@ class ChatRoomsController extends Controller
                 ->where('chat_rooms.is_active', 1)
                 ->select('chat_rooms.*', 'user_rooms.empCode')
                 ->selectSub($unreadSubquery, 'unread_count')
+                ->selectSub($pendingSubquery, 'pending_count')
                 ->get();
         }
 
