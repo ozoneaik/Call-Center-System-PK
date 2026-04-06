@@ -10,6 +10,7 @@ use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\Chats\PushMessageController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
+use App\Http\Controllers\External\ExternalChatController;
 use App\Http\Controllers\feedbackController;
 use App\Http\Controllers\HelpChatController;
 use App\Http\Controllers\KeywordController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\LineUATController;
+use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Middleware\UserAccess;
 use App\Models\TagGroup;
 use Illuminate\Support\Facades\Route;
@@ -271,3 +273,16 @@ require __DIR__ . '/test_only.php';
 require __DIR__ . '/webhook.php';
 
 Route::get('report', [ReportController::class, 'index']);
+
+// Route::get('/ping', function () {
+//     return response()->json([
+//         'status' => 'success',
+//         'message' => 'Pong! 🏓',
+//         'server_time' => now()->toDateTimeString(),
+//         'your_ip' => request()->ip()
+//     ]);
+// });
+
+// Route::post('/external/save-chat', [ExternalChatController::class, 'store']);
+
+Route::get('/shopee/products/search', [NewShopeeController::class, 'searchProducts']);
