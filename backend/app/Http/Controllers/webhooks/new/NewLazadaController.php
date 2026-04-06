@@ -1003,7 +1003,6 @@ class NewLazadaController extends Controller
             $orders = DB::table('orders')
                 ->where('buyer_user_id', (string)$customer->buyerId)
                 ->where('platform', 'lazada')
-                ->where('shop_id', (string)$platform->laz_seller_id)
                 ->orderBy('order_create_time', 'desc')
                 ->get();
 
