@@ -69,14 +69,18 @@ class ChatRoomsController extends Controller
 
         // Subquery: นับจำนวนข้อความที่ยังไม่ได้อ่าน (สำหรับ Progress)
         $unreadSubquery = DB::table('active_conversations')
-            ->join('chat_histories', 'active_conversations.custId', '=', 'chat_histories.custId')
+            ->join('rates', 'active_conversations.rateRef', '=', 'rates.id')
+            ->join('chat_histories', 'active_conversations.id', '=', 'chat_histories.conversationRef')
             ->selectRaw('count(chat_histories.id)')
             ->whereColumn('active_conversations.roomId', 'chat_rooms.roomId')
+            ->where('rates.status', 'progress')
+            ->whereNull('active_conversations.endTime')
             ->where(function ($query) {
                 $query->where('chat_histories.is_read', 0)
-                    ->orWhere('chat_histories.is_read', false);
+                    ->orWhere('chat_histories.is_read', false)
+                    ->orWhereNull('chat_histories.is_read');
             })
-            ->whereRaw('chat_histories.sender::text != ?', ['"admin"']);
+            ->where('chat_histories.sender', 'like', '%"custId"%');
 
         // Subquery: นับจำนวนเคส Pending (นับตามจำนวนเคส ไม่ใช่ข้อความ)
         $pendingSubquery = DB::table('active_conversations')
