@@ -36,8 +36,8 @@ export default function MainLayout() {
                 setMessage(event);
                 setUnRead(event.countCustomer);
                 
-                if (event?.title === 'มีการรับเรื่อง' || event?.title === 'มีการส่งต่อ') {
-                    // หากมีการรับเรื่องหรือส่งต่อเคส ให้อัพเดทจำนวนแจ้งเตือนทั้งหมดจาก API ตลอดเพื่อความแม่นยำ
+                if (event?.title === 'มีการรับเรื่อง' || event?.title === 'มีการส่งต่อ' || event?.title === 'พักการสนทนา') {
+                    // หากมีการรับเรื่อง, ส่งต่อเคส, หรือ พักสนทนา ให้อัพเดทจำนวนแจ้งเตือนทั้งหมดจาก API ตลอดเพื่อความแม่นยำ
                     fetchChatRoom();
                 } else if (event?.message?.sender?.custId && event?.activeConversation?.roomId) {
                     const roomId = event.activeConversation.roomId;

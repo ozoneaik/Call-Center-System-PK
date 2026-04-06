@@ -449,7 +449,7 @@ class MessageController extends Controller
             $newAc->rateRef = $rate->id;
             $newAc->save();
             DB::commit();
-            $this->pusherService->sendNotification($rate['custId']);
+            $this->pusherService->sendNotification($rate['custId'], 'พักการสนทนา');
             return response()->json([
                 'message' => 'พักการสนทนาแล้ว',
                 'detail' => $request['activeConversationId'] . $request['rateId']
