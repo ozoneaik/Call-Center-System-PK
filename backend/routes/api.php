@@ -27,6 +27,7 @@ use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\webhooks\LineUATController;
+use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Middleware\UserAccess;
 use App\Models\TagGroup;
@@ -286,3 +287,5 @@ Route::get('report', [ReportController::class, 'index']);
 // Route::post('/external/save-chat', [ExternalChatController::class, 'store']);
 
 Route::get('/shopee/products/search', [NewShopeeController::class, 'searchProducts']);
+
+Route::get('/lazada/products/search', [NewLazadaController::class, 'searchProducts']);

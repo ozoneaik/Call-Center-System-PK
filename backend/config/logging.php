@@ -63,7 +63,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666,
         ],
 
         'daily' => [
@@ -72,7 +72,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666,
         ],
 
         'slack' => [
@@ -127,7 +127,7 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666,
         ],
         'line_webhook_log' => [
             'driver' => 'daily',
@@ -135,7 +135,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'facebook_webhook_log' => [
             'driver' => 'daily',
@@ -143,7 +143,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_line_new' => [
             'driver' => 'daily',
@@ -151,7 +151,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_facebook_new' => [
             'driver' => 'daily',
@@ -159,7 +159,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_lazada_new' => [
             'driver' => 'daily',
@@ -167,7 +167,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_shopee_new' => [
             'driver' => 'daily',
@@ -175,7 +175,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_tiktok_new' => [
             'driver' => 'daily',
@@ -183,7 +183,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ],
         'webhook_main' => [
             'driver' => 'daily',
@@ -191,7 +191,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'permission' => 0664, // เพิ่มบรรทัดนี้
+            'permission' => 0666, 
         ]
 
     ],

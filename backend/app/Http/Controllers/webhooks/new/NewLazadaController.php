@@ -472,11 +472,47 @@ class NewLazadaController extends Controller
                             $msg_data['width']          = (string)($message['width'] ?? 720);
                             $msg_data['height']         = (string)($message['height'] ?? 1280);
                             $msg_data['videoDuration']  = (string)($message['videoDuration'] ?? 10);
+                        } elseif ($message['contentType'] === 'product' || $message['contentType'] === 'item') {
+                            $itemData = is_array($message['content']) ? $message['content'] : json_decode($message['content'], true);
+                            $itemId = $itemData['id'] ?? $itemData['item_id'] ?? (is_numeric($message['content']) ? $message['content'] : null);
+
+                            if ($itemId) {
+                                $msg_data['template_id'] = '10006'; // ของ Lazada ใช้ 10006 สำหรับสินค้า
+                                $msg_data['item_id'] = (string)$itemId;
+                                // เก็บ JSON ต้นฉบับไว้เซฟลง DB (จะได้แสดงรูป+ชื่อในแชทได้)
+                                $msg_data['content_original'] = is_string($message['content'])
+                                    ? $message['content']
+                                    : json_encode($message['content'], JSON_UNESCAPED_UNICODE);
+                            }
                         }
-                        $messages_to_send[] = $msg_data;
+
+                        if (!empty($msg_data)) {
+                            $messages_to_send[] = $msg_data;
+                        }
+                        // $messages_to_send[] = $msg_data;
                     }
                     break;
                 case 'sended':
+                    break;
+                case 'item':
+                case 'product':
+                    foreach ($messages as $message) {
+                        $itemData = is_array($message['content']) ? $message['content'] : json_decode($message['content'], true);
+
+                        // ดึง item_id ออกมาจาก JSON
+                        $itemId = $itemData['id'] ?? $itemData['item_id'] ?? (is_numeric($message['content']) ? $message['content'] : null);
+
+                        if ($itemId) {
+                            $messages_to_send[] = [
+                                'template_id'      => '10006', // 💡 บังคับให้เป็น 10006 สำหรับสินค้าของ Lazada
+                                'item_id'          => (string)$itemId,
+                                // เก็บ JSON ต้นฉบับไว้บันทึกลง Database เพื่อให้หน้าต่างแชทโชว์รูปและชื่อได้
+                                'content_original' => is_string($message['content'])
+                                    ? $message['content']
+                                    : json_encode($message['content'], JSON_UNESCAPED_UNICODE)
+                            ];
+                        }
+                    }
                     break;
                 case 'present':
                     $messages_to_send[] = [
@@ -499,8 +535,25 @@ class NewLazadaController extends Controller
                             $msg_data['width']          = (string)($message['width'] ?? 720);
                             $msg_data['height']         = (string)($message['height'] ?? 1280);
                             $msg_data['videoDuration']  = (string)($message['videoDuration'] ?? 10);
+                        } elseif ($message['contentType'] === 'product' || $message['contentType'] === 'item') {
+                            $itemData = is_array($message['content']) ? $message['content'] : json_decode($message['content'], true);
+                            $itemId = $itemData['id'] ?? $itemData['item_id'] ?? (is_numeric($message['content']) ? $message['content'] : null);
+
+                            if ($itemId) {
+                                $msg_data['template_id'] = '10006'; // Lazada ใช้ 10006 สำหรับสินค้า
+                                $msg_data['item_id'] = (string)$itemId;
+                                $msg_data['content_original'] = is_string($message['content'])
+                                    ? $message['content']
+                                    : json_encode($message['content'], JSON_UNESCAPED_UNICODE);
+                            }
                         }
-                        $messages_to_send[] = $msg_data;
+
+                        // ✅ เปลี่ยนจาก $messages_to_send[] = $msg_data;
+                        // เป็นการเช็คว่าห้ามว่าง ป้องกัน Error Undefined array key
+                        if (!empty($msg_data)) {
+                            $messages_to_send[] = $msg_data;
+                        }
+                        // $messages_to_send[] = $msg_data;
                     }
                     break;
                 case 'evaluation':
@@ -548,24 +601,70 @@ class NewLazadaController extends Controller
                     $request->addApiParam('height', (string)($msg_data['height'] ?? '1280'));
                     $request->addApiParam('videoDuration', (string)($msg_data['videoDuration'] ?? '10'));
                 }
+
+                if (!empty($msg_data['item_id'])) {
+                    $request->addApiParam('item_id', $msg_data['item_id']);
+                }
+
                 $response = $c->execute($request, $platformToken['accessToken']);
                 $result = json_decode($response, true);
-                if (isset($result['code']) && $result['code'] == '0') {
+
+                // if (isset($result['code']) && $result['code'] == '0') {
+                //     Log::channel('webhook_lazada_new')->info('ส่งข้อความตอบกลับไปยัง Lazada สำเร็จ', [
+                //         'response' => $response,
+                //         'message_data' => $msg_data
+                //     ]);
+                //     $sent_messages[] = [
+                //         // 'content' => $msg_data['txt'] ?? $msg_data['img_url'] ?? $msg_data['video_url'] ?? '',
+                //         // 'contentType' => $msg_data['template_id'] == '1' ? 'text' : ($msg_data['template_id'] == '3' ? 'image' : 'video'),
+                //         // 'response' => $result
+                //         'content' => $msg_data['content_original'] ?? $msg_data['txt'] ?? $msg_data['img_url'] ?? $msg_data['video_url'] ?? '',
+                //         'contentType' => $msg_data['template_id'] == '1' ? 'text' : ($msg_data['template_id'] == '3' ? 'image' : ($msg_data['template_id'] == '6' ? 'video' : 'product')),
+                //         'response' => $result
+                //     ];
+                // } else {
+                //     Log::channel('webhook_lazada_new')->error('ส่งข้อความตอบกลับไปยัง Lazada ไม่สำเร็จ', [
+                //         'response' => $response,
+                //         'message_data' => $msg_data
+                //     ]);
+                //     throw new \Exception('ไม่สามารถส่งข้อความตอบกลับไปยัง Lazada ได้: ' . ($result['message'] ?? 'Unknown error'));
+                // }
+                // ✅ 1. เพิ่มเงื่อนไขดักจับ Error จาก Lazada (กรณี code=0 แต่ success=false)
+                if (isset($result['success']) && $result['success'] === false) {
+                    $errorMsg = $result['err_message'] ?? 'Unknown error';
+
+                    // ถ้าเจอ -5 ให้แปลข้อความให้แอดมินเข้าใจง่าย
+                    if (isset($result['err_code']) && $result['err_code'] == '-5') {
+                        $errorMsg = 'สินค้านี้ถูกระงับ ลบ หรือไม่พบในระบบของ Lazada (Item not found)';
+                    }
+
+                    Log::channel('webhook_lazada_new')->error('ส่งข้อความตอบกลับไปยัง Lazada ไม่สำเร็จ (success=false)', [
+                        'response' => $response,
+                        'message_data' => $msg_data
+                    ]);
+
+                    // โยน Exception เพื่อให้หน้าบ้านจับไปโชว์ Alert
+                    throw new \Exception($errorMsg);
+                }
+                // ✅ 2. ถ้าสำเร็จจริงๆ ค่อยทำงานส่วนนี้
+                elseif (isset($result['code']) && $result['code'] == '0') {
                     Log::channel('webhook_lazada_new')->info('ส่งข้อความตอบกลับไปยัง Lazada สำเร็จ', [
                         'response' => $response,
                         'message_data' => $msg_data
                     ]);
                     $sent_messages[] = [
-                        'content' => $msg_data['txt'] ?? $msg_data['img_url'] ?? $msg_data['video_url'] ?? '',
-                        'contentType' => $msg_data['template_id'] == '1' ? 'text' : ($msg_data['template_id'] == '3' ? 'image' : 'video'),
+                        'content' => $msg_data['content_original'] ?? $msg_data['txt'] ?? $msg_data['img_url'] ?? $msg_data['video_url'] ?? '',
+                        'contentType' => $msg_data['template_id'] == '1' ? 'text' : ($msg_data['template_id'] == '3' ? 'image' : ($msg_data['template_id'] == '6' ? 'video' : 'product')),
                         'response' => $result
                     ];
-                } else {
+                }
+                // ✅ 3. Error กรณีอื่นๆ (เช่น API พัง, Network มีปัญหา)
+                else {
                     Log::channel('webhook_lazada_new')->error('ส่งข้อความตอบกลับไปยัง Lazada ไม่สำเร็จ', [
                         'response' => $response,
                         'message_data' => $msg_data
                     ]);
-                    throw new \Exception('ไม่สามารถส่งข้อความตอบกลับไปยัง Lazada ได้: ' . ($result['message'] ?? 'Unknown error'));
+                    throw new \Exception('ไม่สามารถส่งข้อความได้: ' . ($result['message'] ?? $result['err_message'] ?? 'Unknown error'));
                 }
             }
             foreach ($sent_messages as $key => $message) {
@@ -1100,5 +1199,86 @@ class NewLazadaController extends Controller
             ]);
         }
         return $matchedOrders;
+    }
+
+    public function searchProducts(Request $request)
+    {
+        $keyword = trim($request->input('keyword', ''));
+        $custId  = $request->input('custId');
+
+        try {
+            $customer = Customers::where('custId', $custId)->firstOrFail();
+            $platform = PlatformAccessTokens::findOrFail($customer->platformRef);
+            $sellerId = (string)$platform->shorts_code;
+
+            // Query ค้นหาสินค้าจากตารางของ Lazada
+            // 💡 อย่าลืมเปลี่ยนชื่อ table เป็นตารางที่คุณใช้เก็บสินค้า Lazada นะครับ (เช่น lazada_product_mapping)
+            $items = DB::connection('n8n')
+                ->table('lazada_product_mapping')
+                ->where('short_code', $sellerId)
+                ->where(function ($q) use ($keyword) {
+                    if ($keyword !== '') {
+                        $q->whereRaw('item_name::text ilike ?', ["%{$keyword}%"])
+                            ->orWhereRaw('item_id::text ilike ?', ["%{$keyword}%"])
+                            ->orWhereRaw('seller_sku::text ilike ?', ["%{$keyword}%"]);
+                    }
+                })
+                ->select('item_id', 'item_name as name', 'seller_sku', 'current_stock as quantity', 'short_code', 'current_price as price', 'size_option')
+                ->distinct('item_id')
+                ->orderBy('item_id')
+                ->orderBy('item_name')
+                ->limit(30)
+                ->get();
+
+            // ใช้ระบบดึงรูปจาก Warranty API (เหมือนฝั่ง Shopee)
+            $skuList = $items->pluck('seller_sku')->filter()->unique()->values();
+            $imageMap = [];
+            foreach ($skuList as $sku) {
+                if (empty(trim((string)$sku))) continue;
+                try {
+                    $warrantyResp = Http::timeout(5)->get('https://warranty-sn.pumpkin.tools/api/getdata', [
+                        'search' => (string)$sku,
+                    ]);
+                    if ($warrantyResp->successful()) {
+                        $wData = $warrantyResp->json();
+                        $firstImage = $wData['main_assets']['imagesku'][0] ?? null;
+                        if ($firstImage) {
+                            $imageMap[(string)$sku] = $firstImage;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+
+            $defaultImage = 'https://pumpkin-image-sku.s3.ap-southeast-1.amazonaws.com/pumpkin-image-logo/logo.png';
+
+            // Map ข้อมูลส่งกลับให้ React
+            $result = $items->map(function ($p) use ($imageMap, $defaultImage) {
+                $sku = (string)($p->seller_sku ?? '');
+                $productUrl = "https://www.lazada.co.th/products/i" . $p->item_id . ".html";
+
+                $sizeLabel = !empty($p->size_option) ? " (ตัวเลือก: {$p->size_option})" : "";
+                $displayName = ($p->name ?? '-') . $sizeLabel;
+
+                return [
+                    'id'         => (string)$p->item_id,
+                    'shop_id'    => (string)$p->short_code,
+                    'name'       => $p->name ?? '-',
+                    'size'       => $p->size_option ?? '',
+                    'seller_sku' => $sku,
+                    'image'      => $imageMap[$sku] ?? $defaultImage,
+                    'price'      => $p->price ?? 0,
+                    'stock'      => $p->quantity ?? 0,
+                    'url'        => $productUrl
+                ];
+            })->toArray();
+
+            return response()->json(['items' => $result]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error('Lazada searchProducts error ❌', [
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'เกิดข้อผิดพลาดในการค้นหาสินค้า: ' . $e->getMessage()], 500);
+        }
     }
 }

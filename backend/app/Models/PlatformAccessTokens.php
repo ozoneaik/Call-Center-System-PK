@@ -43,6 +43,7 @@ class PlatformAccessTokens extends Model
         'tiktok_app_secret',
         'tiktok_refresh_token',
         // 'tiktok_refresh_token_expire',
+        'shorts_code'
     ];
 
     protected $dates = [

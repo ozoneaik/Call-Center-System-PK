@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import StickerPkNew from './StickerPkNew';
 import ModalHelperSendMsg from '../../../Components/ModalHelperSendMsg';
 import ShopeeProductPicker from './ShopeeProductPicker';
+import LazadaProductPicker from './LazadaProductPicker';
 
 export default function MessageInputNew(props) {
     const { sender, activeId, msg, setMsg } = props;
@@ -53,21 +54,41 @@ export default function MessageInputNew(props) {
                     shop_id: product.shop_id,
                     name: product.name,
                     image: product.image,
+
+                    price: product.price,
+                    priceMin: product.priceMin,
+                    priceMax: product.priceMax,
+                    originalPrice: product.originalPrice,
+
+                    url: product.url
                 }),
                 contentType: 'product',   // backend จะ map เป็น type_send: 'item'
                 custId: sender.custId,
                 conversationId: activeId,
             });
 
-            if (status !== 200) {
+            // if (status !== 200) {
+            //     AlertDiaLog({
+            //         icon: 'error',
+            //         title: data.message || 'เกิดข้อผิดพลาด',
+            //         text: 'ไม่สามารถส่งสินค้าได้',
+            //     });
+            // }
+            
+            if (status !== 200 || data?.status === false) {
                 AlertDiaLog({
                     icon: 'error',
-                    title: data.message || 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถส่งสินค้าได้',
+                    title: 'ส่งสินค้าไม่สำเร็จ',
+                    text: data?.detail || data?.message || 'ไม่สามารถส่งสินค้าได้ โปรดลองใหม่อีกครั้ง',
                 });
             }
         } catch (error) {
             console.error('Send product error:', error);
+            AlertDiaLog({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: error?.response?.data?.detail || error?.response?.data?.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง',
+            });
         } finally {
             setLoading(false);
             setProductOpen(false);
@@ -152,7 +173,7 @@ export default function MessageInputNew(props) {
 
     const isDisabled = (sender.emp !== user.empCode) && (user.role !== 'admin');
     const isShopee = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
-
+    const isLazada = sender?.platform === 'lazada' || (sender?.description || '').toLowerCase().includes('lazada');
     return (
         <Box
             sx={{
@@ -254,6 +275,18 @@ export default function MessageInputNew(props) {
                         สินค้า
                     </Button>
                 )}
+
+                {isLazada && (
+                    <Button
+                        disabled={isDisabled}
+                        size='sm'
+                        color='danger'
+                        endDecorator={<ShoppingBag />}
+                        onClick={() => setProductOpen(true)}
+                    >
+                        สินค้า
+                    </Button>
+                )}
                 <Button
                     disabled={isDisabled}
                     size='sm'
@@ -275,6 +308,14 @@ export default function MessageInputNew(props) {
             {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
             {productOpen && (
                 <ShopeeProductPicker
+                    open={productOpen}
+                    setOpen={setProductOpen}
+                    sender={sender}
+                    onSelect={handleSendProduct}
+                />
+            )}
+            {productOpen && (
+                <LazadaProductPicker
                     open={productOpen}
                     setOpen={setProductOpen}
                     sender={sender}

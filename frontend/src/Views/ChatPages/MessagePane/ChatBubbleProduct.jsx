@@ -46,13 +46,28 @@ function ChatBubbleProduct({ content }) {
                 <img
                     src={product.image}
                     alt={product.name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }}
                 />
             ) : null}
 
-            <CardContent sx={{ textAlign: "center", mt: 1 }}>
-                <Typography level="title-md" fontWeight="lg">
+            <CardContent sx={{ textAlign: "center", mt: 1, width: "100%" }}>
+                <Typography
+                    level="title-md"
+                    fontWeight="lg"
+                    sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden"
+                    }}
+                    title={product.name}
+                >
                     {product.name}
+                </Typography>
+
+                {/* เพิ่มรหัสสินค้าตรงนี้ */}
+                <Typography level="body-xs" sx={{ color: "neutral.500", mt: 0.5 }}>
+                    รหัส: {product.id}
                 </Typography>
 
                 {/* ราคา */}
@@ -96,7 +111,7 @@ function ChatBubbleProduct({ content }) {
                     size="sm"
                     variant="solid"
                     color="primary"
-                    sx={{ mt: 1, borderRadius: "xl" }}
+                    sx={{ mt: 1, borderRadius: "xl", width: "100%" }}
                 >
                     ดูสินค้า
                 </Button>
