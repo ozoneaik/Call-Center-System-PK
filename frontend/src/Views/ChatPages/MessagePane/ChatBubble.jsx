@@ -227,9 +227,38 @@ export default function Bubble(props) {
                                             const parsed = JSON.parse(content);
                                             const id = parsed.item_id || parsed.id || '';
                                             const name = parsed.name || '';
+                                            const image = parsed.image || null;
 
                                             return (
                                                 <Box>
+                                                    {/* 👇 แสดงรูปสินค้า ถ้ามี */}
+                                                    {image && (
+                                                        <Box
+                                                            sx={{
+                                                                mb: 1,
+                                                                borderRadius: 'sm',
+                                                                overflow: 'hidden',
+                                                                width: '100%',
+                                                                maxHeight: 160,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                bgcolor: '#fff',
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src={image}
+                                                                alt={name}
+                                                                loading="lazy"
+                                                                style={{
+                                                                    width: '100%',
+                                                                    maxHeight: 160,
+                                                                    objectFit: 'contain',
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    )}
+
                                                     {name && (
                                                         <Typography
                                                             level="title-sm"

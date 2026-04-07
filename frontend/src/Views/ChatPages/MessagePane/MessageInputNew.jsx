@@ -52,6 +52,7 @@ export default function MessageInputNew(props) {
                     id: product.id,
                     shop_id: product.shop_id,
                     name: product.name,
+                    image: product.image,
                 }),
                 contentType: 'product',   // backend จะ map เป็น type_send: 'item'
                 custId: sender.custId,
@@ -250,7 +251,7 @@ export default function MessageInputNew(props) {
                         endDecorator={<ShoppingBag />}
                         onClick={() => setProductOpen(true)}
                     >
-                        ส่งสินค้า
+                        สินค้า
                     </Button>
                 )}
                 <Button

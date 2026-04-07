@@ -865,7 +865,8 @@ class NewShopeeController extends Controller
             foreach ($sent_messages as $message) {
                 $store_chat = new ChatHistory();
                 $store_chat->custId = $customer['custId'];
-                if ($message['contentType'] == 'video') {
+                // if ($message['contentType'] == 'video') {
+                if ($message['contentType'] == 'video' || $message['contentType'] == 'item') {
                     $store_chat->content = $message['content_original'];
                 } else {
                     $store_chat->content = $message['content'];
@@ -1656,15 +1657,58 @@ class NewShopeeController extends Controller
                 ->limit(20)
                 ->get();
 
+            // // นำข้อมูลมา Map ให้หน้าบ้าน React อ่านออก
+            // $result = $items->map(function ($p) {
+            //     return [
+            //         'id'         => (string)$p->item_id,
+            //         'shop_id'    => (string)$p->shop_id,
+            //         'name'       => $p->item_name ?? '-',
+            //         'seller_sku' => $p->seller_sku ?? '',
+            //         // ใส่รูป Default ของ Shopee ไปก่อน เผื่อตารางไม่มีคอลัมน์รูป
+            //         'image'      => 'https://pumpkin-image-sku.s3.ap-southeast-1.amazonaws.com/pumpkin-image-logo/logo.png',
+            //         'price'      => $p->current_price ?? 0,
+            //         'stock'      => $p->current_stock ?? 0,
+            //     ];
+            // })->toArray();
+
+            // ดึง SKU ทั้งหมดเพื่อขอรูปจาก Warranty API
+            $skuList = $items->pluck('seller_sku')->filter()->unique()->values();
+
+            // ดึงรูปทีละ SKU แล้วเก็บลง Map (sku => imageUrl)
+            $imageMap = [];
+            foreach ($skuList as $sku) {
+                if (empty(trim((string)$sku))) continue;
+                try {
+                    $warrantyResp = Http::timeout(5)
+                        ->get('https://warranty-sn.pumpkin.tools/api/getdata', [
+                            'search' => (string)$sku,
+                        ]);
+                    if ($warrantyResp->successful()) {
+                        $wData = $warrantyResp->json();
+                        $firstImage = $wData['main_assets']['imagesku'][0] ?? null;
+                        if ($firstImage) {
+                            $imageMap[(string)$sku] = $firstImage;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::channel('webhook_shopee_new')->warning("searchProducts: ดึงรูปจาก Warranty API ไม่สำเร็จ", [
+                        'sku'   => $sku,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $defaultImage = 'https://pumpkin-image-sku.s3.ap-southeast-1.amazonaws.com/pumpkin-image-logo/logo.png';
+
             // นำข้อมูลมา Map ให้หน้าบ้าน React อ่านออก
-            $result = $items->map(function ($p) {
+            $result = $items->map(function ($p) use ($imageMap, $defaultImage) {
+                $sku = (string)($p->seller_sku ?? '');
                 return [
                     'id'         => (string)$p->item_id,
                     'shop_id'    => (string)$p->shop_id,
                     'name'       => $p->item_name ?? '-',
-                    'seller_sku' => $p->seller_sku ?? '',
-                    // ใส่รูป Default ของ Shopee ไปก่อน เผื่อตารางไม่มีคอลัมน์รูป
-                    'image'      => 'https://pumpkin-image-sku.s3.ap-southeast-1.amazonaws.com/pumpkin-image-logo/logo.png',
+                    'seller_sku' => $sku,
+                    'image'      => $imageMap[$sku] ?? $defaultImage,
                     'price'      => $p->current_price ?? 0,
                     'stock'      => $p->current_stock ?? 0,
                 ];
