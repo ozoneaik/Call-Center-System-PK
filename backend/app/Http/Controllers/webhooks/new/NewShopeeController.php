@@ -858,7 +858,7 @@ class NewShopeeController extends Controller
                         'content_original' => $msg['content_original']
                     ];
                 } else {
-                    Log::channel('webhook_shopee_new')->error('Shopee: ส่งข้อความไม่สำเร็จ', ['resp' => $json, 'body' => $body]);
+                    Log::channel('webhook_shopee_new')->error('Shopee: ส่งข้อความไม่สำเร็จ', ['resp' => $json, 'body' => $shopeebody]);
                 }
             }
 
