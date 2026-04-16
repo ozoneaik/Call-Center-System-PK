@@ -108,6 +108,7 @@ export default function MessagePane() {
             sender: sender
         })
     }
+    const isShopeeRoom = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
     return (
         <>
             <Sheet sx={MessageStyle.MainLayout}>
@@ -143,7 +144,9 @@ export default function MessagePane() {
                                             >
                                                 <Avatar src={message.sender.avatar} />
                                                 <ChatBubble
-                                                    variant={isYou ? 'sent' : 'received'} {...message}
+                                                    variant={isYou ? 'sent' : 'received'} 
+                                                    isShopeeRoom={isShopeeRoom}
+                                                    {...message}
                                                     {...{ messages, setMessages }}
                                                 />
                                             </Stack>

@@ -9,7 +9,7 @@ import Divider from "@mui/joy/Divider";
 import ContextMenuButton from "./ContextMenuButton.jsx";
 import ImageIcon from '@mui/icons-material/Image';
 import ChatMediaPreview from "./ChatMediaPreview.jsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 import ChatBubbleItemList from "./ChatBubbleItemList.jsx"; 
@@ -28,11 +28,26 @@ export default function Bubble(props) {
         line_quoted_message_id,
         messages,
         meta, 
+        isShopeeRoom,
     } = props;
 
     const isSent = variant === 'sent';
     const [open, setOpen] = useState(false);
     const [previewSelect, setPreviewSelect] = useState('');
+    const [isRead, setIsRead] = useState(!!props.read_at);
+
+    useEffect(() => {
+        const channel = window.pusherChannel;
+
+        const handler = (data) => {
+            if (line_message_id && line_message_id <= data.last_read_message_id) {
+                setIsRead(true);
+            }
+        };
+
+        channel?.bind('message-read', handler);
+        return () => channel?.unbind('message-read', handler);
+    }, [line_message_id]);
 
     const createdAtText = (() => {
         try {
@@ -336,6 +351,14 @@ export default function Bubble(props) {
                         </Typography>
                     )}
                 </Sheet>
+                {isSent && isShopeeRoom && (
+                    <Typography
+                        level="body-xs"
+                        sx={{ textAlign: 'right', mt: 0.5, color: isRead ? '#1976d2' : 'neutral.400' }}
+                    >
+                        {isRead ? '✓✓ อ่านแล้ว' : '✓ ส่งแล้ว'}
+                    </Typography>
+                )}
             </Box>
         </Box>
     );

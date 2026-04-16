@@ -22,6 +22,7 @@ class ChatHistory extends Model
         'conversationRef',
         'line_message_id',
         'line_quote_token',
-        'line_quoted_message_id'
+        'line_quoted_message_id',
+        'read_at',
     ];
 }

@@ -185,6 +185,28 @@ class NewShopeeController extends Controller
                     Log::channel('webhook_shopee_new')->info($this->end_log_line);
                 }
             }
+
+            if ($code == 17) {
+                $lastReadMsgId = $payload['data']['last_read_message_id'] ?? null;
+                $conversationId = $payload['data']['conversation_id'] ?? null;
+
+                if ($lastReadMsgId && $conversationId) {
+                    // หา custId จาก conversationId ใน ChatHistory
+                    $chatHistory = ChatHistory::where('line_message_id', $lastReadMsgId)->first();
+
+                    if ($chatHistory) {
+                        ChatHistory::where('custId', $chatHistory->custId)
+                            ->whereNull('read_at')
+                            ->where('line_message_id', '<=', $lastReadMsgId)
+                            ->update(['read_at' => now()]);
+
+                        $pusherService = new PusherService();
+                        $pusherService->sendReadReceipt($chatHistory->custId, $lastReadMsgId);
+                    }
+                }
+
+                return response()->json(['message' => 'read receipt processed'], 200);
+            }
         } catch (\Throwable $e) {
             Log::channel('webhook_shopee_new')->error('Shopee webhook error ❌', [
                 'error' => $e->getMessage(),

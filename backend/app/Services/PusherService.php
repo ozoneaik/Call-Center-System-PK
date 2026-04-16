@@ -167,4 +167,25 @@ class PusherService
             Log::error('Pusher markAsRead Error: ' . $e->getMessage());
         }
     }
+
+    public function sendReadReceipt(string $custId, string $lastReadMsgId): void
+    {
+        try {
+            $AppCluster = env('PUSHER_APP_CLUSTER');
+            $AppKey     = env('PUSHER_APP_KEY');
+            $AppSecret  = env('PUSHER_APP_SECRET');
+            $AppID      = env('PUSHER_APP_ID');
+            $options    = ['cluster' => $AppCluster, 'useTLS' => true];
+
+            $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
+
+            // ส่งไปที่ channel 'notifications' เหมือน method อื่น ๆ ในระบบ
+            $pusher->trigger('notifications', 'message-read', [
+                'custId'               => $custId,
+                'last_read_message_id' => $lastReadMsgId,
+            ]);
+        } catch (\Exception | \GuzzleHttp\Exception\GuzzleException $e) {
+            Log::error('Pusher sendReadReceipt Error: ' . $e->getMessage());
+        }
+    }
 }
