@@ -306,7 +306,7 @@ export default function MessageInputNew(props) {
             </Stack>
             {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
             {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
-            {productOpen && (
+            {productOpen && isShopee && (
                 <ShopeeProductPicker
                     open={productOpen}
                     setOpen={setProductOpen}
@@ -314,7 +314,7 @@ export default function MessageInputNew(props) {
                     onSelect={handleSendProduct}
                 />
             )}
-            {productOpen && (
+            {productOpen && isLazada && (
                 <LazadaProductPicker
                     open={productOpen}
                     setOpen={setProductOpen}
