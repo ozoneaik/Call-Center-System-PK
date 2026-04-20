@@ -108,6 +108,7 @@ export default function UC() {
                             mergedMap.set(item.empCode, {
                                 empCode: item.empCode,
                                 name: item.user_name,
+                                real_name: item.real_name,
                                 department: item.department || "ไม่ระบุแผนก",
                                 todayClosed: 0,
                                 inProgress: 0,

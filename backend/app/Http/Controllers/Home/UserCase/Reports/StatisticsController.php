@@ -182,6 +182,7 @@ class StatisticsController extends Controller
             ->selectRaw('
                 u."empCode",
                 u."name",
+                u."real_name",
                 COALESCE(s.total_success, 0) as total,
                 COALESCE(s.within_1_min, 0) as within_1_min,
                 COALESCE(s.one_to_five_min, 0) as one_to_five_min,

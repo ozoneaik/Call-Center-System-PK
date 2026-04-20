@@ -91,6 +91,7 @@ export default function Bubble(props) {
             >
                 <Typography level="body-xs">
                     {isSent ? sender?.name : (sender?.custName ? sender.custName : sender?.name)}
+                    {isSent ? sender?.real_name ? ` (${sender.real_name})` : '' : ''}
                 </Typography>
                 <Typography level="body-xs">{createdAtText}</Typography>
             </Stack>

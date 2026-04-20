@@ -370,6 +370,7 @@ class ReportController extends Controller
             ->select(
                 'active_conversations.*',
                 'users.name as empName',
+                'users.real_name as empRealName',
                 'from_emp.name as from_empName',
                 'chat_rooms.roomName as roomName',
                 'from_chat_room.roomName as from_roomName'

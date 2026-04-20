@@ -34,7 +34,7 @@ export default function EmployeeWorkloadTable({ rows }) {
                         {rows.map((row, index) => (
                             <tr key={row.name}>
                                 <td>{index + 1}</td>
-                                <td style={{ textAlign: "left" }}>{row.name}</td>
+                                <td style={{ textAlign: "left" }}>{row.name} ({row.real_name})</td>
                                 <td style={{ textAlign: "center" }}>{row.percent}%</td>
                                 <td style={{ textAlign: "center" }}>{row.total}</td>
                                 <td style={{ textAlign: "center" }}>{row.min1to5}</td>

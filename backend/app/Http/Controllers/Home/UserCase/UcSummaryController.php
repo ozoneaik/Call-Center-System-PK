@@ -81,7 +81,8 @@ class UcSummaryController extends Controller
                 DB::raw('COUNT(ac."empCode") as count'),
                 'ac.empCode',
                 'u.name as user_name',
-                'u.description as department'
+                'u.description as department',
+                'u.real_name as real_name'
             )
             ->whereBetween('ac.endTime', [$start, $end])
             ->where('r.status', 'success')
@@ -94,7 +95,7 @@ class UcSummaryController extends Controller
         }
 
         $successResults = $successQuery
-            ->groupBy('ac.empCode', 'u.name', 'u.description')
+            ->groupBy('ac.empCode', 'u.name', 'u.description', 'u.real_name')
             ->get();
 
         $progressResults = DB::connection("pgsql_real")->table('rates as r')
@@ -104,7 +105,8 @@ class UcSummaryController extends Controller
                 DB::raw('COUNT(ac."empCode") as countprogress'),
                 'ac.empCode',
                 'u.name as user_name',
-                'u.description as department'
+                'u.description as department',
+                'u.real_name as real_name'
             )
             ->whereBetween('r.updated_at', [$start, $end])
             ->where('r.status', 'progress')
@@ -113,7 +115,7 @@ class UcSummaryController extends Controller
         $this->applyCommonFilters($progressResults, $request);
 
         $progressResults = $progressResults
-            ->groupBy('ac.empCode', 'u.name', 'u.description')
+            ->groupBy('ac.empCode', 'u.name', 'u.description', 'u.real_name')
             ->get();
 
         $weekSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
@@ -123,7 +125,8 @@ class UcSummaryController extends Controller
                 DB::raw('COUNT(ac."empCode") as countweek'),
                 'ac.empCode',
                 'u.name as user_name',
-                'u.description as department'
+                'u.description as department',
+                'u.real_name as real_name'
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->where('r.status', 'success')
@@ -136,7 +139,7 @@ class UcSummaryController extends Controller
         }
 
         $weekSuccessResults = $weekSuccessQuery
-            ->groupBy('ac.empCode', 'u.name', 'u.description')
+            ->groupBy('ac.empCode', 'u.name', 'u.description', 'u.real_name')
             ->get();
 
         $monthSuccessQuery = DB::connection("pgsql_real")->table('rates as r')
@@ -146,7 +149,8 @@ class UcSummaryController extends Controller
                 DB::raw('COUNT(ac."empCode") as countmonth'),
                 'ac.empCode',
                 'u.name as user_name',
-                'u.description as department'
+                'u.description as department',
+                'u.real_name as real_name'
             )
             ->whereBetween('ac.endTime', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->where('r.status', 'success')
@@ -159,7 +163,7 @@ class UcSummaryController extends Controller
         }
 
         $monthSuccessResults = $monthSuccessQuery
-            ->groupBy('ac.empCode', 'u.name', 'u.description')
+            ->groupBy('ac.empCode', 'u.name', 'u.description', 'u.real_name')
             ->get();
 
         $forwardedResults = DB::connection("pgsql_real")->table('active_conversations as ac')
@@ -168,7 +172,8 @@ class UcSummaryController extends Controller
                 DB::raw('COUNT(ac."from_empCode") as countforwarded'),
                 'ac.from_empCode as empCode',
                 'u.name as user_name',
-                'u.description as department'
+                'u.description as department',
+                'u.real_name as real_name'
             )
             ->whereNotNull('ac.from_empCode')
             ->whereNotIn('ac.from_empCode', ['BOT', 'adminIT'])
@@ -177,7 +182,7 @@ class UcSummaryController extends Controller
         $this->applyCommonFilters($forwardedResults, $request);
 
         $forwardedResults = $forwardedResults
-            ->groupBy('ac.from_empCode', 'u.name', 'u.description')
+            ->groupBy('ac.from_empCode', 'u.name', 'u.description', 'u.real_name')
             ->get();
 
         return response()->json([

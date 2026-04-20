@@ -22,7 +22,7 @@ export default function EmployeeTable({
     if (!user || visibleEmployees.length === 0) return <></>;
 
     return (
-        
+
         <Sheet variant="outlined" sx={{ borderRadius: "sm", overflow: "auto", maxHeight: 490 }}>
             <Table stickyHeader hoverRow>
                 <thead>
@@ -52,7 +52,7 @@ export default function EmployeeTable({
                                     <Box display="flex" alignItems="center" gap={2}>
                                         <Avatar variant="solid" color="primary" sx={{ width: 40, height: 40 }} />
                                         <Stack spacing={0.5}>
-                                            <Typography fontWeight="bold" fontSize={14}>{employee.name}</Typography>
+                                            <Typography fontWeight="bold" fontSize={14}>{employee.name} ({employee.real_name})</Typography>
                                             <Chip size="sm" variant="soft">{employee.department}</Chip>
                                         </Stack>
                                     </Box>

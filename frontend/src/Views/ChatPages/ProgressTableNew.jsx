@@ -382,6 +382,7 @@ export default function ProgressTable({ roomId,
                                     </Stack>
                                 </td>
                                 <td>
+                                    {/* ({row.empRealName}) */}
                                     <Typography level="body-xs">{row.empName}</Typography>
                                 </td>
                                 <td>

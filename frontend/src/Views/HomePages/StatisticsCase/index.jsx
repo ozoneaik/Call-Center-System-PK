@@ -247,6 +247,7 @@ export default function StatisticsCase() {
             .then(({ data }) => {
                 const rows = (data.data || []).map((item) => ({
                     name: item.name,
+                    real_name: item.real_name,
                     empCode: item.empCode,
                     percent: item.percentage,
                     total: item.total,
