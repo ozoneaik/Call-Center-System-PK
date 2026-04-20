@@ -339,6 +339,91 @@ class MessageController extends Controller
     }
 
     // ฟังชั่นการจบสนทนา
+    // public function endTalk(endTalkRequest $request): JsonResponse
+    // {
+    //     $status = 400;
+    //     $detail = 'ไม่พบข้อผิดพลาด';
+    //     $request->validated();
+    //     $rateId = $request['rateId'];
+    //     $activeId = $request['activeConversationId'];
+    //     $Assessment = $request['Assessment'];
+    //     // convert Assessment to boolean
+    //     if ($Assessment === 'true') {
+    //         $Assessment = true;
+    //     } else {
+    //         $Assessment = false;
+    //     }
+    //     DB::beginTransaction();
+    //     try {
+    //         $updateRate = Rates::query()->where('id', $rateId)->first();
+    //         if (!$updateRate) throw new \Exception('ไม่พบ Rates ที่ต้องการอัพเดท');
+    //         if ($updateRate['status'] === 'success') throw new \Exception('Rates ที่ต้องการอัพเดท เคยอัพเดทแล้ว');
+    //         $updateRate['status'] = 'success';
+    //         $updateRate['tag_description'] = $request['note'] ?? null;
+    //         $updateRate['tag'] = $request['tagId'];
+    //         if ($updateRate->save()) {
+    //             $updateAC = ActiveConversations::query()->where('id', $activeId)->first();
+    //             if (!$updateAC) throw new \Exception('ไม่พบ ActiveConversation ที่ต้องการอัพเดท');
+    //             $updateAC['endTime'] = Carbon::now();
+    //             $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
+    //             if ($updateAC->save()) {
+    //                 if ($Assessment) {
+    //                     /* ส่งการ์ดประเมิน */
+    //                     $customer = Customers::query()->where('custId', $updateRate['custId'])->first();
+    //                     $bot = User::query()->where('empCode', 'BOT')->first();
+    //                     $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+    //                     switch ($platformAccessToken['platform']) {
+    //                         case 'line':
+    //                             $send_message_data = [
+    //                                 'status' => true,
+    //                                 'send_to_cust' => true,
+    //                                 'type_send' => 'evaluation',
+    //                                 'type_message' => 'push',
+    //                                 'messages' => [
+    //                                     [
+    //                                         'contentType' => 'text',
+    //                                         'content' => "หากต้องการสอบถามข้อมูลเพิ่มเติมแจ้งแอดมินเข้ามาได้เลยนะคะ เราพร้อมให้บริการและช่วยเหลือคุณลูกค้าอย่างเต็มที่ค่ะ ขอบพระคุณที่ให้พัมคินดูแลค่ะ 🎃\n\nเพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏"
+    //                                     ]
+    //                                 ],
+    //                                 'customer' => $customer,
+    //                                 'ac_id' => $updateAC['id'],
+    //                                 'rate_id' => $updateRate['id'],
+    //                                 'platform_access_token' => $platformAccessToken,
+    //                                 'reply_token' => null,
+    //                                 'employee' => Auth::user(),
+    //                                 'bot' => $bot
+    //                             ];
+    //                             $send_message = LineWebhookController::ReplyPushMessage($send_message_data);
+    //                             if ($send_message['status']) {
+    //                             } else {
+    //                                 throw new \Exception($send_message['message'] ?? 'ไม่สามารถส่งประเมินหาลูกค้าได้ เกิดข้อผิดพลาดที่ การส่งข้อความ');
+    //                             }
+    //                             break;
+    //                         case 'facebook':
+    //                             break;
+    //                         default:
+    //                             break;
+    //                     }
+    //                 }
+    //                 $message = 'คุณได้จบการสนทนาแล้ว';
+    //                 $status = 200;
+    //             } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';
+    //         } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
+
+    //         $this->pusherService->sendNotification($updateRate['custId']);
+    //         DB::commit();
+    //     } catch (\Exception $e) {
+    //         $detail = $e->getMessage();
+    //         DB::rollBack();
+    //     } finally {
+    //         return response()->json([
+    //             'message' => $message ?? 'เกิดข้อผิดพลาด',
+    //             'detail' => $detail,
+    //         ], $status);
+    //     }
+    // }
+
+    // ฟังชั่นการจบสนทนา
     public function endTalk(endTalkRequest $request): JsonResponse
     {
         $status = 400;
@@ -372,6 +457,16 @@ class MessageController extends Controller
                         $customer = Customers::query()->where('custId', $updateRate['custId'])->first();
                         $bot = User::query()->where('empCode', 'BOT')->first();
                         $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+
+                        // --- กำหนดข้อความประเมินเริ่มต้น (Default) ---
+                        $evalMessage = "หากต้องการสอบถามข้อมูลเพิ่มเติมแจ้งแอดมินเข้ามาได้เลยนะคะ เราพร้อมให้บริการและช่วยเหลือคุณลูกค้าอย่างเต็มที่ค่ะ ขอบพระคุณที่ให้พัมคินดูแลค่ะ 🎃\n\nเพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏";
+
+                        // --- เช็คว่าเป็นร้าน Texus Bull หรือไม่ ---
+                        // หมายเหตุ: ปรับฟิลด์ 'description' เป็นฟิลด์ที่คุณใช้แยกชื่อเพจ/ร้านค้าจริงๆ ใน Database
+                        if ($platformAccessToken && stripos($platformAccessToken->description, 'Texus Bull') !== false) {
+                            $evalMessage = "หากต้องการสอบถามข้อมูลเพิ่มเติมแจ้งแอดมินเข้ามาได้เลยนะคะ เราพร้อมให้บริการและช่วยเหลือคุณลูกค้าอย่างเต็มที่ค่ะ ขอบพระคุณที่ให้ Texus Bull ดูแลค่ะ \n\nเพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏";
+                        }
+
                         switch ($platformAccessToken['platform']) {
                             case 'line':
                                 $send_message_data = [
@@ -382,7 +477,7 @@ class MessageController extends Controller
                                     'messages' => [
                                         [
                                             'contentType' => 'text',
-                                            'content' => "หากต้องการสอบถามข้อมูลเพิ่มเติมแจ้งแอดมินเข้ามาได้เลยนะคะ เราพร้อมให้บริการและช่วยเหลือคุณลูกค้าอย่างเต็มที่ค่ะ ขอบพระคุณที่ให้พัมคินดูแลค่ะ 🎃\n\nเพื่อให้เราสามารถพัฒนาการบริการได้ดียิ่งขึ้น เราขอเชิญคุณช่วยประเมินประสบการณ์การแชทครั้งนี้ด้วยนะครับ/ค่ะ 🙏"
+                                            'content' => $evalMessage // ใช้ตัวแปรที่ตั้งเงื่อนไขไว้ด้านบน
                                         ]
                                     ],
                                     'customer' => $customer,
