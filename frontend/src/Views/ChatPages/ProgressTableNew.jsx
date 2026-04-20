@@ -356,9 +356,9 @@ export default function ProgressTable({ roomId,
                                                         sx={{
                                                             zIndex: 2,
                                                             '& .MuiBadge-badge': {
-                                                                fontSize: '0.75rem', 
-                                                                minWidth: '20px',    
-                                                                height: '20px'       
+                                                                fontSize: '0.75rem',
+                                                                minWidth: '20px',
+                                                                height: '20px'
                                                             }
                                                         }}
                                                     >
