@@ -324,7 +324,11 @@ class LineWebhookController extends Controller
                         ]
                     ];
                     // เช็ค platform ก่อน append instruction
-                    $architectInstruction = $architectService->isAllowedPlatform($filter_case_response['platform_access_token'])
+                    $platformForCheck = is_array($filter_case_response['platform_access_token'])
+                        ? $filter_case_response['platform_access_token']
+                        : $filter_case_response['platform_access_token']->toArray();
+
+                    $architectInstruction = $architectService->isAllowedPlatform($platformForCheck)
                         ? $architectService->getInstructionMessage()
                         : null;
                     if ($architectInstruction) {
