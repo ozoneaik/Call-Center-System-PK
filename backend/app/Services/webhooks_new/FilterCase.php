@@ -116,12 +116,16 @@ class FilterCase
 
     private function caseFlow1($current_rate = null)
     {
-        // ตรวจสอบ ArchitectService ก่อน (เฉพาะ platform ที่อนุญาต)
         $architectService = new ArchitectService();
-        if ($architectService->isAllowedPlatform($this->PLATFORM_ACCESS_TOKEN->toArray())) {
+
+        // รองรับทั้ง Eloquent Model และ array
+        $platformArray = is_array($this->PLATFORM_ACCESS_TOKEN)
+            ? $this->PLATFORM_ACCESS_TOKEN
+            : $this->PLATFORM_ACCESS_TOKEN->toArray();
+
+        if ($architectService->isAllowedPlatform($platformArray)) {
             $architectIntent = $architectService->handleKeywordDetection($this->MESSAGE);
             if ($architectIntent) {
-                // ดึง ac_id จาก current_rate
                 $ac_id = null;
                 if ($current_rate) {
                     $ac = ActiveConversations::where('rateRef', $current_rate['id'])
@@ -147,7 +151,7 @@ class FilterCase
             }
         }
 
-        // ไม่ใช่ Architect intent → ไปต่อ flow ปกติ
+        // flow ปกติ
         if (!$current_rate) {
             $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
         } elseif ($current_rate['status'] === 'pending') {
@@ -157,7 +161,8 @@ class FilterCase
         } else {
             $case = $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
         }
-        Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
+
+        Log::channel('webhook_main')->info($this->end_log_line);
         return ['status' => true, 'case' => $case];
     }
 
