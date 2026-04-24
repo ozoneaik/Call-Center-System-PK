@@ -39,7 +39,7 @@ class ArchitectService
 
         return [
             'type' => 'text',
-            'text' => "หากคุณลูกค้าต้องการติดต่อสอบถามเกี่ยวกับงานสถาปนิก กรุณาพิมพ์ \"งานสถาปนิก\" หรือเลข \"4\" \nเพื่อติดต่อขอรับข้อมูลเกี่ยวกับงานสถาปนิก เช่น ขอใบกำกับภาษี, ขอสำเนาใบเสร็จ"
+            'text' => "หากคุณลูกค้าต้องการติดต่อสอบถามเกี่ยวกับงานสถาปนิก กรุณาพิมพ์ \"งานสถาปนิก\" หรือเลข \"5\" \nเพื่อติดต่อขอรับข้อมูลเกี่ยวกับงานสถาปนิก เช่น ขอใบกำกับภาษี, ขอสำเนาใบเสร็จ"
         ];
     }
 
@@ -57,7 +57,7 @@ class ArchitectService
         if (
             str_contains($content, 'งานสถาปนิก') || str_contains($content, 'สถาปนิก') ||
             str_contains($content, 'สถาปนิค') || str_contains($content, 'งานสถาปนิค') ||
-            $content === '4'
+            $content === '5'
         ) {
             return 'MAIN_ARCHITECT';
         }
@@ -65,7 +65,7 @@ class ArchitectService
         if (
             str_contains($content, 'ใบกำกับภาษี') || str_contains($content, 'ใบกำกับ') ||
             str_contains($content, 'ภาษี') || str_contains($content, 'ใบภาษี') ||
-            $content === '5'
+            $content === '6'
         ) {
             return 'TAX_INVOICE_REQUEST';
         }
@@ -73,7 +73,7 @@ class ArchitectService
         if (
             str_contains($content, 'สำเนาใบเสร็จ') || str_contains($content, 'ใบเสร็จ') ||
             str_contains($content, 'สำเนา') ||
-            $content === '6'
+            $content === '7'
         ) {
             return 'RECEIPT_COPY_REQUEST';
         }
@@ -95,8 +95,8 @@ class ArchitectService
 
         if ($type === 'MAIN_ARCHITECT') {
             $messages = [
-                ['content' => "กรุณาพิมพ์ \"ใบกำกับภาษี\" หรือเลข \"5\" เพื่อติดต่อขอใบกำกับภาษี", 'contentType' => 'text'],
-                ['content' => "กรุณาพิมพ์ \"สำเนาใบเสร็จ\" หรือเลข \"6\" เพื่อติดต่อขอสำเนาใบเสร็จ", 'contentType' => 'text']
+                ['content' => "กรุณาพิมพ์ \"ใบกำกับภาษี\" หรือเลข \"6\" เพื่อติดต่อขอใบกำกับภาษี", 'contentType' => 'text'],
+                ['content' => "กรุณาพิมพ์ \"สำเนาใบเสร็จ\" หรือเลข \"7\" เพื่อติดต่อขอสำเนาใบเสร็จ", 'contentType' => 'text']
             ];
         } elseif ($type === 'TAX_INVOICE_REQUEST' || $type === 'RECEIPT_COPY_REQUEST') {
             // ไม่ว่าขอใบกำกับ หรือ สำเนา ก็ให้ส่งเลข 12 หลักมาก่อน
