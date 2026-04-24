@@ -58,6 +58,103 @@ class FilterCase
             $current_rate = Rates::query()->where('custId', $customer['custId'])
                 ->orderBy('id', 'desc')->first();
 
+            // -----------------------------------------
+            // 1. ตรวจสอบ ArchitectService ก่อน isSpam
+            // -----------------------------------------
+            $architectService = new ArchitectService();
+            $platformArray = is_array($this->PLATFORM_ACCESS_TOKEN)
+                ? $this->PLATFORM_ACCESS_TOKEN
+                : $this->PLATFORM_ACCESS_TOKEN->toArray();
+
+            if ($architectService->isAllowedPlatform($platformArray)) {
+                $architectIntent = $architectService->handleKeywordDetection($this->MESSAGE);
+                if ($architectIntent) {
+                    $ac_id = null;
+                    $targetRoom = $architectService->getRoomId(); // 'ROOM115'
+                    $bot = $this->BOT;
+
+                    // จัดการย้ายห้องให้กับลูกค้า
+                    if ($current_rate) {
+                        $old_room_id = $current_rate['latestRoomId'];
+                        if ($old_room_id !== $targetRoom) {
+                            $current_rate->update([
+                                'latestRoomId' => $targetRoom,
+                                'status' => 'pending'
+                            ]);
+
+                            $old_ac = ActiveConversations::where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+                            if ($old_ac) {
+                                $old_ac->update([
+                                    'receiveAt' => Carbon::now(),
+                                    'startTime' => Carbon::now(),
+                                    'endTime'   => Carbon::now(),
+                                    'empCode'   => 'BOT',
+                                ]);
+                            }
+
+                            $new_ac = ActiveConversations::create([
+                                'custId'       => $this->CUSTOMER['custId'],
+                                'roomId'       => $targetRoom,
+                                'empCode'      => $bot['empCode'],
+                                'rateRef'      => $current_rate['id'],
+                                'from_empCode' => $old_ac['empCode'] ?? null,
+                                'from_roomId'  => $old_room_id,
+                            ]);
+                            $ac_id = $new_ac->id;
+                        } else {
+                            $ac = ActiveConversations::where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+                            $ac_id = $ac['id'] ?? null;
+                        }
+                    } else {
+                        // ไม่มี Rate ปัจจุบัน สร้างใหม่ ไปที่ ROOM115 เลย
+                        $new_rate = Rates::create([
+                            'custId' => $this->CUSTOMER['custId'],
+                            'rate' => 0,
+                            'latestRoomId' => $targetRoom,
+                            'status' => 'pending',
+                        ]);
+                        $new_ac = ActiveConversations::create([
+                            'custId' => $this->CUSTOMER['custId'],
+                            'roomId' => $targetRoom,
+                            'empCode' => $bot['empCode'],
+                            'rateRef' => $new_rate->id,
+                        ]);
+                        $ac_id = $new_ac->id;
+                        $current_rate = $new_rate; // อัปเดตเพื่อใช้ในกรณีอื่นๆ หากจำเป็น
+                    }
+
+                    // Save chat ลูกค้าก่อน เพื่อให้ getPreviousRequestType เจอตอนดึงข้อมูล
+                    if ($ac_id) {
+                        ChatHistory::create([
+                            'custId'                 => $this->CUSTOMER['custId'],
+                            'content'                => $this->MESSAGE['content'],
+                            'contentType'            => $this->MESSAGE['contentType'],
+                            'sender'                 => json_encode($this->CUSTOMER),
+                            'conversationRef'        => $ac_id,
+                            'line_message_id'        => $this->MESSAGE['line_message_id'] ?? null,
+                            'line_quote_token'       => $this->MESSAGE['line_quote_token'] ?? null,
+                            'line_quoted_message_id' => $this->MESSAGE['line_quoted_message_id'] ?? null,
+                        ]);
+                        $this->pusherService->sendNotification($this->CUSTOMER['custId']);
+                    }
+
+                    Log::channel('webhook_main')->info("ArchitectService intercepted: {$architectIntent}");
+
+                    $case = $architectService->getResponse(
+                        $architectIntent,
+                        $this->CUSTOMER,
+                        $ac_id,
+                        $this->PLATFORM_ACCESS_TOKEN,
+                        $this->MESSAGE['reply_token'] ?? null,
+                        $this->BOT,
+                        $this->MESSAGE['content'] ?? null
+                    );
+
+                    Log::channel('webhook_main')->info($this->end_log_line);
+                    return ['status' => true, 'case' => $case];
+                }
+            }
+
             if ($current_rate) {
                 $is_spam = $this->isSpam($current_rate, $customer, $message);
                 if ($is_spam['status']) {
@@ -116,55 +213,6 @@ class FilterCase
 
     private function caseFlow1($current_rate = null)
     {
-        $architectService = new ArchitectService();
-
-        // รองรับทั้ง Eloquent Model และ array
-        $platformArray = is_array($this->PLATFORM_ACCESS_TOKEN)
-            ? $this->PLATFORM_ACCESS_TOKEN
-            : $this->PLATFORM_ACCESS_TOKEN->toArray();
-
-        if ($architectService->isAllowedPlatform($platformArray)) {
-            $architectIntent = $architectService->handleKeywordDetection($this->MESSAGE);
-            if ($architectIntent) {
-                $ac_id = null;
-                if ($current_rate) {
-                    $ac = ActiveConversations::where('rateRef', $current_rate['id'])
-                        ->orderBy('id', 'desc')
-                        ->first();
-                    $ac_id = $ac['id'] ?? null;
-                }
-
-                // Save chat ลูกค้าก่อน เพื่อให้ getPreviousRequestType เจอ
-                if ($ac_id) {
-                    ChatHistory::create([
-                        'custId'                 => $this->CUSTOMER['custId'],
-                        'content'                => $this->MESSAGE['content'],
-                        'contentType'            => $this->MESSAGE['contentType'],
-                        'sender'                 => json_encode($this->CUSTOMER),
-                        'conversationRef'        => $ac_id,
-                        'line_message_id'        => $this->MESSAGE['line_message_id'] ?? null,
-                        'line_quote_token'       => $this->MESSAGE['line_quote_token'] ?? null,
-                        'line_quoted_message_id' => $this->MESSAGE['line_quoted_message_id'] ?? null,
-                    ]);
-                    (new PusherService())->sendNotification($this->CUSTOMER['custId']);
-                }
-
-                Log::channel('webhook_main')->info("ArchitectService intercepted: {$architectIntent}");
-
-                $case = $architectService->getResponse(
-                    $architectIntent,
-                    $this->CUSTOMER,
-                    $ac_id,
-                    $this->PLATFORM_ACCESS_TOKEN,
-                    $this->MESSAGE['reply_token'] ?? null,
-                    $this->BOT,
-                    $this->MESSAGE['content'] ?? null
-                );
-
-                Log::channel('webhook_main')->info($this->end_log_line);
-                return ['status' => true, 'case' => $case];
-            }
-        }
 
         // flow ปกติ
         if (!$current_rate) {
