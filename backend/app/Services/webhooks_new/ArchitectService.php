@@ -216,12 +216,12 @@ class ArchitectService
                 continue;
             }
 
-            if (str_contains($text, 'ใบกำกับภาษี') || str_contains($text, 'ใบกำกับ') || str_contains($text, 'ภาษี') || str_contains($text, '5')) {
+            if (str_contains($text, 'ใบกำกับภาษี') || str_contains($text, 'ใบกำกับ') || str_contains($text, 'ภาษี') || str_contains($text, '6')) {
                 Log::channel('webhook_main')->info("ตรวจพบว่าลูกค้า {$custId} เคยขอ: TAX_INVOICE (matched: {$text})");
                 return 'TAX_INVOICE';
             }
 
-            if (str_contains($text, 'สำเนาใบเสร็จ') || str_contains($text, 'ใบเสร็จ') || str_contains($text, 'สำเนา') || str_contains($text, '6')) {
+            if (str_contains($text, 'สำเนาใบเสร็จ') || str_contains($text, 'ใบเสร็จ') || str_contains($text, 'สำเนา') || str_contains($text, '7')) {
                 Log::channel('webhook_main')->info("ตรวจพบว่าลูกค้า {$custId} เคยขอ: RECEIPT_COPY (matched: {$text})");
                 return 'RECEIPT_COPY';
             }
