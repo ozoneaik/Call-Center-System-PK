@@ -134,6 +134,21 @@ class FilterCase
                     $ac_id = $ac['id'] ?? null;
                 }
 
+                // Save chat ลูกค้าก่อน เพื่อให้ getPreviousRequestType เจอ
+                if ($ac_id) {
+                    ChatHistory::create([
+                        'custId'                 => $this->CUSTOMER['custId'],
+                        'content'                => $this->MESSAGE['content'],
+                        'contentType'            => $this->MESSAGE['contentType'],
+                        'sender'                 => json_encode($this->CUSTOMER),
+                        'conversationRef'        => $ac_id,
+                        'line_message_id'        => $this->MESSAGE['line_message_id'] ?? null,
+                        'line_quote_token'       => $this->MESSAGE['line_quote_token'] ?? null,
+                        'line_quoted_message_id' => $this->MESSAGE['line_quoted_message_id'] ?? null,
+                    ]);
+                    (new PusherService())->sendNotification($this->CUSTOMER['custId']);
+                }
+
                 Log::channel('webhook_main')->info("ArchitectService intercepted: {$architectIntent}");
 
                 $case = $architectService->getResponse(
