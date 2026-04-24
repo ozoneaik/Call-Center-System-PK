@@ -16,11 +16,13 @@ class NewCase
 
     protected CheckKeyword $checkKeyword;
     protected PusherService $pusherService;
+    protected ArchitectService $architectService;
 
-    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService)
+    public function __construct(CheckKeyword $checkKeyword, PusherService $pusherService, ArchitectService $architectService)
     {
         $this->checkKeyword = $checkKeyword;
         $this->pusherService = $pusherService;
+        $this->architectService = $architectService;
     }
 
     // public function case($message, $customer, $platformAccessToken, $bot)
@@ -282,23 +284,29 @@ class NewCase
             Log::channel('webhook_main')->info('ปัจจุบันเป็นเคสใหม่ ไม่เคยสร้างเคส');
             $now = Carbon::now();
 
+            // ตรวจสอบงานสถาปนิก
+            $architectType = $this->architectService->handleKeywordDetection($message);
+
             // เช็คข้อความลูกค้าว่าตรงตาม keyword หรือไม่ ถ้าตรงให้่ส่งไปยังห้องนั้นๆ
             $keyword = $this->checkKeyword->check($message);
-            if ($keyword['status']) {
-                $new_rate = Rates::query()->create([
-                    'custId' => $customer['custId'],
-                    'latestRoomId' => $keyword['redirectTo'],
-                    'status' => 'pending',
-                    'rate' => 0,
-                ]);
+
+            if ($architectType) {
+                $roomId = $this->architectService->getRoomId();
+                $status = 'pending';
+            } elseif ($keyword['status']) {
+                $roomId = $keyword['redirectTo'];
+                $status = 'pending';
             } else {
-                $new_rate = Rates::query()->create([
-                    'custId' => $customer['custId'],
-                    'latestRoomId' => 'ROOM00',
-                    'status' => 'progress',
-                    'rate' => 0,
-                ]);
+                $roomId = 'ROOM00';
+                $status = 'progress';
             }
+
+            $new_rate = Rates::query()->create([
+                'custId' => $customer['custId'],
+                'latestRoomId' => $roomId,
+                'status' => $status,
+                'rate' => 0,
+            ]);
 
             $new_ac = ActiveConversations::query()->create([
                 'custId' => $customer['custId'],
@@ -320,7 +328,18 @@ class NewCase
             ]);
             $this->pusherService->sendNotification($customer['custId']);
 
-            $msg_bot = [];
+            // ถ้าเป็นงานสถาปนิก ส่งการตอบกลับเฉพาะ
+            if ($architectType) {
+                return $this->architectService->getResponse(
+                    $architectType,
+                    $customer,
+                    $new_ac['id'],
+                    $platformAccessToken,
+                    $message['reply_token'],
+                    $bot,
+                    $message['content']
+                );
+            }
 
             $now = Carbon::now();
             $startHoliday = Carbon::create($now->year, 12, 31, 0, 0, 0);

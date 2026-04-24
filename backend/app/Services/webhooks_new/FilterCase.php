@@ -99,8 +99,55 @@ class FilterCase
         }
     }
 
+    // private function caseFlow1($current_rate = null)
+    // {
+    //     if (!$current_rate) {
+    //         $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+    //     } elseif ($current_rate['status'] === 'pending') {
+    //         $case = $this->pendingCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+    //     } elseif ($current_rate['status'] === 'progress') {
+    //         $case = $this->progressCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+    //     } else {
+    //         $case = $this->successCase->case($this->MESSAGE, $current_rate, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
+    //     }
+    //     Log::channel('webhook_main')->info($this->end_log_line); //สิ้นสุดกรองเคส
+    //     return ['status' => true, 'case' => $case];
+    // }
+
     private function caseFlow1($current_rate = null)
     {
+        // ตรวจสอบ ArchitectService ก่อน (เฉพาะ platform ที่อนุญาต)
+        $architectService = new ArchitectService();
+        if ($architectService->isAllowedPlatform($this->PLATFORM_ACCESS_TOKEN->toArray())) {
+            $architectIntent = $architectService->handleKeywordDetection($this->MESSAGE);
+            if ($architectIntent) {
+                // ดึง ac_id จาก current_rate
+                $ac_id = null;
+                if ($current_rate) {
+                    $ac = ActiveConversations::where('rateRef', $current_rate['id'])
+                        ->orderBy('id', 'desc')
+                        ->first();
+                    $ac_id = $ac['id'] ?? null;
+                }
+
+                Log::channel('webhook_main')->info("ArchitectService intercepted: {$architectIntent}");
+
+                $case = $architectService->getResponse(
+                    $architectIntent,
+                    $this->CUSTOMER,
+                    $ac_id,
+                    $this->PLATFORM_ACCESS_TOKEN,
+                    $this->MESSAGE['reply_token'] ?? null,
+                    $this->BOT,
+                    $this->MESSAGE['content'] ?? null
+                );
+
+                Log::channel('webhook_main')->info($this->end_log_line);
+                return ['status' => true, 'case' => $case];
+            }
+        }
+
+        // ไม่ใช่ Architect intent → ไปต่อ flow ปกติ
         if (!$current_rate) {
             $case = $this->newCase->case($this->MESSAGE, $this->CUSTOMER, $this->PLATFORM_ACCESS_TOKEN, $this->BOT);
         } elseif ($current_rate['status'] === 'pending') {
@@ -214,7 +261,7 @@ class FilterCase
 
             $bot = User::query()->where('empCode', 'BOT')->first();
 
-            if ($room_spam) {                                                                                                                                                                                                                                                                                                                     
+            if ($room_spam) {
                 if ($new_ac) {
                     ChatHistory::query()->create([
                         'custId'            => $customer['custId'],

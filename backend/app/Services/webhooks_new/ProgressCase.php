@@ -12,10 +12,12 @@ use Illuminate\Support\Facades\Log;
 class ProgressCase
 {
     protected PusherService $pusherService;
+    protected ArchitectService $architectService;
 
-    public function __construct(PusherService $pusherService)
+    public function __construct(PusherService $pusherService, ArchitectService $architectService)
     {
         $this->pusherService = $pusherService;
+        $this->architectService = $architectService;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
@@ -70,6 +72,34 @@ class ProgressCase
                 $ac_latest->update(['endTime' => $now_time, 'totalTime' => $totalTime]);
                 // สร้างเคสใหม่ไปยังห้องแชทที่กำหนด
                 if ($message['contentType'] === 'text') {
+                    $architectType = $this->architectService->handleKeywordDetection($message);
+
+                    if ($architectType) {
+                        $foward_to_room_id = $this->architectService->getRoomId();
+                        $current_rate->update([
+                            'latestRoomId' => $foward_to_room_id,
+                            'status' => 'pending',
+                        ]);
+                        $new_ac = ActiveConversations::query()->create([
+                            'custId' => $customer['custId'],
+                            'roomId' => $current_rate['latestRoomId'],
+                            'empCode' => $bot['empCode'],
+                            'rateRef' => $current_rate['id'],
+                            'from_empCode' => $bot['empCode'],
+                            'from_roomId' => 'ROOM00'
+                        ]);
+
+                        return $this->architectService->getResponse(
+                            $architectType,
+                            $customer,
+                            $ac_latest['id'],
+                            $platformAccessToken,
+                            $message['reply_token'],
+                            $bot,
+                            $message['content']
+                        );
+                    }
+
                     $menus = BotMenu::query()->where('botTokenId', $customer['platformRef'])->get();
                     $foward_to_room_id = $platformAccessToken['room_default_id'] ?? 'ROOM99';
                     foreach ($menus as $menu) {

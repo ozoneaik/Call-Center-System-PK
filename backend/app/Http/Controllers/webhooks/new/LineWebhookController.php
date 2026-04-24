@@ -11,6 +11,7 @@ use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\SaleInformation;
 use App\Services\PusherService;
+use App\Services\webhooks_new\ArchitectService;
 use App\Services\webhooks_new\FilterCase;
 use Aws\S3\S3Client;
 use Illuminate\Http\Request;
@@ -259,24 +260,31 @@ class LineWebhookController extends Controller
             $message_formated = [];
             $reply_token = $filter_case_response['reply_token'] ?? '';
             $platform_access_token = $filter_case_response['platform_access_token'] ?? '';
+            $architectService = new ArchitectService();
             foreach ($filter_case_response['messages'] as $key => $message) {
                 if ($message['contentType'] === 'file') {
+
+                    // เลือก label ตาม flag
+                    $fileLabel = ($message['file_label'] ?? '') === 'receipt_copy'
+                        ? $architectService->getReceiptFileLabel()
+                        : $architectService->getDefaultFileLabel();
+
                     $message_formated[$key] = [
                         'file' => true,
                         'type' => 'template',
-                        'altText' => 'ส่งไฟล์',
+                        'altText' => $fileLabel['altText'],
                         'template' => [
-                            'title' => 'ไฟล์เอกสาร',
+                            'title' => $fileLabel['title'],
                             'type' => 'buttons',
                             'thumbnailImageUrl' => "https://images.pumpkin.tools/icon/pdf_icon.png",
                             'imageAspectRatio' => "rectangle",
                             'imageSize' => "cover",
-                            'text' => "ไฟล์.pdf",
+                            'text' => $fileLabel['text'],
                             'actions' => [
                                 [
-                                    'text' => 'ไฟล์เอกสาร',
+                                    'text' => $fileLabel['title'],
                                     'type' => "uri",
-                                    'label' => "ดูไฟล์",
+                                    'label' => $fileLabel['label'],
                                     'uri' => $message['content'] ?? 'https://example.com/default.pdf'
                                 ]
                             ]
@@ -315,6 +323,13 @@ class LineWebhookController extends Controller
                             'actions' => $actions
                         ]
                     ];
+                    // เช็ค platform ก่อน append instruction
+                    $architectInstruction = $architectService->isAllowedPlatform($filter_case_response['platform_access_token'])
+                        ? $architectService->getInstructionMessage()
+                        : null;
+                    if ($architectInstruction) {
+                        $message_formated[$latest_key + 1] = $architectInstruction;
+                    }
                     break;
                 case 'menu_sended':
                     break;
@@ -394,7 +409,7 @@ class LineWebhookController extends Controller
                     $store_chat->custId = $filter_case_response['customer']['custId'];
                     $store_chat->content = $content;
                     $store_chat->contentType = $contentType;
-                    if ($filter_case_response['type_send'] === 'present' || $filter_case_response['type_send'] === 'normal') {
+                    if (($filter_case_response['type_send'] === 'present' || $filter_case_response['type_send'] === 'normal') && isset($filter_case_response['employee'])) {
                         $store_chat->sender = json_encode($filter_case_response['employee']);
                     } else {
                         $store_chat->sender = json_encode($filter_case_response['bot']);

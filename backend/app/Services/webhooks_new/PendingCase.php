@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\Log;
 class PendingCase
 {
     protected PusherService $pusherService;
-    public function __construct(PusherService $pusherService)
+    protected ArchitectService $architectService;
+
+    public function __construct(PusherService $pusherService, ArchitectService $architectService)
     {
         $this->pusherService = $pusherService;
+        $this->architectService = $architectService;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $BOT)
     {
@@ -34,6 +37,21 @@ class PendingCase
                 'line_quote_token' => $message['line_quote_token'] ?? null,
                 'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
             ]);
+
+            // ตรวจสอบ keyword ของงานสถาปนิก
+            $architectType = $this->architectService->handleKeywordDetection($message);
+            if ($architectType) {
+                $this->pusherService->sendNotification($current_rate['custId']);
+                return $this->architectService->getResponse(
+                    $architectType,
+                    $customer,
+                    $ac_latest['id'],
+                    $platformAccessToken,
+                    $message['reply_token'],
+                    $BOT,
+                    $message['content']
+                );
+            }
             $this->pusherService->sendNotification($current_rate['custId']);
             // $ac_all = ActiveConversations::query()->where('roomId', $ac_latest['roomId'])
             //     ->whereNull('receiveAt')->orderBy('updated_at', 'asc')->get();
@@ -59,7 +77,7 @@ class PendingCase
                 ->where('status', 'pending')->orderBy('updated_at', 'asc')->get();
             $count = 1;
             foreach ($ac_all as $ac) {
-                if ($ac['custId'] !== $customer['custId']) $count++;
+                if ($ac->custId !== $customer['custId']) $count++;
                 else break;
             }
 

@@ -13,11 +13,13 @@ class SuccessCase
 
     protected PusherService $pusherService;
     protected CheckKeyword $checkKeyword;
+    protected ArchitectService $architectService;
 
-    public function __construct(PusherService $pusherService, CheckKeyword $checkKeyword)
+    public function __construct(PusherService $pusherService, CheckKeyword $checkKeyword, ArchitectService $architectService)
     {
         $this->pusherService = $pusherService;
         $this->checkKeyword = $checkKeyword;
+        $this->architectService = $architectService;
     }
     public function case($message, $current_rate, $customer, $platformAccessToken, $bot)
     {
@@ -172,12 +174,24 @@ class SuccessCase
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
             } else {
-                $new_rate = Rates::query()->create([
-                    'custId' => $customer['custId'],
-                    'latestRoomId' => 'ROOM00',
-                    'status' => 'progress',
-                    'rate' => 0,
-                ]);
+                // ตรวจสอบงานสถาปนิก
+                $architectType = $this->architectService->handleKeywordDetection($message);
+                
+                if ($architectType) {
+                    $new_rate = Rates::query()->create([
+                        'custId' => $customer['custId'],
+                        'latestRoomId' => $this->architectService->getRoomId(),
+                        'status' => 'pending',
+                        'rate' => 0,
+                    ]);
+                } else {
+                    $new_rate = Rates::query()->create([
+                        'custId' => $customer['custId'],
+                        'latestRoomId' => 'ROOM00',
+                        'status' => 'progress',
+                        'rate' => 0,
+                    ]);
+                }
                 $new_ac = ActiveConversations::query()->create([
                     'custId' => $customer['custId'],
                     'roomId' => $new_rate['latestRoomId'],
@@ -197,12 +211,22 @@ class SuccessCase
                     'line_quoted_message_id' => $message['line_quoted_message_id'] ?? null
                 ]);
                 $this->pusherService->sendNotification($customer['custId']);
+
+                if ($architectType) {
+                    return $this->architectService->getResponse(
+                        $architectType,
+                        $customer,
+                        $new_ac['id'],
+                        $platformAccessToken,
+                        $message['reply_token'],
+                        $bot,
+                        $message['content']
+                    );
+                }
+
                 $content = "สวัสดีคุณ" . $customer['custName'];
                 $content = $content . "เพื่อให้การบริการของเราดำเนินไปอย่างรวดเร็วและสะดวกยิ่งขึ้น";
                 $content = $content . "กรุณาเลือกหัวข้อด้านล่าง เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลและบริการท่านได้อย่างถูกต้องและรวดเร็ว ขอบคุณค่ะ/ครับ";
-                // $content = $content . "เนื่องจาก ในวันที่ 30/08/2568 - 01/09/2568 ทางบริษัทมีการจัดสัมนาประจำปี";
-                // $content = $content . "จึงทำให้การให้ข้อมูลคุณลูกค้าอาจจะล่าช้ากว่าปกติ จึงขออภัยมา ณ ที่นี่ด้วย";
-                // $content = $content . "เพื่อให้เจ้าหน้าที่สามารถให้ข้อมูลท่านได้ถูกต้อง กรุณาเลือก เมนู ที่ท่านต้องการติดต่อ";
                 return [
                     'status' => true,
                     'send_to_cust' => true,
