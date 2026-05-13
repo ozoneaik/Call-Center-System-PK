@@ -10,6 +10,7 @@ import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import Info from "../Info/main.jsx";
 import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
 import MessageInputNew from "./MessageInputNew.jsx";
+import { forceHttps } from "../../../utils.js";
 
 export default function MessagePane() {
     const { notification } = useNotification();
@@ -142,7 +143,7 @@ export default function MessagePane() {
                                                 key={index} direction="row" spacing={2}
                                                 sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
                                             >
-                                                <Avatar src={message.sender.avatar} />
+                                                <Avatar src={forceHttps(message.sender.avatar)} />
                                                 <ChatBubble
                                                     variant={isYou ? 'sent' : 'received'} 
                                                     isShopeeRoom={isShopeeRoom}

@@ -52,3 +52,9 @@ export function toggleMessagesPane() {
         }
     }
 }
+
+export function forceHttps(url) {
+    if (!url) return url;
+    if (typeof url !== 'string') return url;
+    return url.replace(/^http:\/\//i, 'https://');
+}

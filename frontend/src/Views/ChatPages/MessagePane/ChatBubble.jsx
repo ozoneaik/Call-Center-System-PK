@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 import ChatBubbleItemList from "./ChatBubbleItemList.jsx"; 
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import { forceHttps } from "../../../utils.js";
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -158,19 +159,19 @@ export default function Bubble(props) {
                             variant="outlined"
                             sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}
                         >
-                            <img src={content} alt="" width={165} />
+                            <img src={forceHttps(content)} alt="" width={165} />
                         </Sheet>
                     ) : contentType === 'image' ? (
                         <Sheet
                             onClick={() => {
-                                setPreviewSelect(content);
+                                setPreviewSelect(forceHttps(content));
                                 setOpen(true);
                             }}
                             variant="outlined"
                             sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}
                         >
                             <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                <img loading="lazy" src={content} width={165} alt={content} />
+                                <img loading="lazy" src={forceHttps(content)} width={165} alt={content} />
                             </Stack>
                         </Sheet>
                     ) : (contentType === 'file' || contentType === 'video' || contentType === 'audio') ? (
@@ -207,7 +208,7 @@ export default function Bubble(props) {
                                         size="sm"
                                         variant="outlined"
                                         onClick={() => {
-                                            setPreviewSelect(content);
+                                            setPreviewSelect(forceHttps(content));
                                             setOpen(true);
                                         }}
                                     >
@@ -263,7 +264,7 @@ export default function Bubble(props) {
                                                             }}
                                                         >
                                                             <img
-                                                                src={image}
+                                                                src={forceHttps(image)}
                                                                 alt={name}
                                                                 loading="lazy"
                                                                 style={{

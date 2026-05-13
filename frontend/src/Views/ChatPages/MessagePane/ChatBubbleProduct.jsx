@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@mui/joy";
 import { Typography, Button } from "@mui/joy";
+import { forceHttps } from "../../../utils.js";
+
 
 function ChatBubbleProduct({ content }) {
     let product = null;
@@ -44,7 +46,7 @@ function ChatBubbleProduct({ content }) {
         >
             {product.image ? (
                 <img
-                    src={product.image}
+                    src={forceHttps(product.image)}
                     alt={product.name}
                     style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }}
                 />

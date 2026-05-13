@@ -1,5 +1,7 @@
 import * as React from "react";
 import { Card, CardContent, Typography, Button, Box } from "@mui/joy";
+import { forceHttps } from "../../../utils.js";
+
 
 function ItemCard({ item }) {
     const currency = item.currency || "THB";
@@ -53,7 +55,7 @@ function ItemCard({ item }) {
         >
             {item.image ? (
                 <img
-                    src={item.image}
+                    src={forceHttps(item.image)}
                     alt={item.name}
                     loading="lazy"
                     style={{
