@@ -89,7 +89,9 @@ export default function ChatDetail() {
                             <Stack direction='row' spacing={2} alignItems='center'>
                                 <Avatar size="sm" color="primary" src={sender.avatar} />
                                 <Stack direction='column'>
-                                    <Typography fontWeight='bold'>{sender.custName || sender.name}</Typography>
+                                    <Typography fontWeight='bold'>
+                                        {sender.custName ? sender.custName : `${sender.name}${sender.real_name ? ` (${sender.real_name})` : ''}`}
+                                    </Typography>
                                     {message.contentType === 'text' || message.contentType === 'location' ? (
                                         <Typography>{message.content}</Typography>
                                     ) : (

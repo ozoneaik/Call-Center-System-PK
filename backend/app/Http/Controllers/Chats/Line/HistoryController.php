@@ -224,6 +224,34 @@ class HistoryController extends Controller
         try {
             // ดึง 500 รายการล่าสุด (id มากไปน้อย)
             $chatHistory = ChatHistory::query()->where('custId', $custId)->orderBy('id', 'desc')->limit(500)->get();
+
+            // รวบรวม empCode เพื่อดึง real_name จากตาราง users
+            $empCodes = [];
+            foreach ($chatHistory as $chat) {
+                $senderData = json_decode($chat->sender, true);
+                if (is_array($senderData) && isset($senderData['empCode'])) {
+                    $empCodes[] = $senderData['empCode'];
+                }
+            }
+
+            if (!empty($empCodes)) {
+                $users = \App\Models\User::whereIn('empCode', array_unique($empCodes))
+                    ->get(['empCode', 'real_name', 'name'])
+                    ->keyBy('empCode');
+
+                foreach ($chatHistory as $chat) {
+                    $senderData = json_decode($chat->sender, true);
+                    if (is_array($senderData) && isset($senderData['empCode'])) {
+                        $user = $users->get($senderData['empCode']);
+                        if ($user) {
+                            $senderData['real_name'] = $user->real_name;
+                            $senderData['name'] = $user->name;
+                            $chat->sender = json_encode($senderData);
+                        }
+                    }
+                }
+            }
+
             // จากนั้นกลับลำดับ (น้อยไปมาก)
             $chatHistory = $chatHistory->sortBy('id')->values();
             $customer = Customers::query()->where('custId', $custId)->first();
