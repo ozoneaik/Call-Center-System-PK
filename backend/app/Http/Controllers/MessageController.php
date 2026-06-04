@@ -308,7 +308,7 @@ class MessageController extends Controller
                     $bot = User::query()->where('empCode', 'BOT')->first();
                     $chatHistory = new ChatHistory();
                     $chatHistory['custId'] = $storeAC['custId'];
-                    $chatHistory['content'] = 'มีการส่งต่อมาจาก' . $room['roomName'] . ' โดย 👤' . auth()->user()->name;
+                    $chatHistory['content'] = 'มีการส่งต่อมาจาก' . $room['roomName'] . ' โดย 👤' . auth()->user()->name . ' ( ' . auth()->user()->real_name . ' )';
                     $chatHistory['contentType'] = 'text';
                     $chatHistory['sender'] = json_encode($bot);
                     $chatHistory['conversationRef'] = $updateAC['id'];
