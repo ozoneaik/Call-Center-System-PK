@@ -260,10 +260,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats', [KnowledgeBaseController::class, 'stats']);
         Route::get('/list', [KnowledgeBaseController::class, 'list']);
         Route::get('/show/{id}', [KnowledgeBaseController::class, 'show']);
+        Route::get('/tags', [KnowledgeBaseController::class, 'tags']);
         Route::put('/approve/{id}', [KnowledgeBaseController::class, 'approve']);
         Route::put('/reject/{id}', [KnowledgeBaseController::class, 'reject']);
         Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending']);
         Route::put('/update-ai/{id}', [KnowledgeBaseController::class, 'updateAi']);
+        Route::put('/exclude/{id}', [KnowledgeBaseController::class, 'exclude']);
+        Route::put('/restore/{id}', [KnowledgeBaseController::class, 'restore']);
     });
 });
 

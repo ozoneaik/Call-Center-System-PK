@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     Box, Sheet, Table, Typography, CircularProgress, Chip,
-    Button, Select, Option, Stack, Input, IconButton,
+    Button, Select, Option, Stack, Input, IconButton, Switch,
 } from "@mui/joy";
-import { Search, Visibility, ChevronLeft, ChevronRight, SmartToy, HourglassEmpty } from "@mui/icons-material";
+import { Search, Visibility, ChevronLeft, ChevronRight, SmartToy, HourglassEmpty, LocalOffer } from "@mui/icons-material";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import { convertFullDate } from "../../Components/Options.jsx";
-import { kbListApi, kbStatsApi } from "../../Api/KnowledgeBase.js";
+import { kbListApi, kbStatsApi, kbTagsApi } from "../../Api/KnowledgeBase.js";
 import ReviewModal from "./ReviewModal.jsx";
 
 const BreadcrumbsPath = [{ name: 'Knowledge Base' }, { name: 'จัดการ' }];
@@ -72,25 +72,36 @@ function firstCustomerName(chatData) {
 }
 
 export default function KnowledgeBasePage() {
-    const [entries,      setEntries]      = useState([]);
-    const [filtered,     setFiltered]     = useState([]);
-    const [stats,        setStats]        = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
-    const [loading,      setLoading]      = useState(false);
-    const [statusFilter, setStatus]       = useState('all');
-    const [aiFilter,     setAiFilter]     = useState('all');
-    const [search,       setSearch]       = useState('');
-    const [page,         setPage]         = useState(1);
-    const [selectedIdx,  setSelectedIdx]  = useState(null);
-    const [modalOpen,    setModalOpen]    = useState(false);
+    const [entries,       setEntries]      = useState([]);
+    const [filtered,      setFiltered]     = useState([]);
+    const [stats,         setStats]        = useState({ pending: 0, approved: 0, rejected: 0, excluded: 0, total: 0 });
+    const [tags,          setTags]         = useState([]);
+    const [loading,       setLoading]      = useState(false);
+    const [statusFilter,  setStatus]       = useState('all');
+    const [aiFilter,      setAiFilter]     = useState('all');
+    const [tagFilter,     setTagFilter]    = useState('all');
+    const [showExcluded,  setShowExcluded] = useState(false);
+    const [search,        setSearch]       = useState('');
+    const [page,          setPage]         = useState(1);
+    const [selectedIdx,   setSelectedIdx]  = useState(null);
+    const [modalOpen,     setModalOpen]    = useState(false);
 
     const fetchStats = async () => {
         const { data, status } = await kbStatsApi();
         if (status === 200) setStats(data);
     };
 
-    const fetchList = async (status = 'all') => {
+    const fetchTags = async () => {
+        const { data, status } = await kbTagsApi();
+        if (status === 200) setTags(data);
+    };
+
+    const fetchList = async (status = 'all', excluded = false) => {
         setLoading(true);
-        const { data, status: s } = await kbListApi(status === 'all' ? '' : status);
+        const params = {};
+        if (status !== 'all') params.status = status;
+        if (excluded) params.excluded = true;
+        const { data, status: s } = await kbListApi(status === 'all' ? '' : status, null, excluded);
         if (s === 200) {
             setEntries(data.list);
             setFiltered(data.list);
@@ -101,8 +112,13 @@ export default function KnowledgeBasePage() {
 
     useEffect(() => {
         fetchStats();
-        fetchList(statusFilter);
-    }, [statusFilter]);
+        fetchTags();
+    }, []);
+
+    useEffect(() => {
+        fetchStats();
+        fetchList(statusFilter, showExcluded);
+    }, [statusFilter, showExcluded]);
 
     useEffect(() => {
         const q = search.toLowerCase();
@@ -110,18 +126,20 @@ export default function KnowledgeBasePage() {
             entries.filter(e => {
                 if (aiFilter === 'analyzed' && !e.ai_topic) return false;
                 if (aiFilter === 'pending'  &&  e.ai_topic) return false;
+                if (tagFilter !== 'all' && e.tag_name !== tagFilter) return false;
                 if (!q) return true;
                 return (
                     firstCustomerMsg(e.chat_data).toLowerCase().includes(q) ||
                     (e.ai_topic  ?? '').toLowerCase().includes(q) ||
                     (e.ai_answer ?? '').toLowerCase().includes(q) ||
                     (e.platform  ?? '').toLowerCase().includes(q) ||
-                    (e.cust_id   ?? '').toLowerCase().includes(q)
+                    (e.cust_id   ?? '').toLowerCase().includes(q) ||
+                    (e.tag_name  ?? '').toLowerCase().includes(q)
                 );
             })
         );
         setPage(1);
-    }, [search, aiFilter, entries]);
+    }, [search, aiFilter, tagFilter, entries]);
 
     const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const paginated   = useMemo(
@@ -180,6 +198,11 @@ export default function KnowledgeBasePage() {
                         <Chip color="warning"  size="sm" variant="soft">รอตรวจสอบ {stats.pending}</Chip>
                         <Chip color="success"  size="sm" variant="soft">อนุมัติแล้ว {stats.approved}</Chip>
                         <Chip color="danger"   size="sm" variant="soft">ปรับแก้แล้ว {stats.rejected}</Chip>
+                        <Chip color="neutral"  size="sm" variant="outlined"
+                            sx={{ cursor: 'pointer', opacity: showExcluded ? 1 : 0.5 }}
+                            onClick={() => { setShowExcluded(v => !v); setSearch(''); }}>
+                            ตัดออกแล้ว {stats.excluded}
+                        </Chip>
                     </Stack>
 
                     {/* Filter bar */}
@@ -199,6 +222,13 @@ export default function KnowledgeBasePage() {
                             <Option value="all">AI: ทั้งหมด</Option>
                             <Option value="analyzed">วิเคราะห์แล้ว</Option>
                             <Option value="pending">รอ AI วิเคราะห์</Option>
+                        </Select>
+                        <Select size="sm" value={tagFilter}
+                            onChange={(_, v) => { setTagFilter(v); setPage(1); }}
+                            sx={{ minWidth: 150 }}
+                            startDecorator={<LocalOffer sx={{ fontSize: 14 }} />}>
+                            <Option value="all">Tag: ทั้งหมด</Option>
+                            {tags.map(t => <Option key={t} value={t}>{t}</Option>)}
                         </Select>
                         <Input size="sm" startDecorator={<Search />}
                             placeholder="ค้นหาหัวข้อ AI / แพลตฟอร์ม / รหัสลูกค้า..."

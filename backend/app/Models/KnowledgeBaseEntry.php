@@ -23,10 +23,13 @@ class KnowledgeBaseEntry extends Model
         'approved_at',
         'platform',
         'room_id',
+        'tag_name',
+        'is_excluded',
     ];
 
     protected $casts = [
         'chat_data'   => 'array',
         'approved_at' => 'datetime',
+        'is_excluded' => 'boolean',
     ];
 }

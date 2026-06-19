@@ -7,6 +7,8 @@ use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\KnowledgeBaseEntry;
 use App\Models\PlatformAccessTokens;
+use App\Models\Rates;
+use App\Models\TagMenu;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +72,14 @@ class ProcessKnowledgeBaseJob implements ShouldQueue
                 $platform = $token?->platform;
             }
 
+            // ดึง tag_name จาก Rates
+            $tagName = null;
+            $rate = Rates::where('id', $ac->rateRef)->first();
+            if ($rate && $rate->tag) {
+                $tag = TagMenu::find($rate->tag);
+                $tagName = $tag?->tagName;
+            }
+
             // จัดรูปแบบ chat_data
             $chatData = $histories->map(function ($h) {
                 $sender = is_string($h->sender) ? json_decode($h->sender, true) : $h->sender;
@@ -118,6 +128,8 @@ class ProcessKnowledgeBaseJob implements ShouldQueue
                 'admin_status'           => 'pending',
                 'platform'               => $platform,
                 'room_id'                => $ac->roomId,
+                'tag_name'               => $tagName,
+                'is_excluded'            => false,
             ]);
 
             Log::info("ProcessKnowledgeBaseJob: บันทึก KB สำเร็จ activeId={$this->activeConversationId}");

@@ -3,8 +3,8 @@ import {
     Modal, ModalDialog, ModalClose, DialogTitle, DialogContent, DialogActions,
     Box, Typography, Textarea, Button, Chip, Divider, Stack, IconButton,
 } from "@mui/joy";
-import { CheckCircle, Cancel, RestartAlt, ChevronLeft, ChevronRight, SmartToy, Edit } from "@mui/icons-material";
-import { kbApproveApi, kbRejectApi, kbResetApi, kbUpdateAiApi } from "../../Api/KnowledgeBase.js";
+import { CheckCircle, Cancel, RestartAlt, ChevronLeft, ChevronRight, SmartToy, Edit, Block, Undo } from "@mui/icons-material";
+import { kbApproveApi, kbRejectApi, kbResetApi, kbUpdateAiApi, kbExcludeApi, kbRestoreApi } from "../../Api/KnowledgeBase.js";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { convertFullDate } from "../../Components/Options.jsx";
 
@@ -155,6 +155,40 @@ export default function ReviewModal({ open, entry, onClose, onRefresh, entries, 
                 if (!confirm) return;
                 setLoading(true);
                 const { data, status } = await kbResetApi(entry.id);
+                setLoading(false);
+                AlertDiaLog({
+                    icon: status === 200 ? 'success' : 'error', title: data.message, text: data.detail,
+                    onPassed: () => { onRefresh(); handleClose(); },
+                });
+            },
+        });
+    };
+
+    const handleExclude = () => {
+        AlertDiaLog({
+            icon: 'warning', title: 'ตัดออกจาก Knowledge Base?',
+            text: 'ข้อมูลนี้จะไม่ถูกนำไปใช้ใน KB สามารถคืนค่าได้ภายหลัง',
+            onPassed: async (confirm) => {
+                if (!confirm) return;
+                setLoading(true);
+                const { data, status } = await kbExcludeApi(entry.id);
+                setLoading(false);
+                AlertDiaLog({
+                    icon: status === 200 ? 'success' : 'error', title: data.message, text: data.detail,
+                    onPassed: () => { onRefresh(); handleClose(); },
+                });
+            },
+        });
+    };
+
+    const handleRestore = () => {
+        AlertDiaLog({
+            icon: 'question', title: 'คืนค่าเข้า Knowledge Base?',
+            text: 'ข้อมูลนี้จะกลับมาแสดงในรายการปกติ',
+            onPassed: async (confirm) => {
+                if (!confirm) return;
+                setLoading(true);
+                const { data, status } = await kbRestoreApi(entry.id);
                 setLoading(false);
                 AlertDiaLog({
                     icon: status === 200 ? 'success' : 'error', title: data.message, text: data.detail,
@@ -337,14 +371,27 @@ export default function ReviewModal({ open, entry, onClose, onRefresh, entries, 
                     )}
 
                     {/* Reset */}
-                    {entry.admin_status !== 'pending' && (
+                    {entry.admin_status !== 'pending' && !entry.is_excluded && (
                         <Button variant="outlined" color="neutral" size="sm"
                             startDecorator={<RestartAlt />} onClick={handleReset} loading={loading}>
                             รีเซ็ตสถานะ
                         </Button>
                     )}
 
-                    {mode === null ? (
+                    {/* Exclude / Restore */}
+                    {entry.is_excluded ? (
+                        <Button variant="outlined" color="success" size="sm"
+                            startDecorator={<Undo />} onClick={handleRestore} loading={loading}>
+                            คืนค่า
+                        </Button>
+                    ) : (
+                        <Button variant="outlined" color="danger" size="sm"
+                            startDecorator={<Block />} onClick={handleExclude} loading={loading}>
+                            ตัดออก
+                        </Button>
+                    )}
+
+                    {mode === null && !entry.is_excluded ? (
                         <>
                             <Button variant="outlined" color="neutral" size="sm" onClick={handleClose}>ปิด</Button>
                             <Button color="danger" size="sm" variant="soft"
@@ -356,7 +403,7 @@ export default function ReviewModal({ open, entry, onClose, onRefresh, entries, 
                                 อนุมัติ (ใช้คำตอบ AI)
                             </Button>
                         </>
-                    ) : (
+                    ) : mode === 'reject' ? (
                         <>
                             <Button variant="outlined" color="neutral" size="sm" onClick={() => setMode(null)}>ยกเลิก</Button>
                             <Button color="danger" size="sm"
@@ -364,6 +411,8 @@ export default function ReviewModal({ open, entry, onClose, onRefresh, entries, 
                                 บันทึกคำตอบที่แก้ไข
                             </Button>
                         </>
+                    ) : (
+                        <Button variant="outlined" color="neutral" size="sm" onClick={handleClose}>ปิด</Button>
                     )}
                 </DialogActions>
             </ModalDialog>

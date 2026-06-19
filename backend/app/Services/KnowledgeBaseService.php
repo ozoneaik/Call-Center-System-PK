@@ -11,15 +11,18 @@ class KnowledgeBaseService
     {
         $data['status'] = false;
         try {
-            $counts = KnowledgeBaseEntry::selectRaw('admin_status, COUNT(*) as count')
+            $counts = KnowledgeBaseEntry::where('is_excluded', false)
+                ->selectRaw('admin_status, COUNT(*) as count')
                 ->groupBy('admin_status')
                 ->pluck('count', 'admin_status')
                 ->toArray();
+            $excluded = KnowledgeBaseEntry::where('is_excluded', true)->count();
             $data['status'] = true;
             $data['stats']  = [
                 'pending'  => (int) ($counts['pending']  ?? 0),
                 'approved' => (int) ($counts['approved'] ?? 0),
                 'rejected' => (int) ($counts['rejected'] ?? 0),
+                'excluded' => (int) $excluded,
                 'total'    => array_sum(array_map('intval', $counts)),
             ];
         } catch (\Exception $e) {
@@ -30,18 +33,73 @@ class KnowledgeBaseService
         }
     }
 
-    public function list(string $status = null): array
+    public function list(string $status = null, string $tagName = null, bool $showExcluded = false): array
     {
         $data['status'] = false;
         try {
             $query = KnowledgeBaseEntry::orderBy('created_at', 'DESC');
+            $query->where('is_excluded', $showExcluded);
             if ($status && in_array($status, ['pending', 'approved', 'rejected'])) {
                 $query->where('admin_status', $status);
             }
-            $data['list'] = $query->get();
+            if ($tagName) {
+                $query->where('tag_name', $tagName);
+            }
+            $data['list']   = $query->get();
             $data['status'] = true;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@list: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function tags(): array
+    {
+        $data['status'] = false;
+        try {
+            $data['tags']   = KnowledgeBaseEntry::whereNotNull('tag_name')
+                ->distinct()
+                ->orderBy('tag_name')
+                ->pluck('tag_name');
+            $data['status'] = true;
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@tags: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function exclude(int $id): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = KnowledgeBaseEntry::findOrFail($id);
+            $entry->is_excluded = true;
+            $entry->save();
+            $data['status']  = true;
+            $data['message'] = 'ตัดออกจาก Knowledge Base สำเร็จ';
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@exclude: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function restore(int $id): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = KnowledgeBaseEntry::findOrFail($id);
+            $entry->is_excluded = false;
+            $entry->save();
+            $data['status']  = true;
+            $data['message'] = 'คืนค่าเข้า Knowledge Base สำเร็จ';
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@restore: ' . $e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {
             return $data;

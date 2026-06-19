@@ -27,7 +27,11 @@ class KnowledgeBaseController extends Controller
 
     public function list(Request $request): JsonResponse
     {
-        $result = $this->kbService->list($request->query('status'));
+        $result = $this->kbService->list(
+            $request->query('status'),
+            $request->query('tag_name'),
+            $request->boolean('excluded', false),
+        );
         if ($result['status']) {
             return response()->json([
                 'message' => 'success',
@@ -35,6 +39,41 @@ class KnowledgeBaseController extends Controller
             ]);
         }
         return response()->json(['message' => 'เกิดข้อผิดพลาด', 'detail' => $result['message']], 400);
+    }
+
+    public function tags(): JsonResponse
+    {
+        $result = $this->kbService->tags();
+        if ($result['status']) {
+            return response()->json($result['tags']);
+        }
+        return response()->json([], 400);
+    }
+
+    public function exclude(int $id): JsonResponse
+    {
+        $status = 400;
+        $detail = 'ไม่มีข้อผิดพลาด';
+        try {
+            $result = $this->kbService->exclude($id);
+            if ($result['status']) { $status = 200; $message = $result['message']; }
+            else throw new \Exception($result['message']);
+        } catch (\Exception $e) { $detail = $e->getMessage(); } finally {
+            return response()->json(['message' => $message ?? 'เกิดข้อผิดพลาด', 'detail' => $detail], $status);
+        }
+    }
+
+    public function restore(int $id): JsonResponse
+    {
+        $status = 400;
+        $detail = 'ไม่มีข้อผิดพลาด';
+        try {
+            $result = $this->kbService->restore($id);
+            if ($result['status']) { $status = 200; $message = $result['message']; }
+            else throw new \Exception($result['message']);
+        } catch (\Exception $e) { $detail = $e->getMessage(); } finally {
+            return response()->json(['message' => $message ?? 'เกิดข้อผิดพลาด', 'detail' => $detail], $status);
+        }
     }
 
     public function show(int $id): JsonResponse

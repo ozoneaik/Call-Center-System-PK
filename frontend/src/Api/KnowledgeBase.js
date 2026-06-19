@@ -12,9 +12,13 @@ export const kbStatsApi = async () => {
     }
 };
 
-export const kbListApi = async (status = '') => {
+export const kbListApi = async (status = '', tagName = null, excluded = false) => {
     try {
-        const { data, status: s } = await axiosClient.get(`${kb}/list`, { params: status ? { status } : {} });
+        const params = {};
+        if (status)   params.status   = status;
+        if (tagName)  params.tag_name = tagName;
+        if (excluded) params.excluded = true;
+        const { data, status: s } = await axiosClient.get(`${kb}/list`, { params });
         return { data, status: s };
     } catch (error) {
         return ErrorResponse(error);
@@ -46,6 +50,33 @@ export const kbRejectApi = async (id, payload) => {
         const { data, status } = await axiosClient.put(`${kb}/reject/${id}`, payload, {
             headers: { 'Content-Type': 'application/json' },
         });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbTagsApi = async () => {
+    try {
+        const { data, status } = await axiosClient.get(`${kb}/tags`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbExcludeApi = async (id) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/exclude/${id}`, {});
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbRestoreApi = async (id) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/restore/${id}`, {});
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
