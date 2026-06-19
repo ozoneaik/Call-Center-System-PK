@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\KnowledgeBaseEntry;
+use App\Models\TagMenu;
 use Illuminate\Support\Facades\Log;
 
 class KnowledgeBaseService
@@ -59,10 +60,7 @@ class KnowledgeBaseService
     {
         $data['status'] = false;
         try {
-            $data['tags']   = KnowledgeBaseEntry::whereNotNull('tag_name')
-                ->distinct()
-                ->orderBy('tag_name')
-                ->pluck('tag_name');
+            $data['tags']   = TagMenu::orderBy('tagName')->pluck('tagName');
             $data['status'] = true;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@tags: ' . $e->getMessage());
