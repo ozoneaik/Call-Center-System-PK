@@ -96,12 +96,13 @@ export default function KnowledgeBasePage() {
         if (status === 200) setTags(data);
     };
 
-    const fetchList = async (status = 'all', excluded = false) => {
+    const fetchList = async (status = 'all', tag = 'all', excluded = false) => {
         setLoading(true);
-        const params = {};
-        if (status !== 'all') params.status = status;
-        if (excluded) params.excluded = true;
-        const { data, status: s } = await kbListApi(status === 'all' ? '' : status, null, excluded);
+        const { data, status: s } = await kbListApi(
+            status === 'all' ? '' : status,
+            tag    === 'all' ? null : tag,
+            excluded,
+        );
         if (s === 200) {
             setEntries(data.list);
             setFiltered(data.list);
@@ -117,8 +118,8 @@ export default function KnowledgeBasePage() {
 
     useEffect(() => {
         fetchStats();
-        fetchList(statusFilter, showExcluded);
-    }, [statusFilter, showExcluded]);
+        fetchList(statusFilter, tagFilter, showExcluded);
+    }, [statusFilter, tagFilter, showExcluded]);
 
     useEffect(() => {
         const q = search.toLowerCase();
@@ -126,7 +127,6 @@ export default function KnowledgeBasePage() {
             entries.filter(e => {
                 if (aiFilter === 'analyzed' && !e.ai_topic) return false;
                 if (aiFilter === 'pending'  &&  e.ai_topic) return false;
-                if (tagFilter !== 'all' && e.tag_name !== tagFilter) return false;
                 if (!q) return true;
                 return (
                     firstCustomerMsg(e.chat_data).toLowerCase().includes(q) ||
@@ -139,7 +139,7 @@ export default function KnowledgeBasePage() {
             })
         );
         setPage(1);
-    }, [search, aiFilter, tagFilter, entries]);
+    }, [search, aiFilter, entries]);
 
     const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const paginated   = useMemo(

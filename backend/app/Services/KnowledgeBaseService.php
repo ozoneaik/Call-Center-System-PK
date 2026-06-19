@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ActiveConversations;
 use App\Models\KnowledgeBaseEntry;
 use App\Models\TagMenu;
 use Illuminate\Support\Facades\Log;
@@ -43,10 +44,34 @@ class KnowledgeBaseService
             if ($status && in_array($status, ['pending', 'approved', 'rejected'])) {
                 $query->where('admin_status', $status);
             }
-            if ($tagName) {
-                $query->where('tag_name', $tagName);
+            $entries = $query->get();
+
+            // Backfill tag_name สำหรับ entries ที่ยังไม่มี โดย join จาก main DB
+            $noTagEntries = $entries->filter(fn($e) => $e->tag_name === null && $e->active_conversation_id);
+            if ($noTagEntries->isNotEmpty()) {
+                $acIds  = $noTagEntries->pluck('active_conversation_id')->toArray();
+                $tagMap = ActiveConversations::whereIn('active_conversations.id', $acIds)
+                    ->join('rates', 'active_conversations.rateRef', '=', 'rates.id')
+                    ->join('tag_menus', 'rates.tag', '=', 'tag_menus.id')
+                    ->whereNull('tag_menus.deleted_at')
+                    ->select('active_conversations.id as ac_id', 'tag_menus.tagName')
+                    ->pluck('tagName', 'ac_id')
+                    ->toArray();
+
+                foreach ($entries as $entry) {
+                    if ($entry->tag_name === null && isset($tagMap[$entry->active_conversation_id])) {
+                        $entry->tag_name = $tagMap[$entry->active_conversation_id];
+                        $entry->saveQuietly();
+                    }
+                }
             }
-            $data['list']   = $query->get();
+
+            // กรองด้วย tag_name หลัง enrichment
+            if ($tagName) {
+                $entries = $entries->filter(fn($e) => $e->tag_name === $tagName)->values();
+            }
+
+            $data['list']   = $entries;
             $data['status'] = true;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@list: ' . $e->getMessage());
