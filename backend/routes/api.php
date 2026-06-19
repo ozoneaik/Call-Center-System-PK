@@ -26,6 +26,7 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
@@ -252,6 +253,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/store', [StickerModelController::class, 'store']);
         Route::put('/update/{id}', [StickerModelController::class, 'update']);
         Route::delete('/delete/{id}', [StickerModelController::class, 'delete']);
+    });
+
+    // Knowledge Base
+    Route::prefix('knowledge-base')->group(function () {
+        Route::get('/stats', [KnowledgeBaseController::class, 'stats']);
+        Route::get('/list', [KnowledgeBaseController::class, 'list']);
+        Route::get('/show/{id}', [KnowledgeBaseController::class, 'show']);
+        Route::put('/approve/{id}', [KnowledgeBaseController::class, 'approve']);
+        Route::put('/reject/{id}', [KnowledgeBaseController::class, 'reject']);
+        Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending']);
+        Route::put('/update-ai/{id}', [KnowledgeBaseController::class, 'updateAi']);
     });
 });
 

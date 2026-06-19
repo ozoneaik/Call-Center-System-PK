@@ -141,6 +141,20 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'pgsql_kb' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_KB_HOST', '127.0.0.1'),
+            'port' => env('DB_KB_PORT', '5432'),
+            'database' => env('DB_KB_DATABASE', 'kb_pumpkin_psql'),
+            'username' => env('DB_KB_USERNAME', 'dbmasteruser'),
+            'password' => env('DB_KB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'require',
+        ],
+
     ],
 
     /*

@@ -37,6 +37,7 @@ import EditGroupPage from "./Views/TagPages/EditGroupPage.jsx";
 import TokenManeger from "./Views/TokenPages/TokenManager.jsx";
 import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
+import KnowledgeBasePage from "./Views/KnowledgeBasePages/main.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -83,6 +84,7 @@ export const routes = createBrowserRouter([
                             // { path: '/helpChat', element: <HelpChatList /> },
                             { path: '/sticker', element: <StickerList /> },
                             { path: '/announces', element: <AnnouncesList /> },
+                            { path: '/knowledge-base', element: <KnowledgeBasePage /> },
                         ]
                     },
                     { path: '/report', element: <ReportPage /> },

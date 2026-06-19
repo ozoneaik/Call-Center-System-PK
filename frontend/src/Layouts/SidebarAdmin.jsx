@@ -23,6 +23,7 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   LabelOutlined,
   SubdirectoryArrowRight,
+  AutoAwesome,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
@@ -197,6 +198,15 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
                 </ListItem>
               </List>
             </Toggler>
+          </ListItem>
+        )}
+
+        {matchSearch("Knowledge Base") && (
+          <ListItem component={Link} to="/knowledge-base">
+            <ListItemButton selected={pathname === "/knowledge-base"}>
+              <AutoAwesome />
+              <Typography level="title-sm">Knowledge Base</Typography>
+            </ListItemButton>
           </ListItem>
         )}
 

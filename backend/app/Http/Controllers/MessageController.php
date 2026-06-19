@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Jobs\ProcessKnowledgeBaseJob;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Http\Requests\endTalkRequest;
@@ -452,6 +453,7 @@ class MessageController extends Controller
                 $updateAC['endTime'] = Carbon::now();
                 $updateAC['totalTime'] = $this->messageService->differentTime($updateAC['startTime'], $updateAC['endTime']);
                 if ($updateAC->save()) {
+                    ProcessKnowledgeBaseJob::dispatch($updateAC['id']);
                     if ($Assessment) {
                         /* ส่งการ์ดประเมิน */
                         $customer = Customers::query()->where('custId', $updateRate['custId'])->first();
@@ -507,6 +509,8 @@ class MessageController extends Controller
 
             $this->pusherService->sendNotification($updateRate['custId']);
             DB::commit();
+
+            ProcessKnowledgeBaseJob::dispatch($activeId);
         } catch (\Exception $e) {
             $detail = $e->getMessage();
             DB::rollBack();
@@ -577,6 +581,7 @@ class MessageController extends Controller
                     $AC['endTime'] = Carbon::now();
                     $AC['totalTime'] = $this->messageService->differentTime($AC['startTime'], $AC['endTime']);
                     if ($AC->save()) {
+                        ProcessKnowledgeBaseJob::dispatch($AC['id']);
                         // update status, tag as rates
                         $R = Rates::query()->where('id', $l['rateRef'])->first();
                         $R['status'] = 'success';
@@ -628,6 +633,7 @@ class MessageController extends Controller
                     $AC['totalTime'] = $this->messageService->differentTime($AC['startTime'], $AC['endTime']);
                     $AC['empCode'] = $user['empCode'];
                     if ($AC->save()) {
+                        ProcessKnowledgeBaseJob::dispatch($AC['id']);
                         // update status , tag as rates
                         $R = Rates::query()->where('id', $l['rateRef'])->first();
                         $R['status'] = 'success';
