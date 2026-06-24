@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\File;
 
 class RetryMediaController extends Controller
 {
@@ -98,29 +99,34 @@ class RetryMediaController extends Controller
         $endpoint  = "https://api-data.line.me/v2/bot/message/$mediaId/content";
         $errorText = 'ไม่สามารถดึง URL ของสื่อได้';
 
+        // 1. กำหนดตำแหน่งไฟล์ชั่วคราวบนเซิร์ฟเวอร์ (บันทึกไว้ใน storage/app/)
+        $tempPath = storage_path("app/temp_{$mediaId}");
+
         try {
+            // 2. ดาวน์โหลดไฟล์จาก LINE และเขียนลงดิสก์โดยตรงด้วย sink (ไม่โหลดเข้า RAM)
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,
             ])
-            ->timeout(120)
-            ->get($endpoint);
+                ->timeout(120)  // ตั้งเวลาเผื่อให้โหลดไฟล์ขนาดใหญ่ได้เสร็จสิ้น
+                ->sink($tempPath)
+                ->get($endpoint);
 
-            if ($response->successful()) {
-                $mediaContent = $response->body();
-                $contentType  = $response->header('Content-Type');
+            if ($response->successful() && file_exists($tempPath)) {
+                $contentType = $response->header('Content-Type');
 
+                // จับคู่ Extension จาก Content-Type (ตาม Logic เดิมของคุณ)
                 $extension = match ($contentType) {
-                    'image/jpeg'   => '.jpg',
-                    'image/png'    => '.png',
-                    'image/gif'    => '.gif',
-                    'video/mp4'    => '.mp4',
-                    'video/webm'   => '.webm',
-                    'video/ogg'    => '.ogg',
-                    'video/avi'    => '.avi',
-                    'video/mov'    => '.mov',
-                    'audio/x-m4a'  => '.m4a',
-                    'application/pdf'   => '.pdf',
-                    'application/zip'   => '.zip',
+                    'image/jpeg' => '.jpg',
+                    'image/png' => '.png',
+                    'image/gif' => '.gif',
+                    'video/mp4' => '.mp4',
+                    'video/webm' => '.webm',
+                    'video/ogg' => '.ogg',
+                    'video/avi' => '.avi',
+                    'video/mov' => '.mov',
+                    'audio/x-m4a' => '.m4a',
+                    'application/pdf' => '.pdf',
+                    'application/zip' => '.zip',
                     'application/msword' => '.doc',
                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => '.docx',
                     'application/vnd.ms-excel' => '.xls',
@@ -132,24 +138,39 @@ class RetryMediaController extends Controller
 
                 $mediaPath = $mediaId . $extension;
 
-                Storage::disk('s3')->put($mediaPath, $mediaContent, [
-                    'visibility'  => 'private',
+                // 3. อัปโหลดจากไฟล์ชั่วคราวขึ้น S3 แบบ Stream (ประหยัดหน่วยความจำ)
+                Storage::disk('s3')->putFileAs('/', new \Illuminate\Http\File($tempPath), $mediaPath, [
+                    'visibility' => 'private',
                     'ContentType' => $contentType,
                 ]);
 
+                // 4. ลบไฟล์ชั่วคราวออกจากเซิร์ฟเวอร์ทันทีเมื่ออัปโหลดเสร็จสิ้น
+                if (file_exists($tempPath)) {
+                    unlink($tempPath);
+                }
+
                 $full_url = Storage::disk('s3')->url($mediaPath);
             } else {
+                // หากยิงไป LINE ไม่สำเร็จ ให้เคลียร์ไฟล์ชั่วคราวทิ้ง (ถ้ามีเศษไฟล์ค้างอยู่)
+                if (file_exists($tempPath)) {
+                    unlink($tempPath);
+                }
+
                 $statusCode = $response->status();
-                $errorBody  = $response->body();
-                Log::error("LINE Media API Error (retry)", [
-                    'status'   => $statusCode,
-                    'body'     => $errorBody,
-                    'mediaId'  => $mediaId,
+                $errorBody = $response->body();
+                Log::error('LINE Media API Error (retry stream)', [
+                    'status' => $statusCode,
+                    'body' => $errorBody,
+                    'mediaId' => $mediaId,
                 ]);
                 $full_url = $errorText;
             }
         } catch (\Exception $e) {
-            Log::error('getUrlMedia exception (retry): ' . $e->getMessage());
+            // หากเกิดข้อผิดพลาดระหว่างทาง (Exception) ให้ลบไฟล์ชั่วคราวทิ้งเพื่อป้องกันพื้นที่เต็ม
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+            Log::error('getUrlMedia exception (retry stream): ' . $e->getMessage());
             $full_url = $errorText;
         }
 
