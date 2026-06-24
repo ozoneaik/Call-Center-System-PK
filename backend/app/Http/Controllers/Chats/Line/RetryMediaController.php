@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Http\Controllers\Chats\Line;
+
+use App\Http\Controllers\Controller;
+use App\Models\ChatHistory;
+use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+
+class RetryMediaController extends Controller
+{
+    /**
+     * ดึง media URL จาก LINE API ใหม่อีกครั้ง
+     * รับ: chat_history_id, line_message_id
+     * ส่งคืน: URL ที่อัปโหลดขึ้น S3 แล้ว
+     */
+    public function retryMedia(Request $request): JsonResponse
+    {
+        $request->validate([
+            'chat_history_id' => 'required|integer',
+            'line_message_id' => 'required|string',
+        ]);
+
+        try {
+            $chatHistory = ChatHistory::find($request->chat_history_id);
+            if (!$chatHistory) {
+                return response()->json([
+                    'message' => 'ไม่พบข้อมูลข้อความ',
+                    'detail'  => 'chat_history_id ไม่ถูกต้อง',
+                ], 404);
+            }
+
+            // ตรวจว่า content ยังเป็น error อยู่ (ถ้าดึงสำเร็จแล้ว ก็ไม่ต้องทำซ้ำ)
+            $errorKeyword = 'ไม่สามารถดึง URL ของสื่อได้';
+            if ($chatHistory->content !== $errorKeyword) {
+                return response()->json([
+                    'message' => 'ข้อความนี้มี URL อยู่แล้ว',
+                    'url'     => $chatHistory->content,
+                ], 200);
+            }
+
+            // หา Access Token ของ platform จาก custId
+            $customer = Customers::where('custId', $chatHistory->custId)->first();
+            if (!$customer) {
+                return response()->json([
+                    'message' => 'ไม่พบข้อมูลลูกค้า',
+                ], 404);
+            }
+
+            $platform = PlatformAccessTokens::find($customer->platformRef);
+            if (!$platform || !$platform->accessToken) {
+                return response()->json([
+                    'message' => 'ไม่พบ Access Token ของ platform',
+                ], 404);
+            }
+
+            $newUrl = $this->getUrlMedia($request->line_message_id, $platform->accessToken);
+
+            if ($newUrl === $errorKeyword) {
+                return response()->json([
+                    'message' => 'ยังไม่สามารถดึงสื่อได้',
+                    'detail'  => 'LINE API ยังไม่ตอบกลับ หรือสื่อหมดอายุแล้ว',
+                ], 422);
+            }
+
+            // อัปเดต content ใหม่ใน database
+            $chatHistory->content = $newUrl;
+            $chatHistory->save();
+
+            Log::info('Retry media สำเร็จ', [
+                'chat_history_id' => $request->chat_history_id,
+                'line_message_id' => $request->line_message_id,
+                'new_url'         => $newUrl,
+            ]);
+
+            return response()->json([
+                'message' => 'ดึงสื่อสำเร็จ',
+                'url'     => $newUrl,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Retry media error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'เกิดข้อผิดพลาด',
+                'detail'  => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function getUrlMedia(string $mediaId, string $accessToken): string
+    {
+        $full_url  = '';
+        $endpoint  = "https://api-data.line.me/v2/bot/message/$mediaId/content";
+        $errorText = 'ไม่สามารถดึง URL ของสื่อได้';
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+            ])->get($endpoint);
+
+            if ($response->successful()) {
+                $mediaContent = $response->body();
+                $contentType  = $response->header('Content-Type');
+
+                $extension = match ($contentType) {
+                    'image/jpeg'   => '.jpg',
+                    'image/png'    => '.png',
+                    'image/gif'    => '.gif',
+                    'video/mp4'    => '.mp4',
+                    'video/webm'   => '.webm',
+                    'video/ogg'    => '.ogg',
+                    'video/avi'    => '.avi',
+                    'video/mov'    => '.mov',
+                    'audio/x-m4a'  => '.m4a',
+                    'application/pdf'   => '.pdf',
+                    'application/zip'   => '.zip',
+                    'application/msword' => '.doc',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => '.docx',
+                    'application/vnd.ms-excel' => '.xls',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => '.xlsx',
+                    'application/vnd.ms-powerpoint' => '.ppt',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation' => '.pptx',
+                    default => '.bin',
+                };
+
+                $mediaPath = $mediaId . $extension;
+
+                Storage::disk('s3')->put($mediaPath, $mediaContent, [
+                    'visibility'  => 'private',
+                    'ContentType' => $contentType,
+                ]);
+
+                $full_url = Storage::disk('s3')->url($mediaPath);
+            } else {
+                $statusCode = $response->status();
+                $errorBody  = $response->body();
+                Log::error("LINE Media API Error (retry)", [
+                    'status'   => $statusCode,
+                    'body'     => $errorBody,
+                    'mediaId'  => $mediaId,
+                ]);
+                $full_url = $errorText;
+            }
+        } catch (\Exception $e) {
+            Log::error('getUrlMedia exception (retry): ' . $e->getMessage());
+            $full_url = $errorText;
+        }
+
+        return $full_url;
+    }
+}

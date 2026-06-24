@@ -178,3 +178,16 @@ export const endTalkAllPendingApi = async (props) => {
         return ErrorResponse(error);
     }
 }
+
+// ดึง URL สื่อใหม่ (กรณีดึงครั้งแรกไม่ได้)
+export const retryMediaApi = async ({ chatHistoryId, lineMessageId }) => {
+    try {
+        const { data, status } = await axiosClient.post(`${messages}/retry-media`, {
+            chat_history_id: chatHistoryId,
+            line_message_id: lineMessageId,
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}

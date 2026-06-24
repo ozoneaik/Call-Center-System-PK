@@ -7,6 +7,7 @@ use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ChatRoomsController;
 use App\Http\Controllers\Chats\Line\HistoryController;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
+use App\Http\Controllers\Chats\Line\RetryMediaController;
 use App\Http\Controllers\Chats\PushMessageController;
 use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\DisplayController;
@@ -87,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sendTo', [MessageController::class, 'sendTo']);
         Route::post('/endTalk', [MessageController::class, 'endTalk']);
         Route::post('/pauseTalk', [MessageController::class, 'pauseTalk']);
+        Route::post('/retry-media', [RetryMediaController::class, 'retryMedia']);
     });
 
     // ดึงข้อมูลเกี่ยวกับแชท

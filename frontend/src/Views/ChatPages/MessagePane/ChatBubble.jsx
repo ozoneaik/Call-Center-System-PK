@@ -10,6 +10,7 @@ import ContextMenuButton from "./ContextMenuButton.jsx";
 import ImageIcon from '@mui/icons-material/Image';
 import ChatMediaPreview from "./ChatMediaPreview.jsx";
 import { useEffect, useState } from "react";
+import { retryMediaApi } from "../../../Api/Messages.js";
 import { Link } from "react-router-dom";
 import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 import ChatBubbleItemList from "./ChatBubbleItemList.jsx"; 
@@ -36,6 +37,8 @@ export default function Bubble(props) {
     const [open, setOpen] = useState(false);
     const [previewSelect, setPreviewSelect] = useState('');
     const [isRead, setIsRead] = useState(!!props.read_at);
+    const [retrying, setRetrying] = useState(false);
+    const [localContent, setLocalContent] = useState(content);
 
     useEffect(() => {
         const channel = window.pusherChannel;
@@ -75,6 +78,35 @@ export default function Bubble(props) {
         }
         return null;
     })();
+
+    const MEDIA_ERROR_TEXT = 'ไม่สามารถดึง URL ของสื่อได้';
+
+    const handleRetryMedia = async () => {
+        if (retrying) return;
+        setRetrying(true);
+        try {
+            const { data, status } = await retryMediaApi({
+                chatHistoryId: props.id,
+                lineMessageId: line_message_id,
+            });
+            if (status === 200 && data?.url) {
+                setLocalContent(data.url);
+                if (setMessages) {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === props.id ? { ...m, content: data.url } : m
+                        )
+                    );
+                }
+            } else {
+                alert(data?.detail || 'ยังไม่สามารถดึงสื่อได้ อาจหมดอายุแล้ว');
+            }
+        } catch {
+            alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        } finally {
+            setRetrying(false);
+        }
+    };
 
     return (
         <Box sx={{ maxWidth: '60%', minWidth: 'auto' }}>
@@ -184,7 +216,7 @@ export default function Bubble(props) {
                             ]}
                         >
                             <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                <Avatar color="primary" size="lg">
+                                <Avatar color={localContent === MEDIA_ERROR_TEXT ? 'danger' : 'primary'} size="lg">
                                     {contentType === 'file'
                                         ? <InsertDriveFile />
                                         : contentType === 'video'
@@ -193,7 +225,7 @@ export default function Bubble(props) {
                                                 ? <ImageIcon />
                                                 : <VolumeUp />}
                                 </Avatar>
-                                <Stack direction='column' spacing={2} width='100%'>
+                                <Stack direction='column' spacing={1} width='100%'>
                                     <Typography sx={{ fontSize: 'sm' }}>
                                         {contentType === 'file'
                                             ? 'ไฟล์ PDF'
@@ -203,17 +235,38 @@ export default function Bubble(props) {
                                                     ? 'ไฟล์รูปภาพ'
                                                     : 'ไฟล์เสียง'}
                                     </Typography>
-                                    <Button
-                                        fullWidth
-                                        size="sm"
-                                        variant="outlined"
-                                        onClick={() => {
-                                            setPreviewSelect(forceHttps(content));
-                                            setOpen(true);
-                                        }}
-                                    >
-                                        ดู preview
-                                    </Button>
+                                    {localContent === MEDIA_ERROR_TEXT ? (
+                                        <>
+                                            <Typography
+                                                level="body-xs"
+                                                sx={{ color: 'danger.500', fontSize: '11px' }}
+                                            >
+                                                ⚠️ ดึงสื่อไม่สำเร็จ
+                                            </Typography>
+                                            <Button
+                                                fullWidth
+                                                size="sm"
+                                                color="warning"
+                                                variant="solid"
+                                                loading={retrying}
+                                                onClick={handleRetryMedia}
+                                            >
+                                                🔄 ดึงข้อมูลใหม่
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            fullWidth
+                                            size="sm"
+                                            variant="outlined"
+                                            onClick={() => {
+                                                setPreviewSelect(forceHttps(localContent));
+                                                setOpen(true);
+                                            }}
+                                        >
+                                            ดู preview
+                                        </Button>
+                                    )}
                                 </Stack>
                             </Stack>
                         </Sheet>
