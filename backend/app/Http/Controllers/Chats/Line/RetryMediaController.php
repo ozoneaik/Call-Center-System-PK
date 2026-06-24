@@ -101,7 +101,9 @@ class RetryMediaController extends Controller
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,
-            ])->get($endpoint);
+            ])
+            ->timeout(120)
+            ->get($endpoint);
 
             if ($response->successful()) {
                 $mediaContent = $response->body();
