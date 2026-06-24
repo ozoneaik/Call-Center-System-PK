@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { retryMediaApi } from "../../../Api/Messages.js";
 import { Link } from "react-router-dom";
 import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
-import ChatBubbleItemList from "./ChatBubbleItemList.jsx"; 
+import ChatBubbleItemList from "./ChatBubbleItemList.jsx";
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { forceHttps } from "../../../utils.js";
 
@@ -29,7 +29,7 @@ export default function Bubble(props) {
         line_quote_token,
         line_quoted_message_id,
         messages,
-        meta, 
+        meta,
         isShopeeRoom,
     } = props;
 
@@ -91,8 +91,9 @@ export default function Bubble(props) {
             });
             if (status === 200 && data?.url) {
                 setLocalContent(data.url);
-                if (setMessages) {
-                    setMessages((prev) =>
+
+                if (props.setMessages) {
+                    props.setMessages((prev) =>
                         prev.map((m) =>
                             m.id === props.id ? { ...m, content: data.url } : m
                         )
@@ -101,7 +102,8 @@ export default function Bubble(props) {
             } else {
                 alert(data?.detail || 'ยังไม่สามารถดึงสื่อได้ อาจหมดอายุแล้ว');
             }
-        } catch {
+        } catch (error) { // แนะนำให้รับ parameter error มาด้วย
+            console.error("Retry Media Error:", error); // พิมพ์ error ลง console จะได้หาบั๊กง่ายขึ้น
             alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
         } finally {
             setRetrying(false);
