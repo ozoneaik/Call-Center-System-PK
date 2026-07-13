@@ -12,9 +12,9 @@ export const platformRoutingListApi = async () => {
     }
 };
 
-export const allowedRoomsApi = async (tokenId) => {
+export const allowedRoomsApi = async (tokenId, type = 'forward') => {
     try {
-        const { data, status } = await axiosClient.get(`${base}/allowed-rooms/${tokenId}`);
+        const { data, status } = await axiosClient.get(`${base}/allowed-rooms/${tokenId}?type=${type}`);
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);

@@ -28,7 +28,7 @@ export default function CreateCase({ open, setOpen, custId, tokenId }) {
         setLoading(true);
         try {
             if (tokenId) {
-                const { data, status } = await allowedRoomsApi(tokenId);
+                const { data, status } = await allowedRoomsApi(tokenId, 'create_case');
                 if (status === 200) {
                     setRooms(data.rooms);
                     return;

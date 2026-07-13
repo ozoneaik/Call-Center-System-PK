@@ -10,10 +10,12 @@ class PlatformRoutingRule extends Model
         'token_id',
         'room_id',
         'is_allowed',
+        'allow_create_case',
     ];
 
     protected $casts = [
-        'is_allowed' => 'boolean',
+        'is_allowed'        => 'boolean',
+        'allow_create_case' => 'boolean',
     ];
 
     public function token()

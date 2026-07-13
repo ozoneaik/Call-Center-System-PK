@@ -27,10 +27,11 @@ class PlatformRoutingController extends Controller
             $roomPermissions = $rooms->map(function ($room) use ($rulesByRoom) {
                 $rule = $rulesByRoom->get($room->roomId);
                 return [
-                    'roomId'     => $room->roomId,
-                    'roomName'   => $room->roomName,
-                    'is_allowed' => $rule ? (bool) $rule->is_allowed : true, // default: อนุญาต
-                    'has_rule'   => (bool) $rule,
+                    'roomId'            => $room->roomId,
+                    'roomName'          => $room->roomName,
+                    'is_allowed'        => $rule ? (bool) $rule->is_allowed : true,
+                    'allow_create_case' => $rule ? (bool) $rule->allow_create_case : true,
+                    'has_rule'          => (bool) $rule,
                 ];
             });
 
@@ -68,7 +69,10 @@ class PlatformRoutingController extends Controller
             foreach ($request->rules as $rule) {
                 PlatformRoutingRule::updateOrCreate(
                     ['token_id' => $request->token_id, 'room_id' => $rule['roomId']],
-                    ['is_allowed' => filter_var($rule['is_allowed'] ?? true, FILTER_VALIDATE_BOOLEAN)]
+                    [
+                        'is_allowed'        => filter_var($rule['is_allowed'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                        'allow_create_case' => filter_var($rule['allow_create_case'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                    ]
                 );
             }
 
@@ -82,19 +86,24 @@ class PlatformRoutingController extends Controller
     }
 
     /**
-     * คืนเฉพาะห้องที่ token นั้นอนุญาตให้ส่งต่อได้
+     * คืนเฉพาะห้องพร้อม is_allowed ตาม type ที่ขอ
+     * ?type=forward (default) → ใช้ is_allowed
+     * ?type=create_case       → ใช้ allow_create_case
      */
-    public function allowedRooms(int $tokenId): JsonResponse
+    public function allowedRooms(Request $request, int $tokenId): JsonResponse
     {
+        $type  = $request->query('type', 'forward');
+        $field = $type === 'create_case' ? 'allow_create_case' : 'is_allowed';
+
         $rules = PlatformRoutingRule::where('token_id', $tokenId)->get()->keyBy('room_id');
         $rooms = ChatRooms::where('is_active', 1)->get(['roomId', 'roomName']);
 
-        $result = $rooms->map(function ($room) use ($rules) {
+        $result = $rooms->map(function ($room) use ($rules, $field) {
             $rule = $rules->get($room->roomId);
             return [
                 'roomId'     => $room->roomId,
                 'roomName'   => $room->roomName,
-                'is_allowed' => $rule ? (bool) $rule->is_allowed : true,
+                'is_allowed' => $rule ? (bool) $rule->$field : true,
             ];
         })->values();
 

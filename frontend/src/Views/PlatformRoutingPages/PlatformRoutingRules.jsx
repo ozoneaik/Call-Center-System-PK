@@ -121,65 +121,60 @@ function TokenCard({ token, isSelected, onClick }) {
     );
 }
 
-function RoomCard({ room, isAllowed, onChange }) {
+function PermissionRow({ icon: Icon, label, checked, onChange }) {
+    return (
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Icon sx={{ fontSize: 13, color: checked ? "success.500" : "danger.400" }} />
+                <Typography level="body-xs" sx={{ color: checked ? "success.600" : "danger.500" }}>
+                    {label}
+                </Typography>
+            </Box>
+            <Switch checked={checked} onChange={onChange} color={checked ? "success" : "neutral"} size="sm" />
+        </Box>
+    );
+}
+
+function RoomCard({ room, isAllowed, allowCreateCase, onChange }) {
+    const anyBlocked = !isAllowed || !allowCreateCase;
     return (
         <Card
             variant="outlined"
             sx={{
-                position: "relative",
-                borderColor: isAllowed ? "neutral.200" : "danger.200",
-                bgcolor: isAllowed ? "background.surface" : "danger.50",
+                borderColor: anyBlocked ? "warning.200" : "neutral.200",
+                bgcolor: anyBlocked ? "warning.50" : "background.surface",
                 transition: "all 0.2s",
-                opacity: isAllowed ? 1 : 0.75,
             }}
         >
             <CardContent sx={{ p: 1.5, gap: 1 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                            level="body-sm"
-                            sx={{
-                                fontFamily: "monospace",
-                                color: isAllowed ? "primary.500" : "danger.400",
-                                fontSize: "0.7rem",
-                                fontWeight: 600,
-                            }}
-                        >
-                            {room.roomId}
-                        </Typography>
-                        <Typography
-                            level="body-md"
-                            sx={{
-                                fontWeight: 600,
-                                color: isAllowed ? "text.primary" : "neutral.400",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                            }}
-                        >
-                            {room.roomName}
-                        </Typography>
-                    </Box>
-                    <Switch
-                        checked={isAllowed}
-                        onChange={(e) => onChange(room.roomId, e.target.checked)}
-                        color={isAllowed ? "success" : "neutral"}
-                        size="sm"
-                    />
+                <Box sx={{ minWidth: 0, mb: 0.5 }}>
+                    <Typography
+                        level="body-sm"
+                        sx={{ fontFamily: "monospace", color: "primary.500", fontSize: "0.7rem", fontWeight: 600 }}
+                    >
+                        {room.roomId}
+                    </Typography>
+                    <Typography
+                        level="body-md"
+                        sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
+                        {room.roomName}
+                    </Typography>
                 </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {isAllowed ? (
-                        <>
-                            <LockOpenIcon sx={{ fontSize: 13, color: "success.500" }} />
-                            <Typography level="body-xs" sx={{ color: "success.600" }}>ส่งต่อได้</Typography>
-                        </>
-                    ) : (
-                        <>
-                            <LockIcon sx={{ fontSize: 13, color: "danger.400" }} />
-                            <Typography level="body-xs" sx={{ color: "danger.500" }}>ปิดกั้น</Typography>
-                        </>
-                    )}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                    <PermissionRow
+                        icon={isAllowed ? LockOpenIcon : LockIcon}
+                        label="ส่งต่อห้อง"
+                        checked={isAllowed}
+                        onChange={(e) => onChange(room.roomId, "is_allowed", e.target.checked)}
+                    />
+                    <PermissionRow
+                        icon={allowCreateCase ? LockOpenIcon : LockIcon}
+                        label="สร้างเคสใหม่"
+                        checked={allowCreateCase}
+                        onChange={(e) => onChange(room.roomId, "allow_create_case", e.target.checked)}
+                    />
                 </Box>
             </CardContent>
         </Card>
@@ -225,26 +220,34 @@ export default function PlatformRoutingRules() {
     const loadToken = (token) => {
         setSelectedToken(token);
         const rules = {};
-        token.room_permissions.forEach((p) => { rules[p.roomId] = p.is_allowed; });
+        token.room_permissions.forEach((p) => {
+            rules[p.roomId] = { is_allowed: p.is_allowed, allow_create_case: p.allow_create_case };
+        });
         setPendingRules(rules);
         setDirty(false);
     };
 
-    const handleToggle = (roomId, value) => {
-        setPendingRules((prev) => ({ ...prev, [roomId]: value }));
+    const handleToggle = (roomId, field, value) => {
+        setPendingRules((prev) => ({ ...prev, [roomId]: { ...prev[roomId], [field]: value } }));
         setDirty(true);
     };
 
     const handleSetAll = (value) => {
         const updated = {};
-        rooms.forEach((r) => { updated[r.roomId] = value; });
+        rooms.forEach((r) => {
+            updated[r.roomId] = { ...(pendingRules[r.roomId] ?? {}), is_allowed: value, allow_create_case: value };
+        });
         setPendingRules(updated);
         setDirty(true);
     };
 
     const handleSave = async () => {
         setSaving(true);
-        const rules = Object.entries(pendingRules).map(([roomId, is_allowed]) => ({ roomId, is_allowed }));
+        const rules = Object.entries(pendingRules).map(([roomId, perms]) => ({
+            roomId,
+            is_allowed: perms.is_allowed,
+            allow_create_case: perms.allow_create_case,
+        }));
         const { data, status } = await updatePlatformRoutingRulesApi({ token_id: selectedToken.id, rules });
         setSaving(false);
 
@@ -255,31 +258,31 @@ export default function PlatformRoutingRules() {
             onPassed: () => {
                 if (status === 200) {
                     setDirty(false);
+                    const mergePerms = (p) => ({
+                        ...p,
+                        is_allowed:        pendingRules[p.roomId]?.is_allowed        ?? p.is_allowed,
+                        allow_create_case: pendingRules[p.roomId]?.allow_create_case ?? p.allow_create_case,
+                    });
                     setTokens((prev) =>
                         prev.map((t) =>
                             t.id !== selectedToken.id ? t : {
                                 ...t,
-                                room_permissions: t.room_permissions.map((p) => ({
-                                    ...p,
-                                    is_allowed: pendingRules[p.roomId] ?? p.is_allowed,
-                                })),
+                                room_permissions: t.room_permissions.map(mergePerms),
                             }
                         )
                     );
                     setSelectedToken((prev) => ({
                         ...prev,
-                        room_permissions: prev.room_permissions.map((p) => ({
-                            ...p,
-                            is_allowed: pendingRules[p.roomId] ?? p.is_allowed,
-                        })),
+                        room_permissions: prev.room_permissions.map(mergePerms),
                     }));
                 }
             },
         });
     };
 
-    const allowedCount = Object.values(pendingRules).filter(Boolean).length;
-    const blockedCount = rooms.length - allowedCount;
+    const allowedCount      = Object.values(pendingRules).filter((p) => p.is_allowed).length;
+    const blockedCount      = rooms.length - allowedCount;
+    const createCaseCount   = Object.values(pendingRules).filter((p) => p.allow_create_case).length;
 
     const groupedTokens = tokens.reduce((acc, token) => {
         const p = token.platform || "other";
@@ -389,7 +392,7 @@ export default function PlatformRoutingRules() {
                                                         {selectedToken.description || `Token #${selectedToken.id}`}
                                                     </Typography>
                                                 </Box>
-                                                <Box sx={{ display: "flex", gap: 1, mt: 0.8 }}>
+                                                <Box sx={{ display: "flex", gap: 1, mt: 0.8, flexWrap: "wrap" }}>
                                                     <Chip size="sm" color="success" variant="soft">
                                                         ✓ ส่งต่อได้ {allowedCount} ห้อง
                                                     </Chip>
@@ -398,6 +401,9 @@ export default function PlatformRoutingRules() {
                                                             ✗ ปิดกั้น {blockedCount} ห้อง
                                                         </Chip>
                                                     )}
+                                                    <Chip size="sm" color="primary" variant="soft">
+                                                        สร้างเคสได้ {createCaseCount} ห้อง
+                                                    </Chip>
                                                 </Box>
                                             </Box>
 
@@ -449,12 +455,13 @@ export default function PlatformRoutingRules() {
                                     <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
                                         <Grid container spacing={1.5}>
                                             {rooms.map((room) => {
-                                                const isAllowed = pendingRules[room.roomId] ?? true;
+                                                const perms = pendingRules[room.roomId] ?? { is_allowed: true, allow_create_case: true };
                                                 return (
                                                     <Grid key={room.roomId} xs={12} sm={6} md={4}>
                                                         <RoomCard
                                                             room={room}
-                                                            isAllowed={isAllowed}
+                                                            isAllowed={perms.is_allowed}
+                                                            allowCreateCase={perms.allow_create_case}
                                                             onChange={handleToggle}
                                                         />
                                                     </Grid>
