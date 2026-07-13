@@ -120,7 +120,7 @@ export default function ChatDetail() {
 
     return (
         <>
-            {openCreateCase && <CreateCase open={openCreateCase} setOpen={setOpenCreateCase} custId={custId} />}
+            {openCreateCase && <CreateCase open={openCreateCase} setOpen={setOpenCreateCase} custId={custId} tokenId={customer?.platformRef} />}
             <Stack direction='row' spacing={0}>
                 {loading ?
                     <CircularProgress /> :

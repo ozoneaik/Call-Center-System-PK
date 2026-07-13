@@ -38,6 +38,7 @@ import TokenManeger from "./Views/TokenPages/TokenManager.jsx";
 import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 import KnowledgeBasePage from "./Views/KnowledgeBasePages/main.jsx";
+import PlatformRoutingRules from "./Views/PlatformRoutingPages/PlatformRoutingRules.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -85,6 +86,7 @@ export const routes = createBrowserRouter([
                             { path: '/sticker', element: <StickerList /> },
                             { path: '/announces', element: <AnnouncesList /> },
                             { path: '/knowledge-base', element: <KnowledgeBasePage /> },
+                            { path: '/platform-routing', element: <PlatformRoutingRules /> },
                         ]
                     },
                     { path: '/report', element: <ReportPage /> },

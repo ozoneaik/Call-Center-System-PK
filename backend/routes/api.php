@@ -28,6 +28,7 @@ use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\KnowledgeBaseController;
+use App\Http\Controllers\PlatformRoutingController;
 use App\Http\Controllers\webhooks\LineUATController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
@@ -255,6 +256,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/store', [StickerModelController::class, 'store']);
         Route::put('/update/{id}', [StickerModelController::class, 'update']);
         Route::delete('/delete/{id}', [StickerModelController::class, 'delete']);
+    });
+
+    // จัดการ routing rules ของ platform
+    Route::prefix('platform-routing')->group(function () {
+        Route::get('/', [PlatformRoutingController::class, 'index']);
+        Route::post('/update-rules', [PlatformRoutingController::class, 'updateRules']);
+        Route::get('/allowed-rooms/{tokenId}', [PlatformRoutingController::class, 'allowedRooms']);
     });
 
     // Knowledge Base

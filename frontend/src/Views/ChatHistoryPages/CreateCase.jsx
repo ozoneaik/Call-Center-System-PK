@@ -1,12 +1,13 @@
-import { Alert, Button, CircularProgress, Modal, ModalClose, ModalDialog, Sheet, Stack, Typography } from "@mui/joy"
-import { Warning } from "@mui/icons-material"
+import { Alert, Button, Chip, CircularProgress, Modal, ModalClose, Sheet, Stack, Typography } from "@mui/joy"
+import { Lock, Warning } from "@mui/icons-material"
 import { useEffect, useState } from "react"
 import axiosClient from "../../Axios";
 import { Grid2 } from "@mui/material";
 import { AlertDiaLog } from "../../Dialogs/Alert";
 import { useNavigate } from "react-router-dom";
+import { allowedRoomsApi } from "../../Api/PlatformRouting.js";
 
-export default function CreateCase({ open, setOpen, custId }) {
+export default function CreateCase({ open, setOpen, custId, tokenId }) {
     const [selectRoom, setSelecRoom] = useState({
         roomId: null,
         roomName: null
@@ -18,23 +19,30 @@ export default function CreateCase({ open, setOpen, custId }) {
         fetchRooms().finally(() => setLoading(false));
     }, []);
 
-    const handleSelectRoom = (roomId, roomName) => {
-        setSelecRoom({
-            roomId: roomId,
-            roomName: roomName
-        });
-    }
+    const handleSelectRoom = (roomId, roomName, isAllowed) => {
+        if (!isAllowed) return;
+        setSelecRoom({ roomId, roomName });
+    };
 
     const fetchRooms = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
+            if (tokenId) {
+                const { data, status } = await allowedRoomsApi(tokenId);
+                if (status === 200) {
+                    setRooms(data.rooms);
+                    return;
+                }
+            }
+            // fallback: ดึงห้องทั้งหมดถ้าไม่มี tokenId
             const { data, status } = await axiosClient.get('/chatRooms/list');
-            console.log(data, status);
-            setRooms(data.chatRooms);
+            if (status === 200) {
+                setRooms(data.chatRooms.map((r) => ({ ...r, is_allowed: true })));
+            }
         } catch (error) {
-            console.error("Error fetching data:", error);
+            console.error("Error fetching rooms:", error);
         }
-    }
+    };
 
     const handleCreateCase = async () => {
         console.log(selectRoom, 'selectRoom');
@@ -70,7 +78,7 @@ export default function CreateCase({ open, setOpen, custId }) {
             sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
         >
 
-            <Sheet variant="outlined" sx={{ maxWidth: 700, borderRadius: 'md', p: 3, boxShadow: 'lg' }}>
+            <Sheet variant="outlined" sx={{ minWidth: 500, maxWidth: 1200, borderRadius: 'md', p: 3, boxShadow: 'lg' }}>
                 <ModalClose variant="plain" sx={{ m: 1 }} />
                 <Typography
                     component="h2" id="modal-title" level="h4"
@@ -86,17 +94,30 @@ export default function CreateCase({ open, setOpen, custId }) {
                 {loading ? (
                     <CircularProgress />
                 ) : (
-                    <Grid2 container spacing={1} mt={2}>
-                        {rooms.map((room, index) => (
-                            <Grid2 key={index} size={{ xs: 12, md: 4 }}>
-                                <Button
-                                    fullWidth onClick={() => handleSelectRoom(room.roomId, room.roomName)}
-                                    variant={selectRoom.roomId === room.roomId ? 'solid' : 'outlined'}
-                                >
-                                    {room.roomName}
-                                </Button>
-                            </Grid2>
-                        ))}
+                    <Grid2 container spacing={2} mt={2}>
+                        {rooms.map((room, index) => {
+                            const isAllowed = room.is_allowed !== false;
+                            const isSelected = selectRoom.roomId === room.roomId;
+                            return (
+                                <Grid2 key={index} size={{ xs: 12, md: 4 }}>
+                                    <Button
+                                        fullWidth
+                                        onClick={() => handleSelectRoom(room.roomId, room.roomName, isAllowed)}
+                                        variant={isSelected ? 'solid' : 'outlined'}
+                                        color={!isAllowed ? 'neutral' : 'primary'}
+                                        disabled={!isAllowed}
+                                        startDecorator={!isAllowed ? <Lock fontSize="small" /> : null}
+                                        endDecorator={!isAllowed
+                                            ? <Chip size="sm" color="danger" variant="soft">No Permission</Chip>
+                                            : null
+                                        }
+                                        sx={{ justifyContent: 'space-between' }}
+                                    >
+                                        {room.roomName}
+                                    </Button>
+                                </Grid2>
+                            );
+                        })}
                         <Grid2 size={12}>
                             <Stack direction='row-reverse' spacing={1}>
                                 <Button variant="solid" disabled={!selectRoom.roomId} onClick={handleCreateCase}>ตกลง</Button>

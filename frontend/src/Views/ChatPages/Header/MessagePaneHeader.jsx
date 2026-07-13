@@ -81,6 +81,7 @@ function MessagePaneHeader(props) {
                             rateId={rateId} activeId={activeId}
                             chatRooms={chatRooms} roomSelect={roomSelect}
                             listAllChatRooms={listAllChatRooms}
+                            tokenId={sender.platformRef}
                         />
                         <Btn
                             title={'ตัวช่วยตอบ'} color={'warning'} icon={<AddCommentIcon />}

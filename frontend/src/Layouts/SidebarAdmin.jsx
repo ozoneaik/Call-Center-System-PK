@@ -24,6 +24,7 @@ import {
   LabelOutlined,
   SubdirectoryArrowRight,
   AutoAwesome,
+  AltRoute,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
@@ -92,6 +93,15 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
             <ListItemButton selected={pathname === "/chatRooms"}>
               <MeetingRoom />
               <Typography level="title-sm">จัดการห้องแชท</Typography>
+            </ListItemButton>
+          </ListItem>
+        )}
+
+        {matchSearch("สิทธิ์การส่งต่อห้อง") && (
+          <ListItem component={Link} to="/platform-routing">
+            <ListItemButton selected={pathname === "/platform-routing"}>
+              <AltRoute />
+              <Typography level="title-sm">สิทธิ์การส่งต่อห้อง</Typography>
             </ListItemButton>
           </ListItem>
         )}
