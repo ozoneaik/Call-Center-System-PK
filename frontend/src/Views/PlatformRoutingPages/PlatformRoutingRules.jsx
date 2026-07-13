@@ -300,7 +300,7 @@ export default function PlatformRoutingRules() {
 
                 <Grid container spacing={2} sx={{ height: "calc(100vh - 120px)" }}>
                     {/* ===== Left: Token List ===== */}
-                    <Grid xs={12} md={4} sx={{ display: "flex", flexDirection: "column" }}>
+                    <Grid xs={12} md={4} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
                         <Card variant="outlined" sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                             <Box sx={{ p: 2, pb: 1.5 }}>
                                 <Typography level="title-lg">Platform Tokens</Typography>
@@ -352,7 +352,7 @@ export default function PlatformRoutingRules() {
                     </Grid>
 
                     {/* ===== Right: Room Permissions ===== */}
-                    <Grid xs={12} md={8} sx={{ display: "flex", flexDirection: "column" }}>
+                    <Grid xs={12} md={8} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
                         <Card variant="outlined" sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                             {!selectedToken ? (
                                 <Box
