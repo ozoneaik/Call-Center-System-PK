@@ -5,7 +5,7 @@ const base = '/platform-routing';
 
 export const platformRoutingListApi = async () => {
     try {
-        const { data, status } = await axiosClient.get(`${base}/`);
+        const { data, status } = await axiosClient.get(`${base}`);
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
