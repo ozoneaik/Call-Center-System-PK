@@ -232,10 +232,19 @@ export default function PlatformRoutingRules() {
         setDirty(true);
     };
 
-    const handleSetAll = (value) => {
+    const handleSetAllAllowed = (value) => {
         const updated = {};
         rooms.forEach((r) => {
-            updated[r.roomId] = { ...(pendingRules[r.roomId] ?? {}), is_allowed: value, allow_create_case: value };
+            updated[r.roomId] = { ...(pendingRules[r.roomId] ?? {}), is_allowed: value };
+        });
+        setPendingRules(updated);
+        setDirty(true);
+    };
+
+    const handleSetAllCreateCase = (value) => {
+        const updated = {};
+        rooms.forEach((r) => {
+            updated[r.roomId] = { ...(pendingRules[r.roomId] ?? {}), allow_create_case: value };
         });
         setPendingRules(updated);
         setDirty(true);
@@ -407,13 +416,25 @@ export default function PlatformRoutingRules() {
                                                 </Box>
                                             </Box>
 
-                                            <Box sx={{ display: "flex", gap: 1 }}>
-                                                <Button size="sm" variant="outlined" color="success" onClick={() => handleSetAll(true)}>
-                                                    เปิดทั้งหมด
-                                                </Button>
-                                                <Button size="sm" variant="outlined" color="danger" onClick={() => handleSetAll(false)}>
-                                                    ปิดทั้งหมด
-                                                </Button>
+                                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, alignItems: "flex-end" }}>
+                                                <Box sx={{ display: "flex", gap: 0.8, alignItems: "center" }}>
+                                                    <Typography level="body-xs" sx={{ color: "neutral.500", whiteSpace: "nowrap" }}>ส่งต่อ:</Typography>
+                                                    <Button size="sm" variant="outlined" color="success" onClick={() => handleSetAllAllowed(true)}>
+                                                        เปิดทั้งหมด
+                                                    </Button>
+                                                    <Button size="sm" variant="outlined" color="danger" onClick={() => handleSetAllAllowed(false)}>
+                                                        ปิดทั้งหมด
+                                                    </Button>
+                                                </Box>
+                                                <Box sx={{ display: "flex", gap: 0.8, alignItems: "center" }}>
+                                                    <Typography level="body-xs" sx={{ color: "neutral.500", whiteSpace: "nowrap" }}>สร้างเคส:</Typography>
+                                                    <Button size="sm" variant="outlined" color="success" onClick={() => handleSetAllCreateCase(true)}>
+                                                        เปิดทั้งหมด
+                                                    </Button>
+                                                    <Button size="sm" variant="outlined" color="danger" onClick={() => handleSetAllCreateCase(false)}>
+                                                        ปิดทั้งหมด
+                                                    </Button>
+                                                </Box>
                                                 <Button
                                                     size="sm"
                                                     color="primary"
