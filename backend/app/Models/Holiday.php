@@ -11,8 +11,15 @@ class Holiday extends Model
     protected $fillable = [
         'date_time',
         'holiday_name',
+        'message',
+        'start_date',
+        'end_date',
         'is_active',
         'created_by',
         'updated_by',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 }

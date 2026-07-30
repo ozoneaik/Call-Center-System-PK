@@ -39,6 +39,7 @@ import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 import KnowledgeBasePage from "./Views/KnowledgeBasePages/main.jsx";
 import PlatformRoutingRules from "./Views/PlatformRoutingPages/PlatformRoutingRules.jsx";
+import HolidayPage from "./Views/HolidayPages/main.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -87,6 +88,7 @@ export const routes = createBrowserRouter([
                             { path: '/announces', element: <AnnouncesList /> },
                             { path: '/knowledge-base', element: <KnowledgeBasePage /> },
                             { path: '/platform-routing', element: <PlatformRoutingRules /> },
+                            { path: '/holidays', element: <HolidayPage /> },
                         ]
                     },
                     { path: '/report', element: <ReportPage /> },

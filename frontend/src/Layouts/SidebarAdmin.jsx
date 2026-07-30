@@ -25,6 +25,7 @@ import {
   SubdirectoryArrowRight,
   AutoAwesome,
   AltRoute,
+  EventBusy,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
@@ -208,6 +209,15 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
                 </ListItem>
               </List>
             </Toggler>
+          </ListItem>
+        )}
+
+        {matchSearch("จัดการวันหยุด") && (
+          <ListItem component={Link} to="/holidays">
+            <ListItemButton selected={pathname === "/holidays"}>
+              <EventBusy />
+              <Typography level="title-sm">จัดการวันหยุด</Typography>
+            </ListItemButton>
           </ListItem>
         )}
 

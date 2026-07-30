@@ -27,6 +27,7 @@ use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\PlatformRoutingController;
 use App\Http\Controllers\webhooks\LineUATController;
@@ -68,6 +69,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}', [CustomersController::class, 'CustomerDetail']);
         Route::put('/update', [CustomersController::class, 'UpdateCustomer']);
+    });
+
+    // จัดการวันหยุด
+    Route::prefix('holidays')->group(function () {
+        Route::get('/list', [HolidayController::class, 'index']);
+        Route::post('/store', [HolidayController::class, 'store']);
+        Route::put('/update/{id}', [HolidayController::class, 'update']);
+        Route::delete('/delete/{id}', [HolidayController::class, 'destroy']);
     });
 
     // จัดการห้องแชท
