@@ -2,7 +2,7 @@ import {useLocation, useParams } from "react-router-dom";
 import { CircularProgress, Sheet,Box, Stack, Avatar } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { selectMessageApi } from "../../../Api/Messages.js";
 import ChatBubble from "./ChatBubble.jsx";
 import { useNotification } from "../../../context/NotiContext.jsx";
@@ -110,6 +110,18 @@ export default function MessagePane() {
         })
     }
     const isShopeeRoom = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
+
+    // ข้อความล่าสุดจากลูกค้า (ไม่ใช่จากพนักงาน) ใช้เป็นตัวกระตุ้นให้ AI panel ยิงไปหา chat-oc-any อัตโนมัติ
+    const latestCustomerMessage = useMemo(() => {
+        if (!Array.isArray(messages)) return null;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i] && !messages[i].sender?.empCode) {
+                return messages[i];
+            }
+        }
+        return null;
+    }, [messages]);
+
     return (
         <>
             <Sheet sx={MessageStyle.MainLayout}>
@@ -167,7 +179,7 @@ export default function MessagePane() {
                         )}
                     </Sheet>
                 </Sheet>
-                <Info {...{ sender, starList, notes, check }} />
+                <Info {...{ sender, starList, notes, check, setMsg, activeId, latestCustomerMessage }} />
             </Sheet>
         </>
     )
@@ -371,7 +383,7 @@ export default function MessagePane() {
 //                         )}
 //                     </Sheet>
 //                 </Sheet>
-//                 <Info {...{ sender, starList, notes, check }} />
+//                 <Info {...{ sender, starList, notes, check, setMsg, activeId }} />
 //             </Sheet>
 //         </>
 //     )

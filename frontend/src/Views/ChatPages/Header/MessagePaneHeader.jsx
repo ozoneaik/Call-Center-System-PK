@@ -7,7 +7,6 @@ import Chip from "@mui/joy/Chip";
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import { openMessagesPane } from "../../../utils.js";
 import { EndTalk } from "./EndTalk.jsx";
 import { ChangeRoom } from "./ChangeRoom.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -59,7 +58,7 @@ function MessagePaneHeader(props) {
                         <ArrowBackIosIcon />
                     </Button>
                     <Avatar size="lg" src={sender.avatar} />
-                    <div onClick={() => openMessagesPane()}>
+                    <div>
                         <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
                             <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
                                 {sender.custName} | 

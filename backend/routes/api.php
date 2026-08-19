@@ -28,6 +28,7 @@ use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\PlatformRoutingController;
 use App\Http\Controllers\webhooks\LineUATController;
@@ -68,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('customers')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}', [CustomersController::class, 'CustomerDetail']);
+        Route::get('/history-summary/{custId}', [CustomersController::class, 'HistorySummary']);
         Route::put('/update', [CustomersController::class, 'UpdateCustomer']);
     });
 
@@ -286,6 +288,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/update-ai/{id}', [KnowledgeBaseController::class, 'updateAi']);
         Route::put('/exclude/{id}', [KnowledgeBaseController::class, 'exclude']);
         Route::put('/restore/{id}', [KnowledgeBaseController::class, 'restore']);
+    });
+
+    // AI Assistant (แชท) - ตัวอย่าง endpoint คำแนะนำคำตอบ ยังเป็น mock รอต่อ AI จริง
+    Route::prefix('ai-assistant')->group(function () {
+        Route::get('/suggestions/{activeId}', [AiAssistantController::class, 'suggestions']);
+        Route::get('/customer-analysis/{custId}', [AiAssistantController::class, 'customerAnalysis']);
     });
 });
 

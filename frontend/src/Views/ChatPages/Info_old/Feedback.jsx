@@ -42,7 +42,8 @@ const TagEndTalk = ({tagName}) => (
 export const Feedback = (props) => {
     const {starList} = props;
     return (
-        <Box sx={{p: 2, height: '100%', overflowY: 'scroll'}}>
+        <Box sx={{p: 2, height: '40%', overflowY: 'scroll'}}>
+            <Typography level="title-md" sx={{mb: 1}} onClick={() => console.log(props)}>ประวัติการประเมิน</Typography>
             <Stack spacing={1}>
                 {starList && starList.length > 0 ?
                     starList.map((star, index) => (

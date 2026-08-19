@@ -48,6 +48,24 @@ class CustomersController extends Controller
         }
     }
 
+    // สรุปประวัติของลูกค้า: เคยคุยกี่เคส และแยกเป็นห้องไหนบ้าง (ใช้ประกอบเป็นบริบทให้ AI suggestion หรือแสดงให้พนักงานดู)
+    public function HistorySummary(string $custId): JsonResponse
+    {
+        try {
+            $summary = $this->customerService->historySummary($custId);
+            return response()->json([
+                'message' => 'ดึงข้อมูลสำเร็จ',
+                'custId' => $custId,
+                'total_cases' => $summary['total_cases'],
+                'rooms' => $summary['rooms'],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function UpdateCustomer(Request $request): JsonResponse
     {
         try {

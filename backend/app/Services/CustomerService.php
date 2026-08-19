@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 use App\Models\customers;
+use App\Models\Rates;
 use Illuminate\Database\Eloquent\Collection;
 
 class CustomerService{
@@ -26,6 +27,27 @@ class CustomerService{
             $data['detail'] = null;
         }
         return $data;
+    }
+
+    // นับจำนวนเคส (rates) ทั้งหมดของลูกค้าคนนี้ แยกตามห้องที่เคยคุย เพื่อใช้เป็นบริบทประกอบ (เช่น ให้ AI suggestion อ้างอิง)
+    public function historySummary(string $custId) : array{
+        $totalCases = Rates::query()->where('custId', $custId)->count();
+
+        $rooms = Rates::query()
+            ->leftJoin('chat_rooms', 'chat_rooms.roomId', '=', 'rates.latestRoomId')
+            ->where('rates.custId', $custId)
+            ->groupBy('chat_rooms.roomId', 'chat_rooms.roomName')
+            ->orderByDesc('count')
+            ->get([
+                'chat_rooms.roomId',
+                'chat_rooms.roomName',
+                \Illuminate\Support\Facades\DB::raw('COUNT(rates.id) as count'),
+            ]);
+
+        return [
+            'total_cases' => $totalCases,
+            'rooms' => $rooms,
+        ];
     }
 
     public function update($custId, $FormData) : array{

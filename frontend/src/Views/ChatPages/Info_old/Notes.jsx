@@ -73,7 +73,8 @@ export const Notes = (props) => {
 
     return (
         <>
-            <Box sx={{ p: 2, height: '100%', overflowY: 'scroll' }}>
+            <Box sx={{ p: 2, height: '40%', overflowY: 'scroll' }}>
+                <Typography level="title-md" sx={{ mb: 1 }}>โน๊ต</Typography>
                 <Stack spacing={1}>
                     {check === '1' && (
                         <form onSubmit={(e) => addNote(e)}>

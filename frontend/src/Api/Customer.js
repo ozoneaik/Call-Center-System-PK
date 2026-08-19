@@ -23,6 +23,16 @@ export const customersListApi = async (page = 1) => {
     }
 };
 
+// สรุปประวัติของลูกค้า: เคยคุยกี่เคส และแยกเป็นห้องไหนบ้าง
+export const customerHistorySummaryApi = async (custId) => {
+    try {
+        const { data, status } = await axiosClient.get(`${customers}/history-summary/${custId}`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
 // แก้ไขข้อมูลลูกค้า
 export const customerUpdateApi = async (customer) => {
     try {
