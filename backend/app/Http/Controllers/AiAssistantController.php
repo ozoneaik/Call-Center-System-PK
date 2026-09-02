@@ -90,10 +90,10 @@ class AiAssistantController extends Controller
     public function liveSuggest(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'message'   => 'nullable|string',
-            'image_url' => 'nullable|string',
-            'cust_id'   => 'nullable|string',
-            'image'     => 'nullable|file|max:10240',
+            'message'    => 'nullable|string',
+            'image_url'  => 'nullable|string',
+            'session_id' => 'nullable|string',
+            'image'      => 'nullable|file|max:10240',
         ]);
 
         $url = config('services.chat_oc_any.url');
@@ -108,9 +108,8 @@ class AiAssistantController extends Controller
         if (!empty($validated['image_url'])) {
             $multipart[] = ['name' => 'image_url', 'contents' => $validated['image_url']];
         }
-        if (!empty($validated['cust_id'])) {
-            // service ฝั่ง chat-oc-any รับ field ชื่อ session_id (ทดสอบแล้วด้วย curl) ไม่ใช่ custId
-            $multipart[] = ['name' => 'session_id', 'contents' => $validated['cust_id']];
+        if (!empty($validated['session_id'])) {
+            $multipart[] = ['name' => 'session_id', 'contents' => $validated['session_id']];
         }
         if ($request->hasFile('image')) {
             $file = $request->file('image');
