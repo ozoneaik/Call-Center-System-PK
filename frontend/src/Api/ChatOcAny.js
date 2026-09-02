@@ -9,7 +9,7 @@ export const sendChatOcAnyApi = async ({ message, imageFile, imageUrl, custId })
     // normalize('NFC') กันกรณีตัวอักษรไทย (สระ/วรรณยุกต์) มาแบบแยกส่วนจนต่อกันผิดรูป
     form.append('message', (message || '').normalize('NFC'));
     if (imageUrl) form.append('image_url', imageUrl.normalize('NFC'));
-    if (custId) form.append('cust_id', custId);
+    if (custId) form.append('session_id', custId);
     if (imageFile) form.append('image', imageFile, imageFile.name || 'image.jpg');
 
     // Content-Type: null → ลบ default (Axios.js ตั้ง multipart/form-data ไว้แบบไม่มี boundary)
