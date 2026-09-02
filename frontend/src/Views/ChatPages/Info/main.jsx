@@ -93,7 +93,8 @@ export default function Info(props) {
                         // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ
                         question: data.summarytxt || questionText,
                         content: data.answer || data.reply,
-                        source: data.source || 'ai',
+                        // source เก็บเป็นแท็กสั้น ๆ (kb/web/ai) เท่านั้น — service อาจส่งค่าอื่น/ยาวเกินคอลัมน์ ให้ปัดเป็น 'ai'
+                        source: ['kb', 'web', 'ai'].includes(data.source) ? data.source : 'ai',
                         reference: data.resolved_product
                             ? Object.entries(data.resolved_product).map(([k, v]) => `${k}: ${v}`).join(' · ')
                             : undefined,

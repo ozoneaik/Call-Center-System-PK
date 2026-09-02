@@ -173,12 +173,14 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
                 question: kbQuestion,
                 answer: kbAnswer,
                 note: kbNote || null,
-                source: suggestion.source || null,
+                // source เป็นแท็กสั้น ๆ (kb/web/ai) เท่านั้น — ค่าอื่นให้ส่ง null กัน backend ตีกลับ
+                source: ['kb', 'web', 'ai'].includes(suggestion.source) ? suggestion.source : null,
                 cust_id: custId || null,
                 active_conversation_id: activeId || null,
             });
+            // ปิด dialog ก่อนแสดง alert ทุกกรณี ไม่งั้น popup ของ SweetAlert จะไปอยู่หลัง Modal
+            setKbOpen(false);
             if (status === 201 || status === 200) {
-                setKbOpen(false);
                 AlertDiaLog({
                     icon: 'success',
                     title: 'บันทึกเข้า KB แล้ว',

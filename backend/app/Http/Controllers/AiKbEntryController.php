@@ -15,11 +15,16 @@ class AiKbEntryController extends Controller
             'question' => 'required|string',
             'answer' => 'required|string',
             'note' => 'nullable|string',
-            'source' => 'nullable|string|max:20',
+            'source' => 'nullable|string',
             'tag_name' => 'nullable|string',
             'cust_id' => 'nullable|string',
             'active_conversation_id' => 'nullable|integer',
         ]);
+
+        // source เก็บเป็นแท็กสั้น ๆ เท่านั้น (คอลัมน์ string(20)) — ค่าที่ไม่รู้จัก/ยาวเกิน จาก service ภายนอก ให้ปัดเป็น null
+        $validated['source'] = in_array($validated['source'] ?? null, ['kb', 'web', 'ai'], true)
+            ? $validated['source']
+            : null;
 
         $user = $request->user();
 

@@ -9,6 +9,12 @@ const options = {
     confirmButtonColor: '#f15721'
 }
 
+// ดัน container ของ SweetAlert ให้อยู่เหนือ MUI Joy Modal (z-index 1300) ไม่งั้น popup จะถูกบังอยู่ด้านหลัง
+const raiseAboveModal = () => {
+    const container = Swal.getContainer();
+    if (container) container.style.zIndex = '13000';
+}
+
 export const AlertDiaLog = ({title, text, icon, Outside, timer, onPassed = ()=> {}}) => {
     Swal.fire({
         title: title,
@@ -17,6 +23,7 @@ export const AlertDiaLog = ({title, text, icon, Outside, timer, onPassed = ()=> 
         allowOutsideClick: Outside ? Outside : false,
         timer: timer ? timer : null,
         ...options,
+        didOpen: raiseAboveModal,
     }).then((result) => {
         onPassed(result.isConfirmed);
     })
@@ -37,6 +44,7 @@ export const AlertWithForm = ({Text,text, onPassed, id,title='แก้ไขโ
             }
         },
         ...options,
+        didOpen: raiseAboveModal,
         preConfirm: async (input) => {
             try {
                 const {data, status} = await updateNoteApi({id, text: input});
