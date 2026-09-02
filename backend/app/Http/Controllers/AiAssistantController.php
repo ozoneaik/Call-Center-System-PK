@@ -7,6 +7,9 @@ use App\Models\ChatHistory;
 use App\Services\CustomerService;
 use App\Services\KbRetrievalService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AiAssistantController extends Controller
 {
@@ -77,6 +80,59 @@ class AiAssistantController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Proxy ไปยัง service chat-oc-any (AI ตอบสด) ฝั่ง server
+     * เดิม frontend ยิงตรงไป 127.0.0.1:7001 แต่ browser บล็อกเมื่อหน้าเว็บรันบน HTTPS domain
+     * (CORS / Private Network Access เข้าถึง loopback ไม่ได้) — จึงต้องให้ backend เรียกแทน
+     * คืน JSON ของ service กลับไปตรง ๆ ให้ frontend map เอง
+     */
+    public function liveSuggest(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'message'   => 'nullable|string',
+            'image_url' => 'nullable|string',
+            'cust_id'   => 'nullable|string',
+            'image'     => 'nullable|file|image|max:10240',
+        ]);
+
+        $url = config('services.chat_oc_any.url');
+        if (!$url) {
+            return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_ANY_URL'], 503);
+        }
+
+        $fields = array_filter([
+            'message'   => $validated['message'] ?? '',
+            'image_url' => $validated['image_url'] ?? null,
+            'custId'    => $validated['cust_id'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        try {
+            $http = Http::timeout(30);
+
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $http = $http->attach(
+                    'image',
+                    file_get_contents($file->getRealPath()),
+                    $file->getClientOriginalName() ?: 'image.jpg'
+                );
+                $response = $http->post($url, $fields);
+            } else {
+                $response = $http->asMultipart()->post($url, $fields);
+            }
+
+            if (!$response->successful()) {
+                Log::warning("liveSuggest: chat-oc-any HTTP {$response->status()} — {$response->body()}");
+                return response()->json(['message' => 'chat-oc-any ตอบกลับผิดพลาด'], 502);
+            }
+
+            return response()->json($response->json());
+        } catch (\Throwable $e) {
+            Log::error('liveSuggest error: ' . $e->getMessage());
+            return response()->json(['message' => 'เรียก chat-oc-any ไม่สำเร็จ'], 502);
+        }
     }
 
     /**

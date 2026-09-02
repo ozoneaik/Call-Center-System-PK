@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // AI ผู้ช่วยตอบสด (chat-oc-any) — backend เรียกแทน frontend เพราะ browser บล็อกการยิงตรงไป loopback/CORS
+    'chat_oc_any' => [
+        'url' => env('CHAT_OC_ANY_URL', 'http://127.0.0.1:7001/chat-oc-any'),
+    ],
+
 ];

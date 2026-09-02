@@ -295,6 +295,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('ai-assistant')->group(function () {
         Route::get('/suggestions/{activeId}', [AiAssistantController::class, 'suggestions']);
         Route::get('/customer-analysis/{custId}', [AiAssistantController::class, 'customerAnalysis']);
+        Route::post('/chat-oc-any', [AiAssistantController::class, 'liveSuggest']);
         Route::post('/kb-entries', [AiKbEntryController::class, 'store']);
     });
 });
