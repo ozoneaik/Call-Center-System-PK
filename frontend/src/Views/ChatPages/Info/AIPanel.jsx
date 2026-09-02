@@ -368,7 +368,7 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
             )}
 
             <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-                ตัวอย่างคำแนะนำอัตโนมัติ (mock รอเชื่อมต่อ AI วิเคราะห์บทสนทนาจริง)
+                คำแนะนำจากคลังความรู้ (KB) — จับคู่จากข้อความล่าสุดของลูกค้า
             </Typography>
 
             {loading ? (
@@ -389,7 +389,7 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
 
                     {suggestions.length === 0 ? (
                         <Typography level="body-sm" sx={{ color: 'text.tertiary', textAlign: 'center' }}>
-                            ยังไม่มีคำแนะนำจาก AI สำหรับแชทนี้
+                            ไม่พบคำตอบที่ใกล้เคียงในคลังความรู้
                         </Typography>
                     ) : (
                         suggestions.map((s) => (

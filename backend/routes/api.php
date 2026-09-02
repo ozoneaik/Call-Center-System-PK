@@ -291,7 +291,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/restore/{id}', [KnowledgeBaseController::class, 'restore']);
     });
 
-    // AI Assistant (แชท) - ตัวอย่าง endpoint คำแนะนำคำตอบ ยังเป็น mock รอต่อ AI จริง
+    // AI Assistant (แชท) - suggestions: ค้นคลังความรู้จริง (ai_kb_entries + knowledge_base_entries) | customer-analysis: ยังรอเฟสวิเคราะห์ประวัติ
     Route::prefix('ai-assistant')->group(function () {
         Route::get('/suggestions/{activeId}', [AiAssistantController::class, 'suggestions']);
         Route::get('/customer-analysis/{custId}', [AiAssistantController::class, 'customerAnalysis']);
