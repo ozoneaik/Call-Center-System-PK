@@ -2,6 +2,8 @@ export const MessageStyle = {
     MainLayout : {
         flex: 1,
         width: '100%',
+        height: '100dvh',
+        overflow: 'hidden',
         mx: 'auto',
         pt: {xs: 'var(--Header-height)', md: 0},
         display: 'grid',

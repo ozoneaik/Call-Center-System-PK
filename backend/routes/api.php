@@ -29,6 +29,7 @@ use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\AiAssistantController;
+use App\Http\Controllers\AiKbEntryController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\PlatformRoutingController;
 use App\Http\Controllers\webhooks\LineUATController;
@@ -294,6 +295,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('ai-assistant')->group(function () {
         Route::get('/suggestions/{activeId}', [AiAssistantController::class, 'suggestions']);
         Route::get('/customer-analysis/{custId}', [AiAssistantController::class, 'customerAnalysis']);
+        Route::post('/kb-entries', [AiKbEntryController::class, 'store']);
     });
 });
 

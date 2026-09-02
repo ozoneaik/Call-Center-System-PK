@@ -85,12 +85,14 @@ export default function Info(props) {
                 const data = await sendChatOcAnyApi({
                     message: isImage ? '' : latestCustomerMessage.content,
                     imageUrl: isImage ? latestCustomerMessage.content : undefined,
+                    custId: sender?.custId,
                 });
                 setLiveSuggestions((prev) => [
                     {
                         id: `live-${key}`,
-                        question: questionText,
-                        content: data.reply,
+                        // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ
+                        question: data.summarytxt || questionText,
+                        content: data.answer || data.reply,
                         source: data.source || 'ai',
                         reference: data.resolved_product
                             ? Object.entries(data.resolved_product).map(([k, v]) => `${k}: ${v}`).join(' · ')
@@ -249,6 +251,7 @@ export default function Info(props) {
                             {openSection === 'ai' && (
                                 <AIPanel
                                     activeId={activeId}
+                                    custId={sender?.custId}
                                     onUseDraft={handleUseDraft}
                                     liveSuggestions={liveSuggestions}
                                     liveLoading={liveLoading}

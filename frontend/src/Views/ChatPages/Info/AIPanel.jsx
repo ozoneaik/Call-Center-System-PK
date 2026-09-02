@@ -8,7 +8,7 @@ import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
-import { getAiSuggestionsApi } from "../../../Api/AiAssistant.js";
+import { getAiSuggestionsApi, storeAiKbEntryApi } from "../../../Api/AiAssistant.js";
 
 // แหล่งที่มาของคำตอบ: 'kb' = ดึงจากคลังความรู้ที่อนุมัติแล้ว, 'web' = ค้นจากเว็บไซต์/อินเทอร์เน็ต, 'ai' = AI ตอบสดแบบเรียลไทม์
 const SOURCE_CONFIG = {
@@ -76,7 +76,7 @@ function EditDraftDialog({ open, onClose, question, answer, setQuestion, setAnsw
     );
 }
 
-function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, onSave }) {
+function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, onSave, saving }) {
     return (
         <Modal open={open} onClose={onClose}>
             <ModalDialog size="lg" sx={DIALOG_BOX_SX}>
@@ -120,10 +120,10 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
                 </FormControl>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose}>
+                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose} disabled={saving}>
                         ยกเลิก
                     </Button>
-                    <Button size="lg" variant="solid" color="primary" onClick={onSave}>
+                    <Button size="lg" variant="solid" color="primary" onClick={onSave} loading={saving} disabled={saving}>
                         บันทึก
                     </Button>
                 </Box>
@@ -132,7 +132,7 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
     );
 }
 
-function SuggestionCard({ suggestion, onUseDraft }) {
+function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
     const [question, setQuestion] = useState(suggestion.question || '');
     const [draft, setDraft] = useState(suggestion.content);
 
@@ -144,6 +144,7 @@ function SuggestionCard({ suggestion, onUseDraft }) {
     const [kbQuestion, setKbQuestion] = useState('');
     const [kbAnswer, setKbAnswer] = useState('');
     const [kbNote, setKbNote] = useState('');
+    const [savingKb, setSavingKb] = useState(false);
 
     const openEditDialog = () => {
         setEditQuestion(question);
@@ -164,14 +165,35 @@ function SuggestionCard({ suggestion, onUseDraft }) {
         setKbOpen(true);
     };
 
-    const saveToKb = () => {
-        // TODO: ยังไม่มี endpoint สำหรับบันทึก KB จากแชทที่กำลังดำเนินอยู่ รอเชื่อมต่อ backend จริง
-        setKbOpen(false);
-        AlertDiaLog({
-            icon: 'success',
-            title: 'บันทึกเข้า KB แล้ว',
-            text: 'ตัวอย่างการแสดงผล (ยังไม่เชื่อมต่อ backend จริง)',
-        });
+    const saveToKb = async () => {
+        if (savingKb) return;
+        setSavingKb(true);
+        try {
+            const { data, status } = await storeAiKbEntryApi({
+                question: kbQuestion,
+                answer: kbAnswer,
+                note: kbNote || null,
+                source: suggestion.source || null,
+                cust_id: custId || null,
+                active_conversation_id: activeId || null,
+            });
+            if (status === 201 || status === 200) {
+                setKbOpen(false);
+                AlertDiaLog({
+                    icon: 'success',
+                    title: 'บันทึกเข้า KB แล้ว',
+                    text: data.message || 'บันทึกความรู้นี้เข้าคลังความรู้เรียบร้อยแล้ว',
+                });
+            } else {
+                AlertDiaLog({
+                    icon: 'error',
+                    title: 'บันทึกไม่สำเร็จ',
+                    text: data?.message || 'เกิดข้อผิดพลาดในการบันทึกเข้า KB',
+                });
+            }
+        } finally {
+            setSavingKb(false);
+        }
     };
 
     // กันกดรัว: หลังกด "ใช้ร่างคำตอบนี้" ให้ปุ่มโหลด/ปิดใช้งานชั่วคราวก่อนกดซ้ำได้
@@ -287,12 +309,13 @@ function SuggestionCard({ suggestion, onUseDraft }) {
                 setAnswer={setKbAnswer}
                 setNote={setKbNote}
                 onSave={saveToKb}
+                saving={savingKb}
             />
         </Sheet>
     );
 }
 
-export default function AIPanel({ activeId, onUseDraft, liveSuggestions = [], liveLoading = false }) {
+export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions = [], liveLoading = false }) {
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState('');
     const [suggestions, setSuggestions] = useState([]);
@@ -338,7 +361,7 @@ export default function AIPanel({ activeId, onUseDraft, liveSuggestions = [], li
                         </Box>
                     )}
                     {liveSuggestions.map((s) => (
-                        <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} />
+                        <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
                     ))}
                     <Divider />
                 </>
@@ -370,7 +393,7 @@ export default function AIPanel({ activeId, onUseDraft, liveSuggestions = [], li
                         </Typography>
                     ) : (
                         suggestions.map((s) => (
-                            <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} />
+                            <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
                         ))
                     )}
                 </>

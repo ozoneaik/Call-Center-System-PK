@@ -22,3 +22,15 @@ export const getCustomerAnalysisApi = async (custId) => {
         return ErrorResponse(error);
     }
 };
+
+// บันทึกความรู้ (คำถาม-คำตอบ) เข้า KB จากปุ่ม "เพิ่มเข้า KB" ในหน้าแชท
+export const storeAiKbEntryApi = async (payload) => {
+    try {
+        const { data, status } = await axiosClient.post(`/ai-assistant/kb-entries`, payload, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
