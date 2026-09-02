@@ -8,7 +8,6 @@ use App\Services\CustomerService;
 use App\Services\KbRetrievalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AiAssistantController extends Controller
@@ -94,7 +93,7 @@ class AiAssistantController extends Controller
             'message'   => 'nullable|string',
             'image_url' => 'nullable|string',
             'cust_id'   => 'nullable|string',
-            'image'     => 'nullable|file|image|max:10240',
+            'image'     => 'nullable|file|max:10240',
         ]);
 
         $url = config('services.chat_oc_any.url');
@@ -102,36 +101,49 @@ class AiAssistantController extends Controller
             return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_ANY_URL'], 503);
         }
 
-        $fields = array_filter([
-            'message'   => $validated['message'] ?? '',
-            'image_url' => $validated['image_url'] ?? null,
-            'custId'    => $validated['cust_id'] ?? null,
-        ], fn ($v) => $v !== null);
+        // รูปแบบ multipart ตรงตามที่ Guzzle รองรับทุกเวอร์ชัน (list ของ name/contents)
+        $multipart = [
+            ['name' => 'message', 'contents' => (string) ($validated['message'] ?? '')],
+        ];
+        if (!empty($validated['image_url'])) {
+            $multipart[] = ['name' => 'image_url', 'contents' => $validated['image_url']];
+        }
+        if (!empty($validated['cust_id'])) {
+            $multipart[] = ['name' => 'custId', 'contents' => $validated['cust_id']];
+        }
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $multipart[] = [
+                'name'     => 'image',
+                'contents' => fopen($file->getRealPath(), 'rb'),
+                'filename' => $file->getClientOriginalName() ?: 'image.jpg',
+            ];
+        }
 
         try {
-            $http = Http::timeout(30);
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'http_errors' => false]);
+            $res = $client->request('POST', $url, ['multipart' => $multipart]);
 
-            if ($request->hasFile('image')) {
-                $file = $request->file('image');
-                $http = $http->attach(
-                    'image',
-                    file_get_contents($file->getRealPath()),
-                    $file->getClientOriginalName() ?: 'image.jpg'
-                );
-                $response = $http->post($url, $fields);
-            } else {
-                $response = $http->asMultipart()->post($url, $fields);
+            $status = $res->getStatusCode();
+            $body   = (string) $res->getBody();
+            $json   = json_decode($body, true);
+
+            if ($status < 200 || $status >= 300) {
+                Log::warning("liveSuggest: chat-oc-any HTTP {$status} — {$body}");
+                return response()->json([
+                    'message'  => 'chat-oc-any ตอบกลับผิดพลาด',
+                    'upstream' => $status,
+                    'body'     => mb_substr($body, 0, 500),
+                ], 502);
             }
 
-            if (!$response->successful()) {
-                Log::warning("liveSuggest: chat-oc-any HTTP {$response->status()} — {$response->body()}");
-                return response()->json(['message' => 'chat-oc-any ตอบกลับผิดพลาด'], 502);
-            }
-
-            return response()->json($response->json());
+            return response()->json(is_array($json) ? $json : ['raw' => $body]);
         } catch (\Throwable $e) {
             Log::error('liveSuggest error: ' . $e->getMessage());
-            return response()->json(['message' => 'เรียก chat-oc-any ไม่สำเร็จ'], 502);
+            return response()->json([
+                'message' => 'เรียก chat-oc-any ไม่สำเร็จ',
+                'error'   => class_basename($e) . ': ' . $e->getMessage(),
+            ], 502);
         }
     }
 

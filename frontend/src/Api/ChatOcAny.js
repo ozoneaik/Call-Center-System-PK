@@ -12,6 +12,10 @@ export const sendChatOcAnyApi = async ({ message, imageFile, imageUrl, custId })
     if (custId) form.append('cust_id', custId);
     if (imageFile) form.append('image', imageFile, imageFile.name || 'image.jpg');
 
-    const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', form);
+    // Content-Type: null → ลบ default (Axios.js ตั้ง multipart/form-data ไว้แบบไม่มี boundary)
+    // ให้ browser ใส่ header พร้อม boundary เองจาก FormData ไม่งั้น backend parse ไม่ออก ($request ว่าง)
+    const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', form, {
+        headers: { 'Content-Type': null },
+    });
     return data; // { reply, source, primary_intent, ... }
 };
