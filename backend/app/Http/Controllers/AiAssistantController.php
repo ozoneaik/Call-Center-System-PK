@@ -109,7 +109,8 @@ class AiAssistantController extends Controller
             $multipart[] = ['name' => 'image_url', 'contents' => $validated['image_url']];
         }
         if (!empty($validated['cust_id'])) {
-            $multipart[] = ['name' => 'custId', 'contents' => $validated['cust_id']];
+            // service ฝั่ง chat-oc-any รับ field ชื่อ session_id (ทดสอบแล้วด้วย curl) ไม่ใช่ custId
+            $multipart[] = ['name' => 'session_id', 'contents' => $validated['cust_id']];
         }
         if ($request->hasFile('image')) {
             $file = $request->file('image');
