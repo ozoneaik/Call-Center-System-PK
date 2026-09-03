@@ -196,7 +196,11 @@ class AiAssistantController extends Controller
 
             $reference = null;
             if (!empty($json['resolved_product']) && is_array($json['resolved_product'])) {
+                // resolved_product มีฟิลด์ spec_rows เป็น array ซ้อน array (เช่น [["Rated Power","20V"], ...])
+                // ต้องกรองออกก่อน ไม่งั้น "{$k}: {$v}" จะพยายามแปลง array เป็น string ซึ่ง Laravel
+                // ยกระดับ warning นี้เป็น ErrorException แล้วโยนออกมา ทำให้ข้ามการบันทึกไปทั้งแถว (ไม่ถึง create() เลย)
                 $reference = collect($json['resolved_product'])
+                    ->filter(fn ($v) => !is_array($v) && !is_object($v) && $v !== null && $v !== '')
                     ->map(fn ($v, $k) => "{$k}: {$v}")
                     ->implode(' · ');
             }
