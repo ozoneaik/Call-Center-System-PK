@@ -30,40 +30,57 @@ const SOURCE_CONFIG = {
 };
 
 // ปรับ popup ให้ใหญ่และอ่านง่ายขึ้น สำหรับผู้ใช้ที่สายตาไม่ดี
-const DIALOG_BOX_SX = { maxWidth: 680, width: '95vw', p: { xs: 2.5, sm: 4 } };
+// จำกัดความสูงไว้ที่ 90vh + จัดเป็น flex column เพื่อให้เนื้อหาที่ยาวมาก ๆ เลื่อนดูได้เอง
+// โดยปุ่มบันทึก/ยกเลิกอยู่ล่างสุดแบบตายตัว ไม่ถูกดันตกจอ
+const DIALOG_BOX_SX = {
+    maxWidth: 680,
+    width: '95vw',
+    maxHeight: '90vh',
+    p: { xs: 2.5, sm: 4 },
+    display: 'flex',
+    flexDirection: 'column',
+};
+// กล่องเนื้อหาที่เลื่อนได้ (ฟอร์มด้านใน) ส่วนหัวข้อกับปุ่มด้านล่างไม่เลื่อนตาม
+const DIALOG_SCROLL_SX = { overflowY: 'auto', flex: 1, minHeight: 0, pr: 0.5 };
+// จำกัดจำนวนบรรทัดสูงสุดของ Textarea คำตอบ ไม่ให้ยืดจนกินพื้นที่กล่องเลื่อนไปหมด
+const ANSWER_TEXTAREA_SX = { fontSize: 'lg' };
 
 function EditDraftDialog({ open, onClose, question, answer, setQuestion, setAnswer, onSave }) {
     return (
         <Modal open={open} onClose={onClose}>
             <ModalDialog size="lg" sx={DIALOG_BOX_SX}>
                 <ModalClose sx={{ '--IconButton-size': '40px' }} />
-                <Typography level="title-lg" sx={{ mb: 2 }}>แก้ไขร่างคำตอบ</Typography>
+                <Typography level="title-lg" sx={{ mb: 2, flexShrink: 0 }}>แก้ไขร่างคำตอบ</Typography>
 
-                <FormControl size="lg" sx={{ mb: 2 }}>
-                    <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำถาม</FormLabel>
-                    <Textarea
-                        size="lg"
-                        minRows={3}
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="คำถามของลูกค้า"
-                        sx={{ fontSize: 'lg' }}
-                    />
-                </FormControl>
+                <Box sx={DIALOG_SCROLL_SX}>
+                    <FormControl size="lg" sx={{ mb: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำถาม</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={3}
+                            maxRows={8}
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            placeholder="คำถามของลูกค้า"
+                            sx={{ fontSize: 'lg' }}
+                        />
+                    </FormControl>
 
-                <FormControl size="lg" sx={{ mb: 3 }}>
-                    <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำตอบ</FormLabel>
-                    <Textarea
-                        size="lg"
-                        minRows={5}
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        placeholder="ร่างคำตอบ"
-                        sx={{ fontSize: 'lg' }}
-                    />
-                </FormControl>
+                    <FormControl size="lg">
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำตอบ</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={5}
+                            maxRows={16}
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            placeholder="ร่างคำตอบ"
+                            sx={ANSWER_TEXTAREA_SX}
+                        />
+                    </FormControl>
+                </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
                     <Button size="lg" variant="outlined" color="neutral" onClick={onClose}>
                         ยกเลิก
                     </Button>
@@ -81,45 +98,50 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
         <Modal open={open} onClose={onClose}>
             <ModalDialog size="lg" sx={DIALOG_BOX_SX}>
                 <ModalClose sx={{ '--IconButton-size': '40px' }} />
-                <Typography level="title-lg" sx={{ mb: 2 }}>บันทึกเข้าคลังความรู้ (KB)</Typography>
+                <Typography level="title-lg" sx={{ mb: 2, flexShrink: 0 }}>บันทึกเข้าคลังความรู้ (KB)</Typography>
 
-                <FormControl size="lg" sx={{ mb: 2 }}>
-                    <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำถาม</FormLabel>
-                    <Textarea
-                        size="lg"
-                        minRows={3}
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="คำถามของลูกค้า"
-                        sx={{ fontSize: 'lg' }}
-                    />
-                </FormControl>
+                <Box sx={DIALOG_SCROLL_SX}>
+                    <FormControl size="lg" sx={{ mb: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำถาม</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={3}
+                            maxRows={8}
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            placeholder="คำถามของลูกค้า"
+                            sx={{ fontSize: 'lg' }}
+                        />
+                    </FormControl>
 
-                <FormControl size="lg" sx={{ mb: 2 }}>
-                    <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำตอบ</FormLabel>
-                    <Textarea
-                        size="lg"
-                        minRows={4}
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        placeholder="คำตอบที่จะบันทึกเข้า KB"
-                        sx={{ fontSize: 'lg' }}
-                    />
-                </FormControl>
+                    <FormControl size="lg" sx={{ mb: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำตอบ</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={4}
+                            maxRows={16}
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            placeholder="คำตอบที่จะบันทึกเข้า KB"
+                            sx={ANSWER_TEXTAREA_SX}
+                        />
+                    </FormControl>
 
-                <FormControl size="lg" sx={{ mb: 3 }}>
-                    <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>หมายเหตุ</FormLabel>
-                    <Textarea
-                        size="lg"
-                        minRows={3}
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
-                        sx={{ fontSize: 'lg' }}
-                    />
-                </FormControl>
+                    <FormControl size="lg">
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>หมายเหตุ</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={3}
+                            maxRows={8}
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                            sx={{ fontSize: 'lg' }}
+                        />
+                    </FormControl>
+                </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
                     <Button size="lg" variant="outlined" color="neutral" onClick={onClose} disabled={saving}>
                         ยกเลิก
                     </Button>
