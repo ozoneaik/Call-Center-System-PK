@@ -134,13 +134,20 @@ export default function Info(props) {
                 setLiveSuggestions((prev) => [
                     {
                         id: `live-${key}`,
+                        // เวลาที่ AI ตอบกลับมาจริง ๆ (ตอนนี้) ใช้โชว์ในการ์ด — ของที่โหลดจากประวัติจะมี created_at จาก backend มาแล้ว
+                        created_at: new Date().toISOString(),
                         // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ
                         question: data.summarytxt || questionText,
                         content: data.answer || data.reply,
                         // source เก็บเป็นแท็กสั้น ๆ (kb/web/ai) เท่านั้น — service อาจส่งค่าอื่น/ยาวเกินคอลัมน์ ให้ปัดเป็น 'ai'
                         source: ['kb', 'web', 'ai'].includes(data.source) ? data.source : 'ai',
+                        // resolved_product มีฟิลด์ spec_rows เป็น array ซ้อน array (เช่น [["Rated Power","20V"], ...])
+                        // กรองออกก่อน ไม่งั้น `${v}` จะ stringify array ออกมาเป็นข้อความรกๆ ปนอยู่ในการ์ด
                         reference: data.resolved_product
-                            ? Object.entries(data.resolved_product).map(([k, v]) => `${k}: ${v}`).join(' · ')
+                            ? Object.entries(data.resolved_product)
+                                .filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'object')
+                                .map(([k, v]) => `${k}: ${v}`)
+                                .join(' · ')
                             : undefined,
                     },
                     ...prev,

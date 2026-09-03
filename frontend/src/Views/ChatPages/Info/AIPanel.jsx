@@ -29,6 +29,20 @@ const SOURCE_CONFIG = {
     },
 };
 
+// จัดรูปแบบวัน-เวลาที่ AI ตอบกลับ ให้อ่านง่าย (การ์ดที่เพิ่งตอบสด ๆ กับที่โหลดจากประวัติ ใช้ format เดียวกัน)
+const formatSuggestionDateTime = (iso) => {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
 // ปรับ popup ให้ใหญ่และอ่านง่ายขึ้น สำหรับผู้ใช้ที่สายตาไม่ดี
 // จำกัดความสูงไว้ที่ 90vh + จัดเป็น flex column เพื่อให้เนื้อหาที่ยาวมาก ๆ เลื่อนดูได้เอง
 // โดยปุ่มบันทึก/ยกเลิกอยู่ล่างสุดแบบตายตัว ไม่ถูกดันตกจอ
@@ -244,6 +258,12 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
                 </IconButton>
             </Box>
 
+            {formatSuggestionDateTime(suggestion.created_at) && (
+                <Typography level="body-xs" sx={{ color: 'text.tertiary', mb: 1 }}>
+                    ตอบเมื่อ {formatSuggestionDateTime(suggestion.created_at)}
+                </Typography>
+            )}
+
             {suggestion.source && SOURCE_CONFIG[suggestion.source] && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
                     <Chip
@@ -339,10 +359,20 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
     );
 }
 
+// จำนวนการ์ด "AI วิเคราะห์การสนทนา" (liveSuggestions) ที่โชว์ต่อหน้า — กดปุ่ม "ดูเพิ่มเติม" เพื่อโชว์เพิ่มทีละเท่านี้
+const LIVE_SUGGESTIONS_PAGE_SIZE = 5;
+
 export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions = [], liveLoading = false }) {
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState('');
     const [suggestions, setSuggestions] = useState([]);
+    // จำนวนการ์ดวิเคราะห์ AI ที่โชว์อยู่ตอนนี้ (paginate ฝั่ง client เพราะโหลดประวัติมาครบอยู่แล้ว)
+    const [visibleLiveCount, setVisibleLiveCount] = useState(LIVE_SUGGESTIONS_PAGE_SIZE);
+
+    // สลับห้องแชท ให้รีเซ็ตกลับไปโชว์แค่ 5 อันล่าสุดใหม่ทุกครั้ง
+    useEffect(() => {
+        setVisibleLiveCount(LIVE_SUGGESTIONS_PAGE_SIZE);
+    }, [activeId]);
 
     useEffect(() => {
         let isMounted = true;
@@ -384,9 +414,19 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
                             </Typography>
                         </Box>
                     )}
-                    {liveSuggestions.map((s) => (
+                    {liveSuggestions.slice(0, visibleLiveCount).map((s) => (
                         <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
                     ))}
+                    {liveSuggestions.length > visibleLiveCount && (
+                        <Button
+                            size="sm"
+                            variant="soft"
+                            color="neutral"
+                            onClick={() => setVisibleLiveCount((c) => c + LIVE_SUGGESTIONS_PAGE_SIZE)}
+                        >
+                            ดูเพิ่มเติม ({liveSuggestions.length - visibleLiveCount})
+                        </Button>
+                    )}
                     <Divider />
                 </>
             )}

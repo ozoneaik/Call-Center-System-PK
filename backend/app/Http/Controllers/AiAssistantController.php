@@ -239,6 +239,7 @@ class AiAssistantController extends Controller
             'source'      => $r->source ?: 'ai',
             'reference'   => $r->reference,
             'message_ref' => $r->message_ref,
+            'created_at'  => optional($r->created_at)->toIso8601String(),
         ])->values();
 
         return response()->json([
