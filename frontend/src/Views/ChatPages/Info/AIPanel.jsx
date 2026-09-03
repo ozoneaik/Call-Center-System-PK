@@ -368,10 +368,13 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
     const [suggestions, setSuggestions] = useState([]);
     // จำนวนการ์ดวิเคราะห์ AI ที่โชว์อยู่ตอนนี้ (paginate ฝั่ง client เพราะโหลดประวัติมาครบอยู่แล้ว)
     const [visibleLiveCount, setVisibleLiveCount] = useState(LIVE_SUGGESTIONS_PAGE_SIZE);
+    // จำนวนการ์ดคำแนะนำจาก KB ที่โชว์อยู่ตอนนี้ — แยก state จาก live เพราะเป็นคนละ list กัน
+    const [visibleKbCount, setVisibleKbCount] = useState(LIVE_SUGGESTIONS_PAGE_SIZE);
 
-    // สลับห้องแชท ให้รีเซ็ตกลับไปโชว์แค่ 5 อันล่าสุดใหม่ทุกครั้ง
+    // สลับห้องแชท ให้รีเซ็ตกลับไปโชว์แค่ 5 อันล่าสุดใหม่ทุกครั้ง (ทั้ง live และ KB)
     useEffect(() => {
         setVisibleLiveCount(LIVE_SUGGESTIONS_PAGE_SIZE);
+        setVisibleKbCount(LIVE_SUGGESTIONS_PAGE_SIZE);
     }, [activeId]);
 
     useEffect(() => {
@@ -403,9 +406,15 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
 
     return (
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, height: '100%', overflowY: 'auto' }}>
-            {/* คำแนะนำจริงที่ AI สร้างอัตโนมัติทันทีที่ลูกค้าทักเข้ามา (ยิงผ่าน chat-oc-any) */}
+            {/* คำแนะนำจริงที่ AI สร้างอัตโนมัติทันทีที่ลูกค้าทักเข้ามา (ยิงผ่าน chat-oc-any) — ใส่กรอบสีส้ม (warning)
+                แยกให้เห็นชัดว่าเป็นคนละ section กับคำแนะนำจาก KB ด้านล่าง (กันสับสนว่าเป็น list เดียวกัน) */}
             {hasLive && (
-                <>
+                <Sheet variant="soft" color="warning" sx={{ p: 1.5, borderRadius: 'md', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AutoAwesomeIcon fontSize="small" color="warning" />
+                        <Typography level="title-sm">AI ตอบสดจากข้อความล่าสุด</Typography>
+                    </Box>
+
                     {liveLoading && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <CircularProgress size="sm" />
@@ -421,47 +430,63 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
                         <Button
                             size="sm"
                             variant="soft"
-                            color="neutral"
+                            color="warning"
                             onClick={() => setVisibleLiveCount((c) => c + LIVE_SUGGESTIONS_PAGE_SIZE)}
                         >
                             ดูเพิ่มเติม ({liveSuggestions.length - visibleLiveCount})
                         </Button>
                     )}
-                    <Divider />
-                </>
+                </Sheet>
             )}
 
-            <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-                คำแนะนำจากคลังความรู้ (KB) — จับคู่จากข้อความล่าสุดของลูกค้า
-            </Typography>
-
-            {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                    <CircularProgress size="sm" />
+            {/* คำแนะนำจากคลังความรู้ (KB) — ใส่กรอบสีเขียว (success) แยกจาก section ด้านบน */}
+            <Sheet variant="soft" color="success" sx={{ p: 1.5, borderRadius: 'md', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <StorageRoundedIcon fontSize="small" color="success" />
+                    <Typography level="title-sm">คำแนะนำจากคลังความรู้ (KB)</Typography>
                 </Box>
-            ) : (
-                <>
-                    {/* สรุปคำถามของลูกค้าในแชท: ช่องหลักด้านบนสุด ก่อนร่างคำตอบที่แนะนำ */}
-                    {summary && (
-                        <Sheet variant="soft" color="primary" sx={MessageStyle.Info.aiSummaryCard}>
-                            <Typography level="title-sm" sx={{ mb: 0.5 }}>สรุปคำถามของลูกค้า</Typography>
-                            <Typography level="body-sm">{summary}</Typography>
-                        </Sheet>
-                    )}
+                <Typography level="body-xs" sx={{ color: 'text.tertiary', mt: -1 }}>
+                    จับคู่จากข้อความล่าสุดของลูกค้า
+                </Typography>
 
-                    <Divider />
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress size="sm" />
+                    </Box>
+                ) : (
+                    <>
+                        {/* สรุปคำถามของลูกค้าในแชท: ช่องหลักด้านบนสุด ก่อนร่างคำตอบที่แนะนำ */}
+                        {summary && (
+                            <Sheet variant="soft" color="primary" sx={MessageStyle.Info.aiSummaryCard}>
+                                <Typography level="title-sm" sx={{ mb: 0.5 }}>สรุปคำถามของลูกค้า</Typography>
+                                <Typography level="body-sm">{summary}</Typography>
+                            </Sheet>
+                        )}
 
-                    {suggestions.length === 0 ? (
-                        <Typography level="body-sm" sx={{ color: 'text.tertiary', textAlign: 'center' }}>
-                            ไม่พบคำตอบที่ใกล้เคียงในคลังความรู้
-                        </Typography>
-                    ) : (
-                        suggestions.map((s) => (
-                            <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
-                        ))
-                    )}
-                </>
-            )}
+                        {suggestions.length === 0 ? (
+                            <Typography level="body-sm" sx={{ color: 'text.tertiary', textAlign: 'center' }}>
+                                ไม่พบคำตอบที่ใกล้เคียงในคลังความรู้
+                            </Typography>
+                        ) : (
+                            <>
+                                {suggestions.slice(0, visibleKbCount).map((s) => (
+                                    <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
+                                ))}
+                                {suggestions.length > visibleKbCount && (
+                                    <Button
+                                        size="sm"
+                                        variant="soft"
+                                        color="success"
+                                        onClick={() => setVisibleKbCount((c) => c + LIVE_SUGGESTIONS_PAGE_SIZE)}
+                                    >
+                                        ดูเพิ่มเติม ({suggestions.length - visibleKbCount})
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+            </Sheet>
         </Box>
     );
 }
