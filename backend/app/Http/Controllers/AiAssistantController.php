@@ -118,6 +118,33 @@ class AiAssistantController extends Controller
                 'contents' => fopen($file->getRealPath(), 'rb'),
                 'filename' => $file->getClientOriginalName() ?: 'image.jpg',
             ];
+        } elseif (!empty($validated['image_url'])) {
+            // กรณีลูกค้าส่งรูปจริง (ไม่ใช่พิมพ์ลิงก์เอง) — frontend ส่งมาแค่ image_url (URL รูปที่ระบบเรา
+            // ไปโหลดจาก LINE แล้วอัปขึ้น S3) ไม่มีไฟล์แนบ ถ้าปล่อยให้ chat-oc-any (อยู่คนละวงเครือข่าย
+            // เช่น 192.168.9.32) ไปโหลด URL เองอาจโหลดไม่ได้ (เข้าไม่ถึง S3/สิทธิ์ไม่พอ) จึงตอบแบบทั่วไปแทน
+            // ที่นี่จึงโหลดรูปจริงจาก image_url ฝั่ง backend เอง (ซึ่งเพิ่งอัปขึ้น S3 เองจึงเข้าถึงได้แน่นอน)
+            // แล้วแนบเป็นไฟล์ image ไปด้วย ให้ chat-oc-any วิเคราะห์รูปได้เหมือนกรณีพิมพ์ลิงก์
+            try {
+                $imgRes = (new \GuzzleHttp\Client(['timeout' => 15]))->get($validated['image_url']);
+                $contentType = $imgRes->getHeaderLine('Content-Type') ?: 'image/jpeg';
+                $imgBody = (string) $imgRes->getBody();
+
+                if ($imgRes->getStatusCode() === 200 && str_starts_with($contentType, 'image/') && strlen($imgBody) <= 10 * 1024 * 1024) {
+                    $ext = match (true) {
+                        str_contains($contentType, 'png')  => 'png',
+                        str_contains($contentType, 'gif')  => 'gif',
+                        str_contains($contentType, 'webp') => 'webp',
+                        default => 'jpg',
+                    };
+                    $multipart[] = [
+                        'name'     => 'image',
+                        'contents' => $imgBody,
+                        'filename' => 'image.' . $ext,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('liveSuggest: โหลดรูปจาก image_url ไม่สำเร็จ — ' . $e->getMessage());
+            }
         }
 
         try {
