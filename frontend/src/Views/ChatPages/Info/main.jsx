@@ -7,6 +7,7 @@ import { Feedback } from "./Feedback.jsx";
 import AIPanel from "./AIPanel.jsx";
 import axiosClient from "../../../Axios.js";
 import { sendChatOcAnyApi } from "../../../Api/ChatOcAny.js";
+import { getAiLiveSuggestionsHistoryApi } from "../../../Api/AiAssistant.js";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
@@ -68,12 +69,53 @@ export default function Info(props) {
     // ทันทีที่ลูกค้าทักข้อความใหม่เข้ามา ให้ยิงไปที่ chat-oc-any อัตโนมัติ แล้วเอาผลลัพธ์มาแสดงเป็นการ์ดคำแนะนำ
     const [liveSuggestions, setLiveSuggestions] = useState([]);
     const [liveLoading, setLiveLoading] = useState(false);
+    // true เมื่อโหลดประวัติเก่าของห้องนี้เสร็จแล้ว (หรือไม่มี activeId ให้โหลด) — กันเอฟเฟกต์ข้อความล่าสุด
+    // ด้านล่างยิง chat-oc-any ซ้ำข้อความที่เคยวิเคราะห์ไว้แล้วก่อนที่ lastProcessedMessageKeyRef จะทันเซ็ต
+    const [historyReady, setHistoryReady] = useState(false);
     const lastProcessedMessageKeyRef = useRef(null);
 
+    // โหลดประวัติการ์ดวิเคราะห์ AI ที่เคยบันทึกไว้ (ai_live_suggestions) ตอนเปิด/รีเฟรชหน้าจอ
+    // กันการ์ดที่เคยวิเคราะห์ไว้หายไปหมด เหลือแต่ของข้อความล่าสุด (เดิมเก็บแค่ React state)
     useEffect(() => {
+        let isMounted = true;
+        // สลับห้องแชท/รีเฟรช ให้เคลียร์ของเก่าก่อน กันการ์ดห้องก่อนหน้าค้างปน
+        setLiveSuggestions([]);
+        lastProcessedMessageKeyRef.current = null;
+        setHistoryReady(false);
+
+        if (!activeId) {
+            setHistoryReady(true);
+            return;
+        }
+
+        const loadHistory = async () => {
+            const { data, status } = await getAiLiveSuggestionsHistoryApi(activeId);
+            if (!isMounted) return;
+            if (status === 200) {
+                const history = data.suggestions || [];
+                setLiveSuggestions(history);
+                // รายการแรก = ใหม่สุด (backend เรียงใหม่สุดก่อน) — กันวิเคราะห์ข้อความเดิมซ้ำตอนรีเฟรช
+                if (history[0]?.message_ref) {
+                    lastProcessedMessageKeyRef.current = history[0].message_ref;
+                }
+            }
+            setHistoryReady(true);
+        };
+
+        loadHistory();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [activeId]);
+
+    useEffect(() => {
+        // รอประวัติเก่าโหลดเสร็จก่อน ไม่งั้น lastProcessedMessageKeyRef อาจยังว่างอยู่ ทำให้ยิงวิเคราะห์
+        // ข้อความล่าสุดซ้ำกับที่เคยมีอยู่แล้วในประวัติ กลายเป็นการ์ดซ้ำซ้อนกันตอนรีเฟรช
+        if (!historyReady) return;
         if (!latestCustomerMessage) return;
         const key = latestCustomerMessage.id ?? latestCustomerMessage.created_at;
-        if (!key || key === lastProcessedMessageKeyRef.current) return;
+        if (!key || String(key) === String(lastProcessedMessageKeyRef.current)) return;
         lastProcessedMessageKeyRef.current = key;
 
         const isImage = latestCustomerMessage.contentType === 'image';
@@ -86,6 +128,8 @@ export default function Info(props) {
                     message: isImage ? '' : latestCustomerMessage.content,
                     imageUrl: isImage ? latestCustomerMessage.content : undefined,
                     custId: sender?.custId,
+                    activeId,
+                    messageRef: key,
                 });
                 setLiveSuggestions((prev) => [
                     {
@@ -109,7 +153,7 @@ export default function Info(props) {
         };
 
         run();
-    }, [latestCustomerMessage]);
+    }, [latestCustomerMessage, historyReady, activeId]);
 
     useEffect(() => {
         setNotes(props.notes);

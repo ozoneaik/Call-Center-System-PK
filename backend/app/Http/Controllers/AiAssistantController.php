@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActiveConversations;
+use App\Models\AiLiveSuggestion;
 use App\Models\ChatHistory;
 use App\Services\CustomerService;
 use App\Services\KbRetrievalService;
@@ -94,6 +95,10 @@ class AiAssistantController extends Controller
             'image_url'  => 'nullable|string',
             'session_id' => 'nullable|string',
             'image'      => 'nullable|file|max:10240',
+            // active_id/message_ref: ใช้บันทึกประวัติการ์ดวิเคราะห์นี้ลง DB (ai_live_suggestions)
+            // กันหายตอนรีเฟรชหน้าจอ — เดิมเก็บแค่ React state ฝั่ง frontend
+            'active_id'   => 'nullable|integer',
+            'message_ref' => 'nullable|string',
         ]);
 
         $url = config('services.chat_oc_any.url');
@@ -164,6 +169,10 @@ class AiAssistantController extends Controller
                 ], 502);
             }
 
+            if (!empty($validated['active_id'])) {
+                $this->storeLiveSuggestion($validated, is_array($json) ? $json : []);
+            }
+
             return response()->json(is_array($json) ? $json : ['raw' => $body]);
         } catch (\Throwable $e) {
             Log::error('liveSuggest error: ' . $e->getMessage());
@@ -172,6 +181,67 @@ class AiAssistantController extends Controller
                 'error'   => class_basename($e) . ': ' . $e->getMessage(),
             ], 502);
         }
+    }
+
+    /**
+     * บันทึกการ์ดวิเคราะห์ AI (ตอบสด) ของรอบนี้ลง ai_live_suggestions ให้เป็นประวัติถาวร
+     * แมปฟิลด์ตามตรรกะเดียวกับที่ frontend เคยทำเอง (Info/main.jsx) เพื่อให้หน้าประวัติ
+     * แสดงผลเหมือนตอนที่เพิ่งได้คำตอบสด ๆ มา — ไม่กระทบ response ที่ส่งกลับ frontend (คงรูปแบบเดิม)
+     */
+    private function storeLiveSuggestion(array $validated, array $json): void
+    {
+        try {
+            $isImage = !empty($validated['image_url']) && empty($validated['message']);
+            $questionFallback = $isImage ? '[ลูกค้าส่งรูปภาพ]' : ($validated['message'] ?? null);
+
+            $reference = null;
+            if (!empty($json['resolved_product']) && is_array($json['resolved_product'])) {
+                $reference = collect($json['resolved_product'])
+                    ->map(fn ($v, $k) => "{$k}: {$v}")
+                    ->implode(' · ');
+            }
+
+            AiLiveSuggestion::create([
+                'active_conversation_id' => (int) $validated['active_id'],
+                'cust_id'                => $validated['session_id'] ?? null,
+                'message_ref'            => $validated['message_ref'] ?? null,
+                'question'               => $json['summarytxt'] ?? $questionFallback,
+                'content'                => $json['answer'] ?? $json['reply'] ?? '',
+                'source'                 => in_array($json['source'] ?? null, ['kb', 'web', 'ai'], true) ? $json['source'] : 'ai',
+                'reference'              => $reference,
+            ]);
+        } catch (\Throwable $e) {
+            // ไม่ให้การบันทึกประวัติล้มเหลวไปกระทบ response หลักที่ต้องส่งกลับ frontend
+            Log::warning('liveSuggest: บันทึกประวัติ ai_live_suggestions ไม่สำเร็จ — ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Endpoint: ดึงประวัติการ์ดวิเคราะห์ AI (ตอบสด) ทั้งหมดของห้องแชทนี้ เรียงใหม่สุดก่อน
+     * ให้ frontend โหลดมาแสดงตอนเปิด/รีเฟรชหน้าจอ แทนที่จะหายไปเพราะเก็บแค่ React state
+     */
+    public function liveSuggestionsHistory(int $activeId): JsonResponse
+    {
+        $rows = AiLiveSuggestion::query()
+            ->where('active_conversation_id', $activeId)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        $suggestions = $rows->map(fn ($r) => [
+            'id'          => 'live-db-' . $r->id,
+            'question'    => $r->question,
+            'content'     => $r->content,
+            'source'      => $r->source ?: 'ai',
+            'reference'   => $r->reference,
+            'message_ref' => $r->message_ref,
+        ])->values();
+
+        return response()->json([
+            'message'   => 'success',
+            'active_id' => $activeId,
+            'suggestions' => $suggestions,
+        ]);
     }
 
     /**

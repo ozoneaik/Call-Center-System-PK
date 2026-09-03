@@ -12,6 +12,17 @@ export const getAiSuggestionsApi = async (activeId) => {
     }
 };
 
+// ประวัติการ์ดวิเคราะห์ AI (ตอบสดจาก chat-oc-any) ของห้องแชทนี้ทั้งหมด เรียงใหม่สุดก่อน
+// ใช้โหลดตอนเปิด/รีเฟรชหน้าจอ กันการ์ดที่เคยวิเคราะห์ไว้หายไป (เดิมเก็บแค่ React state)
+export const getAiLiveSuggestionsHistoryApi = async (activeId) => {
+    try {
+        const { data, status } = await axiosClient.get(`/ai-assistant/live-suggestions/${activeId}`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
 // ตัวอย่าง API ดึงประวัติการติดต่อทั้งหมดของลูกค้า แยกตามห้อง พร้อมวิเคราะห์แต่ละคำถาม
 // (intent/category/emotion) และเทียบคำตอบที่ AI แนะนำกับคำตอบจริงที่พนักงานตอบไป
 export const getCustomerAnalysisApi = async (custId) => {
