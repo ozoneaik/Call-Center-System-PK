@@ -34,6 +34,23 @@ export const getCustomerAnalysisApi = async (custId) => {
     }
 };
 
+// ส่งรูปหน้าแคตตาล็อก/โบรชัวร์ (brochure_page_url จาก chat-oc-any) ให้ลูกค้าโดยตรงจากการ์ด AI Assistant
+// backend จะโหลดรูปจริงมาอัปขึ้น S3 เองแล้วส่งผ่านช่องทางเดิมของลูกค้า (LINE/FB/ฯลฯ) ให้เลย
+export const sendBrochurePageApi = async ({ imageUrl, custId, activeId }) => {
+    try {
+        const { data, status } = await axiosClient.post(`/ai-assistant/send-brochure-page`, {
+            image_url: imageUrl,
+            cust_id: custId,
+            active_id: activeId,
+        }, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
 // บันทึกความรู้ (คำถาม-คำตอบ) เข้า KB จากปุ่ม "เพิ่มเข้า KB" ในหน้าแชท
 export const storeAiKbEntryApi = async (payload) => {
     try {

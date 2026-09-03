@@ -16,5 +16,6 @@ class AiLiveSuggestion extends Model
         'content',
         'source',
         'reference',
+        'attachment_url',
     ];
 }

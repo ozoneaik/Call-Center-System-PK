@@ -297,6 +297,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/live-suggestions/{activeId}', [AiAssistantController::class, 'liveSuggestionsHistory']);
         Route::get('/customer-analysis/{custId}', [AiAssistantController::class, 'customerAnalysis']);
         Route::post('/chat-oc-any', [AiAssistantController::class, 'liveSuggest']);
+        Route::post('/send-brochure-page', [AiAssistantController::class, 'sendBrochurePage']);
         Route::post('/kb-entries', [AiKbEntryController::class, 'store']);
     });
 });

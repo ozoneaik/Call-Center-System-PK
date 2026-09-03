@@ -6,9 +6,10 @@ import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
-import { getAiSuggestionsApi, storeAiKbEntryApi } from "../../../Api/AiAssistant.js";
+import { getAiSuggestionsApi, storeAiKbEntryApi, sendBrochurePageApi } from "../../../Api/AiAssistant.js";
 
 // แหล่งที่มาของคำตอบ: 'kb' = ดึงจากคลังความรู้ที่อนุมัติแล้ว, 'web' = ค้นจากเว็บไซต์/อินเทอร์เน็ต, 'ai' = AI ตอบสดแบบเรียลไทม์
 const SOURCE_CONFIG = {
@@ -182,6 +183,36 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
     const [kbNote, setKbNote] = useState('');
     const [savingKb, setSavingKb] = useState(false);
 
+    // ส่งรูปหน้าแคตตาล็อก (attachment_url) ให้ลูกค้าโดยตรงจากการ์ด
+    const [sendingBrochure, setSendingBrochure] = useState(false);
+
+    const handleSendBrochure = async () => {
+        if (sendingBrochure || !suggestion.attachment_url) return;
+        setSendingBrochure(true);
+        try {
+            const { data, status } = await sendBrochurePageApi({
+                imageUrl: suggestion.attachment_url,
+                custId,
+                activeId,
+            });
+            if (status === 200) {
+                AlertDiaLog({
+                    icon: 'success',
+                    title: 'ส่งรูปสำเร็จ',
+                    text: data.message || 'ส่งรูปหน้าแคตตาล็อกให้ลูกค้าเรียบร้อยแล้ว',
+                });
+            } else {
+                AlertDiaLog({
+                    icon: 'error',
+                    title: 'ส่งรูปไม่สำเร็จ',
+                    text: data?.message || data?.error || 'เกิดข้อผิดพลาดในการส่งรูป',
+                });
+            }
+        } finally {
+            setSendingBrochure(false);
+        }
+    };
+
     const openEditDialog = () => {
         setEditQuestion(question);
         setEditAnswer(draft);
@@ -308,6 +339,22 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
                 <Typography level="body-sm" sx={{ color: '#fff' }}>{draft}</Typography>
             </Box>
 
+            {/* รูปหน้าแคตตาล็อก/โบรชัวร์ที่ AI แนบมา (ถ้ามี) — กดรูปเพื่อดูขนาดเต็มในแท็บใหม่ */}
+            {suggestion.attachment_url && (
+                <Box sx={{ mt: 1.5 }}>
+                    <Typography level="body-xs" sx={{ fontWeight: 600, color: 'text.tertiary', mb: 0.5 }}>
+                        รูปหน้าแคตตาล็อกที่แนบมา
+                    </Typography>
+                    <Link href={suggestion.attachment_url} target="_blank" rel="noopener noreferrer">
+                        <img
+                            src={suggestion.attachment_url}
+                            alt="หน้าแคตตาล็อก"
+                            style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 6, display: 'block' }}
+                        />
+                    </Link>
+                </Box>
+            )}
+
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
                 <Button size="sm" variant="soft" color="primary" onClick={openEditDialog}>
                     แก้ไขร่างคำตอบ
@@ -331,6 +378,19 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
                 >
                     ใช้ร่างคำตอบนี้
                 </Button>
+                {suggestion.attachment_url && (
+                    <Button
+                        size="sm"
+                        variant="solid"
+                        color="success"
+                        startDecorator={<SendRoundedIcon fontSize="small" />}
+                        loading={sendingBrochure}
+                        disabled={sendingBrochure}
+                        onClick={handleSendBrochure}
+                    >
+                        ส่งรูปนี้ให้ลูกค้า
+                    </Button>
+                )}
             </Box>
 
             <EditDraftDialog

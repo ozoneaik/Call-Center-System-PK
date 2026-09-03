@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\webhooks\new\FacebookController;
+use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Http\Controllers\webhooks\new\NewLazadaController;
+use App\Http\Controllers\webhooks\new\NewShopeeController;
 use App\Models\ActiveConversations;
 use App\Models\AiLiveSuggestion;
 use App\Models\ChatHistory;
+use App\Models\Customers;
+use App\Models\PlatformAccessTokens;
 use App\Services\CustomerService;
 use App\Services\KbRetrievalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AiAssistantController extends Controller
 {
@@ -160,6 +168,17 @@ class AiAssistantController extends Controller
             $body   = (string) $res->getBody();
             $json   = json_decode($body, true);
 
+            // chat-oc-any ส่ง brochure_page_url มาเป็น path สัมพัทธ์ (เช่น "/rendered/xxx.png") อ้างอิงจาก
+            // host ของมันเอง ไม่ใช่ของเรา — ต้องเติม scheme+host ของ chat-oc-any (จาก config เดียวกับที่เรียก)
+            // ให้เป็น URL เต็มก่อนส่งกลับ ไม่งั้น frontend/การโหลดรูปจะเรียกผิด host (ชี้เข้าโดเมนของเราเอง)
+            if (is_array($json) && !empty($json['brochure_page_url']) && is_string($json['brochure_page_url']) && str_starts_with($json['brochure_page_url'], '/')) {
+                $parts = parse_url($url);
+                if (!empty($parts['scheme']) && !empty($parts['host'])) {
+                    $origin = $parts['scheme'] . '://' . $parts['host'] . (!empty($parts['port']) ? ':' . $parts['port'] : '');
+                    $json['brochure_page_url'] = $origin . $json['brochure_page_url'];
+                }
+            }
+
             if ($status < 200 || $status >= 300) {
                 Log::warning("liveSuggest: chat-oc-any HTTP {$status} — {$body}");
                 return response()->json([
@@ -213,6 +232,7 @@ class AiAssistantController extends Controller
                 'content'                => $json['answer'] ?? $json['reply'] ?? '',
                 'source'                 => in_array($json['source'] ?? null, ['kb', 'web', 'ai'], true) ? $json['source'] : 'ai',
                 'reference'              => $reference,
+                'attachment_url'         => $json['brochure_page_url'] ?? null,
             ]);
         } catch (\Throwable $e) {
             // ไม่ให้การบันทึกประวัติล้มเหลวไปกระทบ response หลักที่ต้องส่งกลับ frontend
@@ -233,13 +253,14 @@ class AiAssistantController extends Controller
             ->get();
 
         $suggestions = $rows->map(fn ($r) => [
-            'id'          => 'live-db-' . $r->id,
-            'question'    => $r->question,
-            'content'     => $r->content,
-            'source'      => $r->source ?: 'ai',
-            'reference'   => $r->reference,
-            'message_ref' => $r->message_ref,
-            'created_at'  => optional($r->created_at)->toIso8601String(),
+            'id'             => 'live-db-' . $r->id,
+            'question'       => $r->question,
+            'content'        => $r->content,
+            'source'         => $r->source ?: 'ai',
+            'reference'      => $r->reference,
+            'message_ref'    => $r->message_ref,
+            'created_at'     => optional($r->created_at)->toIso8601String(),
+            'attachment_url' => $r->attachment_url,
         ])->values();
 
         return response()->json([
@@ -247,6 +268,97 @@ class AiAssistantController extends Controller
             'active_id' => $activeId,
             'suggestions' => $suggestions,
         ]);
+    }
+
+    /**
+     * Endpoint: ส่งรูปหน้าแคตตาล็อก/โบรชัวร์ (brochure_page_url จาก chat-oc-any) ให้ลูกค้าโดยตรงจากหน้าแชท
+     * ต้องโหลดรูปจริงจาก chat-oc-any แล้วอัปขึ้น S3 ของเราเองก่อน เพราะ platform ปลายทาง (LINE/FB ฯลฯ)
+     * ต้องดึงรูปจาก URL สาธารณะได้เอง — chat-oc-any อาจอยู่วง LAN ที่ platform ภายนอกเข้าไม่ถึง
+     * แล้วยิงส่งผ่านกลไกเดียวกับที่ระบบใช้ส่งข้อความหาลูกค้าปกติ (ReplyPushMessage ฯลฯ) เพื่อให้ขึ้นในแชท
+     * และมี pusher แจ้งเตือนแบบเดียวกับข้อความอื่น ๆ ทันที
+     */
+    public function sendBrochurePage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'image_url' => 'required|string',
+            'cust_id'   => 'required|string',
+            'active_id' => 'required|integer',
+        ]);
+
+        try {
+            $customer = Customers::query()->where('custId', $validated['cust_id'])->first();
+            if (!$customer) {
+                throw new \Exception('ไม่พบลูกค้าที่ต้องการส่งข้อความไปหา');
+            }
+
+            $conversation = ActiveConversations::query()->find($validated['active_id']);
+            if (!$conversation) {
+                throw new \Exception('ไม่พบห้องแชทนี้');
+            }
+
+            $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+
+            $imgRes = (new \GuzzleHttp\Client(['timeout' => 15]))->get($validated['image_url']);
+            $contentType = $imgRes->getHeaderLine('Content-Type') ?: 'image/png';
+            $imgBody = (string) $imgRes->getBody();
+            if ($imgRes->getStatusCode() !== 200 || !str_starts_with($contentType, 'image/')) {
+                throw new \Exception('โหลดรูปหน้าแคตตาล็อกจาก chat-oc-any ไม่สำเร็จ');
+            }
+
+            $ext = match (true) {
+                str_contains($contentType, 'jpeg') => 'jpg',
+                str_contains($contentType, 'jpg')  => 'jpg',
+                str_contains($contentType, 'gif')  => 'gif',
+                str_contains($contentType, 'webp') => 'webp',
+                default => 'png',
+            };
+            $mediaPath = 'brochure_' . rand(0, 9999) . time() . '_' . $validated['cust_id'] . '.' . $ext;
+            Storage::disk('s3')->put($mediaPath, $imgBody, [
+                'visibility'  => 'private',
+                'ContentType' => $contentType,
+            ]);
+            $s3Url = Storage::disk('s3')->url($mediaPath);
+
+            $sendMessageData = [
+                'status' => true,
+                'case' => [
+                    'status' => true,
+                    'send_to_cust' => true,
+                    'type_send' => 'normal',
+                    'type_message' => 'push',
+                    'messages' => [[
+                        'content'     => $s3Url,
+                        'contentType' => 'image',
+                        'sender'      => 'sender',
+                    ]],
+                    'customer' => $customer,
+                    'ac_id' => $validated['active_id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => null,
+                    'employee' => Auth::user(),
+                ],
+            ];
+
+            $result = match ($platformAccessToken['platform'] ?? null) {
+                'line'     => LineWebhookController::ReplyPushMessage($sendMessageData),
+                'facebook' => FacebookController::reply_push_message($sendMessageData),
+                'lazada'   => NewLazadaController::pushReplyMessage($sendMessageData),
+                'shopee'   => NewShopeeController::pushReplyMessage($sendMessageData),
+                default    => ['status' => false, 'message' => 'ไม่รองรับแพลตฟอร์มนี้'],
+            };
+
+            if (!($result['status'] ?? false)) {
+                throw new \Exception($result['message'] ?? 'ไม่สามารถส่งรูปไปยังลูกค้าได้');
+            }
+
+            return response()->json(['message' => 'ส่งรูปหน้าแคตตาล็อกให้ลูกค้าสำเร็จ']);
+        } catch (\Throwable $e) {
+            Log::error('sendBrochurePage error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'ส่งรูปไม่สำเร็จ',
+                'error'   => $e->getMessage(),
+            ], 400);
+        }
     }
 
     /**

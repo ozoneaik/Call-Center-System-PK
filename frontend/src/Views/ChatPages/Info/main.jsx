@@ -149,6 +149,8 @@ export default function Info(props) {
                                 .map(([k, v]) => `${k}: ${v}`)
                                 .join(' · ')
                             : undefined,
+                        // รูปหน้าแคตตาล็อก/โบรชัวร์ (ถ้ามี) — backend เติม URL เต็มให้แล้วใน liveSuggest()
+                        attachment_url: data.brochure_page_url || undefined,
                     },
                     ...prev,
                 ]);
