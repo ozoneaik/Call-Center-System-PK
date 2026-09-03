@@ -171,11 +171,14 @@ class AiAssistantController extends Controller
             // chat-oc-any ส่ง brochure_page_url มาเป็น path สัมพัทธ์ (เช่น "/rendered/xxx.png") อ้างอิงจาก
             // host ของมันเอง ไม่ใช่ของเรา — ต้องเติม scheme+host ของ chat-oc-any (จาก config เดียวกับที่เรียก)
             // ให้เป็น URL เต็มก่อนส่งกลับ ไม่งั้น frontend/การโหลดรูปจะเรียกผิด host (ชี้เข้าโดเมนของเราเอง)
+            // ชื่อไฟล์ที่ปลายทางตั้งมามีภาษาไทย/เว้นวรรคปนอยู่แบบดิบ ๆ (ไม่ได้ percent-encode มา) ต้อง
+            // encode แต่ละ path segment เองก่อน ไม่งั้น URL ที่ได้ไม่ valid ตาม RFC 3986 — เปิดรูปไม่ขึ้น/
+            // โหลดรูปฝั่ง backend (Guzzle) พังได้ ขึ้นกับ client ที่ใช้งาน URL นี้ต่อ
             if (is_array($json) && !empty($json['brochure_page_url']) && is_string($json['brochure_page_url']) && str_starts_with($json['brochure_page_url'], '/')) {
                 $parts = parse_url($url);
                 if (!empty($parts['scheme']) && !empty($parts['host'])) {
                     $origin = $parts['scheme'] . '://' . $parts['host'] . (!empty($parts['port']) ? ':' . $parts['port'] : '');
-                    $json['brochure_page_url'] = $origin . $json['brochure_page_url'];
+                    $json['brochure_page_url'] = $origin . $this->encodeUrlPath($json['brochure_page_url']);
                 }
             }
 
@@ -200,6 +203,46 @@ class AiAssistantController extends Controller
                 'error'   => class_basename($e) . ': ' . $e->getMessage(),
             ], 502);
         }
+    }
+
+    /**
+     * Encode แต่ละ path segment ของ URL ให้ถูกต้องตาม RFC 3986 (เช่น ชื่อไฟล์ภาษาไทย/มีเว้นวรรค)
+     * โดยไม่ไป encode ซ้ำ segment ที่ encode มาแล้ว (decode ก่อนแล้วค่อย encode ใหม่ให้ idempotent)
+     * เก็บ scheme/host/port/query ไว้เหมือนเดิม แก้แค่ path
+     */
+    private function encodeUrlPath(string $path): string
+    {
+        $segments = array_map(
+            fn ($segment) => rawurlencode(rawurldecode($segment)),
+            explode('/', $path)
+        );
+
+        return implode('/', $segments);
+    }
+
+    /**
+     * เหมือน encodeUrlPath() แต่รับ URL เต็ม (มี scheme/host) — ใช้ตอนรับ URL จาก frontend/DB เก่า
+     * ที่อาจยังไม่ได้ encode path มาก่อน (เช่นแถวที่บันทึกไว้ตั้งแต่ก่อนแก้บั๊กนี้)
+     */
+    private function sanitizeExternalUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!$parts || empty($parts['host'])) {
+            return $url;
+        }
+
+        $result = ($parts['scheme'] ?? 'http') . '://' . $parts['host'];
+        if (!empty($parts['port'])) {
+            $result .= ':' . $parts['port'];
+        }
+        if (!empty($parts['path'])) {
+            $result .= $this->encodeUrlPath($parts['path']);
+        }
+        if (!empty($parts['query'])) {
+            $result .= '?' . $parts['query'];
+        }
+
+        return $result;
     }
 
     /**
@@ -298,7 +341,10 @@ class AiAssistantController extends Controller
 
             $platformAccessToken = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
 
-            $imgRes = (new \GuzzleHttp\Client(['timeout' => 15]))->get($validated['image_url']);
+            // กัน URL ที่ path มีอักขระที่ไม่ valid ตาม RFC 3986 (เช่นชื่อไฟล์ภาษาไทย/เว้นวรรคดิบ ๆ)
+            // อาจเจอกับแถวเก่าที่บันทึกไว้ก่อนแก้ปัญหานี้ ให้ sanitize ซ้ำอีกชั้นก่อนโหลดเสมอ
+            $imageUrl = $this->sanitizeExternalUrl($validated['image_url']);
+            $imgRes = (new \GuzzleHttp\Client(['timeout' => 15]))->get($imageUrl);
             $contentType = $imgRes->getHeaderLine('Content-Type') ?: 'image/png';
             $imgBody = (string) $imgRes->getBody();
             if ($imgRes->getStatusCode() !== 200 || !str_starts_with($contentType, 'image/')) {
