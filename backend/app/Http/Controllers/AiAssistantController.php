@@ -91,6 +91,41 @@ class AiAssistantController extends Controller
     }
 
     /**
+     * ประกอบบทสนทนาล่าสุด (ทั้งฝั่งลูกค้าและแอดมิน) ของห้องนี้ เรียงเก่า→ใหม่ เป็น transcript ข้อความเดียว
+     * ให้ AI เห็นบริบทก่อนหน้าทั้งหมด ไม่ใช่แค่ประโยคเดียวโดดๆ (จำกัดจำนวนบรรทัดกันข้อความยาวเกินไป)
+     * เอาเฉพาะ contentType = 'text' — รูป/ไฟล์/สติกเกอร์ ฯลฯ ไม่มีเนื้อหาที่เป็นข้อความให้ใส่ใน transcript
+     * ตัดข้อความจากบอท (sender.empCode = 'BOT' เช่นข้อความเมนู/ทักทายอัตโนมัติ) ออกตั้งแต่ระดับ query เลย
+     * ไม่ให้มานับรวมใน limit ด้วย — กันบอทมากินโควตาแทนที่ข้อความจริงของลูกค้า/แอดมิน
+     */
+    private function buildConversationContext(int $activeId, int $limit = 100): string
+    {
+        $messages = ChatHistory::query()
+            ->where('conversationRef', $activeId)
+            ->where('contentType', 'text')
+            // ใช้ IS DISTINCT FROM (ไม่ใช่ != ) เพราะ sender ที่ไม่มีคีย์ empCode (ข้อความลูกค้า) จะได้ NULL
+            // ออกมา ซึ่ง NULL != 'BOT' จะได้ NULL (ตัดแถวทิ้งผิดๆ) ส่วน IS DISTINCT FROM ถือ NULL ต่างจาก 'BOT' เสมอ
+            ->whereRaw("(sender->>'empCode') IS DISTINCT FROM ?", ['BOT'], 'and')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get(['content', 'sender'])
+            ->reverse()
+            ->values();
+
+        $lines = [];
+        foreach ($messages as $m) {
+            $sender = is_string($m->sender) ? json_decode($m->sender, true) : $m->sender;
+            $empCode = $sender['empCode'] ?? null;
+            $label = $empCode ? 'แอดมิน' : 'ลูกค้า';
+            $text = trim((string) $m->content);
+            if ($text !== '') {
+                $lines[] = "{$label}: {$text}";
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Proxy ไปยัง service chat-oc-any (AI ตอบสด) ฝั่ง server
      * เดิม frontend ยิงตรงไป 127.0.0.1:7001 แต่ browser บล็อกเมื่อหน้าเว็บรันบน HTTPS domain
      * (CORS / Private Network Access เข้าถึง loopback ไม่ได้) — จึงต้องให้ backend เรียกแทน
@@ -114,9 +149,17 @@ class AiAssistantController extends Controller
             return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_ANY_URL'], 503);
         }
 
+        // ให้ AI เห็นบริบทการสนทนาก่อนหน้าทั้งฝั่งลูกค้าและแอดมิน แทนที่จะเห็นแค่ประโยคเดียวโดดๆ
+        // ไม่งั้น AI จะไม่รู้ว่าคุยอะไรกันมาก่อน (เช่นแอดมินถามอะไรกลับไปแล้วลูกค้าตอบสั้นๆ ว่า "ใช่ครับ")
+        // ถ้าไม่มี active_id หรือห้องนั้นยังไม่มีข้อความเลย จะ fallback ไปใช้ message ที่ frontend ส่งมาแทน
+        $conversationContext = !empty($validated['active_id'])
+            ? $this->buildConversationContext((int) $validated['active_id'])
+            : '';
+        $messageForAi = $conversationContext !== '' ? $conversationContext : (string) ($validated['message'] ?? '');
+
         // รูปแบบ multipart ตรงตามที่ Guzzle รองรับทุกเวอร์ชัน (list ของ name/contents)
         $multipart = [
-            ['name' => 'message', 'contents' => (string) ($validated['message'] ?? '')],
+            ['name' => 'message', 'contents' => $messageForAi],
         ];
         if (!empty($validated['image_url'])) {
             $multipart[] = ['name' => 'image_url', 'contents' => $validated['image_url']];
@@ -192,10 +235,15 @@ class AiAssistantController extends Controller
             }
 
             if (!empty($validated['active_id'])) {
-                $this->storeLiveSuggestion($validated, is_array($json) ? $json : []);
+                $this->storeLiveSuggestion($validated, is_array($json) ? $json : [], $messageForAi);
             }
 
-            return response()->json(is_array($json) ? $json : ['raw' => $body]);
+            // แนบ context_sent กลับไปด้วยเสมอ (เห็นได้ทันทีตอน debug/ยิง curl ทดสอบ) — ไม่ต้องเข้า tinker
+            // เรียก buildConversationContext() ตรง ๆ เพื่อดูว่า AI เห็นบริบทอะไรไปบ้างตอนตอบรอบนี้
+            $responseBody = is_array($json) ? $json : ['raw' => $body];
+            $responseBody['context_sent'] = $messageForAi;
+
+            return response()->json($responseBody);
         } catch (\Throwable $e) {
             Log::error('liveSuggest error: ' . $e->getMessage());
             return response()->json([
@@ -250,7 +298,7 @@ class AiAssistantController extends Controller
      * แมปฟิลด์ตามตรรกะเดียวกับที่ frontend เคยทำเอง (Info/main.jsx) เพื่อให้หน้าประวัติ
      * แสดงผลเหมือนตอนที่เพิ่งได้คำตอบสด ๆ มา — ไม่กระทบ response ที่ส่งกลับ frontend (คงรูปแบบเดิม)
      */
-    private function storeLiveSuggestion(array $validated, array $json): void
+    private function storeLiveSuggestion(array $validated, array $json, string $messageForAi = ''): void
     {
         try {
             $isImage = !empty($validated['image_url']) && empty($validated['message']);
@@ -271,6 +319,7 @@ class AiAssistantController extends Controller
                 'active_conversation_id' => (int) $validated['active_id'],
                 'cust_id'                => $validated['session_id'] ?? null,
                 'message_ref'            => $validated['message_ref'] ?? null,
+                'context_sent'           => $messageForAi !== '' ? $messageForAi : null,
                 'question'               => $json['summarytxt'] ?? $questionFallback,
                 'content'                => $json['answer'] ?? $json['reply'] ?? '',
                 'source'                 => in_array($json['source'] ?? null, ['kb', 'web', 'ai'], true) ? $json['source'] : 'ai',
@@ -302,6 +351,7 @@ class AiAssistantController extends Controller
             'source'         => $r->source ?: 'ai',
             'reference'      => $r->reference,
             'message_ref'    => $r->message_ref,
+            'context_sent'   => $r->context_sent,
             'created_at'     => optional($r->created_at)->toIso8601String(),
             'attachment_url' => $r->attachment_url,
         ])->values();

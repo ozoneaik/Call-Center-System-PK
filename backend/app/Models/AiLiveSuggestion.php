@@ -12,6 +12,7 @@ class AiLiveSuggestion extends Model
         'active_conversation_id',
         'cust_id',
         'message_ref',
+        'context_sent',
         'question',
         'content',
         'source',
