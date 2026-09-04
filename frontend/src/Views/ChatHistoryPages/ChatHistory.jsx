@@ -1,7 +1,7 @@
 import Box from "@mui/joy/Box";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
-import { CircularProgress, Stack, Table, useTheme } from "@mui/joy";
+import { Chip, CircularProgress, Stack, Table, useTheme } from "@mui/joy";
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useEffect, useState } from "react";
 import { chatHistoryApi } from "../../Api/Messages.js";
@@ -53,6 +53,12 @@ export default function ChatHistory() {
     useEffect(() => {
         fetchData().finally(() => setLoading(false));
     }, [page_url]);
+
+    const renderCaseStatusChip = (item) => (
+        <Chip size="sm" variant="soft" color={item.is_closed ? 'success' : 'warning'}>
+            {item.is_closed ? 'ปิดงานแล้ว' : 'กำลังสนทนาอยู่'}
+        </Chip>
+    );
 
     const redirectChat = (select) => {
         // const params = `${select.rateRef}/${select.id}/${select.custId}`;
@@ -142,11 +148,18 @@ export default function ChatHistory() {
                                                             {item.custName}
                                                         </Typography>
                                                     </Stack>
+                                                    {renderCaseStatusChip(item)}
                                                 </Box>
 
                                                 <Typography level="body-sm" sx={{ mb: 1, color: 'text.tertiary' }}>
                                                     {item.description}
                                                 </Typography>
+
+                                                {item.tag_name && (
+                                                    <Typography level="body-xs" sx={{ mb: 1, color: 'text.secondary' }}>
+                                                        🏷️ Tag ปิดงาน: {item.tag_name}
+                                                    </Typography>
+                                                )}
 
                                                 {item.matched_note && (
                                                     <Box sx={{
@@ -218,6 +231,8 @@ export default function ChatHistory() {
                                     <th>หมายเหตุที่ค้นพบ</th>
                                     <th>ทักครั้งแรกเมื่อ</th>
                                     <th>พนักงานที่คุยล่าสุด</th>
+                                    <th>สถานะเคส</th>
+                                    <th>Tag ที่ปิดงาน</th>
                                     <th style={{ width: '80px', textAlign: 'center' }}>จัดการ</th>
                                 </tr>
                             </thead>
@@ -251,6 +266,8 @@ export default function ChatHistory() {
                                         <td>{convertFullDate(item.created_at)}</td>
                                         {/* <td>{item.name || '-'}</td> */}
                                         <td>{item.latest_staff_name || '-'}</td>
+                                        <td>{renderCaseStatusChip(item)}</td>
+                                        <td>{item.tag_name || '-'}</td>
                                         <td>
                                             <Button
                                                 size="sm"
@@ -265,7 +282,7 @@ export default function ChatHistory() {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={5}>
+                                        <td colSpan={7}>
                                             <Box sx={{ textAlign: 'center', py: 4 }}>
                                                 <Typography level="body-lg">ไม่พบข้อมูลการสนทนา</Typography>
                                             </Box>

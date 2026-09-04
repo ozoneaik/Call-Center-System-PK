@@ -8,6 +8,7 @@ use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HistoryController extends Controller
 {
@@ -145,6 +146,35 @@ class HistoryController extends Controller
                 ->addSelect('notes.text as matched_note');
         }
 
+        // เพิ่มการกรองด้วยสถานะเคส (ปิดงานแล้ว / กำลังสนทนาอยู่) และ Tag ที่ใช้ตอนปิดงาน
+        // อ้างอิงจาก "เคสล่าสุด" ของลูกค้าแต่ละคนในตาราง rates (rates.status = 'success' คือปิดงานแล้ว)
+        if ($request->filled('caseStatus') || $request->filled('tagId')) {
+            $latestRateIds = DB::table('rates')
+                ->selectRaw('MAX(id) as max_id')
+                ->groupBy('custId')
+                ->pluck('max_id');
+
+            $latestRatesQuery = DB::table('rates')->whereIn('id', $latestRateIds);
+
+            if ($request->filled('caseStatus')) {
+                if ($request->caseStatus === 'closed') {
+                    $message = 'ค้นหาเฉพาะเคสที่ปิดงานแล้ว';
+                    $latestRatesQuery->where('status', 'success');
+                } elseif ($request->caseStatus === 'ongoing') {
+                    $message = 'ค้นหาเฉพาะเคสที่กำลังสนทนาอยู่';
+                    $latestRatesQuery->where('status', '!=', 'success');
+                }
+            }
+
+            if ($request->filled('tagId')) {
+                $message = 'ค้นหาจาก Tag ที่ปิดงาน';
+                $latestRatesQuery->where('tag', $request->tagId);
+            }
+
+            $matchedCustIds = $latestRatesQuery->pluck('custId');
+            $query->whereIn('customers.custId', $matchedCustIds);
+        }
+
         // $customer_list = $query->orderBy('customers.created_at', 'desc')->paginate(200);
         // $customer_list = $query->distinct()->orderBy('customers.created_at', 'desc')->paginate(200);
 
@@ -205,6 +235,28 @@ class HistoryController extends Controller
                 $customer->latest_message    = $latestMessage;
                 $customer->latest_staff_name = $latestMessage?->staff_name;
                 $customer->latest_empCode    = $latestMessage?->empCode;
+            }
+
+            // 5. ดึงสถานะของ "เคสล่าสุด" (ปิดงานแล้ว / กำลังสนทนาอยู่) พร้อม Tag ที่ใช้ปิดงาน มาแสดงในตาราง
+            $latestCaseIds = DB::table('rates')
+                ->whereIn('custId', $custIds)
+                ->selectRaw('MAX(id) as max_id')
+                ->groupBy('custId')
+                ->pluck('max_id');
+
+            $latestCases = DB::table('rates')
+                ->select('rates.custId', 'rates.status', 'rates.tag', 'tag_menus.tagName')
+                ->leftJoin('tag_menus', 'tag_menus.id', '=', 'rates.tag')
+                ->whereIn('rates.id', $latestCaseIds)
+                ->get()
+                ->keyBy('custId');
+
+            foreach ($customer_list as $customer) {
+                $latestCase = $latestCases->get($customer->custId);
+
+                $customer->case_status = $latestCase->status ?? null; // pending | progress | success
+                $customer->is_closed   = ($latestCase->status ?? null) === 'success';
+                $customer->tag_name    = $latestCase->tagName ?? null;
             }
         }
 

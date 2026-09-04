@@ -77,8 +77,9 @@
 // };
 
 import { Button, FormControl, FormLabel, Input, Option, Select, Stack } from "@mui/joy";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, RotateLeft } from "@mui/icons-material";
+import { listTagsApi } from "../../Api/Tags.js";
 
 export const FilterChatHistory = ({ platforms, onPassed }) => {
     const [filter, setFilter] = useState({
@@ -87,7 +88,20 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
         directFrom: "",
         firstContactDate: "",
         note: "", // เพิ่ม field NOTE
+        caseStatus: "", // เพิ่ม field สถานะเคส (ปิดงานแล้ว / กำลังสนทนาอยู่)
+        tagId: "", // เพิ่ม field Tag ที่ใช้ตอนปิดงาน
     });
+    const [tags, setTags] = useState([]);
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            const { data, status } = await listTagsApi();
+            if (status === 200) {
+                setTags(data.list ?? []);
+            }
+        };
+        fetchTags();
+    }, []);
 
     const searchDirectFrom = (event, value) => {
         setFilter((prev) => ({
@@ -104,6 +118,13 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
         }));
     };
 
+    const handleSelectChange = (name) => (event, value) => {
+        setFilter((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
     const handleReset = () => {
         const resetData = {
             custId: "",
@@ -111,6 +132,8 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
             directFrom: "",
             firstContactDate: "",
             note: "", // reset note ด้วย
+            caseStatus: "",
+            tagId: "",
         };
         setFilter(resetData);
         onPassed(resetData);
@@ -184,6 +207,37 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                         placeholder="ค้นหาจากหมายเหตุ"
                         onChange={handleOnChange}
                     />
+                </FormControl>
+
+                {/* เพิ่มตัวกรองสถานะเคส: ปิดงานแล้ว / กำลังสนทนาอยู่ */}
+                <FormControl>
+                    <FormLabel>สถานะเคส</FormLabel>
+                    <Select
+                        sx={{ width: "200px" }}
+                        value={filter.caseStatus}
+                        onChange={handleSelectChange("caseStatus")}
+                    >
+                        <Option value={""}>ทั้งหมด</Option>
+                        <Option value={"ongoing"}>กำลังสนทนาอยู่</Option>
+                        <Option value={"closed"}>ปิดงานแล้ว</Option>
+                    </Select>
+                </FormControl>
+
+                {/* เพิ่มตัวกรอง Tag ที่ใช้ตอนปิดงาน */}
+                <FormControl>
+                    <FormLabel>Tag ที่ปิดงาน</FormLabel>
+                    <Select
+                        sx={{ width: "200px" }}
+                        value={filter.tagId}
+                        onChange={handleSelectChange("tagId")}
+                    >
+                        <Option value={""}>ทั้งหมด</Option>
+                        {tags.map((tag) => (
+                            <Option key={tag.id} value={tag.id}>
+                                {tag.tagName}
+                            </Option>
+                        ))}
+                    </Select>
                 </FormControl>
 
                 <Stack direction="row" spacing={1}>
