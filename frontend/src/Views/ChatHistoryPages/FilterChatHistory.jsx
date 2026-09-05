@@ -150,7 +150,7 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
                 alignItems="flex-end"
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, flexWrap: "wrap", rowGap: 2 }}
             >
                 <FormControl>
                     <FormLabel>รหัสลูกค้า</FormLabel>
@@ -240,7 +240,7 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                     </Select>
                 </FormControl>
 
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
                     <Button type="submit" startDecorator={<Search />}>
                         ค้นหา
                     </Button>
