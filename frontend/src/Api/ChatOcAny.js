@@ -1,25 +1,22 @@
 import axiosClient from "../Axios.js";
 
-// เรียก AI ผู้ช่วยแบบเรียลไทม์ (chat-oc-any): วิเคราะห์รูปสินค้า/ข้อความ แล้วตอบกลับ พร้อมข้อมูลสินค้า/ราคาอะไหล่ถ้าจับคู่ได้
-// ยิงผ่าน backend Laravel (POST /ai-assistant/chat-oc-any) ที่ proxy ต่อไปยัง service จริง
+// เรียก AI ผู้ช่วยแบบเรียลไทม์ (chat-oc-summary): สรุปบริบทบทสนทนาทั้งหมด แล้วร่างคำตอบให้
+// ยิงผ่าน backend Laravel (POST /ai-assistant/chat-oc-any) ที่ proxy ต่อไปยัง service จริง (chat-oc-summary)
 // เดิมยิงตรงจาก browser ไป 127.0.0.1:7001 แต่โดนบล็อกเมื่อหน้าเว็บรันบน HTTPS domain
-// (CORS / Private Network Access เข้าถึง loopback address ไม่ได้) — host จริงตั้งค่าที่ backend ผ่าน CHAT_OC_ANY_URL
-export const sendChatOcAnyApi = async ({ message, imageFile, imageUrl, custId, activeId, messageRef }) => {
-    const form = new FormData();
-    // normalize('NFC') กันกรณีตัวอักษรไทย (สระ/วรรณยุกต์) มาแบบแยกส่วนจนต่อกันผิดรูป
-    form.append('message', (message || '').normalize('NFC'));
-    if (imageUrl) form.append('image_url', imageUrl.normalize('NFC'));
-    if (custId) form.append('session_id', custId);
-    if (imageFile) form.append('image', imageFile, imageFile.name || 'image.jpg');
+// (CORS / Private Network Access เข้าถึง loopback address ไม่ได้) — host จริงตั้งค่าที่ backend ผ่าน CHAT_OC_SUMMARY_URL
+// หมายเหตุ: เดิม endpoint chat-oc-any รับข้อความล่าสุด+รูปแนบทีละข้อความ แต่ chat-oc-summary รับ
+// context เป็น "lines" หลายข้อความแทน — backend เป็นคนไปดึงประวัติแชททั้งห้อง (ตาม activeId) มาสร้าง lines
+// เองฝั่ง server จึงไม่ต้องส่ง message/imageFile/imageUrl จากตรงนี้อีกแล้ว
+export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessageId }) => {
     // active_id/message_ref: ให้ backend บันทึกการ์ดวิเคราะห์นี้ลง ai_live_suggestions
-    // เพื่อโหลดกลับมาแสดงได้ตอนรีเฟรชหน้าจอ (ดู Info/main.jsx)
-    if (activeId) form.append('active_id', activeId);
-    if (messageRef) form.append('message_ref', String(messageRef));
-
-    // Content-Type: null → ลบ default (Axios.js ตั้ง multipart/form-data ไว้แบบไม่มี boundary)
-    // ให้ browser ใส่ header พร้อม boundary เองจาก FormData ไม่งั้น backend parse ไม่ออก ($request ว่าง)
-    const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', form, {
-        headers: { 'Content-Type': null },
+    // เพื่อโหลดกลับมาแสดงได้ตอนรีเฟรชหน้าจอ (ดู Info/main.jsx) และดึงประวัติข้อความทั้งห้องมาทำ context
+    // up_to_message_id: ปุ่ม "Generate AI" ที่กดจากข้อความใดข้อความหนึ่งในหน้าแชท (ดู ChatBubble.jsx) —
+    // ให้ backend จำกัด context ย้อนกลับไปแค่ถึงข้อความนั้น ไม่เอาข้อความที่มาทีหลัง
+    const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', {
+        session_id: custId || undefined,
+        active_id: activeId || undefined,
+        message_ref: messageRef !== undefined ? String(messageRef) : undefined,
+        up_to_message_id: upToMessageId || undefined,
     });
-    return data; // { reply, source, primary_intent, ... }
+    return data; // { summarytxt, answer, ... }
 };

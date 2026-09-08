@@ -35,9 +35,11 @@ return [
         ],
     ],
 
-    // AI ผู้ช่วยตอบสด (chat-oc-any) — backend เรียกแทน frontend เพราะ browser บล็อกการยิงตรงไป loopback/CORS
-    'chat_oc_any' => [
-        'url' => env('CHAT_OC_ANY_URL', 'http://192.168.9.32:7001/chat-oc-any'),
+    // AI ผู้ช่วยตอบสด (chat-oc-summary) — backend เรียกแทน frontend เพราะ browser บล็อกการยิงตรงไป loopback/CORS
+    // เดิมยิง chat-oc-any (ส่งได้ทีละ 1 ข้อความ + รูป) เปลี่ยนมาใช้ chat-oc-summary (ส่ง context หลายข้อความ
+    // เป็น array "lines" ให้ AI สรุปได้) — endpoint ใหม่นี้ไม่รับไฟล์รูปแนบแล้ว
+    'chat_oc_summary' => [
+        'url' => env('CHAT_OC_SUMMARY_URL', 'http://192.168.9.32:7001/chat-oc-summary'),
     ],
 
 ];

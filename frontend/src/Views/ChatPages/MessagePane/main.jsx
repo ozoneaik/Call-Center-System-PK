@@ -1,8 +1,8 @@
 import {useLocation, useParams } from "react-router-dom";
-import { CircularProgress, Sheet,Box, Stack, Avatar } from "@mui/joy";
+import { CircularProgress, Sheet,Box, Stack, Avatar, Divider, Typography } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { selectMessageApi } from "../../../Api/Messages.js";
 import ChatBubble from "./ChatBubble.jsx";
 import { useNotification } from "../../../context/NotiContext.jsx";
@@ -122,6 +122,31 @@ export default function MessagePane() {
         return null;
     }, [messages]);
 
+    // ปุ่ม "Generate AI" ต่อข้อความ (ดู ChatBubble.jsx) — เรียก generateForMessage ที่อยู่ใน Info ตรง ๆ ผ่าน ref
+    // แทนที่จะยกทั้ง state ของแผง AI ขึ้นมาไว้ที่นี่ (Info ยังเป็นเจ้าของ liveSuggestions/liveLoading เหมือนเดิม)
+    const infoRef = useRef(null);
+    // key ของข้อความที่กำลัง generate อยู่ (ใช้โชว์ spinner/ล็อกปุ่มเฉพาะข้อความนั้น กันกดซ้ำซ้อน)
+    const [generatingMessageKey, setGeneratingMessageKey] = useState(null);
+    // key ของข้อความที่กด Generate AI "ล่าสุด" (ทั้งจากประวัติที่โหลดมาตอนเปิดห้อง และจากที่เพิ่งกดสด ๆ)
+    // Info เป็นคนอัปเดตให้ผ่าน onLastGeneratedChange — ใช้โชว์เส้นคั่นในหน้าแชทว่า generate ไปถึงข้อความไหนแล้ว
+    const [lastGeneratedKey, setLastGeneratedKey] = useState(null);
+
+    const handleGenerateAi = async (message) => {
+        if (!message || generatingMessageKey) return; // กันกดรัวจนยิงซ้อนกันหลายคำขอพร้อมกัน
+        const key = message.id ?? message.created_at;
+        if (!key) return;
+        setGeneratingMessageKey(key);
+        // เด้งเปิด Side bar AI ทันทีที่กด ให้เห็น loading/ผลลัพธ์เลย ไม่ต้องกดเปิดแผงเอง
+        infoRef.current?.openAiPanel();
+        try {
+            await infoRef.current?.generateForMessage(message, { force: true });
+        } catch (err) {
+            console.error('Generate AI ย้อนหลังไม่สำเร็จ', err);
+        } finally {
+            setGeneratingMessageKey(null);
+        }
+    };
+
     return (
         <>
             <Sheet sx={MessageStyle.MainLayout}>
@@ -149,20 +174,36 @@ export default function MessagePane() {
                                 <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
                                     {messages.length > 0 && messages.map((message, index) => {
                                         const isYou = message.sender.empCode;
+                                        const messageKey = message.id ?? message.created_at;
+                                        // จุดตัด: ข้อความนี้คือจุดที่กด Generate AI ล่าสุด (ทั้งจากประวัติเก่าและที่เพิ่งกดสด ๆ)
+                                        const isLastGenerated = lastGeneratedKey != null
+                                            && messageKey != null
+                                            && String(messageKey) === String(lastGeneratedKey);
                                         return (
-                                            <Stack
-                                                data-aos="fade-right"
-                                                key={index} direction="row" spacing={2}
-                                                sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
-                                            >
-                                                <Avatar src={forceHttps(message.sender.avatar)} />
-                                                <ChatBubble
-                                                    variant={isYou ? 'sent' : 'received'} 
-                                                    isShopeeRoom={isShopeeRoom}
-                                                    {...message}
-                                                    {...{ messages, setMessages }}
-                                                />
-                                            </Stack>
+                                            <Box key={index}>
+                                                <Stack
+                                                    data-aos="fade-right"
+                                                    direction="row" spacing={2}
+                                                    sx={{ flexDirection: isYou ? 'row-reverse' : 'row' }}
+                                                >
+                                                    <Avatar src={forceHttps(message.sender.avatar)} />
+                                                    <ChatBubble
+                                                        variant={isYou ? 'sent' : 'received'}
+                                                        isShopeeRoom={isShopeeRoom}
+                                                        {...message}
+                                                        {...{ messages, setMessages }}
+                                                        onGenerateAi={handleGenerateAi}
+                                                        generatingAi={!!messageKey && messageKey === generatingMessageKey}
+                                                    />
+                                                </Stack>
+                                                {isLastGenerated && (
+                                                    <Divider sx={{ my: 1.5, '--Divider-childPosition': '50%' }}>
+                                                        <Typography level="body-xs" sx={{ color: '#6c5dd3', fontWeight: 600 }}>
+                                                            ✨ Generate AI ล่าสุดถึงตรงนี้
+                                                        </Typography>
+                                                    </Divider>
+                                                )}
+                                            </Box>
                                         );
                                     })}
                                 </Stack>
@@ -179,7 +220,11 @@ export default function MessagePane() {
                         )}
                     </Sheet>
                 </Sheet>
-                <Info {...{ sender, starList, notes, check, setMsg, activeId, latestCustomerMessage }} />
+                <Info
+                    ref={infoRef}
+                    {...{ sender, starList, notes, check, setMsg, activeId, latestCustomerMessage }}
+                    onLastGeneratedChange={setLastGeneratedKey}
+                />
             </Sheet>
         </>
     )

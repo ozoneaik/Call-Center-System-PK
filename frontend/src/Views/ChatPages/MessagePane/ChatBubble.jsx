@@ -1,7 +1,7 @@
 import Stack from "@mui/joy/Stack";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
-import { Avatar, Button, Sheet } from "@mui/joy";
+import { Avatar, Button, IconButton, Sheet } from "@mui/joy";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { InsertDriveFile, PlayCircle, VolumeUp } from '@mui/icons-material';
@@ -16,6 +16,7 @@ import ChatBubbleProduct from "./ChatBubbleProduct.jsx";
 import ChatBubbleItemList from "./ChatBubbleItemList.jsx";
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { forceHttps } from "../../../utils.js";
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 export default function Bubble(props) {
     const { user } = useAuth();
@@ -31,6 +32,8 @@ export default function Bubble(props) {
         messages,
         meta,
         isShopeeRoom,
+        onGenerateAi,
+        generatingAi,
     } = props;
 
     const isSent = variant === 'sent';
@@ -142,6 +145,27 @@ export default function Bubble(props) {
                 {/* เมนู hover ต้องการ ตอบกลับ */}
                 {line_message_id && (
                     <ContextMenuButton onReply={(value) => alert(value)} {...{ ...props }} />
+                )}
+
+                {/* ปุ่ม "Generate AI" ย้อนหลัง — เฉพาะข้อความของลูกค้า (ไม่ใช่ของแอดมิน) วางไว้ท้ายข้อความ (ใต้บับเบิล)
+                    กดแล้ว AI จะสรุปบริบทย้อนกลับไปตั้งแต่ต้นห้องจนถึงข้อความนี้ (ไม่รวมข้อความที่มาทีหลัง) */}
+                {!isSent && onGenerateAi && (
+                    <Box className="action-buttons" sx={aiButtonStyle}>
+                        <IconButton
+                            size="sm"
+                            variant="outlined"
+                            color="primary"
+                            loading={!!generatingAi}
+                            disabled={!!generatingAi}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onGenerateAi({ id: props.id, content, contentType, created_at, sender });
+                            }}
+                            title="Generate AI ย้อนหลังถึงข้อความนี้"
+                        >
+                            <AutoAwesomeIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
                 )}
 
                 <Sheet
@@ -420,3 +444,18 @@ export default function Bubble(props) {
         </Box>
     );
 }
+
+// ปุ่ม "Generate AI" ต่อข้อความ — วางไว้ท้ายข้อความ (ใต้บับเบิล) แทนด้านบน กันไปทับกับแถวชื่อ/เวลาที่อยู่เหนือบับเบิล
+// และกันชนกับปุ่มตอบกลับของ ContextMenuButton ที่ยังอยู่ด้านบน (top: -30px, right: 10) เหมือนเดิม
+const aiButtonStyle = {
+    // position: 'absolute', bottom: '-5px', left: 180, right: 'auto', top: 'auto',
+    // display: 'flex', gap: '10px',
+    // backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 'md',
+    // boxShadow: 'sm', opacity: 0, transition: 'opacity 0.2s',
+    // zIndex: 10, padding: '2px',
+    position: 'absolute', top: '-30px', right: -25, left: 'auto',
+    display: 'flex', gap: '10px',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 'md',
+    boxShadow: 'sm', opacity: 0, transition: 'opacity 0.2s',
+    zIndex: 10, padding: '2px',
+};

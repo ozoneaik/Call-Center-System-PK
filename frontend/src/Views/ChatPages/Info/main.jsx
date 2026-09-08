@@ -1,7 +1,7 @@
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { Box, Sheet, IconButton, Divider } from "@mui/joy";
 import Typography from "@mui/joy/Typography";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Notes } from "./Notes.jsx";
 import { Feedback } from "./Feedback.jsx";
 import AIPanel from "./AIPanel.jsx";
@@ -28,8 +28,10 @@ const SECTION_TITLES = {
     shopeeOrders: 'ประวัติออเดอร์ Shopee',
 };
 
-export default function Info(props) {
-    const { sender, check, setMsg, activeId, latestCustomerMessage } = props;
+const Info = forwardRef(function Info(props, ref) {
+    // latestCustomerMessage ไม่ได้ใช้ auto-trigger แล้ว (ปิดไปแล้ว — generate เฉพาะกดปุ่มเท่านั้น) แต่ยังรับ
+    // มาจาก props เผื่ออนาคตอยากเปิดกลับมาใช้ ไม่ต้องแก้ MessagePane/main.jsx ที่ยังส่งมาให้อยู่
+    const { sender, check, setMsg, activeId } = props;
     const [notes, setNotes] = useState([]);
     const [starList, setStarList] = useState([]);
     const [newNote, setNewNote] = useState("");
@@ -82,6 +84,8 @@ export default function Info(props) {
         setLiveSuggestions([]);
         lastProcessedMessageKeyRef.current = null;
         setHistoryReady(false);
+        // เคลียร์จุดตัด "Generate AI ล่าสุด" ของห้องก่อนหน้าออกก่อน กันเส้นคั่นค้างผิดห้องระหว่างรอโหลด
+        props.onLastGeneratedChange?.(null);
 
         if (!activeId) {
             setHistoryReady(true);
@@ -98,6 +102,8 @@ export default function Info(props) {
                 if (history[0]?.message_ref) {
                     lastProcessedMessageKeyRef.current = history[0].message_ref;
                 }
+                // แจ้ง MessagePane ว่าข้อความไหนคือจุดที่ Generate AI ล่าสุด (ใช้โชว์เส้นคั่นในหน้าแชท)
+                props.onLastGeneratedChange?.(history[0]?.message_ref ?? null);
             }
             setHistoryReady(true);
         };
@@ -109,60 +115,76 @@ export default function Info(props) {
         };
     }, [activeId]);
 
-    useEffect(() => {
-        // รอประวัติเก่าโหลดเสร็จก่อน ไม่งั้น lastProcessedMessageKeyRef อาจยังว่างอยู่ ทำให้ยิงวิเคราะห์
-        // ข้อความล่าสุดซ้ำกับที่เคยมีอยู่แล้วในประวัติ กลายเป็นการ์ดซ้ำซ้อนกันตอนรีเฟรช
-        if (!historyReady) return;
-        if (!latestCustomerMessage) return;
-        const key = latestCustomerMessage.id ?? latestCustomerMessage.created_at;
-        if (!key || String(key) === String(lastProcessedMessageKeyRef.current)) return;
+    // สร้างการ์ดวิเคราะห์ AI สำหรับข้อความหนึ่งข้อความ (context = ประวัติแชทย้อนกลับไปถึงข้อความนั้น)
+    // เรียกจากปุ่ม "Generate AI" ที่ข้อความใดข้อความหนึ่ง (เปิดผ่าน ref จาก MessagePane/main.jsx — ดู ChatBubble.jsx)
+    // opts.force = true ใช้ตอนกดปุ่มเอง ให้ generate ได้แม้ข้อความนี้เคย generate ไปแล้ว (ข้ามการกันซ้ำ)
+    const generateForMessage = useCallback(async (message, opts = {}) => {
+        if (!message) return;
+        const key = message.id ?? message.created_at;
+        if (!key) return;
+        if (!opts.force && String(key) === String(lastProcessedMessageKeyRef.current)) return;
         lastProcessedMessageKeyRef.current = key;
 
-        const isImage = latestCustomerMessage.contentType === 'image';
-        const questionText = isImage ? '[ลูกค้าส่งรูปภาพ]' : latestCustomerMessage.content;
+        const isImage = message.contentType === 'image';
+        const questionText = isImage ? '[ลูกค้าส่งรูปภาพ]' : message.content;
 
-        const run = async () => {
-            setLiveLoading(true);
-            try {
-                const data = await sendChatOcAnyApi({
-                    message: isImage ? '' : latestCustomerMessage.content,
-                    imageUrl: isImage ? latestCustomerMessage.content : undefined,
-                    custId: sender?.custId,
-                    activeId,
-                    messageRef: key,
-                });
-                setLiveSuggestions((prev) => [
-                    {
-                        id: `live-${key}`,
-                        // เวลาที่ AI ตอบกลับมาจริง ๆ (ตอนนี้) ใช้โชว์ในการ์ด — ของที่โหลดจากประวัติจะมี created_at จาก backend มาแล้ว
-                        created_at: new Date().toISOString(),
-                        // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ
-                        question: data.summarytxt || questionText,
-                        content: data.answer || data.reply,
-                        // source เก็บเป็นแท็กสั้น ๆ (kb/web/ai) เท่านั้น — service อาจส่งค่าอื่น/ยาวเกินคอลัมน์ ให้ปัดเป็น 'ai'
-                        source: ['kb', 'web', 'ai'].includes(data.source) ? data.source : 'ai',
-                        // resolved_product มีฟิลด์ spec_rows เป็น array ซ้อน array (เช่น [["Rated Power","20V"], ...])
-                        // กรองออกก่อน ไม่งั้น `${v}` จะ stringify array ออกมาเป็นข้อความรกๆ ปนอยู่ในการ์ด
-                        reference: data.resolved_product
-                            ? Object.entries(data.resolved_product)
-                                .filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'object')
-                                .map(([k, v]) => `${k}: ${v}`)
-                                .join(' · ')
-                            : undefined,
-                        // รูปหน้าแคตตาล็อก/โบรชัวร์ (ถ้ามี) — backend เติม URL เต็มให้แล้วใน liveSuggest()
-                        attachment_url: data.brochure_page_url || undefined,
-                    },
-                    ...prev,
-                ]);
-            } catch (err) {
-                console.error('เรียก chat-oc-any อัตโนมัติไม่สำเร็จ', err);
-            } finally {
-                setLiveLoading(false);
-            }
-        };
+        setLiveLoading(true);
+        try {
+            const data = await sendChatOcAnyApi({
+                custId: sender?.custId,
+                activeId,
+                messageRef: key,
+                // จำกัด context ("lines") ย้อนกลับไปแค่ถึงข้อความนี้ — ตอนออโต้ทริกเกอร์ (ข้อความล่าสุด)
+                // ผลจะเหมือนไม่จำกัดอยู่แล้วเพราะเป็นข้อความใหม่สุด ณ ตอนนั้นพอดี
+                upToMessageId: Number.isFinite(message.id) ? message.id : undefined,
+            });
+            setLiveSuggestions((prev) => [
+                {
+                    // ใส่ timestamp กันซ้ำ key เผื่อกด Generate ซ้ำที่ข้อความเดิม (force ข้ามการกันซ้ำด้านบนได้)
+                    id: `live-${key}-${Date.now()}`,
+                    // เวลาที่ AI ตอบกลับมาจริง ๆ (ตอนนี้) ใช้โชว์ในการ์ด — ของที่โหลดจากประวัติจะมี created_at จาก backend มาแล้ว
+                    created_at: new Date().toISOString(),
+                    // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ
+                    question: data.summarytxt || questionText,
+                    content: data.answer || data.reply,
+                    // source เก็บเป็นแท็กสั้น ๆ (kb/web/ai) เท่านั้น — service อาจส่งค่าอื่น/ยาวเกินคอลัมน์ ให้ปัดเป็น 'ai'
+                    source: ['kb', 'web', 'ai'].includes(data.source) ? data.source : 'ai',
+                    // resolved_product มีฟิลด์ spec_rows เป็น array ซ้อน array (เช่น [["Rated Power","20V"], ...])
+                    // กรองออกก่อน ไม่งั้น `${v}` จะ stringify array ออกมาเป็นข้อความรกๆ ปนอยู่ในการ์ด
+                    reference: data.resolved_product
+                        ? Object.entries(data.resolved_product)
+                            .filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'object')
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(' · ')
+                        : undefined,
+                    // รูปหน้าแคตตาล็อก/โบรชัวร์ (ถ้ามี) — backend เติม URL เต็มให้แล้วใน liveSuggest()
+                    attachment_url: data.brochure_page_url || undefined,
+                },
+                ...prev,
+            ]);
+            // แจ้ง MessagePane ว่าข้อความนี้คือจุด Generate AI ล่าสุด ให้ไปโชว์เส้นคั่นต่อจากข้อความนี้ในหน้าแชท
+            props.onLastGeneratedChange?.(key);
+        } catch (err) {
+            console.error('เรียก chat-oc-any ไม่สำเร็จ', err);
+            throw err;
+        } finally {
+            setLiveLoading(false);
+        }
+    }, [sender?.custId, activeId]);
 
-        run();
-    }, [latestCustomerMessage, historyReady, activeId]);
+    // เปิดแผง AI (กาง Bar เมนูขวามือ + สลับไปแท็บ 'ai') — ใช้ตอนกดปุ่ม "Generate AI" ที่ข้อความ ให้เห็นผลลัพธ์
+    // ทันทีโดยไม่ต้องกดเปิดแผงเอง แม้ตอนนั้นแผงจะปิดอยู่ หรือเปิดค้างที่แท็บอื่น (โน้ต/ประเมิน ฯลฯ)
+    const openAiPanel = useCallback(() => {
+        setCollapsed(false);
+        setOpenSection('ai');
+    }, []);
+
+    // เปิดให้ MessagePane/main.jsx เรียก generateForMessage/openAiPanel ได้ตรง ๆ ผ่าน ref (ปุ่ม "Generate AI" ต่อข้อความ)
+    useImperativeHandle(ref, () => ({ generateForMessage, openAiPanel }), [generateForMessage, openAiPanel]);
+
+    // ปิดออโต้ทริกเกอร์แล้วตามที่ตกลง — AI จะ generate เฉพาะตอนกดปุ่ม "Generate AI" ที่ข้อความ (ผ่าน ref
+    // generateForMessage ด้านบน) เท่านั้น ไม่ยิงอัตโนมัติทันทีที่ลูกค้าทักข้อความใหม่เข้ามาอีกต่อไป
+    // (เดิมมี useEffect คอยเช็ค latestCustomerMessage แล้วเรียก generateForMessage ให้เองตรงนี้)
 
     useEffect(() => {
         setNotes(props.notes);
@@ -410,4 +432,6 @@ export default function Info(props) {
             )}
         </>
     );
-}
+});
+
+export default Info;

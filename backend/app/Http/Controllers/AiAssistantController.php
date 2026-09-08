@@ -91,85 +91,92 @@ class AiAssistantController extends Controller
     }
 
     /**
-     * Proxy ไปยัง service chat-oc-any (AI ตอบสด) ฝั่ง server
+     * Proxy ไปยัง service chat-oc-summary (AI ตอบสด) ฝั่ง server
      * เดิม frontend ยิงตรงไป 127.0.0.1:7001 แต่ browser บล็อกเมื่อหน้าเว็บรันบน HTTPS domain
      * (CORS / Private Network Access เข้าถึง loopback ไม่ได้) — จึงต้องให้ backend เรียกแทน
      * คืน JSON ของ service กลับไปตรง ๆ ให้ frontend map เอง
+     *
+     * เดิมยิง chat-oc-any: ส่งแค่ข้อความล่าสุดข้อความเดียว (+ แนบรูปได้) เป็น multipart/form-data
+     * เปลี่ยนมาใช้ chat-oc-summary: ส่งข้อความ "ทั้งหมด" ของห้องแชทนี้ตั้งแต่เริ่ม (array "lines") เป็น
+     * JSON แทน ให้ AI เห็นบริบทเต็มก่อนสรุป — endpoint ใหม่นี้ไม่รับไฟล์รูปแนบแล้ว
+     *
+     * up_to_message_id: ใช้ตอนกดปุ่ม "Generate AI" ย้อนหลังที่ข้อความใดข้อความหนึ่งในหน้าแชท (ไม่ใช่แค่ข้อความ
+     * ล่าสุด) — จำกัด "lines" ให้เอาแค่ข้อความที่ id <= ค่านี้ (คือย้อนกลับไปถึงข้อความที่เลือก ไม่รวมข้อความที่มาทีหลัง)
      */
     public function liveSuggest(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'message'    => 'nullable|string',
-            'image_url'  => 'nullable|string',
             'session_id' => 'nullable|string',
-            'image'      => 'nullable|file|max:10240',
             // active_id/message_ref: ใช้บันทึกประวัติการ์ดวิเคราะห์นี้ลง DB (ai_live_suggestions)
             // กันหายตอนรีเฟรชหน้าจอ — เดิมเก็บแค่ React state ฝั่ง frontend
-            'active_id'   => 'nullable|integer',
-            'message_ref' => 'nullable|string',
+            // active_id ยังใช้ดึงประวัติข้อความทั้งห้องมาทำ "lines" ด้วย
+            'active_id'         => 'nullable|integer',
+            'message_ref'       => 'nullable|string',
+            'up_to_message_id'  => 'nullable|integer',
         ]);
 
-        $url = config('services.chat_oc_any.url');
+        $url = config('services.chat_oc_summary.url');
         if (!$url) {
-            return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_ANY_URL'], 503);
+            return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'], 503);
         }
 
-        // รูปแบบ multipart ตรงตามที่ Guzzle รองรับทุกเวอร์ชัน (list ของ name/contents)
-        $multipart = [
-            ['name' => 'message', 'contents' => (string) ($validated['message'] ?? '')],
-        ];
-        if (!empty($validated['image_url'])) {
-            $multipart[] = ['name' => 'image_url', 'contents' => $validated['image_url']];
-        }
-        if (!empty($validated['session_id'])) {
-            $multipart[] = ['name' => 'session_id', 'contents' => $validated['session_id']];
-        }
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $multipart[] = [
-                'name'     => 'image',
-                'contents' => fopen($file->getRealPath(), 'rb'),
-                'filename' => $file->getClientOriginalName() ?: 'image.jpg',
-            ];
-        } elseif (!empty($validated['image_url'])) {
-            // กรณีลูกค้าส่งรูปจริง (ไม่ใช่พิมพ์ลิงก์เอง) — frontend ส่งมาแค่ image_url (URL รูปที่ระบบเรา
-            // ไปโหลดจาก LINE แล้วอัปขึ้น S3) ไม่มีไฟล์แนบ ถ้าปล่อยให้ chat-oc-any (อยู่คนละวงเครือข่าย
-            // เช่น 192.168.9.32) ไปโหลด URL เองอาจโหลดไม่ได้ (เข้าไม่ถึง S3/สิทธิ์ไม่พอ) จึงตอบแบบทั่วไปแทน
-            // ที่นี่จึงโหลดรูปจริงจาก image_url ฝั่ง backend เอง (ซึ่งเพิ่งอัปขึ้น S3 เองจึงเข้าถึงได้แน่นอน)
-            // แล้วแนบเป็นไฟล์ image ไปด้วย ให้ chat-oc-any วิเคราะห์รูปได้เหมือนกรณีพิมพ์ลิงก์
-            try {
-                $imgRes = (new \GuzzleHttp\Client(['timeout' => 15]))->get($validated['image_url']);
-                $contentType = $imgRes->getHeaderLine('Content-Type') ?: 'image/jpeg';
-                $imgBody = (string) $imgRes->getBody();
+        // ดึงข้อความ (เฉพาะ contentType = text) ของห้องนี้ เรียงเก่า -> ใหม่ ให้ chat-oc-summary เห็นบริบท
+        // ตั้งแต่ต้นบทสนทนา ไม่ใช่แค่ข้อความล่าสุดข้อความเดียวเหมือน chat-oc-any เดิม — ถ้าระบุ up_to_message_id
+        // มา (กด Generate AI ย้อนหลังที่ข้อความใดข้อความหนึ่ง) ให้ตัดข้อความที่มาทีหลังข้อความนั้นออก
+        //
+        // ใช้ custId (session_id) เป็นหลักในการกำหนดขอบเขต "ห้องนี้" ไม่ใช่ conversationRef (active_conversation
+        // เซสชันปัจจุบัน) เพราะลูกค้าคนเดียวกันอาจเคยจบสนทนา/ถูกโอนสายมาแล้วหลายรอบ (active_conversations
+        // คนละแถว คนละ conversationRef) แต่หน้าจอแชทที่ frontend โหลดมาโชว์ยังต่อเนื่องกันเป็นห้องเดียวตาม
+        // custId อยู่ดี (ดู DisplayService::selectMessage) — ถ้าผูกแค่ conversationRef บริบทจะขาดข้อความจาก
+        // session เก่าที่ยังโชว์ค้างอยู่บนจอ ตกกรณี fallback ไป conversationRef เฉพาะตอนไม่มี custId ส่งมา
+        $lines = [];
+        if (!empty($validated['session_id']) || !empty($validated['active_id'])) {
+            $query = ChatHistory::query()->where('contentType', 'text');
 
-                if ($imgRes->getStatusCode() === 200 && str_starts_with($contentType, 'image/') && strlen($imgBody) <= 10 * 1024 * 1024) {
-                    $ext = match (true) {
-                        str_contains($contentType, 'png')  => 'png',
-                        str_contains($contentType, 'gif')  => 'gif',
-                        str_contains($contentType, 'webp') => 'webp',
-                        default => 'jpg',
-                    };
-                    $multipart[] = [
-                        'name'     => 'image',
-                        'contents' => $imgBody,
-                        'filename' => 'image.' . $ext,
-                    ];
-                }
-            } catch (\Throwable $e) {
-                Log::warning('liveSuggest: โหลดรูปจาก image_url ไม่สำเร็จ — ' . $e->getMessage());
+            if (!empty($validated['session_id'])) {
+                $query->where('custId', $validated['session_id']);
+            } else {
+                $query->where('conversationRef', $validated['active_id']);
             }
+
+            if (!empty($validated['up_to_message_id'])) {
+                $query->where('id', '<=', $validated['up_to_message_id']);
+            }
+
+            $lines = $query->orderBy('created_at')
+                ->pluck('content')
+                ->map(fn ($c) => trim((string) $c))
+                ->filter(fn ($c) => $c !== '')
+                ->values()
+                ->all();
         }
+
+        // บันทึก context ("lines") ที่กำลังจะส่งไว้ก่อนยิงจริง ให้ไล่ดูย้อนหลังได้จาก laravel.log ว่าตอนกด
+        // Generate AI (หรือออโต้ทริกเกอร์) แต่ละครั้งส่งบริบทอะไรไปให้ chat-oc-summary บ้าง โดยไม่ต้องเปิด DevTools ดักจับสด ๆ
+        Log::info('liveSuggest: ส่ง context ไปยัง chat-oc-summary', [
+            'active_id'        => $validated['active_id'] ?? null,
+            'up_to_message_id' => $validated['up_to_message_id'] ?? null,
+            'message_ref'      => $validated['message_ref'] ?? null,
+            'lines_count'      => count($lines),
+            'lines'            => $lines,
+        ]);
 
         try {
             $client = new \GuzzleHttp\Client(['timeout' => 30, 'http_errors' => false]);
-            $res = $client->request('POST', $url, ['multipart' => $multipart]);
+            $res = $client->request('POST', $url, [
+                'json' => [
+                    'lines'  => $lines,
+                    // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน
+                    'gender' => null,
+                ],
+            ]);
 
             $status = $res->getStatusCode();
             $body   = (string) $res->getBody();
             $json   = json_decode($body, true);
 
-            // chat-oc-any ส่ง brochure_page_url มาเป็น path สัมพัทธ์ (เช่น "/rendered/xxx.png") อ้างอิงจาก
-            // host ของมันเอง ไม่ใช่ของเรา — ต้องเติม scheme+host ของ chat-oc-any (จาก config เดียวกับที่เรียก)
+            // chat-oc-summary ส่ง brochure_page_url มาเป็น path สัมพัทธ์ (เช่น "/rendered/xxx.png") อ้างอิงจาก
+            // host ของมันเอง ไม่ใช่ของเรา — ต้องเติม scheme+host ของ chat-oc-summary (จาก config เดียวกับที่เรียก)
             // ให้เป็น URL เต็มก่อนส่งกลับ ไม่งั้น frontend/การโหลดรูปจะเรียกผิด host (ชี้เข้าโดเมนของเราเอง)
             // ชื่อไฟล์ที่ปลายทางตั้งมามีภาษาไทย/เว้นวรรคปนอยู่แบบดิบ ๆ (ไม่ได้ percent-encode มา) ต้อง
             // encode แต่ละ path segment เองก่อน ไม่งั้น URL ที่ได้ไม่ valid ตาม RFC 3986 — เปิดรูปไม่ขึ้น/
@@ -183,9 +190,9 @@ class AiAssistantController extends Controller
             }
 
             if ($status < 200 || $status >= 300) {
-                Log::warning("liveSuggest: chat-oc-any HTTP {$status} — {$body}");
+                Log::warning("liveSuggest: chat-oc-summary HTTP {$status} — {$body}");
                 return response()->json([
-                    'message'  => 'chat-oc-any ตอบกลับผิดพลาด',
+                    'message'  => 'chat-oc-summary ตอบกลับผิดพลาด',
                     'upstream' => $status,
                     'body'     => mb_substr($body, 0, 500),
                 ], 502);
@@ -199,7 +206,7 @@ class AiAssistantController extends Controller
         } catch (\Throwable $e) {
             Log::error('liveSuggest error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'เรียก chat-oc-any ไม่สำเร็จ',
+                'message' => 'เรียก chat-oc-summary ไม่สำเร็จ',
                 'error'   => class_basename($e) . ': ' . $e->getMessage(),
             ], 502);
         }
@@ -253,9 +260,6 @@ class AiAssistantController extends Controller
     private function storeLiveSuggestion(array $validated, array $json): void
     {
         try {
-            $isImage = !empty($validated['image_url']) && empty($validated['message']);
-            $questionFallback = $isImage ? '[ลูกค้าส่งรูปภาพ]' : ($validated['message'] ?? null);
-
             $reference = null;
             if (!empty($json['resolved_product']) && is_array($json['resolved_product'])) {
                 // resolved_product มีฟิลด์ spec_rows เป็น array ซ้อน array (เช่น [["Rated Power","20V"], ...])
@@ -271,7 +275,7 @@ class AiAssistantController extends Controller
                 'active_conversation_id' => (int) $validated['active_id'],
                 'cust_id'                => $validated['session_id'] ?? null,
                 'message_ref'            => $validated['message_ref'] ?? null,
-                'question'               => $json['summarytxt'] ?? $questionFallback,
+                'question'               => $json['summarytxt'] ?? null,
                 'content'                => $json['answer'] ?? $json['reply'] ?? '',
                 'source'                 => in_array($json['source'] ?? null, ['kb', 'web', 'ai'], true) ? $json['source'] : 'ai',
                 'reference'              => $reference,
