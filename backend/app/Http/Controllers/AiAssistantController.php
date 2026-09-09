@@ -120,9 +120,12 @@ class AiAssistantController extends Controller
             return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'], 503);
         }
 
-        // ดึงข้อความ (เฉพาะ contentType = text) ของห้องนี้ เรียงเก่า -> ใหม่ ให้ chat-oc-summary เห็นบริบท
+        // ดึงข้อความ (contentType = text หรือ image) ของห้องนี้ เรียงเก่า -> ใหม่ ให้ chat-oc-summary เห็นบริบท
         // ตั้งแต่ต้นบทสนทนา ไม่ใช่แค่ข้อความล่าสุดข้อความเดียวเหมือน chat-oc-any เดิม — ถ้าระบุ up_to_message_id
         // มา (กด Generate AI ย้อนหลังที่ข้อความใดข้อความหนึ่ง) ให้ตัดข้อความที่มาทีหลังข้อความนั้นออก
+        //
+        // รูป (contentType = image) แยกส่งเป็น field "image_url" ต่างหาก (เอาแค่รูปล่าสุดในขอบเขตที่ดึงมา —
+        // ถ้ามีหลายรูปเอาแค่ใบล่าสุด) ไม่ปนไปกับ lines ซึ่งเป็น text ล้วน
         //
         // ใช้ custId (session_id) เป็นหลักในการกำหนดขอบเขต "ห้องนี้" ไม่ใช่ conversationRef (active_conversation
         // เซสชันปัจจุบัน) เพราะลูกค้าคนเดียวกันอาจเคยจบสนทนา/ถูกโอนสายมาแล้วหลายรอบ (active_conversations
@@ -130,8 +133,9 @@ class AiAssistantController extends Controller
         // custId อยู่ดี (ดู DisplayService::selectMessage) — ถ้าผูกแค่ conversationRef บริบทจะขาดข้อความจาก
         // session เก่าที่ยังโชว์ค้างอยู่บนจอ ตกกรณี fallback ไป conversationRef เฉพาะตอนไม่มี custId ส่งมา
         $lines = [];
+        $imageUrl = null;
         if (!empty($validated['session_id']) || !empty($validated['active_id'])) {
-            $query = ChatHistory::query()->where('contentType', 'text');
+            $query = ChatHistory::query()->whereIn('contentType', ['text', 'image']);
 
             if (!empty($validated['session_id'])) {
                 $query->where('custId', $validated['session_id']);
@@ -143,33 +147,49 @@ class AiAssistantController extends Controller
                 $query->where('id', '<=', $validated['up_to_message_id']);
             }
 
-            $lines = $query->orderBy('created_at')
-                ->pluck('content')
-                ->map(fn ($c) => trim((string) $c))
+            $history = $query->orderBy('created_at')->get(['content', 'contentType']);
+
+            $lines = $history->where('contentType', 'text')
+                ->map(fn ($h) => trim((string) $h->content))
                 ->filter(fn ($c) => $c !== '')
                 ->values()
                 ->all();
+
+            // เอารูปล่าสุด (ใบท้ายสุดในขอบเขตนี้) เผื่อลูกค้าส่งมาหลายรูป — ตัวล่าสุดตรงบริบทตอนกด Generate AI ที่สุด
+            $lastImage = $history->where('contentType', 'image')
+                ->filter(fn ($h) => trim((string) $h->content) !== '')
+                ->last();
+            if ($lastImage) {
+                $imageUrl = trim((string) $lastImage->content);
+            }
         }
 
-        // บันทึก context ("lines") ที่กำลังจะส่งไว้ก่อนยิงจริง ให้ไล่ดูย้อนหลังได้จาก laravel.log ว่าตอนกด
+        // บันทึก context ("lines"/"image_url") ที่กำลังจะส่งไว้ก่อนยิงจริง ให้ไล่ดูย้อนหลังได้จาก laravel.log ว่าตอนกด
         // Generate AI (หรือออโต้ทริกเกอร์) แต่ละครั้งส่งบริบทอะไรไปให้ chat-oc-summary บ้าง โดยไม่ต้องเปิด DevTools ดักจับสด ๆ
         Log::info('liveSuggest: ส่ง context ไปยัง chat-oc-summary', [
+            'session_id'       => $validated['session_id'] ?? null,
             'active_id'        => $validated['active_id'] ?? null,
             'up_to_message_id' => $validated['up_to_message_id'] ?? null,
             'message_ref'      => $validated['message_ref'] ?? null,
+            // ไว้เช็คว่า scope ของ lines อิงตาม custId (session_id) หรือ fallback ไป conversationRef
+            'scope'            => !empty($validated['session_id']) ? 'custId' : 'conversationRef',
             'lines_count'      => count($lines),
             'lines'            => $lines,
+            'image_url'        => $imageUrl,
         ]);
 
         try {
             $client = new \GuzzleHttp\Client(['timeout' => 30, 'http_errors' => false]);
-            $res = $client->request('POST', $url, [
-                'json' => [
-                    'lines'  => $lines,
-                    // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน
-                    'gender' => null,
-                ],
-            ]);
+            $payload = [
+                'lines'  => $lines,
+                // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน
+                'gender' => null,
+            ];
+            if ($imageUrl) {
+                $payload['image_url'] = $imageUrl;
+            }
+
+            $res = $client->request('POST', $url, ['json' => $payload]);
 
             $status = $res->getStatusCode();
             $body   = (string) $res->getBody();
