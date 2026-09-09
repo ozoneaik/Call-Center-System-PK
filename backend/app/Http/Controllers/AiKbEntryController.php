@@ -19,6 +19,9 @@ class AiKbEntryController extends Controller
             'tag_name' => 'nullable|string',
             'cust_id' => 'nullable|string',
             'active_conversation_id' => 'nullable|integer',
+            // อ้างอิงข้อความต้นทางในบทสนทนา (id ของ chat_histories หรือ created_at เป็น fallback)
+            // ใช้ตอนแสดงหน้าจำลองแชท (ตรวจสอบ KB) ให้ไฮไลต์ว่ามาจากข้อความไหน
+            'message_ref' => 'nullable|string',
         ]);
 
         // source เก็บเป็นแท็กสั้น ๆ เท่านั้น (คอลัมน์ string(20)) — ค่าที่ไม่รู้จัก/ยาวเกิน จาก service ภายนอก ให้ปัดเป็น null

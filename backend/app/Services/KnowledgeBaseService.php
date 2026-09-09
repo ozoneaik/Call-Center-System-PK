@@ -2,29 +2,44 @@
 
 namespace App\Services;
 
-use App\Models\ActiveConversations;
-use App\Models\KnowledgeBaseEntry;
+use App\Models\AiKbEntry;
+use App\Models\ChatHistory;
+use App\Models\Customers;
 use App\Models\TagMenu;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class KnowledgeBaseService
 {
+    /**
+     * คอลัมน์ที่ใช้แสดงผลหน้าแอดมิน — ไม่ดึง embedding/embedding_src/embedding_at (vector สำหรับค้นหาความหมาย)
+     * เพราะเป็น field ขนาดใหญ่ที่ไม่ได้ใช้แสดงผล ดึงมาทุกแถวจะทำให้ payload บวมโดยเปล่าประโยชน์
+     */
+    private const DISPLAY_COLUMNS = [
+        'id', 'question', 'answer', 'note', 'source', 'tag_name',
+        'cust_id', 'active_conversation_id', 'message_ref', 'created_by', 'created_by_name',
+        'is_active', 'admin_status', 'admin_answer', 'admin_note',
+        'approved_by', 'approved_by_name', 'approved_at',
+        'created_at', 'updated_at',
+    ];
+
     public function stats(): array
     {
         $data['status'] = false;
         try {
-            $counts = KnowledgeBaseEntry::where('is_excluded', false)
+            // นับตาม admin_status เฉพาะรายการที่ยังเปิดใช้งานอยู่ (ปิดใช้งานแล้วนับแยกต่างหาก เหมือน is_excluded เดิม)
+            $counts = AiKbEntry::where('is_active', true)
                 ->selectRaw('admin_status, COUNT(*) as count')
                 ->groupBy('admin_status')
                 ->pluck('count', 'admin_status')
                 ->toArray();
-            $excluded = KnowledgeBaseEntry::where('is_excluded', true)->count();
+            $inactive = AiKbEntry::where('is_active', false)->count();
             $data['status'] = true;
             $data['stats']  = [
                 'pending'  => (int) ($counts['pending']  ?? 0),
                 'approved' => (int) ($counts['approved'] ?? 0),
                 'rejected' => (int) ($counts['rejected'] ?? 0),
-                'excluded' => (int) $excluded,
+                'inactive' => (int) $inactive,
                 'total'    => array_sum(array_map('intval', $counts)),
             ];
         } catch (\Exception $e) {
@@ -35,43 +50,51 @@ class KnowledgeBaseService
         }
     }
 
-    public function list(string $status = null, string $tagName = null, bool $showExcluded = false): array
-    {
+    public function list(
+        ?string $adminStatus = null,
+        ?string $tagName = null,
+        bool $showInactive = false,
+        ?string $search = null,
+        int $page = 1,
+        int $perPage = 20
+    ): array {
         $data['status'] = false;
         try {
-            $query = KnowledgeBaseEntry::orderBy('created_at', 'DESC');
-            $query->where('is_excluded', $showExcluded);
-            if ($status && in_array($status, ['pending', 'approved', 'rejected'])) {
-                $query->where('admin_status', $status);
+            $perPage = max(1, min($perPage, 100));
+            $page    = max(1, $page);
+
+            $query = AiKbEntry::query()
+                ->select(self::DISPLAY_COLUMNS)
+                ->where('is_active', !$showInactive)
+                ->orderBy('created_at', 'DESC');
+
+            if ($adminStatus && in_array($adminStatus, ['pending', 'approved', 'rejected'])) {
+                $query->where('admin_status', $adminStatus);
             }
-            $entries = $query->get();
-
-            // Backfill tag_name สำหรับ entries ที่ยังไม่มี โดย join จาก main DB
-            $noTagEntries = $entries->filter(fn($e) => $e->tag_name === null && $e->active_conversation_id);
-            if ($noTagEntries->isNotEmpty()) {
-                $acIds  = $noTagEntries->pluck('active_conversation_id')->toArray();
-                $tagMap = ActiveConversations::whereIn('active_conversations.id', $acIds)
-                    ->join('rates', 'active_conversations.rateRef', '=', 'rates.id')
-                    ->join('tag_menus', 'rates.tag', '=', 'tag_menus.id')
-                    ->whereNull('tag_menus.deleted_at')
-                    ->select('active_conversations.id as ac_id', 'tag_menus.tagName')
-                    ->pluck('tagName', 'ac_id')
-                    ->toArray();
-
-                foreach ($entries as $entry) {
-                    if ($entry->tag_name === null && isset($tagMap[$entry->active_conversation_id])) {
-                        $entry->tag_name = $tagMap[$entry->active_conversation_id];
-                        $entry->saveQuietly();
-                    }
-                }
-            }
-
-            // กรองด้วย tag_name หลัง enrichment
             if ($tagName) {
-                $entries = $entries->filter(fn($e) => $e->tag_name === $tagName)->values();
+                $query->where('tag_name', $tagName);
+            }
+            if ($search) {
+                $term = '%' . $search . '%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('question', 'ILIKE', $term)
+                        ->orWhere('answer', 'ILIKE', $term)
+                        ->orWhere('note', 'ILIKE', $term)
+                        ->orWhere('tag_name', 'ILIKE', $term)
+                        ->orWhere('cust_id', 'ILIKE', $term)
+                        ->orWhere('created_by_name', 'ILIKE', $term);
+                });
             }
 
-            $data['list']   = $entries;
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            $data['list']   = $paginator->items();
+            $data['meta']   = [
+                'current_page' => $paginator->currentPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'last_page'    => $paginator->lastPage(),
+            ];
             $data['status'] = true;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@list: ' . $e->getMessage());
@@ -95,49 +118,113 @@ class KnowledgeBaseService
         }
     }
 
-    public function exclude(int $id): array
-    {
-        $data['status'] = false;
-        try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->is_excluded = true;
-            $entry->save();
-            $data['status']  = true;
-            $data['message'] = 'ตัดออกจาก Knowledge Base สำเร็จ';
-        } catch (\Exception $e) {
-            Log::error('KnowledgeBaseService@exclude: ' . $e->getMessage());
-            $data['message'] = $e->getMessage();
-        } finally {
-            return $data;
-        }
-    }
-
-    public function restore(int $id): array
-    {
-        $data['status'] = false;
-        try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->is_excluded = false;
-            $entry->save();
-            $data['status']  = true;
-            $data['message'] = 'คืนค่าเข้า Knowledge Base สำเร็จ';
-        } catch (\Exception $e) {
-            Log::error('KnowledgeBaseService@restore: ' . $e->getMessage());
-            $data['message'] = $e->getMessage();
-        } finally {
-            return $data;
-        }
-    }
-
     public function show(int $id): array
     {
         $data['status'] = false;
         try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $data['entry'] = $entry;
+            $entry = AiKbEntry::select(self::DISPLAY_COLUMNS)->findOrFail($id);
+            $data['entry']  = $entry;
             $data['status'] = true;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@show: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    /**
+     * ดึงประวัติแชททั้งหมดของลูกค้าคนนี้ (custId) + ข้อมูลลูกค้า เพื่อจำลองหน้าแชทจริงแบบ read-only
+     * — ใช้ query เดียวกับหน้าแชทจริง (DisplayService::selectMessage: where custId, 200 ข้อความล่าสุด)
+     * ไม่จำกัดเฉพาะ session เดียว (active_conversation_id) เพราะลูกค้าอาจมีหลาย session ต่อกันเป็น
+     * บทสนทนาเดียวในสายตาแอดมิน (เช่น เริ่มคุยกับ BOT ก่อนแล้วพนักงานรับเรื่องต่อ คนละ conversationRef)
+     *
+     * แต่ละข้อความจะมี in_source_session บอกว่าอยู่ใน session เดียวกับตอนที่เพิ่มเข้า KB หรือไม่
+     * (เทียบ conversationRef กับ active_conversation_id ของ entry) ให้ frontend ไฮไลต์ "ช่วง" ที่ใช้สร้าง
+     * KB นี้ในบทสนทนาทั้งหมดได้ — ไม่ใช่แค่ข้อความเดียว (message_ref คือจุดที่แม่นกว่านั้นอีกชั้น ถ้ามี)
+     */
+    public function conversation(int $id): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = AiKbEntry::select(self::DISPLAY_COLUMNS)->findOrFail($id);
+
+            $messages = collect();
+            if ($entry->cust_id) {
+                $chatHistory = ChatHistory::where('custId', $entry->cust_id)
+                    ->orderBy('id', 'desc')
+                    ->limit(200)
+                    ->get(['id', 'custId', 'content', 'contentType', 'sender', 'conversationRef', 'created_at'])
+                    ->sortBy('id')
+                    ->values();
+
+                // รวบรวม empCode เพื่อดึง real_name จากตาราง users (เหมือน HistoryController@ChatHistoryDetail)
+                $empCodes = [];
+                foreach ($chatHistory as $chat) {
+                    $sender = is_string($chat->sender) ? json_decode($chat->sender, true) : $chat->sender;
+                    if (is_array($sender) && !empty($sender['empCode'])) {
+                        $empCodes[] = $sender['empCode'];
+                    }
+                }
+                $users = !empty($empCodes)
+                    ? User::whereIn('empCode', array_unique($empCodes))->get(['empCode', 'real_name', 'name'])->keyBy('empCode')
+                    : collect();
+
+                $messages = $chatHistory->map(function ($chat) use ($users, $entry) {
+                    $sender = is_string($chat->sender) ? json_decode($chat->sender, true) : $chat->sender;
+                    $sender = is_array($sender) ? $sender : [];
+                    $empCode = $sender['empCode'] ?? null;
+                    if ($empCode && ($user = $users->get($empCode))) {
+                        $sender['real_name'] = $user->real_name;
+                        $sender['name']      = $user->name;
+                    }
+                    $role = $empCode === null ? 'customer' : ($empCode === 'BOT' ? 'bot' : 'agent');
+
+                    return [
+                        'id'                => $chat->id,
+                        'content'           => $chat->content,
+                        'contentType'       => $chat->contentType,
+                        'sender'            => $sender,
+                        'role'              => $role,
+                        'created_at'        => $chat->created_at,
+                        'in_source_session' => $entry->active_conversation_id !== null
+                            && (int) $chat->conversationRef === (int) $entry->active_conversation_id,
+                    ];
+                })->values();
+            }
+
+            $customer = $entry->cust_id
+                ? Customers::where('custId', $entry->cust_id)->first(['custId', 'custName', 'avatar', 'description'])
+                : null;
+
+            $data['status']   = true;
+            $data['entry']    = $entry;
+            $data['customer'] = $customer;
+            $data['messages'] = $messages;
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@conversation: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function update(int $id, string $question, string $answer, ?string $note, ?string $tagName): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->question = trim($question);
+            $entry->answer   = trim($answer);
+            $entry->note     = $note !== null && trim($note) !== '' ? trim($note) : null;
+            $entry->tag_name = $tagName;
+            $entry->save();
+
+            $data['status']  = true;
+            $data['message'] = 'บันทึกข้อมูลสำเร็จ';
+            $data['entry']   = $entry;
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@update: ' . $e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {
             return $data;
@@ -148,13 +235,13 @@ class KnowledgeBaseService
     {
         $data['status'] = false;
         try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->admin_status    = 'approved';
-            $entry->admin_answer    = null;
-            $entry->admin_note      = null;
-            $entry->approved_by     = $adminId;
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->admin_status     = 'approved';
+            $entry->admin_answer     = null;
+            $entry->admin_note       = null;
+            $entry->approved_by      = $adminId;
             $entry->approved_by_name = $adminName;
-            $entry->approved_at     = now();
+            $entry->approved_at      = now();
             $entry->save();
 
             $data['status']  = true;
@@ -172,13 +259,13 @@ class KnowledgeBaseService
     {
         $data['status'] = false;
         try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->admin_status    = 'rejected';
-            $entry->admin_answer    = $adminAnswer;
-            $entry->admin_note      = $note;
-            $entry->approved_by     = $adminId;
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->admin_status     = 'rejected';
+            $entry->admin_answer     = $adminAnswer;
+            $entry->admin_note       = $note;
+            $entry->approved_by      = $adminId;
             $entry->approved_by_name = $adminName;
-            $entry->approved_at     = now();
+            $entry->approved_at      = now();
             $entry->save();
 
             $data['status']  = true;
@@ -192,20 +279,28 @@ class KnowledgeBaseService
         }
     }
 
-    public function updateAi(int $id, string $topic, string $answer): array
+    /**
+     * ปรับแก้คำตอบพร้อมอนุมัติในขั้นตอนเดียว — ต่างจาก reject() ตรงที่ admin_status = 'approved'
+     * (ไม่ใช่ 'rejected') ใช้ตอนแอดมินแก้เนื้อหาเล็กน้อยแต่มั่นใจว่าถูกต้อง ไม่ต้องการให้ค้างสถานะ "ปรับแก้แล้ว"
+     */
+    public function approveEdited(int $id, int $adminId, string $adminName, string $adminAnswer, ?string $note): array
     {
         $data['status'] = false;
         try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->ai_topic  = trim($topic);
-            $entry->ai_answer = trim($answer);
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->admin_status     = 'approved';
+            $entry->admin_answer     = trim($adminAnswer);
+            $entry->admin_note       = $note;
+            $entry->approved_by      = $adminId;
+            $entry->approved_by_name = $adminName;
+            $entry->approved_at      = now();
             $entry->save();
 
             $data['status']  = true;
-            $data['message'] = 'บันทึกข้อมูล AI สำเร็จ';
+            $data['message'] = 'บันทึกคำตอบที่แก้ไขและอนุมัติสำเร็จ';
             $data['entry']   = $entry;
         } catch (\Exception $e) {
-            Log::error('KnowledgeBaseService@updateAi: ' . $e->getMessage());
+            Log::error('KnowledgeBaseService@approveEdited: ' . $e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {
             return $data;
@@ -216,13 +311,13 @@ class KnowledgeBaseService
     {
         $data['status'] = false;
         try {
-            $entry = KnowledgeBaseEntry::findOrFail($id);
-            $entry->admin_status    = 'pending';
-            $entry->admin_answer    = null;
-            $entry->admin_note      = null;
-            $entry->approved_by     = null;
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->admin_status     = 'pending';
+            $entry->admin_answer     = null;
+            $entry->admin_note       = null;
+            $entry->approved_by      = null;
             $entry->approved_by_name = null;
-            $entry->approved_at     = null;
+            $entry->approved_at      = null;
             $entry->save();
 
             $data['status']  = true;
@@ -230,6 +325,42 @@ class KnowledgeBaseService
             $data['entry']   = $entry;
         } catch (\Exception $e) {
             Log::error('KnowledgeBaseService@resetPending: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function toggleActive(int $id): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->is_active = !$entry->is_active;
+            $entry->save();
+
+            $data['status']  = true;
+            $data['message'] = $entry->is_active ? 'เปิดใช้งานสำเร็จ' : 'ปิดใช้งานสำเร็จ';
+            $data['entry']   = $entry;
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@toggleActive: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    public function destroy(int $id): array
+    {
+        $data['status'] = false;
+        try {
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->delete();
+
+            $data['status']  = true;
+            $data['message'] = 'ลบข้อมูลสำเร็จ';
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@destroy: ' . $e->getMessage());
             $data['message'] = $e->getMessage();
         } finally {
             return $data;

@@ -169,7 +169,7 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
     );
 }
 
-function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
+function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMessageRef }) {
     const [question, setQuestion] = useState(suggestion.question || '');
     const [draft, setDraft] = useState(suggestion.content);
 
@@ -244,6 +244,10 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId }) {
                 source: ['kb', 'web', 'ai'].includes(suggestion.source) ? suggestion.source : null,
                 cust_id: custId || null,
                 active_conversation_id: activeId || null,
+                // อ้างอิงข้อความต้นทาง — การ์ด "AI ตอบสด" มี message_ref ของตัวเองอยู่แล้ว
+                // ส่วนการ์ด "จากคลังความรู้ (KB)" ไม่มี message_ref เฉพาะตัว ใช้ข้อความล่าสุดของลูกค้า
+                // ที่ใช้ค้นคลังความรู้รอบนี้แทน (fallbackMessageRef จาก AIPanel)
+                message_ref: suggestion.message_ref ?? fallbackMessageRef ?? null,
             });
             // ปิด dialog ก่อนแสดง alert ทุกกรณี ไม่งั้น popup ของ SweetAlert จะไปอยู่หลัง Modal
             setKbOpen(false);
@@ -426,6 +430,9 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState('');
     const [suggestions, setSuggestions] = useState([]);
+    // message_ref ของข้อความล่าสุดของลูกค้าที่ backend ใช้ค้นคลังความรู้รอบนี้ — ใช้เป็น fallback
+    // ตอนกด "เพิ่มเข้า KB" จากการ์ดในกลุ่มนี้ (การ์ดจาก KB เองไม่มี message_ref เฉพาะตัว)
+    const [latestMessageRef, setLatestMessageRef] = useState(null);
     // จำนวนการ์ดวิเคราะห์ AI ที่โชว์อยู่ตอนนี้ (paginate ฝั่ง client เพราะโหลดประวัติมาครบอยู่แล้ว)
     const [visibleLiveCount, setVisibleLiveCount] = useState(LIVE_SUGGESTIONS_PAGE_SIZE);
     // จำนวนการ์ดคำแนะนำจาก KB ที่โชว์อยู่ตอนนี้ — แยก state จาก live เพราะเป็นคนละ list กัน
@@ -447,6 +454,7 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
             if (status === 200) {
                 setSummary(data.summary || '');
                 setSuggestions(data.suggestions || []);
+                setLatestMessageRef(data.latest_customer_message_ref || null);
             }
             setLoading(false);
         };
@@ -530,7 +538,10 @@ export default function AIPanel({ activeId, custId, onUseDraft, liveSuggestions 
                         ) : (
                             <>
                                 {suggestions.slice(0, visibleKbCount).map((s) => (
-                                    <SuggestionCard key={s.id} suggestion={s} onUseDraft={onUseDraft} activeId={activeId} custId={custId} />
+                                    <SuggestionCard
+                                        key={s.id} suggestion={s} onUseDraft={onUseDraft}
+                                        activeId={activeId} custId={custId} fallbackMessageRef={latestMessageRef}
+                                    />
                                 ))}
                                 {suggestions.length > visibleKbCount && (
                                     <Button

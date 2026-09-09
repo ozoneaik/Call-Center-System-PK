@@ -12,12 +12,14 @@ export const kbStatsApi = async () => {
     }
 };
 
-export const kbListApi = async (status = '', tagName = null, excluded = false) => {
+export const kbListApi = async (options = {}) => {
     try {
-        const params = {};
-        if (status)   params.status   = status;
-        if (tagName)  params.tag_name = tagName;
-        if (excluded) params.excluded = true;
+        const { status = 'all', tagName = null, showInactive = false, search = '', page = 1, perPage = 20 } = options;
+        const params = { page, per_page: perPage };
+        if (status && status !== 'all') params.status   = status;
+        if (tagName && tagName !== 'all') params.tag_name = tagName;
+        if (showInactive) params.inactive = true;
+        if (search) params.search = search;
         const { data, status: s } = await axiosClient.get(`${kb}/list`, { params });
         return { data, status: s };
     } catch (error) {
@@ -28,6 +30,35 @@ export const kbListApi = async (status = '', tagName = null, excluded = false) =
 export const kbShowApi = async (id) => {
     try {
         const { data, status } = await axiosClient.get(`${kb}/show/${id}`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbConversationApi = async (id) => {
+    try {
+        const { data, status } = await axiosClient.get(`${kb}/conversation/${id}`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbTagsApi = async () => {
+    try {
+        const { data, status } = await axiosClient.get(`${kb}/tags`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbUpdateApi = async (id, payload) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/update/${id}`, payload, {
+            headers: { 'Content-Type': 'application/json' },
+        });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
@@ -56,36 +87,9 @@ export const kbRejectApi = async (id, payload) => {
     }
 };
 
-export const kbTagsApi = async () => {
+export const kbApproveEditedApi = async (id, payload) => {
     try {
-        const { data, status } = await axiosClient.get(`${kb}/tags`);
-        return { data, status };
-    } catch (error) {
-        return ErrorResponse(error);
-    }
-};
-
-export const kbExcludeApi = async (id) => {
-    try {
-        const { data, status } = await axiosClient.put(`${kb}/exclude/${id}`, {});
-        return { data, status };
-    } catch (error) {
-        return ErrorResponse(error);
-    }
-};
-
-export const kbRestoreApi = async (id) => {
-    try {
-        const { data, status } = await axiosClient.put(`${kb}/restore/${id}`, {});
-        return { data, status };
-    } catch (error) {
-        return ErrorResponse(error);
-    }
-};
-
-export const kbUpdateAiApi = async (id, payload) => {
-    try {
-        const { data, status } = await axiosClient.put(`${kb}/update-ai/${id}`, payload, {
+        const { data, status } = await axiosClient.put(`${kb}/approve-edited/${id}`, payload, {
             headers: { 'Content-Type': 'application/json' },
         });
         return { data, status };
@@ -99,6 +103,24 @@ export const kbResetApi = async (id) => {
         const { data, status } = await axiosClient.put(`${kb}/reset/${id}`, {}, {
             headers: { 'Content-Type': 'application/json' },
         });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbToggleActiveApi = async (id) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/toggle-active/${id}`, {});
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbDeleteApi = async (id) => {
+    try {
+        const { data, status } = await axiosClient.delete(`${kb}/delete/${id}`);
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);

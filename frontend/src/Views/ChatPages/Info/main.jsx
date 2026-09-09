@@ -142,6 +142,9 @@ const Info = forwardRef(function Info(props, ref) {
                 {
                     // ใส่ timestamp กันซ้ำ key เผื่อกด Generate ซ้ำที่ข้อความเดิม (force ข้ามการกันซ้ำด้านบนได้)
                     id: `live-${key}-${Date.now()}`,
+                    // อ้างอิงข้อความต้นทาง (id ของ chat_histories หรือ created_at) — ใช้ตอนกด "เพิ่มเข้า KB"
+                    // เพื่อให้รู้ว่ารายการที่บันทึกมาจากข้อความไหนในบทสนทนา (ดู AIPanel.jsx@saveToKb)
+                    message_ref: String(key),
                     // เวลาที่ AI ตอบกลับมาจริง ๆ (ตอนนี้) ใช้โชว์ในการ์ด — ของที่โหลดจากประวัติจะมี created_at จาก backend มาแล้ว
                     created_at: new Date().toISOString(),
                     // summarytxt = สรุปสั้นๆ ว่าลูกค้าต้องการอะไร, answer = ร่างคำตอบจริงที่ AI แนะนำ

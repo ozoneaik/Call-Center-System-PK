@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * ค้นคำตอบที่ใกล้เคียงคำถามลูกค้าจากคลังความรู้บน Postgres (connection pgsql_kb) 2 แหล่ง:
- *  - ai_kb_entries          : Q&A ที่พนักงานกด "เพิ่มเข้า KB" เองจากหน้าแชท (is_active)
+ *  - ai_kb_entries          : Q&A ที่พนักงานกด "เพิ่มเข้า KB" เองจากหน้าแชท (is_active, ต้องผ่านการอนุมัติ admin_status = approved)
  *  - knowledge_base_entries : บทสนทนาที่ผ่านการอนุมัติ (admin_status = approved, ไม่ถูก exclude)
  *
  * จัดอันดับด้วยความคล้ายของข้อความ: ใช้ pg_trgm (similarity) ถ้า extension พร้อม
@@ -70,6 +70,7 @@ class KbRetrievalService
         try {
             $q = AiKbEntry::query()
                 ->where('is_active', true)
+                ->where('admin_status', 'approved')
                 ->whereNotNull('answer');
 
             $this->applyMatch($q, 'question', $query, $useTrgm, 'updated_at');
@@ -77,7 +78,7 @@ class KbRetrievalService
             return $q->limit($limit)->get()->map(fn ($e) => [
                 'id'        => 'aikb-' . $e->id,
                 'question'  => $e->question,
-                'content'   => $e->answer,
+                'content'   => $e->admin_answer ?: $e->answer,
                 'source'    => 'kb',
                 'reference' => $e->tag_name
                     ? 'คลังความรู้: ' . $e->tag_name

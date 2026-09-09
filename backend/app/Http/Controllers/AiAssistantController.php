@@ -50,7 +50,12 @@ class AiAssistantController extends Controller
         $custId = $activeConversation->custId;
         $history = $this->customerService->historySummary($custId);
 
-        $latestCustomerText = $this->latestCustomerMessage($activeId);
+        $latestCustomerRow  = $this->latestCustomerMessageRow($activeId);
+        $latestCustomerText = $latestCustomerRow ? trim((string) $latestCustomerRow->content) : null;
+        // message_ref ของข้อความลูกค้าที่ใช้ค้นคลังความรู้รอบนี้ — ให้ frontend แนบไปตอนกด "เพิ่มเข้า KB"
+        // จากการ์ดคำแนะนำที่มาจาก KB (source='kb') เพื่อให้รู้ว่ารายการที่บันทึกมาจากข้อความไหนในบทสนทนา
+        $latestMessageRef = $latestCustomerRow ? (string) $latestCustomerRow->id : null;
+
         $suggestions = $latestCustomerText
             ? $this->kbRetrieval->retrieve($latestCustomerText)
             : [];
@@ -61,29 +66,30 @@ class AiAssistantController extends Controller
             'cust_id' => $custId,
             'customer_history' => $history,
             'latest_customer_message' => $latestCustomerText,
+            'latest_customer_message_ref' => $latestMessageRef,
             'summary' => null,
             'suggestions' => $suggestions,
         ]);
     }
 
     /**
-     * ข้อความ text ล่าสุดจากฝั่งลูกค้าในห้องนี้ (sender ไม่มี empCode = ลูกค้า)
-     * ใช้เป็น query ค้นคลังความรู้
+     * แถว ChatHistory ล่าสุดจากฝั่งลูกค้าในห้องนี้ (sender ไม่มี empCode = ลูกค้า)
+     * ใช้เนื้อหาไปค้นคลังความรู้ และใช้ id เป็น message_ref อ้างอิงจุดที่มาของคำแนะนำ
      */
-    private function latestCustomerMessage(int $activeId): ?string
+    private function latestCustomerMessageRow(int $activeId): ?ChatHistory
     {
         $messages = ChatHistory::query()
             ->where('conversationRef', $activeId)
             ->where('contentType', 'text')
             ->orderByDesc('created_at')
             ->limit(20)
-            ->get(['content', 'sender']);
+            ->get(['id', 'content', 'sender']);
 
         foreach ($messages as $m) {
             $sender = is_string($m->sender) ? json_decode($m->sender, true) : $m->sender;
             $empCode = $sender['empCode'] ?? null;
             if ($empCode === null && trim((string) $m->content) !== '') {
-                return trim($m->content);
+                return $m;
             }
         }
 

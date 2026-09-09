@@ -277,18 +277,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/allowed-rooms/{tokenId}', [PlatformRoutingController::class, 'allowedRooms']);
     });
 
-    // Knowledge Base
+    // Knowledge Base (ai_kb_entries — รายการที่พนักงานกด "เพิ่มเข้า KB" เองจากหน้าแชท)
     Route::prefix('knowledge-base')->group(function () {
         Route::get('/stats', [KnowledgeBaseController::class, 'stats']);
         Route::get('/list', [KnowledgeBaseController::class, 'list']);
         Route::get('/show/{id}', [KnowledgeBaseController::class, 'show']);
+        Route::get('/conversation/{id}', [KnowledgeBaseController::class, 'conversation']);
         Route::get('/tags', [KnowledgeBaseController::class, 'tags']);
+        Route::put('/update/{id}', [KnowledgeBaseController::class, 'update']);
         Route::put('/approve/{id}', [KnowledgeBaseController::class, 'approve']);
         Route::put('/reject/{id}', [KnowledgeBaseController::class, 'reject']);
+        Route::put('/approve-edited/{id}', [KnowledgeBaseController::class, 'approveEdited']);
         Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending']);
-        Route::put('/update-ai/{id}', [KnowledgeBaseController::class, 'updateAi']);
-        Route::put('/exclude/{id}', [KnowledgeBaseController::class, 'exclude']);
-        Route::put('/restore/{id}', [KnowledgeBaseController::class, 'restore']);
+        Route::put('/toggle-active/{id}', [KnowledgeBaseController::class, 'toggleActive']);
+        Route::delete('/delete/{id}', [KnowledgeBaseController::class, 'destroy']);
     });
 
     // AI Assistant (แชท) - suggestions: ค้นคลังความรู้จริง (ai_kb_entries + knowledge_base_entries) | customer-analysis: ยังรอเฟสวิเคราะห์ประวัติ

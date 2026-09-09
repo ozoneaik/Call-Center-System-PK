@@ -38,6 +38,7 @@ import TokenManeger from "./Views/TokenPages/TokenManager.jsx";
 import ChatPageNew from "./Views/ChatPagesNew/ChatPageNew.jsx";
 import TagsByPlatforms from "./Views/platformsTags/TagsByPlatforms.jsx";
 import KnowledgeBasePage from "./Views/KnowledgeBasePages/main.jsx";
+import EntryReviewPage from "./Views/KnowledgeBasePages/EntryReviewPage.jsx";
 import PlatformRoutingRules from "./Views/PlatformRoutingPages/PlatformRoutingRules.jsx";
 import HolidayPage from "./Views/HolidayPages/main.jsx";
 export const routes = createBrowserRouter([
@@ -106,6 +107,7 @@ export const routes = createBrowserRouter([
                     { path: 'message/:rateId/:activeId/:custId/:check', element: <MessagePane /> },
                 ]
             },
+            { path: '/knowledge-base/review/:id', element: <EntryReviewPage /> },
             { path: '/secret', element: <LayoutSeCreate /> }
         ]
     },
