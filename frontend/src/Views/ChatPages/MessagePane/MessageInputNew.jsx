@@ -41,6 +41,11 @@ export default function MessageInputNew(props) {
             const cleanContent = msg.content.replace(/^[\r\n\s]*-\s*/, '');
             setInputText((prev) => prev + cleanContent);
         }
+        // ไฟล์รูป/วิดีโอที่แนบมากับร่างคำตอบ AI (ดู Info/main.jsx@handleUseDraft) — แปะเข้า files
+        // เหมือนลาก-วางไฟล์เอง ยังไม่อัปโหลด/ส่งจนกว่าจะกดปุ่มส่งจริง
+        if (msg.attachedFiles?.length) {
+            setFiles((prev) => [...prev, ...msg.attachedFiles]);
+        }
         // setInputText(inputText + msg.content)
     }, [msg])
 

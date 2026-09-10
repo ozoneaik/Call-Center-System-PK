@@ -16,7 +16,7 @@ class KnowledgeBaseService
      * เพราะเป็น field ขนาดใหญ่ที่ไม่ได้ใช้แสดงผล ดึงมาทุกแถวจะทำให้ payload บวมโดยเปล่าประโยชน์
      */
     private const DISPLAY_COLUMNS = [
-        'id', 'question', 'answer', 'note', 'source', 'tag_name',
+        'id', 'question', 'answer', 'answer_attachments', 'note', 'source', 'tag_name',
         'cust_id', 'active_conversation_id', 'message_ref', 'created_by', 'created_by_name',
         'is_active', 'admin_status', 'admin_answer', 'admin_note',
         'approved_by', 'approved_by_name', 'approved_at',

@@ -238,6 +238,20 @@ export default function EntryReviewPanel({ entry, onRefresh, onDeleted }) {
                             <Typography level="body-xs" color="neutral" mb={0.25}>คำตอบ</Typography>
                             <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>{entry.answer}</Typography>
                         </Box>
+                        {entry.answer_attachments?.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {entry.answer_attachments.map((a, idx) => (
+                                    <Box key={idx} component="a" href={a.url} target="_blank" rel="noopener noreferrer"
+                                        sx={{ width: 90, height: 90, borderRadius: 'sm', overflow: 'hidden', border: '1px solid', borderColor: 'divider', display: 'block' }}>
+                                        {a.contentType === 'video' ? (
+                                            <video src={a.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <img src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        )}
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
                         {entry.note && (
                             <Box>
                                 <Typography level="body-xs" color="neutral" mb={0.25}>หมายเหตุ</Typography>

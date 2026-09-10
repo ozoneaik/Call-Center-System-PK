@@ -18,6 +18,7 @@ class AiKbEntry extends Model
         'cust_id',
         'active_conversation_id',
         'message_ref',
+        'answer_attachments',
         'created_by',
         'created_by_name',
         'is_active',
@@ -32,5 +33,6 @@ class AiKbEntry extends Model
     protected $casts = [
         'is_active'   => 'boolean',
         'approved_at' => 'datetime',
+        'answer_attachments' => 'array',
     ];
 }

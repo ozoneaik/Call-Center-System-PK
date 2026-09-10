@@ -63,8 +63,10 @@ const Info = forwardRef(function Info(props, ref) {
         };
     }, [collapsed, openSection]);
 
-    const handleUseDraft = (text) => {
-        setMsg?.({ content: text, contentType: 'text', sender });
+    // files = ไฟล์รูป/วิดีโอที่แนบไว้กับร่างคำตอบ (ถ้ามี จาก AIPanel/EditDraftDialog) — แปะเข้าช่องพิมพ์
+    // ข้อความเหมือนลาก-วางไฟล์เอง แอดมินต้องกดปุ่มส่งในกล่องแชทเองอีกที ไม่ได้ส่งให้ลูกค้าทันที
+    const handleUseDraft = (text, files) => {
+        setMsg?.({ content: text, contentType: 'text', sender, attachedFiles: files || [] });
     };
 
     // อยู่ที่นี่ (ไม่ใช่ใน AIPanel) เพราะต้องทำงานเบื้องหลังตลอดเวลา ไม่ใช่แค่ตอนเปิดแท็บ AI อยู่

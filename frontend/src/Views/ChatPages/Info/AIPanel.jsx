@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Sheet, IconButton, Textarea, Button, Divider, Modal, ModalDialog, ModalClose, FormControl, FormLabel, Chip, Link, CircularProgress } from "@mui/joy";
+import {
+    Box, Sheet, IconButton, Textarea, Button, Divider, Modal, ModalDialog, ModalClose, FormControl, FormLabel,
+    Chip, Link, CircularProgress, Dropdown, Menu, MenuButton, MenuItem, ListItemDecorator,
+} from "@mui/joy";
 import Typography from "@mui/joy/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
@@ -7,9 +10,14 @@ import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import CloseIcon from "@mui/icons-material/Close";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ContentPasteGoIcon from "@mui/icons-material/ContentPasteGo";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { getAiSuggestionsApi, storeAiKbEntryApi, sendBrochurePageApi } from "../../../Api/AiAssistant.js";
+import { sendApi } from "../../../Api/Messages.js";
 
 // แหล่งที่มาของคำตอบ: 'kb' = ดึงจากคลังความรู้ที่อนุมัติแล้ว, 'web' = ค้นจากเว็บไซต์/อินเทอร์เน็ต, 'ai' = AI ตอบสดแบบเรียลไทม์
 const SOURCE_CONFIG = {
@@ -60,7 +68,43 @@ const DIALOG_SCROLL_SX = { overflowY: 'auto', flex: 1, minHeight: 0, pr: 0.5 };
 // จำกัดจำนวนบรรทัดสูงสุดของ Textarea คำตอบ ไม่ให้ยืดจนกินพื้นที่กล่องเลื่อนไปหมด
 const ANSWER_TEXTAREA_SX = { fontSize: 'lg' };
 
-function EditDraftDialog({ open, onClose, question, answer, setQuestion, setAnswer, onSave }) {
+// พรีวิวไฟล์รูป/วิดีโอที่แนบไว้กับร่างคำตอบ — ใช้ URL.createObjectURL ชั่วคราวแค่ตอนแสดงผลใน dialog นี้
+function AttachedFilePreview({ file, onRemove }) {
+    const url = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    return (
+        <Box sx={{ position: 'relative', width: 90, height: 90, borderRadius: 'sm', overflow: 'hidden', border: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+            {isVideo ? (
+                <video src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+                <img src={url} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            )}
+            <IconButton
+                size="sm" variant="solid" color="danger"
+                sx={{ position: 'absolute', top: 2, right: 2, '--IconButton-size': '22px', minHeight: 0 }}
+                onClick={onRemove}
+            >
+                <CloseIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+        </Box>
+    );
+}
+
+function EditDraftDialog({
+    open, onClose, question, answer, setQuestion, setAnswer, files, setFiles,
+    onSaveAndUse, onSaveUseAndKb, onSaveAndSendNow, sendingNow,
+}) {
+    const fileInputRef = useRef(null);
+
+    const handleFilesSelected = (e) => {
+        const picked = Array.from(e.target.files || []);
+        if (picked.length) setFiles((prev) => [...prev, ...picked]);
+        // เคลียร์ค่า input เอง ไม่งั้นเลือกไฟล์เดิมซ้ำครั้งที่สองจะไม่ยิง onChange (ค่า input ไม่เปลี่ยน)
+        e.target.value = '';
+    };
+
+    const handleRemoveFile = (idx) => setFiles((prev) => prev.filter((_, i) => i !== idx));
+
     return (
         <Modal open={open} onClose={onClose}>
             <ModalDialog size="lg" sx={DIALOG_BOX_SX}>
@@ -81,7 +125,7 @@ function EditDraftDialog({ open, onClose, question, answer, setQuestion, setAnsw
                         />
                     </FormControl>
 
-                    <FormControl size="lg">
+                    <FormControl size="lg" sx={{ mb: 2 }}>
                         <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำตอบ</FormLabel>
                         <Textarea
                             size="lg"
@@ -93,22 +137,90 @@ function EditDraftDialog({ open, onClose, question, answer, setQuestion, setAnsw
                             sx={ANSWER_TEXTAREA_SX}
                         />
                     </FormControl>
+
+                    <FormControl size="lg">
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>แนบรูปภาพ/วิดีโอ (ถ้ามี)</FormLabel>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={handleFilesSelected}
+                        />
+                        <Button
+                            size="sm"
+                            variant="outlined"
+                            color="neutral"
+                            startDecorator={<AttachFileIcon fontSize="small" />}
+                            onClick={() => fileInputRef.current?.click()}
+                            sx={{ alignSelf: 'flex-start' }}
+                        >
+                            เลือกไฟล์
+                        </Button>
+
+                        {files.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                                {files.map((file, idx) => (
+                                    <AttachedFilePreview key={idx} file={file} onRemove={() => handleRemoveFile(idx)} />
+                                ))}
+                            </Box>
+                        )}
+                    </FormControl>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
-                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
+                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose} disabled={sendingNow}>
                         ยกเลิก
                     </Button>
-                    <Button size="lg" variant="solid" color="primary" onClick={onSave}>
-                        บันทึก
-                    </Button>
+                    <Dropdown>
+                        <MenuButton
+                            size="lg" variant="solid" color="primary"
+                            endDecorator={<KeyboardArrowDownIcon />}
+                            loading={sendingNow}
+                            disabled={sendingNow}
+                        >
+                            บันทึก
+                        </MenuButton>
+                        {/* Menu ของ Joy UI portal แยกจาก Modal เอง (ไม่ใช่ลูกใน DOM) จึงไม่ได้ z-index สูงกว่า Modal
+                            ให้อัตโนมัติ (Modal ใช้ 1300) ต้องดันขึ้นเองไม่งั้น dropdown จะเรนเดอร์อยู่หลัง
+                            ModalDialog มองไม่เห็น/กดไม่โดน (เหมือนปัญหาเดียวกับ Dialogs/Alert.js@raiseAboveModal) */}
+                        <Menu placement="top-end" sx={{ zIndex: 1400 }}>
+                            <MenuItem onClick={onSaveAndUse}>
+                                <ListItemDecorator><ContentPasteGoIcon fontSize="small" /></ListItemDecorator>
+                                บันทึก และใช้ร่างคำตอบ
+                            </MenuItem>
+                            <MenuItem onClick={onSaveUseAndKb}>
+                                <ListItemDecorator><BookmarkAddOutlinedIcon fontSize="small" /></ListItemDecorator>
+                                บันทึก ใช้ร่างคำตอบ และเข้า KB
+                            </MenuItem>
+                            <MenuItem
+                                color="danger"
+                                onClick={onSaveAndSendNow}
+                                disabled={sendingNow || (!answer.trim() && files.length === 0)}
+                            >
+                                <ListItemDecorator><SendRoundedIcon fontSize="small" /></ListItemDecorator>
+                                บันทึก ส่งลูกค้า และเข้า KB
+                            </MenuItem>
+                        </Menu>
+                    </Dropdown>
                 </Box>
             </ModalDialog>
         </Modal>
     );
 }
 
-function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, onSave, saving }) {
+function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, files, setFiles, onSave, saving }) {
+    const fileInputRef = useRef(null);
+
+    const handleFilesSelected = (e) => {
+        const picked = Array.from(e.target.files || []);
+        if (picked.length) setFiles((prev) => [...prev, ...picked]);
+        e.target.value = '';
+    };
+
+    const handleRemoveFile = (idx) => setFiles((prev) => prev.filter((_, i) => i !== idx));
+
     return (
         <Modal open={open} onClose={onClose}>
             <ModalDialog size="lg" sx={DIALOG_BOX_SX}>
@@ -154,6 +266,36 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
                             sx={{ fontSize: 'lg' }}
                         />
                     </FormControl>
+
+                    <FormControl size="lg" sx={{ mt: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>แนบรูปภาพ/วิดีโอ (ถ้ามี)</FormLabel>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={handleFilesSelected}
+                        />
+                        <Button
+                            size="sm"
+                            variant="outlined"
+                            color="neutral"
+                            startDecorator={<AttachFileIcon fontSize="small" />}
+                            onClick={() => fileInputRef.current?.click()}
+                            sx={{ alignSelf: 'flex-start' }}
+                        >
+                            เลือกไฟล์
+                        </Button>
+
+                        {files.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                                {files.map((file, idx) => (
+                                    <AttachedFilePreview key={idx} file={file} onRemove={() => handleRemoveFile(idx)} />
+                                ))}
+                            </Box>
+                        )}
+                    </FormControl>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
@@ -176,15 +318,22 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
     const [editOpen, setEditOpen] = useState(false);
     const [editQuestion, setEditQuestion] = useState('');
     const [editAnswer, setEditAnswer] = useState('');
+    // ไฟล์รูป/วิดีโอที่แนบไว้กับร่างคำตอบนี้แล้ว (คอมมิทจาก dialog แก้ไข) — ยังไม่อัปโหลดจริงจนกว่าจะกดส่งข้อความ
+    const [attachedFiles, setAttachedFiles] = useState([]);
+    // ไฟล์ชั่วคราวระหว่างแก้ไขอยู่ใน dialog (ยังไม่ commit จนกว่าจะกดบันทึก)
+    const [editFiles, setEditFiles] = useState([]);
 
     const [kbOpen, setKbOpen] = useState(false);
     const [kbQuestion, setKbQuestion] = useState('');
     const [kbAnswer, setKbAnswer] = useState('');
     const [kbNote, setKbNote] = useState('');
+    const [kbFiles, setKbFiles] = useState([]);
     const [savingKb, setSavingKb] = useState(false);
 
     // ส่งรูปหน้าแคตตาล็อก (attachment_url) ให้ลูกค้าโดยตรงจากการ์ด
     const [sendingBrochure, setSendingBrochure] = useState(false);
+    // ส่งร่างคำตอบที่แก้ไขให้ลูกค้าทันทีจาก dialog แก้ไข (ข้ามขั้นตอนแปะช่องพิมพ์+กดส่งเอง)
+    const [sendingNow, setSendingNow] = useState(false);
 
     const handleSendBrochure = async () => {
         if (sendingBrochure || !suggestion.attachment_url) return;
@@ -216,19 +365,110 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
     const openEditDialog = () => {
         setEditQuestion(question);
         setEditAnswer(draft);
+        setEditFiles(attachedFiles); // โหลดไฟล์ที่เคยแนบไว้มาแก้ต่อได้ (ลบ/เพิ่มเติมได้ใน dialog)
         setEditOpen(true);
     };
 
-    const saveEdit = () => {
+    // บันทึกร่างที่แก้ไข (รวมไฟล์แนบ) + นำไปแปะในช่องพิมพ์ข้อความให้ทันที (เหมือนลาก-วางไฟล์เอง)
+    // รอแอดมินกดปุ่มส่งจริงในกล่องแชทเอง — ไม่ได้อัปโหลด/ส่งให้ลูกค้าทันที ณ จุดนี้
+    const saveEditAndUse = () => {
         setQuestion(editQuestion);
         setDraft(editAnswer);
+        setAttachedFiles(editFiles);
         setEditOpen(false);
+        onUseDraft(editAnswer, editFiles);
+    };
+
+    // เหมือน saveEditAndUse แต่เปิด dialog "เพิ่มเข้า KB" ต่อทันทีด้วย พร้อมค่าที่เพิ่งแก้ไข (รวมไฟล์แนบ)
+    // ยังให้กรอกหมายเหตุ + กดยืนยันอีกทีใน AddToKbDialog เหมือนทางเข้าอื่น ๆ ของ "เพิ่มเข้า KB"
+    const saveEditUseAndKb = () => {
+        setQuestion(editQuestion);
+        setDraft(editAnswer);
+        setAttachedFiles(editFiles);
+        setEditOpen(false);
+        onUseDraft(editAnswer, editFiles);
+        setKbQuestion(editQuestion);
+        setKbAnswer(editAnswer);
+        setKbNote('');
+        setKbFiles(editFiles);
+        setKbOpen(true);
+    };
+
+    // ส่งร่างที่แก้ไข (รวมไฟล์แนบ) ให้ลูกค้าทันที + บันทึกเข้า KB พร้อมกันในคลิกเดียว
+    // ข้ามช่องพิมพ์ข้อความและ dialog หมายเหตุของ KB ไปเลย (ไม่ใส่หมายเหตุ) ต้องยืนยันก่อนทุกครั้งเพราะย้อนกลับไม่ได้
+    const confirmSendNowAndKb = () => {
+        if (sendingNow || (!editAnswer.trim() && editFiles.length === 0)) return;
+        AlertDiaLog({
+            icon: 'question',
+            title: 'ยืนยันบันทึก/ส่งทันทีและบันทึกเข้า KB?',
+            text: 'ระบบจะส่งคำตอบนี้ให้ลูกค้าทันที และบันทึกเข้าคลังความรู้ (KB) พร้อมกัน ไม่สามารถเรียกคืนได้ภายหลัง',
+            onPassed: async (confirm) => {
+                if (!confirm) return;
+                setSendingNow(true);
+                try {
+                    const { data, status } = await sendApi({
+                        msg: editAnswer,
+                        contentType: 'text',
+                        custId,
+                        conversationId: activeId,
+                        selectedFile: editFiles,
+                    });
+                    if (status !== 200) {
+                        AlertDiaLog({
+                            icon: 'error',
+                            title: data?.message || 'ส่งข้อความไม่สำเร็จ',
+                            text: data?.detail || 'ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง',
+                        });
+                        return;
+                    }
+
+                    // ส่งให้ลูกค้าสำเร็จแล้ว — commit ค่ากลับเข้าการ์ด + ปิด dialog ก่อน แล้วค่อยบันทึกเข้า KB ต่อ
+                    setQuestion(editQuestion);
+                    setDraft(editAnswer);
+                    setAttachedFiles(editFiles);
+                    setEditOpen(false);
+
+                    const kbRes = await storeAiKbEntryApi({
+                        question: editQuestion,
+                        answer: editAnswer,
+                        note: null,
+                        source: ['kb', 'web', 'ai'].includes(suggestion.source) ? suggestion.source : null,
+                        cust_id: custId || null,
+                        active_conversation_id: activeId || null,
+                        message_ref: suggestion.message_ref ?? fallbackMessageRef ?? null,
+                    }, editFiles);
+
+                    if (kbRes.status === 201 || kbRes.status === 200) {
+                        AlertDiaLog({
+                            icon: 'success',
+                            title: 'ส่งข้อความและบันทึกเข้า KB สำเร็จ',
+                            text: 'ส่งคำตอบนี้ให้ลูกค้า และบันทึกเข้าคลังความรู้เรียบร้อยแล้ว',
+                        });
+                    } else {
+                        AlertDiaLog({
+                            icon: 'warning',
+                            title: 'ส่งข้อความสำเร็จ แต่บันทึกเข้า KB ไม่สำเร็จ',
+                            text: kbRes.data?.message || 'กรุณาลองบันทึกเข้า KB อีกครั้งภายหลัง',
+                        });
+                    }
+                } catch (error) {
+                    AlertDiaLog({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง',
+                    });
+                } finally {
+                    setSendingNow(false);
+                }
+            },
+        });
     };
 
     const openKbDialog = () => {
         setKbQuestion(question);
         setKbAnswer(draft);
         setKbNote('');
+        setKbFiles(attachedFiles); // ถ้าเคยแนบไฟล์ไว้กับร่างนี้แล้ว ให้ติดมาด้วย ลบ/เพิ่มเติมได้ใน dialog นี้
         setKbOpen(true);
     };
 
@@ -248,7 +488,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 // ส่วนการ์ด "จากคลังความรู้ (KB)" ไม่มี message_ref เฉพาะตัว ใช้ข้อความล่าสุดของลูกค้า
                 // ที่ใช้ค้นคลังความรู้รอบนี้แทน (fallbackMessageRef จาก AIPanel)
                 message_ref: suggestion.message_ref ?? fallbackMessageRef ?? null,
-            });
+            }, kbFiles);
             // ปิด dialog ก่อนแสดง alert ทุกกรณี ไม่งั้น popup ของ SweetAlert จะไปอยู่หลัง Modal
             setKbOpen(false);
             if (status === 201 || status === 200) {
@@ -280,7 +520,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
     const handleUseDraft = () => {
         if (usingDraft) return;
         setUsingDraft(true);
-        onUseDraft(draft);
+        onUseDraft(draft, attachedFiles);
         usingDraftTimeoutRef.current = setTimeout(() => setUsingDraft(false), 800);
     };
 
@@ -343,6 +583,15 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 <Typography level="body-sm" sx={{ color: '#fff' }}>{draft}</Typography>
             </Box>
 
+            {/* ไฟล์รูป/วิดีโอที่แนบไว้กับร่างคำตอบนี้ (แนบผ่าน "แก้ไขร่างคำตอบ") */}
+            {attachedFiles.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                    {attachedFiles.map((file, idx) => (
+                        <AttachedFilePreview key={idx} file={file} onRemove={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))} />
+                    ))}
+                </Box>
+            )}
+
             {/* รูปหน้าแคตตาล็อก/โบรชัวร์ที่ AI แนบมา (ถ้ามี) — กดรูปเพื่อดูขนาดเต็มในแท็บใหม่ */}
             {suggestion.attachment_url && (
                 <Box sx={{ mt: 1.5 }}>
@@ -404,7 +653,12 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 answer={editAnswer}
                 setQuestion={setEditQuestion}
                 setAnswer={setEditAnswer}
-                onSave={saveEdit}
+                files={editFiles}
+                setFiles={setEditFiles}
+                onSaveAndUse={saveEditAndUse}
+                onSaveUseAndKb={saveEditUseAndKb}
+                onSaveAndSendNow={confirmSendNowAndKb}
+                sendingNow={sendingNow}
             />
 
             <AddToKbDialog
@@ -416,6 +670,8 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 setQuestion={setKbQuestion}
                 setAnswer={setKbAnswer}
                 setNote={setKbNote}
+                files={kbFiles}
+                setFiles={setKbFiles}
                 onSave={saveToKb}
                 saving={savingKb}
             />

@@ -52,11 +52,23 @@ export const sendBrochurePageApi = async ({ imageUrl, custId, activeId }) => {
 };
 
 // บันทึกความรู้ (คำถาม-คำตอบ) เข้า KB จากปุ่ม "เพิ่มเข้า KB" ในหน้าแชท
-export const storeAiKbEntryApi = async (payload) => {
+// files (ถ้ามี) = ไฟล์รูป/วิดีโอที่แนบมากับคำตอบ — ส่งเป็น multipart/form-data ให้ backend อัปโหลดขึ้น S3
+export const storeAiKbEntryApi = async (payload, files = []) => {
     try {
-        const { data, status } = await axiosClient.post(`/ai-assistant/kb-entries`, payload, {
-            headers: { 'Content-Type': 'application/json' },
-        });
+        let body = payload;
+        let headers = { 'Content-Type': 'application/json' };
+
+        if (files.length > 0) {
+            const formData = new FormData();
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) formData.append(key, value);
+            });
+            files.forEach((file) => formData.append('attachments[]', file));
+            body = formData;
+            headers = { 'Content-Type': 'multipart/form-data' };
+        }
+
+        const { data, status } = await axiosClient.post(`/ai-assistant/kb-entries`, body, { headers });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);
