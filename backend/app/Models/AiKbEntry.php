@@ -19,6 +19,7 @@ class AiKbEntry extends Model
         'active_conversation_id',
         'message_ref',
         'answer_attachments',
+        'alt',
         'created_by',
         'created_by_name',
         'is_active',

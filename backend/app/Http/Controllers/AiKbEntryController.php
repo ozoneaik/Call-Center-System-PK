@@ -25,6 +25,9 @@ class AiKbEntryController extends Controller
             // อ้างอิงข้อความต้นทางในบทสนทนา (id ของ chat_histories หรือ created_at เป็น fallback)
             // ใช้ตอนแสดงหน้าจำลองแชท (ตรวจสอบ KB) ให้ไฮไลต์ว่ามาจากข้อความไหน
             'message_ref' => 'nullable|string',
+            // คำ/วลีที่ใช้แทนกันได้ (คั่นด้วย "|") ช่วยให้ embedding_src ครอบคลุมคำถามที่หลากหลายขึ้น
+            // เช่น "สะสมคะแนน | ลงทะเบียนคะแนน | แลกคะแนน" — ใช้โดย pipeline ฝัง embedding ภายนอก
+            'alt' => 'nullable|string',
             'attachments' => 'nullable|array|max:6',
             'attachments.*' => 'file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm,mkv|max:51200',
         ]);
@@ -67,6 +70,7 @@ class AiKbEntryController extends Controller
             'cust_id'                => $validated['cust_id'] ?? null,
             'active_conversation_id' => $validated['active_conversation_id'] ?? null,
             'message_ref'            => $validated['message_ref'] ?? null,
+            'alt'                    => $validated['alt'] ?? null,
             'answer_attachments'     => !empty($attachments) ? $attachments : null,
             'created_by'             => $user?->id,
             'created_by_name'        => $user?->real_name ?: $user?->name,

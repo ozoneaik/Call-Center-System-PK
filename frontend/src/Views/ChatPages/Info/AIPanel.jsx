@@ -91,7 +91,7 @@ function AttachedFilePreview({ file, onRemove }) {
 }
 
 function EditDraftDialog({
-    open, onClose, question, answer, setQuestion, setAnswer, files, setFiles,
+    open, onClose, question, answer, setQuestion, setAnswer, files, setFiles, alt, setAlt,
     onSaveAndUse, onSaveUseAndKb, onSaveAndSendNow, sendingNow,
 }) {
     const fileInputRef = useRef(null);
@@ -136,6 +136,22 @@ function EditDraftDialog({
                             placeholder="ร่างคำตอบ"
                             sx={ANSWER_TEXTAREA_SX}
                         />
+                    </FormControl>
+
+                    <FormControl size="lg" sx={{ mb: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำที่ใช้แทนกันได้ (alt)</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={2}
+                            maxRows={6}
+                            value={alt}
+                            onChange={(e) => setAlt(e.target.value)}
+                            placeholder="คั่นแต่ละคำด้วย | เช่น สะสมคะแนน | ลงทะเบียนคะแนน | แลกคะแนน"
+                            sx={{ fontSize: 'lg' }}
+                        />
+                        <Typography level="body-xs" sx={{ color: 'text.tertiary', mt: 0.5 }}>
+                            ช่วยให้ค้นหาเจอคำตอบนี้ได้หลากหลายคำมากขึ้น (ไม่บังคับ)
+                        </Typography>
                     </FormControl>
 
                     <FormControl size="lg">
@@ -210,7 +226,7 @@ function EditDraftDialog({
     );
 }
 
-function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, files, setFiles, onSave, saving }) {
+function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, setAnswer, setNote, files, setFiles, alt, setAlt, onSave, saving }) {
     const fileInputRef = useRef(null);
 
     const handleFilesSelected = (e) => {
@@ -265,6 +281,22 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
                             placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
                             sx={{ fontSize: 'lg' }}
                         />
+                    </FormControl>
+
+                    <FormControl size="lg" sx={{ mt: 2, mb: 2 }}>
+                        <FormLabel sx={{ fontSize: 'lg', mb: 1 }}>คำที่ใช้แทนกันได้ (alt)</FormLabel>
+                        <Textarea
+                            size="lg"
+                            minRows={2}
+                            maxRows={6}
+                            value={alt}
+                            onChange={(e) => setAlt(e.target.value)}
+                            placeholder="คั่นแต่ละคำด้วย | เช่น สะสมคะแนน | ลงทะเบียนคะแนน | แลกคะแนน"
+                            sx={{ fontSize: 'lg' }}
+                        />
+                        <Typography level="body-xs" sx={{ color: 'text.tertiary', mt: 0.5 }}>
+                            ช่วยให้ค้นหาเจอคำตอบนี้ได้หลากหลายคำมากขึ้น (ไม่บังคับ)
+                        </Typography>
                     </FormControl>
 
                     <FormControl size="lg" sx={{ mt: 2 }}>
@@ -322,12 +354,15 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
     const [attachedFiles, setAttachedFiles] = useState([]);
     // ไฟล์ชั่วคราวระหว่างแก้ไขอยู่ใน dialog (ยังไม่ commit จนกว่าจะกดบันทึก)
     const [editFiles, setEditFiles] = useState([]);
+    // คำที่ใช้แทนกันได้ (alt) — ใช้เฉพาะตอนบันทึกเข้า KB เท่านั้น ไม่เกี่ยวกับร่างที่เอาไปใช้ในกล่องแชท
+    const [editAlt, setEditAlt] = useState('');
 
     const [kbOpen, setKbOpen] = useState(false);
     const [kbQuestion, setKbQuestion] = useState('');
     const [kbAnswer, setKbAnswer] = useState('');
     const [kbNote, setKbNote] = useState('');
     const [kbFiles, setKbFiles] = useState([]);
+    const [kbAlt, setKbAlt] = useState('');
     const [savingKb, setSavingKb] = useState(false);
 
     // ส่งรูปหน้าแคตตาล็อก (attachment_url) ให้ลูกค้าโดยตรงจากการ์ด
@@ -366,6 +401,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
         setEditQuestion(question);
         setEditAnswer(draft);
         setEditFiles(attachedFiles); // โหลดไฟล์ที่เคยแนบไว้มาแก้ต่อได้ (ลบ/เพิ่มเติมได้ใน dialog)
+        setEditAlt('');
         setEditOpen(true);
     };
 
@@ -391,6 +427,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
         setKbAnswer(editAnswer);
         setKbNote('');
         setKbFiles(editFiles);
+        setKbAlt(editAlt);
         setKbOpen(true);
     };
 
@@ -436,6 +473,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                         cust_id: custId || null,
                         active_conversation_id: activeId || null,
                         message_ref: suggestion.message_ref ?? fallbackMessageRef ?? null,
+                        alt: editAlt.trim() || null,
                     }, editFiles);
 
                     if (kbRes.status === 201 || kbRes.status === 200) {
@@ -469,6 +507,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
         setKbAnswer(draft);
         setKbNote('');
         setKbFiles(attachedFiles); // ถ้าเคยแนบไฟล์ไว้กับร่างนี้แล้ว ให้ติดมาด้วย ลบ/เพิ่มเติมได้ใน dialog นี้
+        setKbAlt('');
         setKbOpen(true);
     };
 
@@ -488,6 +527,7 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 // ส่วนการ์ด "จากคลังความรู้ (KB)" ไม่มี message_ref เฉพาะตัว ใช้ข้อความล่าสุดของลูกค้า
                 // ที่ใช้ค้นคลังความรู้รอบนี้แทน (fallbackMessageRef จาก AIPanel)
                 message_ref: suggestion.message_ref ?? fallbackMessageRef ?? null,
+                alt: kbAlt.trim() || null,
             }, kbFiles);
             // ปิด dialog ก่อนแสดง alert ทุกกรณี ไม่งั้น popup ของ SweetAlert จะไปอยู่หลัง Modal
             setKbOpen(false);
@@ -655,6 +695,8 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 setAnswer={setEditAnswer}
                 files={editFiles}
                 setFiles={setEditFiles}
+                alt={editAlt}
+                setAlt={setEditAlt}
                 onSaveAndUse={saveEditAndUse}
                 onSaveUseAndKb={saveEditUseAndKb}
                 onSaveAndSendNow={confirmSendNowAndKb}
@@ -672,6 +714,8 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 setNote={setKbNote}
                 files={kbFiles}
                 setFiles={setKbFiles}
+                alt={kbAlt}
+                setAlt={setKbAlt}
                 onSave={saveToKb}
                 saving={savingKb}
             />
