@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Chats\Line\LineReceiveController;
 use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
+use App\Jobs\ClearAiSessionJob;
 use App\Jobs\ProcessKnowledgeBaseJob;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
@@ -504,6 +505,9 @@ class MessageController extends Controller
                     }
                     $message = 'คุณได้จบการสนทนาแล้ว';
                     $status = 200;
+                    // ปิดเคสแล้ว ให้ล้าง session ของลูกค้าคนนี้ออกจาก memory ของ AI service — ทำผ่าน queue
+                    // (ไม่เรียก sync ตรงนี้ เพราะถ้า AI service ต่อไม่ติดจะทำให้ปุ่ม "จบการสนทนา" ค้างรอนาน)
+                    ClearAiSessionJob::dispatch($updateRate['custId']);
                 } else $detail = 'ไม่่สามารถอัพเดทข้อมูล ActiveConversations';
             } else $detail = 'ไม่สามารถบันทึกข้อมูล Rate';
 
