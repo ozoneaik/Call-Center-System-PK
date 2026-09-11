@@ -125,6 +125,12 @@ const Info = forwardRef(function Info(props, ref) {
         const key = message.id ?? message.created_at;
         if (!key) return;
         if (!opts.force && String(key) === String(lastProcessedMessageKeyRef.current)) return;
+        // จุดตัดเดิม (ข้อความล่าสุดที่เคยส่งบริบทให้ AI ไปแล้วรอบก่อน) — chat-oc-summary จำ session นี้เอง
+        // อยู่แล้ว (ดู /session/clear ที่เรียกตอนปิดเคส) จึงส่งแค่ข้อความ "ใหม่" หลังจุดนี้พอ ไม่ต้องส่งบทสนทนา
+        // ทั้งหมดซ้ำทุกครั้ง — ยกเว้นกด force ซ้ำที่ข้อความเดิม (regenerate) ให้ถือว่ายังไม่เคยส่งอะไรมาก่อน
+        // (ไม่งั้น since/up_to จะชนกันเอง กลายเป็นไม่ส่ง lines อะไรไปเลย)
+        const isRegeneratingSameMessage = opts.force && String(key) === String(lastProcessedMessageKeyRef.current);
+        const sinceKey = isRegeneratingSameMessage ? null : lastProcessedMessageKeyRef.current;
         lastProcessedMessageKeyRef.current = key;
 
         const isImage = message.contentType === 'image';
@@ -132,6 +138,7 @@ const Info = forwardRef(function Info(props, ref) {
 
         setLiveLoading(true);
         try {
+            const sinceMessageId = sinceKey !== null && Number.isFinite(Number(sinceKey)) ? Number(sinceKey) : undefined;
             const data = await sendChatOcAnyApi({
                 custId: sender?.custId,
                 activeId,
@@ -139,6 +146,7 @@ const Info = forwardRef(function Info(props, ref) {
                 // จำกัด context ("lines") ย้อนกลับไปแค่ถึงข้อความนี้ — ตอนออโต้ทริกเกอร์ (ข้อความล่าสุด)
                 // ผลจะเหมือนไม่จำกัดอยู่แล้วเพราะเป็นข้อความใหม่สุด ณ ตอนนั้นพอดี
                 upToMessageId: Number.isFinite(message.id) ? message.id : undefined,
+                sinceMessageId,
             });
             setLiveSuggestions((prev) => [
                 {

@@ -108,6 +108,12 @@ class AiAssistantController extends Controller
      *
      * up_to_message_id: ใช้ตอนกดปุ่ม "Generate AI" ย้อนหลังที่ข้อความใดข้อความหนึ่งในหน้าแชท (ไม่ใช่แค่ข้อความ
      * ล่าสุด) — จำกัด "lines" ให้เอาแค่ข้อความที่ id <= ค่านี้ (คือย้อนกลับไปถึงข้อความที่เลือก ไม่รวมข้อความที่มาทีหลัง)
+     *
+     * since_message_id: chat-oc-summary จำบริบทของแต่ละ session (session_id = custId) ไว้เองฝั่ง service
+     * อยู่แล้ว (ดู /session/clear ที่เรียกตอนปิดเคส — ClearAiSessionJob) ดังนั้นไม่ต้องส่งบทสนทนาทั้งห้องซ้ำ
+     * ทุกครั้ง — ใช้ค่านี้เป็นขอบล่างตัด "lines" ให้เหลือแค่ข้อความ "ใหม่" ที่ id > ค่านี้ (ยังไม่เคยส่งให้ AI
+     * มาก่อนในรอบก่อนหน้า) ไม่ระบุมา = ยังไม่เคยส่งอะไรมาก่อนเลย (เช่น เพิ่ง /session/clear หรือครั้งแรกของห้อง)
+     * จึงส่งตั้งแต่ต้นห้องเหมือนเดิม
      */
     public function liveSuggest(Request $request): JsonResponse
     {
@@ -119,6 +125,7 @@ class AiAssistantController extends Controller
             'active_id'         => 'nullable|integer',
             'message_ref'       => 'nullable|string',
             'up_to_message_id'  => 'nullable|integer',
+            'since_message_id'  => 'nullable|integer',
         ]);
 
         $url = config('services.chat_oc_summary.url');
@@ -152,6 +159,9 @@ class AiAssistantController extends Controller
             if (!empty($validated['up_to_message_id'])) {
                 $query->where('id', '<=', $validated['up_to_message_id']);
             }
+            if (!empty($validated['since_message_id'])) {
+                $query->where('id', '>', $validated['since_message_id']);
+            }
 
             $history = $query->orderBy('created_at')->get(['content', 'contentType']);
 
@@ -176,6 +186,7 @@ class AiAssistantController extends Controller
             'session_id'       => $validated['session_id'] ?? null,
             'active_id'        => $validated['active_id'] ?? null,
             'up_to_message_id' => $validated['up_to_message_id'] ?? null,
+            'since_message_id' => $validated['since_message_id'] ?? null,
             'message_ref'      => $validated['message_ref'] ?? null,
             // ไว้เช็คว่า scope ของ lines อิงตาม custId (session_id) หรือ fallback ไป conversationRef
             'scope'            => !empty($validated['session_id']) ? 'custId' : 'conversationRef',
@@ -191,6 +202,12 @@ class AiAssistantController extends Controller
                 // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน
                 'gender' => null,
             ];
+            // แนบ session_id ไปด้วย ให้ chat-oc-summary ผูก "lines" ที่ส่งมารอบนี้เข้ากับความจำเดิมของ
+            // session เดียวกัน (ตัด lines เหลือแค่ส่วนใหม่ตาม since_message_id ด้านบนแล้ว จึงต้องพึ่งความจำ
+            // ฝั่ง service เอง — ไม่งั้น AI จะเห็นบริบทไม่ครบเพราะเราไม่ได้ส่งบทสนทนาทั้งหมดซ้ำอีกต่อไป)
+            if (!empty($validated['session_id'])) {
+                $payload['session_id'] = $validated['session_id'];
+            }
             if ($imageUrl) {
                 $payload['image_url'] = $imageUrl;
             }

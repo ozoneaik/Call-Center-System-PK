@@ -7,16 +7,19 @@ import axiosClient from "../Axios.js";
 // หมายเหตุ: เดิม endpoint chat-oc-any รับข้อความล่าสุด+รูปแนบทีละข้อความ แต่ chat-oc-summary รับ
 // context เป็น "lines" หลายข้อความแทน — backend เป็นคนไปดึงประวัติแชททั้งห้อง (ตาม activeId) มาสร้าง lines
 // เองฝั่ง server จึงไม่ต้องส่ง message/imageFile/imageUrl จากตรงนี้อีกแล้ว
-export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessageId }) => {
+export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessageId, sinceMessageId }) => {
     // active_id/message_ref: ให้ backend บันทึกการ์ดวิเคราะห์นี้ลง ai_live_suggestions
     // เพื่อโหลดกลับมาแสดงได้ตอนรีเฟรชหน้าจอ (ดู Info/main.jsx) และดึงประวัติข้อความทั้งห้องมาทำ context
     // up_to_message_id: ปุ่ม "Generate AI" ที่กดจากข้อความใดข้อความหนึ่งในหน้าแชท (ดู ChatBubble.jsx) —
     // ให้ backend จำกัด context ย้อนกลับไปแค่ถึงข้อความนั้น ไม่เอาข้อความที่มาทีหลัง
+    // since_message_id: จุดตัดล่าสุดที่เคยส่งบริบทให้ AI ไปแล้ว (chat-oc-summary จำ session นี้เองอยู่แล้ว
+    // ดู /session/clear) — ให้ backend ส่งแค่ข้อความ "ใหม่" หลังจากจุดนี้ ไม่ส่งบทสนทนาทั้งหมดซ้ำทุกครั้ง
     const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', {
         session_id: custId || undefined,
         active_id: activeId || undefined,
         message_ref: messageRef !== undefined ? String(messageRef) : undefined,
         up_to_message_id: upToMessageId || undefined,
+        since_message_id: sinceMessageId || undefined,
     });
     return data; // { summarytxt, answer, ... }
 };
