@@ -109,11 +109,11 @@ class AiAssistantController extends Controller
      * up_to_message_id: ใช้ตอนกดปุ่ม "Generate AI" ย้อนหลังที่ข้อความใดข้อความหนึ่งในหน้าแชท (ไม่ใช่แค่ข้อความ
      * ล่าสุด) — จำกัด "lines" ให้เอาแค่ข้อความที่ id <= ค่านี้ (คือย้อนกลับไปถึงข้อความที่เลือก ไม่รวมข้อความที่มาทีหลัง)
      *
-     * since_message_id: chat-oc-summary จำบริบทของแต่ละ session (session_id = custId) ไว้เองฝั่ง service
-     * อยู่แล้ว (ดู /session/clear ที่เรียกตอนปิดเคส — ClearAiSessionJob) ดังนั้นไม่ต้องส่งบทสนทนาทั้งห้องซ้ำ
-     * ทุกครั้ง — ใช้ค่านี้เป็นขอบล่างตัด "lines" ให้เหลือแค่ข้อความ "ใหม่" ที่ id > ค่านี้ (ยังไม่เคยส่งให้ AI
-     * มาก่อนในรอบก่อนหน้า) ไม่ระบุมา = ยังไม่เคยส่งอะไรมาก่อนเลย (เช่น เพิ่ง /session/clear หรือครั้งแรกของห้อง)
-     * จึงส่งตั้งแต่ต้นห้องเหมือนเดิม
+     * หมายเหตุ: เคยมี since_message_id (ตัด lines ให้เหลือแค่ข้อความ "ใหม่" หลังจุดที่เคยส่งไปแล้ว โดยหวังพึ่ง
+     * ว่า chat-oc-summary จำบริบทเก่าของ session ไว้เองฝั่ง service) แต่พบว่า service ไม่ได้จำบริบทไว้จริง —
+     * กด Generate AI ต่อจากรอบก่อน (เช่น ลูกค้าตอบรหัสสินค้าหลังถูกถามยืนยัน) แล้ว AI ตอบไม่เชื่อมโยงกับปัญหา
+     * เดิมที่คุยไปก่อนหน้าเลย (เห็นแค่ delta ที่เพิ่งส่งไป) จึงตัดกลไกนี้ออก ส่ง "lines" เต็มทุกครั้งแทน
+     * (ตั้งแต่ต้นเคส/custId จนถึง up_to_message_id) เพื่อความถูกต้องของบริบท แลกกับ payload ที่ใหญ่ขึ้นบ้าง
      */
     public function liveSuggest(Request $request): JsonResponse
     {
@@ -125,7 +125,6 @@ class AiAssistantController extends Controller
             'active_id'         => 'nullable|integer',
             'message_ref'       => 'nullable|string',
             'up_to_message_id'  => 'nullable|integer',
-            'since_message_id'  => 'nullable|integer',
         ]);
 
         $url = config('services.chat_oc_summary.url');
@@ -159,9 +158,6 @@ class AiAssistantController extends Controller
             if (!empty($validated['up_to_message_id'])) {
                 $query->where('id', '<=', $validated['up_to_message_id']);
             }
-            if (!empty($validated['since_message_id'])) {
-                $query->where('id', '>', $validated['since_message_id']);
-            }
 
             $history = $query->orderBy('created_at')->get(['content', 'contentType']);
 
@@ -186,7 +182,6 @@ class AiAssistantController extends Controller
             'session_id'       => $validated['session_id'] ?? null,
             'active_id'        => $validated['active_id'] ?? null,
             'up_to_message_id' => $validated['up_to_message_id'] ?? null,
-            'since_message_id' => $validated['since_message_id'] ?? null,
             'message_ref'      => $validated['message_ref'] ?? null,
             // ไว้เช็คว่า scope ของ lines อิงตาม custId (session_id) หรือ fallback ไป conversationRef
             'scope'            => !empty($validated['session_id']) ? 'custId' : 'conversationRef',
@@ -202,9 +197,9 @@ class AiAssistantController extends Controller
                 // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน
                 'gender' => null,
             ];
-            // แนบ session_id ไปด้วย ให้ chat-oc-summary ผูก "lines" ที่ส่งมารอบนี้เข้ากับความจำเดิมของ
-            // session เดียวกัน (ตัด lines เหลือแค่ส่วนใหม่ตาม since_message_id ด้านบนแล้ว จึงต้องพึ่งความจำ
-            // ฝั่ง service เอง — ไม่งั้น AI จะเห็นบริบทไม่ครบเพราะเราไม่ได้ส่งบทสนทนาทั้งหมดซ้ำอีกต่อไป)
+            // แนบ session_id ไปด้วยเผื่อ service ใช้ผูกกลุ่ม request ของลูกค้าคนเดียวกัน — แต่ไม่ได้พึ่งพา
+            // ให้มันจำ "lines" ของรอบก่อนหน้าแทนเราแล้ว (ดูคอมเมนต์ด้านบน liveSuggest()) เพราะพิสูจน์แล้วว่า
+            // ไม่น่าเชื่อถือ ตอนนี้ lines ที่ส่งไปครบอยู่แล้วในตัวเองทุกครั้ง ไม่ต้องพึ่งความจำฝั่ง service
             if (!empty($validated['session_id'])) {
                 $payload['session_id'] = $validated['session_id'];
             }
@@ -241,11 +236,27 @@ class AiAssistantController extends Controller
                 ], 502);
             }
 
+            // บันทึกผลลัพธ์ที่ chat-oc-summary ตอบกลับมา คู่กับ context ที่ส่งไป (log ด้านบน) เพื่อให้
+            // ไล่ดูย้อนหลังได้ว่ารอบนี้ AI ตอบอะไรกลับมา โดยไม่ต้องเปิด DevTools ดักจับสด ๆ
+            Log::info('liveSuggest: ผลลัพธ์จาก chat-oc-summary', [
+                'session_id'  => $validated['session_id'] ?? null,
+                'active_id'   => $validated['active_id'] ?? null,
+                'message_ref' => $validated['message_ref'] ?? null,
+                'status'      => $status,
+                'result'      => is_array($json) ? $json : ['raw' => $body],
+            ]);
+
             if (!empty($validated['active_id'])) {
-                $this->storeLiveSuggestion($validated, is_array($json) ? $json : []);
+                $this->storeLiveSuggestion($validated, is_array($json) ? $json : [], $lines, $imageUrl);
             }
 
-            return response()->json(is_array($json) ? $json : ['raw' => $body]);
+            // แนบ context ที่ส่งไปจริงกลับไปให้ frontend ด้วย (คีย์ขึ้นต้น _ai_ กันชนกับ field จริงของ
+            // chat-oc-summary) ให้การ์ดที่เพิ่ง generate โชว์ "บริบทที่ส่งไป" ได้ทันทีโดยไม่ต้องรอโหลดประวัติใหม่
+            // — โครงเดียวกับ context_sent ที่ liveSuggestionsHistory() คืนให้ตอนโหลดจาก DB
+            $responseData = is_array($json) ? $json : ['raw' => $body];
+            $responseData['_ai_context'] = ['lines' => $lines, 'image_url' => $imageUrl];
+
+            return response()->json($responseData);
         } catch (\Throwable $e) {
             Log::error('liveSuggest error: ' . $e->getMessage());
             return response()->json([
@@ -299,8 +310,11 @@ class AiAssistantController extends Controller
      * บันทึกการ์ดวิเคราะห์ AI (ตอบสด) ของรอบนี้ลง ai_live_suggestions ให้เป็นประวัติถาวร
      * แมปฟิลด์ตามตรรกะเดียวกับที่ frontend เคยทำเอง (Info/main.jsx) เพื่อให้หน้าประวัติ
      * แสดงผลเหมือนตอนที่เพิ่งได้คำตอบสด ๆ มา — ไม่กระทบ response ที่ส่งกลับ frontend (คงรูปแบบเดิม)
+     *
+     * $lines/$imageUrl: บริบทจริงที่ส่งไปให้ chat-oc-summary รอบนี้ — เก็บลง context_sent (cast เป็น array
+     * ในโมเดล) ให้หน้า "AI วิเคราะห์การสนทนา" กดดูย้อนหลังได้ว่าการ์ดนี้ตอบจากบริบทอะไร (ไม่ต้องไปงมใน log)
      */
-    private function storeLiveSuggestion(array $validated, array $json): void
+    private function storeLiveSuggestion(array $validated, array $json, array $lines = [], ?string $imageUrl = null): void
     {
         try {
             $reference = null;
@@ -318,6 +332,7 @@ class AiAssistantController extends Controller
                 'active_conversation_id' => (int) $validated['active_id'],
                 'cust_id'                => $validated['session_id'] ?? null,
                 'message_ref'            => $validated['message_ref'] ?? null,
+                'context_sent'           => ['lines' => $lines, 'image_url' => $imageUrl],
                 'question'               => $json['summarytxt'] ?? null,
                 'content'                => $json['answer'] ?? $json['reply'] ?? '',
                 'source'                 => in_array($json['source'] ?? null, ['kb', 'web', 'ai'], true) ? $json['source'] : 'ai',
@@ -351,6 +366,9 @@ class AiAssistantController extends Controller
             'message_ref'    => $r->message_ref,
             'created_at'     => optional($r->created_at)->toIso8601String(),
             'attachment_url' => $r->attachment_url,
+            // บริบท (lines/image_url) ที่เคยส่งไปให้ chat-oc-summary ตอน generate การ์ดนี้ — ให้หน้า
+            // AI panel กดดูย้อนหลังได้ (แถวเก่าก่อนมี context_sent จะเป็น null ไปเลย ไม่มีให้ดู)
+            'context'        => $r->context_sent,
         ])->values();
 
         return response()->json([

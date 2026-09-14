@@ -14,6 +14,7 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ContentPasteGoIcon from "@mui/icons-material/ContentPasteGo";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { getAiSuggestionsApi, storeAiKbEntryApi, sendBrochurePageApi } from "../../../Api/AiAssistant.js";
@@ -343,9 +344,81 @@ function AddToKbDialog({ open, onClose, question, answer, note, setQuestion, set
     );
 }
 
+// Modal แสดง context (บรรทัดข้อความ + รูป ถ้ามี) ที่ backend ส่งไปให้ chat-oc-summary จริง ๆ ตอน generate
+// การ์ดนี้ — ให้ตรวจสอบย้อนหลังได้ว่า AI เห็นบริบทอะไรบ้างก่อนตอบ โดยไม่ต้องไปงมใน laravel.log
+// context = { lines: string[], image_url: string|null } มาจาก response ตอน generate สด ๆ (_ai_context)
+// หรือจากประวัติที่โหลดจาก DB (ai_live_suggestions.context_sent ผ่าน liveSuggestionsHistory)
+function ContextSentModal({ open, onClose, context }) {
+    const lines = Array.isArray(context?.lines) ? context.lines : [];
+    const imageUrl = context?.image_url || null;
+
+    return (
+        <Modal open={open} onClose={onClose}>
+            <ModalDialog size="lg" sx={{ ...DIALOG_BOX_SX, maxWidth: 560 }}>
+                <ModalClose sx={{ '--IconButton-size': '40px' }} />
+                <Typography level="title-lg" sx={{ mb: 0.5, flexShrink: 0 }}>บริบทที่ส่งให้ AI</Typography>
+                <Typography level="body-xs" sx={{ color: 'text.tertiary', mb: 2, flexShrink: 0 }}>
+                    ข้อความ/รูปที่ส่งไปให้ chat-oc-summary ประกอบการตอบของการ์ดนี้
+                </Typography>
+
+                <Box sx={DIALOG_SCROLL_SX}>
+                    {lines.length === 0 && !imageUrl ? (
+                        <Typography level="body-sm" sx={{ color: 'text.tertiary', textAlign: 'center', py: 2 }}>
+                            ไม่มีข้อมูลบริบทของการ์ดนี้ (อาจเป็นการ์ดเก่าก่อนมีฟีเจอร์นี้)
+                        </Typography>
+                    ) : (
+                        <>
+                            {lines.length > 0 && (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    {lines.map((line, idx) => (
+                                        <Box
+                                            key={idx}
+                                            sx={{ display: 'flex', gap: 1, p: 1, borderRadius: 'sm', bgcolor: 'background.level1' }}
+                                        >
+                                            <Typography level="body-xs" sx={{ color: 'text.tertiary', flexShrink: 0, minWidth: 20 }}>
+                                                {idx + 1}.
+                                            </Typography>
+                                            <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                                {line}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            )}
+
+                            {imageUrl && (
+                                <Box sx={{ mt: lines.length > 0 ? 2 : 0 }}>
+                                    <Typography level="body-xs" sx={{ fontWeight: 600, color: 'text.tertiary', mb: 0.5 }}>
+                                        รูปภาพที่ส่งไปด้วย (image_url)
+                                    </Typography>
+                                    <Link href={imageUrl} target="_blank" rel="noopener noreferrer">
+                                        <img
+                                            src={imageUrl}
+                                            alt="context"
+                                            style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 6, display: 'block' }}
+                                        />
+                                    </Link>
+                                </Box>
+                            )}
+                        </>
+                    )}
+                </Box>
+            </ModalDialog>
+        </Modal>
+    );
+}
+
 function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMessageRef }) {
     const [question, setQuestion] = useState(suggestion.question || '');
     const [draft, setDraft] = useState(suggestion.content);
+
+    // มีให้ดูเฉพาะการ์ดที่มี context (lines/image_url) แนบมาด้วยเท่านั้น — การ์ดจาก KB (source='kb') หรือ
+    // การ์ด AI เก่าก่อนมีฟีเจอร์นี้จะไม่มี suggestion.context เลย จึงไม่โชว์ chip นี้
+    const hasContext = !!(suggestion.context && (
+        (Array.isArray(suggestion.context.lines) && suggestion.context.lines.length > 0)
+        || suggestion.context.image_url
+    ));
+    const [contextOpen, setContextOpen] = useState(false);
 
     const [editOpen, setEditOpen] = useState(false);
     const [editQuestion, setEditQuestion] = useState('');
@@ -605,6 +678,18 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                             </Typography>
                         )
                     )}
+                    {hasContext && (
+                        <Chip
+                            size="sm"
+                            variant="outlined"
+                            color="neutral"
+                            startDecorator={<VisibilityRoundedIcon fontSize="small" />}
+                            onClick={() => setContextOpen(true)}
+                            sx={{ cursor: 'pointer' }}
+                        >
+                            ดูบริบทที่ส่งให้ AI
+                        </Chip>
+                    )}
                 </Box>
             )}
 
@@ -718,6 +803,12 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 setAlt={setKbAlt}
                 onSave={saveToKb}
                 saving={savingKb}
+            />
+
+            <ContextSentModal
+                open={contextOpen}
+                onClose={() => setContextOpen(false)}
+                context={suggestion.context}
             />
         </Sheet>
     );

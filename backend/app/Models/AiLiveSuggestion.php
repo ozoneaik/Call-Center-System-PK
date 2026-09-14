@@ -19,4 +19,10 @@ class AiLiveSuggestion extends Model
         'reference',
         'attachment_url',
     ];
+
+    // context_sent เก็บเป็น JSON string ในคอลัมน์ text ({lines: string[], image_url: string|null}) — cast เป็น
+    // array ให้ทำงานเหมือน column json ปกติ (encode/decode ให้อัตโนมัติ) โดยไม่ต้องแก้ type คอลัมน์จริงใน DB
+    protected $casts = [
+        'context_sent' => 'array',
+    ];
 }

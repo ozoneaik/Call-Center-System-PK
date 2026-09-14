@@ -125,12 +125,6 @@ const Info = forwardRef(function Info(props, ref) {
         const key = message.id ?? message.created_at;
         if (!key) return;
         if (!opts.force && String(key) === String(lastProcessedMessageKeyRef.current)) return;
-        // จุดตัดเดิม (ข้อความล่าสุดที่เคยส่งบริบทให้ AI ไปแล้วรอบก่อน) — chat-oc-summary จำ session นี้เอง
-        // อยู่แล้ว (ดู /session/clear ที่เรียกตอนปิดเคส) จึงส่งแค่ข้อความ "ใหม่" หลังจุดนี้พอ ไม่ต้องส่งบทสนทนา
-        // ทั้งหมดซ้ำทุกครั้ง — ยกเว้นกด force ซ้ำที่ข้อความเดิม (regenerate) ให้ถือว่ายังไม่เคยส่งอะไรมาก่อน
-        // (ไม่งั้น since/up_to จะชนกันเอง กลายเป็นไม่ส่ง lines อะไรไปเลย)
-        const isRegeneratingSameMessage = opts.force && String(key) === String(lastProcessedMessageKeyRef.current);
-        const sinceKey = isRegeneratingSameMessage ? null : lastProcessedMessageKeyRef.current;
         lastProcessedMessageKeyRef.current = key;
 
         const isImage = message.contentType === 'image';
@@ -138,7 +132,10 @@ const Info = forwardRef(function Info(props, ref) {
 
         setLiveLoading(true);
         try {
-            const sinceMessageId = sinceKey !== null && Number.isFinite(Number(sinceKey)) ? Number(sinceKey) : undefined;
+            // เคยมี sinceMessageId (ส่งแค่ข้อความ "ใหม่" โดยหวังพึ่งว่า chat-oc-summary จำบริบทเก่าของ
+            // session ไว้เอง) แต่พบว่า service ไม่ได้จำจริง — กด Generate AI ต่อจากรอบก่อน (เช่น ลูกค้าตอบ
+            // รหัสสินค้าหลังถูกถามยืนยัน) แล้ว AI ตอบไม่เชื่อมโยงกับปัญหาเดิมที่คุยไปก่อนหน้าเลย จึงตัดออก
+            // ส่ง lines เต็มทุกครั้งแทน (ตั้งแต่ต้นเคสจนถึงข้อความนี้) ให้บริบทครบชัวร์ ๆ
             const data = await sendChatOcAnyApi({
                 custId: sender?.custId,
                 activeId,
@@ -146,7 +143,6 @@ const Info = forwardRef(function Info(props, ref) {
                 // จำกัด context ("lines") ย้อนกลับไปแค่ถึงข้อความนี้ — ตอนออโต้ทริกเกอร์ (ข้อความล่าสุด)
                 // ผลจะเหมือนไม่จำกัดอยู่แล้วเพราะเป็นข้อความใหม่สุด ณ ตอนนั้นพอดี
                 upToMessageId: Number.isFinite(message.id) ? message.id : undefined,
-                sinceMessageId,
             });
             setLiveSuggestions((prev) => [
                 {
@@ -172,6 +168,10 @@ const Info = forwardRef(function Info(props, ref) {
                         : undefined,
                     // รูปหน้าแคตตาล็อก/โบรชัวร์ (ถ้ามี) — backend เติม URL เต็มให้แล้วใน liveSuggest()
                     attachment_url: data.brochure_page_url || undefined,
+                    // บริบท (lines/image_url) ที่ backend ส่งไปให้ chat-oc-summary จริงรอบนี้ — แนบมาจาก
+                    // response ตรง ๆ (คีย์ _ai_context กันชนกับ field จริงของ chat-oc-summary) ให้การ์ดกดดู
+                    // ย้อนหลังได้ทันทีโดยไม่ต้องรอโหลดประวัติใหม่ (โครงเดียวกับ context ที่มาจาก DB ตอน refresh)
+                    context: data._ai_context || undefined,
                 },
                 ...prev,
             ]);
