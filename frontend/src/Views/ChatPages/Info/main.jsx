@@ -120,6 +120,8 @@ const Info = forwardRef(function Info(props, ref) {
     // สร้างการ์ดวิเคราะห์ AI สำหรับข้อความหนึ่งข้อความ (context = ประวัติแชทย้อนกลับไปถึงข้อความนั้น)
     // เรียกจากปุ่ม "Generate AI" ที่ข้อความใดข้อความหนึ่ง (เปิดผ่าน ref จาก MessagePane/main.jsx — ดู ChatBubble.jsx)
     // opts.force = true ใช้ตอนกดปุ่มเอง ให้ generate ได้แม้ข้อความนี้เคย generate ไปแล้ว (ข้ามการกันซ้ำ)
+    // opts.lines/opts.imageUrl = context ที่แอดมินเลือกเองจาก popup (GenerateContextModal.jsx) — ถ้ามี
+    // จะส่งให้ backend ใช้ตรง ๆ แทนการให้ backend query อัตโนมัติ (ดู AiAssistantController::liveSuggest)
     const generateForMessage = useCallback(async (message, opts = {}) => {
         if (!message) return;
         const key = message.id ?? message.created_at;
@@ -132,17 +134,15 @@ const Info = forwardRef(function Info(props, ref) {
 
         setLiveLoading(true);
         try {
-            // เคยมี sinceMessageId (ส่งแค่ข้อความ "ใหม่" โดยหวังพึ่งว่า chat-oc-summary จำบริบทเก่าของ
-            // session ไว้เอง) แต่พบว่า service ไม่ได้จำจริง — กด Generate AI ต่อจากรอบก่อน (เช่น ลูกค้าตอบ
-            // รหัสสินค้าหลังถูกถามยืนยัน) แล้ว AI ตอบไม่เชื่อมโยงกับปัญหาเดิมที่คุยไปก่อนหน้าเลย จึงตัดออก
-            // ส่ง lines เต็มทุกครั้งแทน (ตั้งแต่ต้นเคสจนถึงข้อความนี้) ให้บริบทครบชัวร์ ๆ
             const data = await sendChatOcAnyApi({
                 custId: sender?.custId,
                 activeId,
                 messageRef: key,
                 // จำกัด context ("lines") ย้อนกลับไปแค่ถึงข้อความนี้ — ตอนออโต้ทริกเกอร์ (ข้อความล่าสุด)
-                // ผลจะเหมือนไม่จำกัดอยู่แล้วเพราะเป็นข้อความใหม่สุด ณ ตอนนั้นพอดี
+                // ผลจะเหมือนไม่จำกัดอยู่แล้วเพราะเป็นข้อความใหม่สุด ณ ตอนนั้นพอดี (ไม่มีผลถ้า opts.lines ระบุมา)
                 upToMessageId: Number.isFinite(message.id) ? message.id : undefined,
+                lines: opts.lines,
+                imageUrl: opts.imageUrl,
             });
             setLiveSuggestions((prev) => [
                 {

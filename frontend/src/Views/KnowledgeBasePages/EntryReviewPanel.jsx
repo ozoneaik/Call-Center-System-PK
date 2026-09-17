@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Box, Typography, Textarea, Input, Button, Chip, Divider, Stack } from "@mui/joy";
-import { Delete, Edit, CheckCircle, Cancel, RestartAlt } from "@mui/icons-material";
+import { Box, Typography, Textarea, Input, Button, Chip, Divider, Stack, IconButton, Modal, ModalDialog, ModalClose } from "@mui/joy";
+import { Delete, Edit, CheckCircle, Cancel, RestartAlt, OpenInFull } from "@mui/icons-material";
 import {
     kbUpdateApi, kbApproveApi, kbRejectApi, kbApproveEditedApi, kbResetApi, kbToggleActiveApi, kbDeleteApi,
 } from "../../Api/KnowledgeBase.js";
@@ -11,6 +11,61 @@ import { MessageStyle } from "../../styles/MessageStyle.js";
 const sourceLabel = { kb: 'จาก KB', web: 'เว็บไซต์', ai: 'AI แนะนำ' };
 const statusColor = { pending: 'warning', approved: 'success', rejected: 'danger' };
 const statusLabel = { pending: 'รอตรวจสอบ', approved: 'อนุมัติแล้ว', rejected: 'ปรับแก้แล้ว' };
+
+/**
+ * Textarea ที่มีปุ่ม "ขยาย" มุมขวาบน กดแล้วเปิด modal คำตอบใหญ่ขึ้นให้แก้ไขสะดวกขึ้น (ข้อความยาว ๆ
+ * แก้ในกล่องเล็กลำบาก) ผูก value/onChange ตัวเดียวกับกล่องเล็ก แก้ในนี้แล้วซิงก์กลับไปทันที ไม่ต้องกด "บันทึก" ซ้ำ
+ */
+function ExpandableTextarea({ value, onChange, minRows = 4, placeholder, color, title = "แก้ไขคำตอบ" }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <Box sx={{ position: 'relative' }}>
+            <Textarea
+                minRows={minRows}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                color={color}
+                sx={{ pr: 4 }}
+            />
+            <IconButton
+                size="sm"
+                variant="plain"
+                color="neutral"
+                onClick={() => setExpanded(true)}
+                title="ขยายเพื่อแก้ไข"
+                sx={{ position: 'absolute', top: 4, right: 4 }}
+            >
+                <OpenInFull sx={{ fontSize: 16 }} />
+            </IconButton>
+
+            <Modal open={expanded} onClose={() => setExpanded(false)}>
+                <ModalDialog
+                    size="lg"
+                    sx={{
+                        width: '90vw', maxWidth: 800, height: '80vh', p: 3,
+                        display: 'flex', flexDirection: 'column',
+                    }}
+                >
+                    <ModalClose sx={{ '--IconButton-size': '40px' }} />
+                    <Typography level="title-lg" sx={{ mb: 1.5, flexShrink: 0 }}>{title}</Typography>
+                    <Textarea
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        color={color}
+                        autoFocus
+                        sx={{ flex: 1, minHeight: 0, fontSize: 'lg', '& textarea': { height: '100% !important' } }}
+                    />
+                    <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2, flexShrink: 0 }}>
+                        <Button onClick={() => setExpanded(false)}>เสร็จสิ้น</Button>
+                    </Stack>
+                </ModalDialog>
+            </Modal>
+        </Box>
+    );
+}
 
 /**
  * เนื้อหาแท็บ "AI" ในหน้าจำลองแชท — บล็อคที่เพิ่มเข้า KB พร้อมพื้นที่ให้แอดมินแก้ไข/อนุมัติ
@@ -167,7 +222,7 @@ export default function EntryReviewPanel({ entry, onRefresh, onDeleted }) {
     };
 
     return (
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%', overflowY: 'auto' }}>
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%', overflowY: 'auto' }}>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" gap={0.5}>
                 <Chip color={statusColor[entry.admin_status]} size="sm">
                     {statusLabel[entry.admin_status] ?? entry.admin_status}
@@ -210,7 +265,12 @@ export default function EntryReviewPanel({ entry, onRefresh, onDeleted }) {
                         </Box>
                         <Box>
                             <Typography level="body-xs" color="neutral" mb={0.5}>คำตอบ *</Typography>
-                            <Textarea minRows={4} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+                            <ExpandableTextarea
+                                minRows={4}
+                                value={answer}
+                                onChange={(e) => setAnswer(e.target.value)}
+                                title="แก้ไขคำตอบ"
+                            />
                         </Box>
                         <Box>
                             <Typography level="body-xs" color="neutral" mb={0.5}>หมายเหตุ</Typography>
@@ -312,10 +372,16 @@ export default function EntryReviewPanel({ entry, onRefresh, onDeleted }) {
             {mode === 'reject' && (
                 <>
                     <Divider />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         <Typography level="title-sm" color="danger">คำตอบที่ต้องการแก้ไข *</Typography>
-                        <Textarea minRows={4} placeholder="กรอกคำตอบที่ถูกต้อง..."
-                            value={adminAnswer} onChange={(e) => setAdminAnswer(e.target.value)} color="danger" />
+                        <ExpandableTextarea
+                            minRows={4}
+                            placeholder="กรอกคำตอบที่ถูกต้อง..."
+                            value={adminAnswer}
+                            onChange={(e) => setAdminAnswer(e.target.value)}
+                            color="danger"
+                            title="คำตอบที่ต้องการแก้ไข"
+                        />
                         <Typography level="title-sm">หมายเหตุ (ไม่บังคับ)</Typography>
                         <Textarea minRows={2} placeholder="เหตุผลที่ปรับแก้..."
                             value={adminNote} onChange={(e) => setAdminNote(e.target.value)} />
@@ -343,7 +409,13 @@ export default function EntryReviewPanel({ entry, onRefresh, onDeleted }) {
                             อนุมัติ
                         </Button>
                         <Button color="danger" size="sm" variant="soft"
-                            startDecorator={<Cancel />} onClick={() => setMode('reject')}>
+                            startDecorator={<Cancel />}
+                            onClick={() => {
+                                // เอาคำตอบเดิมมา auto-fill ไว้ก่อน กันแอดมินต้องพิมพ์ใหม่ทั้งหมดทั้งที่ส่วนใหญ่
+                                // แค่ต้องการแก้ไขบางจุด — แก้ต่อจากของเดิมได้เลย ไม่ต้องเริ่มจากช่องว่าง
+                                setAdminAnswer(entry.answer ?? '');
+                                setMode('reject');
+                            }}>
                             ปรับแก้คำตอบ
                         </Button>
                         {entry.admin_status !== 'pending' && (

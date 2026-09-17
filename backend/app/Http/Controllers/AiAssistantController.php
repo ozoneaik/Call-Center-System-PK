@@ -114,6 +114,11 @@ class AiAssistantController extends Controller
      * กด Generate AI ต่อจากรอบก่อน (เช่น ลูกค้าตอบรหัสสินค้าหลังถูกถามยืนยัน) แล้ว AI ตอบไม่เชื่อมโยงกับปัญหา
      * เดิมที่คุยไปก่อนหน้าเลย (เห็นแค่ delta ที่เพิ่งส่งไป) จึงตัดกลไกนี้ออก ส่ง "lines" เต็มทุกครั้งแทน
      * (ตั้งแต่ต้นเคส/custId จนถึง up_to_message_id) เพื่อความถูกต้องของบริบท แลกกับ payload ที่ใหญ่ขึ้นบ้าง
+     *
+     * lines (ถ้าส่งมา): แอดมินเลือก context เองจาก popup ก่อนกด Generate AI (ดู GenerateContextModal.jsx —
+     * แสดง candidate ให้เลือก พร้อมกรองข้อความจาก BOT ออกไปแล้วตั้งแต่ฝั่ง frontend) — ถ้ามี key นี้ส่งมาใน
+     * request (เช็คด้วย $request->exists() ไม่ใช่ empty() เพราะแอดมินอาจเลือกไม่เอาข้อความไหนเลยก็ได้ ยังต้อง
+     * ถือว่าเป็นการเลือกเอง ไม่ตกไป auto-query) จะใช้ตามที่ส่งมาตรง ๆ ข้าม auto-query ข้างล่างไปเลย
      */
     public function liveSuggest(Request $request): JsonResponse
     {
@@ -121,10 +126,14 @@ class AiAssistantController extends Controller
             'session_id' => 'nullable|string',
             // active_id/message_ref: ใช้บันทึกประวัติการ์ดวิเคราะห์นี้ลง DB (ai_live_suggestions)
             // กันหายตอนรีเฟรชหน้าจอ — เดิมเก็บแค่ React state ฝั่ง frontend
-            // active_id ยังใช้ดึงประวัติข้อความทั้งห้องมาทำ "lines" ด้วย
+            // active_id ยังใช้ดึงประวัติข้อความทั้งห้องมาทำ "lines" ด้วย (ตอน auto-query)
             'active_id'         => 'nullable|integer',
             'message_ref'       => 'nullable|string',
             'up_to_message_id'  => 'nullable|integer',
+            // context ที่แอดมินเลือกเองจาก popup — ดู docblock ด้านบน
+            'lines'             => 'nullable|array',
+            'lines.*'           => 'nullable|string',
+            'image_url'         => 'nullable|string',
         ]);
 
         $url = config('services.chat_oc_summary.url');
@@ -132,47 +141,59 @@ class AiAssistantController extends Controller
             return response()->json(['message' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'], 503);
         }
 
-        // ดึงข้อความ (contentType = text หรือ image) ของห้องนี้ เรียงเก่า -> ใหม่ ให้ chat-oc-summary เห็นบริบท
-        // ตั้งแต่ต้นบทสนทนา ไม่ใช่แค่ข้อความล่าสุดข้อความเดียวเหมือน chat-oc-any เดิม — ถ้าระบุ up_to_message_id
-        // มา (กด Generate AI ย้อนหลังที่ข้อความใดข้อความหนึ่ง) ให้ตัดข้อความที่มาทีหลังข้อความนั้นออก
-        //
-        // รูป (contentType = image) แยกส่งเป็น field "image_url" ต่างหาก (เอาแค่รูปล่าสุดในขอบเขตที่ดึงมา —
-        // ถ้ามีหลายรูปเอาแค่ใบล่าสุด) ไม่ปนไปกับ lines ซึ่งเป็น text ล้วน
-        //
-        // ใช้ custId (session_id) เป็นหลักในการกำหนดขอบเขต "ห้องนี้" ไม่ใช่ conversationRef (active_conversation
-        // เซสชันปัจจุบัน) เพราะลูกค้าคนเดียวกันอาจเคยจบสนทนา/ถูกโอนสายมาแล้วหลายรอบ (active_conversations
-        // คนละแถว คนละ conversationRef) แต่หน้าจอแชทที่ frontend โหลดมาโชว์ยังต่อเนื่องกันเป็นห้องเดียวตาม
-        // custId อยู่ดี (ดู DisplayService::selectMessage) — ถ้าผูกแค่ conversationRef บริบทจะขาดข้อความจาก
-        // session เก่าที่ยังโชว์ค้างอยู่บนจอ ตกกรณี fallback ไป conversationRef เฉพาะตอนไม่มี custId ส่งมา
-        $lines = [];
-        $imageUrl = null;
-        if (!empty($validated['session_id']) || !empty($validated['active_id'])) {
-            $query = ChatHistory::query()->whereIn('contentType', ['text', 'image']);
+        // แอดมินเลือก context เองจาก popup มาแล้ว (ดู docblock) — ใช้ตามนั้นตรง ๆ ไม่ query auto จาก DB อีก
+        $usingCustomContext = $request->exists('lines');
 
-            if (!empty($validated['session_id'])) {
-                $query->where('custId', $validated['session_id']);
-            } else {
-                $query->where('conversationRef', $validated['active_id']);
-            }
-
-            if (!empty($validated['up_to_message_id'])) {
-                $query->where('id', '<=', $validated['up_to_message_id']);
-            }
-
-            $history = $query->orderBy('created_at')->get(['content', 'contentType']);
-
-            $lines = $history->where('contentType', 'text')
-                ->map(fn ($h) => trim((string) $h->content))
+        if ($usingCustomContext) {
+            $lines = collect($validated['lines'] ?? [])
+                ->map(fn ($c) => trim((string) $c))
                 ->filter(fn ($c) => $c !== '')
                 ->values()
                 ->all();
+            $imageUrl = $validated['image_url'] ?? null;
+        } else {
+            // ดึงข้อความ (contentType = text หรือ image) ของห้องนี้ เรียงเก่า -> ใหม่ ให้ chat-oc-summary เห็นบริบท
+            // ตั้งแต่ต้นบทสนทนา ไม่ใช่แค่ข้อความล่าสุดข้อความเดียวเหมือน chat-oc-any เดิม — ถ้าระบุ up_to_message_id
+            // มา (กด Generate AI ย้อนหลังที่ข้อความใดข้อความหนึ่ง) ให้ตัดข้อความที่มาทีหลังข้อความนั้นออก
+            //
+            // รูป (contentType = image) แยกส่งเป็น field "image_url" ต่างหาก (เอาแค่รูปล่าสุดในขอบเขตที่ดึงมา —
+            // ถ้ามีหลายรูปเอาแค่ใบล่าสุด) ไม่ปนไปกับ lines ซึ่งเป็น text ล้วน
+            //
+            // ใช้ custId (session_id) เป็นหลักในการกำหนดขอบเขต "ห้องนี้" ไม่ใช่ conversationRef (active_conversation
+            // เซสชันปัจจุบัน) เพราะลูกค้าคนเดียวกันอาจเคยจบสนทนา/ถูกโอนสายมาแล้วหลายรอบ (active_conversations
+            // คนละแถว คนละ conversationRef) แต่หน้าจอแชทที่ frontend โหลดมาโชว์ยังต่อเนื่องกันเป็นห้องเดียวตาม
+            // custId อยู่ดี (ดู DisplayService::selectMessage) — ถ้าผูกแค่ conversationRef บริบทจะขาดข้อความจาก
+            // session เก่าที่ยังโชว์ค้างอยู่บนจอ ตกกรณี fallback ไป conversationRef เฉพาะตอนไม่มี custId ส่งมา
+            $lines = [];
+            $imageUrl = null;
+            if (!empty($validated['session_id']) || !empty($validated['active_id'])) {
+                $query = ChatHistory::query()->whereIn('contentType', ['text', 'image']);
 
-            // เอารูปล่าสุด (ใบท้ายสุดในขอบเขตนี้) เผื่อลูกค้าส่งมาหลายรูป — ตัวล่าสุดตรงบริบทตอนกด Generate AI ที่สุด
-            $lastImage = $history->where('contentType', 'image')
-                ->filter(fn ($h) => trim((string) $h->content) !== '')
-                ->last();
-            if ($lastImage) {
-                $imageUrl = trim((string) $lastImage->content);
+                if (!empty($validated['session_id'])) {
+                    $query->where('custId', $validated['session_id']);
+                } else {
+                    $query->where('conversationRef', $validated['active_id']);
+                }
+
+                if (!empty($validated['up_to_message_id'])) {
+                    $query->where('id', '<=', $validated['up_to_message_id']);
+                }
+
+                $history = $query->orderBy('created_at')->get(['content', 'contentType']);
+
+                $lines = $history->where('contentType', 'text')
+                    ->map(fn ($h) => trim((string) $h->content))
+                    ->filter(fn ($c) => $c !== '')
+                    ->values()
+                    ->all();
+
+                // เอารูปล่าสุด (ใบท้ายสุดในขอบเขตนี้) เผื่อลูกค้าส่งมาหลายรูป — ตัวล่าสุดตรงบริบทตอนกด Generate AI ที่สุด
+                $lastImage = $history->where('contentType', 'image')
+                    ->filter(fn ($h) => trim((string) $h->content) !== '')
+                    ->last();
+                if ($lastImage) {
+                    $imageUrl = trim((string) $lastImage->content);
+                }
             }
         }
 
@@ -183,15 +204,20 @@ class AiAssistantController extends Controller
             'active_id'        => $validated['active_id'] ?? null,
             'up_to_message_id' => $validated['up_to_message_id'] ?? null,
             'message_ref'      => $validated['message_ref'] ?? null,
-            // ไว้เช็คว่า scope ของ lines อิงตาม custId (session_id) หรือ fallback ไป conversationRef
-            'scope'            => !empty($validated['session_id']) ? 'custId' : 'conversationRef',
+            // custom = แอดมินเลือก context เองจาก popup, auto = ระบบ query ให้อัตโนมัติ
+            'context_source'   => $usingCustomContext ? 'custom' : 'auto',
+            // ไว้เช็คว่า scope ของ lines อิงตาม custId (session_id) หรือ fallback ไป conversationRef (เฉพาะ auto)
+            'scope'            => $usingCustomContext ? null : (!empty($validated['session_id']) ? 'custId' : 'conversationRef'),
             'lines_count'      => count($lines),
             'lines'            => $lines,
             'image_url'        => $imageUrl,
         ]);
 
         try {
-            $client = new \GuzzleHttp\Client(['timeout' => 30, 'http_errors' => false]);
+            // เดิม timeout 30 วิ — ตั้งแต่เลิกใช้ since_message_id (ส่ง lines เต็มทุกครั้ง แทนที่จะส่งแค่ delta)
+            // payload ใหญ่ขึ้นมาก โดยเฉพาะตอนแอดมินเลือก context เองจาก popup (มักได้หลายสิบบรรทัด + รูป)
+            // ทำให้ chat-oc-summary ประมวลผลนานขึ้นจนหลุด 30 วิ บ่อย (cURL error 28) เพิ่มเป็น 60 วิให้พอ
+            $client = new \GuzzleHttp\Client(['timeout' => 60, 'http_errors' => false]);
             $payload = [
                 'lines'  => $lines,
                 // ยังไม่มีฟิลด์เพศลูกค้าจริงในระบบ (ไม่มีคอลัมน์นี้เก็บไว้ที่ไหน) ส่ง null ไปก่อน

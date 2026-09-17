@@ -11,6 +11,7 @@ import Info from "../Info/main.jsx";
 import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
 import MessageInputNew from "./MessageInputNew.jsx";
 import { forceHttps } from "../../../utils.js";
+import GenerateContextModal from "./GenerateContextModal.jsx";
 
 export default function MessagePane() {
     const { notification } = useNotification();
@@ -131,19 +132,48 @@ export default function MessagePane() {
     // Info เป็นคนอัปเดตให้ผ่าน onLastGeneratedChange — ใช้โชว์เส้นคั่นในหน้าแชทว่า generate ไปถึงข้อความไหนแล้ว
     const [lastGeneratedKey, setLastGeneratedKey] = useState(null);
 
-    const handleGenerateAi = async (message) => {
+    // popup เลือก context ก่อนกด Generate AI จริง (GenerateContextModal.jsx) — เปิดจากปุ่มต่อข้อความ
+    // ให้แอดมินเห็น/เลือกได้ก่อนว่าจะส่งข้อความไหนให้ AI บ้าง แทนที่จะยิงอัตโนมัติทันทีเหมือนเดิม
+    const [contextPickerOpen, setContextPickerOpen] = useState(false);
+    const [contextPickerMessage, setContextPickerMessage] = useState(null);
+    const [contextPickerCandidates, setContextPickerCandidates] = useState([]);
+
+    // กดปุ่ม "Generate AI" ที่ข้อความ — ไม่ยิง generate ทันที แต่เปิด popup ให้เลือก context ก่อน
+    // candidates = ข้อความ/รูปทั้งหมดของลูกค้าคนนี้ (messages ที่โหลดมาแล้ว สโคปเดียวกับที่ backend ใช้ตอน
+    // auto-query คือทั้ง custId ไม่จำกัดแค่ห้อง/เซสชันปัจจุบัน) ตั้งแต่ต้นจนถึงข้อความที่กด (id <= ข้อความนี้)
+    // กรองข้อความจาก BOT ออกไปเลย (sender.empCode === 'BOT') ไม่ให้ปนมาในตัวเลือกเลย
+    const handleGenerateAi = (message) => {
         if (!message || generatingMessageKey) return; // กันกดรัวจนยิงซ้อนกันหลายคำขอพร้อมกัน
         const key = message.id ?? message.created_at;
         if (!key) return;
+
+        const upToId = Number.isFinite(message.id) ? message.id : null;
+        const candidates = (Array.isArray(messages) ? messages : [])
+            .filter((m) => m.contentType === 'text' || m.contentType === 'image')
+            .filter((m) => m.sender?.empCode !== 'BOT')
+            .filter((m) => upToId === null || !Number.isFinite(m.id) || m.id <= upToId)
+            .filter((m) => (m.content ?? '').toString().trim() !== '');
+
+        setContextPickerMessage(message);
+        setContextPickerCandidates(candidates);
+        setContextPickerOpen(true);
+    };
+
+    // กด "Generate AI (N ข้อความที่เลือก)" ใน popup แล้ว — ยิงจริงด้วย lines/imageUrl ที่แอดมินเลือกไว้
+    const handleConfirmGenerate = async (lines, imageUrl) => {
+        const message = contextPickerMessage;
+        if (!message) return;
+        const key = message.id ?? message.created_at;
         setGeneratingMessageKey(key);
         // เด้งเปิด Side bar AI ทันทีที่กด ให้เห็น loading/ผลลัพธ์เลย ไม่ต้องกดเปิดแผงเอง
         infoRef.current?.openAiPanel();
         try {
-            await infoRef.current?.generateForMessage(message, { force: true });
+            await infoRef.current?.generateForMessage(message, { force: true, lines, imageUrl });
         } catch (err) {
             console.error('Generate AI ย้อนหลังไม่สำเร็จ', err);
         } finally {
             setGeneratingMessageKey(null);
+            setContextPickerOpen(false);
         }
     };
 
@@ -226,6 +256,14 @@ export default function MessagePane() {
                     onLastGeneratedChange={setLastGeneratedKey}
                 />
             </Sheet>
+
+            <GenerateContextModal
+                open={contextPickerOpen}
+                onClose={() => setContextPickerOpen(false)}
+                candidates={contextPickerCandidates}
+                onConfirm={handleConfirmGenerate}
+                confirming={!!generatingMessageKey}
+            />
         </>
     )
 }

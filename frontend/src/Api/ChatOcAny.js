@@ -7,7 +7,7 @@ import axiosClient from "../Axios.js";
 // หมายเหตุ: เดิม endpoint chat-oc-any รับข้อความล่าสุด+รูปแนบทีละข้อความ แต่ chat-oc-summary รับ
 // context เป็น "lines" หลายข้อความแทน — backend เป็นคนไปดึงประวัติแชททั้งห้อง (ตาม activeId) มาสร้าง lines
 // เองฝั่ง server จึงไม่ต้องส่ง message/imageFile/imageUrl จากตรงนี้อีกแล้ว
-export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessageId }) => {
+export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessageId, lines, imageUrl }) => {
     // active_id/message_ref: ให้ backend บันทึกการ์ดวิเคราะห์นี้ลง ai_live_suggestions
     // เพื่อโหลดกลับมาแสดงได้ตอนรีเฟรชหน้าจอ (ดู Info/main.jsx) และดึงประวัติข้อความทั้งห้องมาทำ context
     // up_to_message_id: ปุ่ม "Generate AI" ที่กดจากข้อความใดข้อความหนึ่งในหน้าแชท (ดู ChatBubble.jsx) —
@@ -15,11 +15,17 @@ export const sendChatOcAnyApi = async ({ custId, activeId, messageRef, upToMessa
     // หมายเหตุ: เคยมี since_message_id (ส่งแค่ข้อความ "ใหม่" โดยหวังพึ่งว่า chat-oc-summary จำบริบทเก่า
     // ของ session ไว้เอง) แต่พบว่า service ไม่ได้จำจริง ทำให้ AI ตอบไม่เชื่อมโยงกับบริบทก่อนหน้า — ตัดออก
     // แล้ว ตอนนี้ backend ส่ง lines เต็มทุกครั้งเสมอ (ดู AiAssistantController::liveSuggest)
+    //
+    // lines/imageUrl (ถ้าส่งมา): context ที่แอดมินเลือกเองจาก popup (ดู GenerateContextModal.jsx) — ถ้ามี
+    // ให้ backend ใช้ตามนี้ตรง ๆ แทนที่จะ query อัตโนมัติเอง ส่ง `lines: []` (array ว่าง) ได้ถ้าแอดมินไม่เลือก
+    // อะไรเลย ยังถือว่าเป็นการเลือกเอง (ไม่ใช่ "ไม่ได้ระบุ") — ใช้ Array.isArray เช็คแทน truthy กันเคสนี้หาย
     const { data } = await axiosClient.post('/ai-assistant/chat-oc-any', {
         session_id: custId || undefined,
         active_id: activeId || undefined,
         message_ref: messageRef !== undefined ? String(messageRef) : undefined,
         up_to_message_id: upToMessageId || undefined,
+        lines: Array.isArray(lines) ? lines : undefined,
+        image_url: imageUrl || undefined,
     });
     return data; // { summarytxt, answer, ... }
 };

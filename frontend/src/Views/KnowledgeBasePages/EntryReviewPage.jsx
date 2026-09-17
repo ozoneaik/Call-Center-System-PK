@@ -16,7 +16,7 @@ import { forceHttps } from "../../utils.js";
 
 const RAIL_WIDTH_EXPANDED  = '84px';
 const RAIL_WIDTH_COLLAPSED = '28px';
-const PANEL_WIDTH          = 'clamp(320px, 30vw, 420px)';
+const PANEL_WIDTH          = 'clamp(420px, 40vw, 540px)';
 
 const statusColor = { pending: 'warning', approved: 'success', rejected: 'danger' };
 const statusLabel = { pending: 'รอตรวจสอบ', approved: 'อนุมัติแล้ว', rejected: 'ปรับแก้แล้ว' };
@@ -173,7 +173,7 @@ export default function EntryReviewPage() {
                                     <CircularProgress size="sm" />
                                 </Box>
                             ) : (
-                                <EntryReviewPanel entry={entry} onRefresh={fetchData} onDeleted={handleBack} />
+                                <EntryReviewPanel entry={entry} onRefresh={fetchData} />
                             )}
                         </Box>
                     </Sheet>

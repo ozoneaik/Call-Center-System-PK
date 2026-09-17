@@ -19,6 +19,7 @@ import { MessageStyle } from "../../../styles/MessageStyle.js";
 import { AlertDiaLog } from "../../../Dialogs/Alert.js";
 import { getAiSuggestionsApi, storeAiKbEntryApi, sendBrochurePageApi } from "../../../Api/AiAssistant.js";
 import { sendApi } from "../../../Api/Messages.js";
+import { sendChatOcAnyApi } from "../../../Api/ChatOcAny.js";
 
 // แหล่งที่มาของคำตอบ: 'kb' = ดึงจากคลังความรู้ที่อนุมัติแล้ว, 'web' = ค้นจากเว็บไซต์/อินเทอร์เน็ต, 'ai' = AI ตอบสดแบบเรียลไทม์
 const SOURCE_CONFIG = {
@@ -93,7 +94,7 @@ function AttachedFilePreview({ file, onRemove }) {
 
 function EditDraftDialog({
     open, onClose, question, answer, setQuestion, setAnswer, files, setFiles, alt, setAlt,
-    onSaveAndUse, onSaveUseAndKb, onSaveAndSendNow, sendingNow,
+    onSaveAndUse, onSaveUseAndKb, onSaveAndSendNow, sendingNow, onRegenerate, regenerating,
 }) {
     const fileInputRef = useRef(null);
 
@@ -124,6 +125,19 @@ function EditDraftDialog({
                             placeholder="คำถามของลูกค้า"
                             sx={{ fontSize: 'lg' }}
                         />
+                        {/* แก้คำถามแล้วกดปุ่มนี้ ให้ AI ตอบใหม่ตามคำถามที่แก้ไข — ผลลัพธ์ไปแทนที่ช่องคำตอบด้านล่างเลย */}
+                        <Button
+                            size="sm"
+                            variant="soft"
+                            color="primary"
+                            startDecorator={<AutoAwesomeIcon fontSize="small" />}
+                            onClick={onRegenerate}
+                            loading={regenerating}
+                            disabled={regenerating || !question.trim()}
+                            sx={{ alignSelf: 'flex-start', mt: 1 }}
+                        >
+                            Re-Generate AI
+                        </Button>
                     </FormControl>
 
                     <FormControl size="lg" sx={{ mb: 2 }}>
@@ -135,6 +149,7 @@ function EditDraftDialog({
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value)}
                             placeholder="ร่างคำตอบ"
+                            disabled={regenerating}
                             sx={ANSWER_TEXTAREA_SX}
                         />
                     </FormControl>
@@ -187,7 +202,7 @@ function EditDraftDialog({
                 </Box>
 
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1.5, pt: 2, flexShrink: 0 }}>
-                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose} disabled={sendingNow}>
+                    <Button size="lg" variant="outlined" color="neutral" onClick={onClose} disabled={sendingNow || regenerating}>
                         ยกเลิก
                     </Button>
                     <Dropdown>
@@ -195,7 +210,7 @@ function EditDraftDialog({
                             size="lg" variant="solid" color="primary"
                             endDecorator={<KeyboardArrowDownIcon />}
                             loading={sendingNow}
-                            disabled={sendingNow}
+                            disabled={sendingNow || regenerating}
                         >
                             บันทึก
                         </MenuButton>
@@ -214,7 +229,7 @@ function EditDraftDialog({
                             <MenuItem
                                 color="danger"
                                 onClick={onSaveAndSendNow}
-                                disabled={sendingNow || (!answer.trim() && files.length === 0)}
+                                disabled={sendingNow || regenerating || (!answer.trim() && files.length === 0)}
                             >
                                 <ListItemDecorator><SendRoundedIcon fontSize="small" /></ListItemDecorator>
                                 บันทึก ส่งลูกค้า และเข้า KB
@@ -442,6 +457,37 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
     const [sendingBrochure, setSendingBrochure] = useState(false);
     // ส่งร่างคำตอบที่แก้ไขให้ลูกค้าทันทีจาก dialog แก้ไข (ข้ามขั้นตอนแปะช่องพิมพ์+กดส่งเอง)
     const [sendingNow, setSendingNow] = useState(false);
+    // Re-Generate AI ใน dialog แก้ไขร่างคำตอบ — แก้ "คำถาม" แล้วกดปุ่มนี้ ให้ AI ตอบใหม่ตามคำถามที่แก้ไข
+    const [regenerating, setRegenerating] = useState(false);
+
+    // ใช้ context เดิมของการ์ดนี้ (ถ้ามี — ดู "ดูบริบทที่ส่งให้ AI") ต่อท้ายด้วยคำถามที่เพิ่งแก้ไข แล้วยิงขอ
+    // คำตอบใหม่ ให้ AI ยังอิงบริบทเดิมของบทสนทนาอยู่ ไม่ใช่ตอบจากคำถามลอย ๆ เพียงบรรทัดเดียว
+    const handleRegenerate = async () => {
+        if (regenerating || !editQuestion.trim()) return;
+        setRegenerating(true);
+        try {
+            const contextLines = Array.isArray(suggestion.context?.lines) ? suggestion.context.lines : [];
+            const lines = [...contextLines, editQuestion.trim()];
+            const imageUrl = suggestion.context?.image_url || undefined;
+
+            const data = await sendChatOcAnyApi({
+                custId,
+                activeId,
+                messageRef: suggestion.message_ref ?? fallbackMessageRef ?? undefined,
+                lines,
+                imageUrl,
+            });
+            setEditAnswer(data.answer || data.reply || '');
+        } catch (err) {
+            AlertDiaLog({
+                icon: 'error',
+                title: 'Re-Generate ไม่สำเร็จ',
+                text: err?.response?.data?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+            });
+        } finally {
+            setRegenerating(false);
+        }
+    };
 
     const handleSendBrochure = async () => {
         if (sendingBrochure || !suggestion.attachment_url) return;
@@ -786,6 +832,8 @@ function SuggestionCard({ suggestion, onUseDraft, activeId, custId, fallbackMess
                 onSaveUseAndKb={saveEditUseAndKb}
                 onSaveAndSendNow={confirmSendNowAndKb}
                 sendingNow={sendingNow}
+                onRegenerate={handleRegenerate}
+                regenerating={regenerating}
             />
 
             <AddToKbDialog
