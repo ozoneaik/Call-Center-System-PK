@@ -8,12 +8,14 @@ use App\Models\ChatHistory;
 use App\Models\Holiday;
 use App\Models\Rates;
 use App\Services\PusherService;
+use App\Services\webhooks_new\Concerns\BusinessHoursMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class NewCase
 {
+    use BusinessHoursMessage;
 
     protected CheckKeyword $checkKeyword;
     protected PusherService $pusherService;
@@ -392,7 +394,7 @@ class NewCase
                     'type_message' => 'reply',
                     'messages' => [
                         [
-                            'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                            'content' => $this->forwardToStaffMessage($now),
                             'contentType' => 'text'
                         ]
                     ],

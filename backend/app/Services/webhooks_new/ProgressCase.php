@@ -6,11 +6,14 @@ use App\Models\ActiveConversations;
 use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Services\PusherService;
+use App\Services\webhooks_new\Concerns\BusinessHoursMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class ProgressCase
 {
+    use BusinessHoursMessage;
+
     protected PusherService $pusherService;
     protected ArchitectService $architectService;
 
@@ -135,6 +138,7 @@ class ProgressCase
                         'from_roomId' => 'ROOM00'
                     ]);
                 }
+                $content = $this->forwardToStaffMessage($now_time);
                 return [
                     'status' => true,
                     'send_to_cust' => true,
@@ -142,7 +146,7 @@ class ProgressCase
                     'type_message' => 'reply',
                     'messages' => [
                         [
-                            'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                            'content' => $content,
                             'contentType' => 'text'
                         ]
                     ],

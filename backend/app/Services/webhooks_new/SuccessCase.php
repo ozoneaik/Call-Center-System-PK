@@ -6,10 +6,12 @@ use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
+use App\Services\webhooks_new\Concerns\BusinessHoursMessage;
 use Carbon\Carbon;
 
 class SuccessCase
 {
+    use BusinessHoursMessage;
 
     protected PusherService $pusherService;
     protected CheckKeyword $checkKeyword;
@@ -68,7 +70,7 @@ class SuccessCase
                     'send_to_cust' => true,
                     'type_send' => 'sended',
                     'type_message' => 'reply',
-                    'messages' => [['content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่', 'contentType' => 'text']],
+                    'messages' => [['content' => $this->forwardToStaffMessage(), 'contentType' => 'text']],
                     'customer' => $customer,
                     'ac_id' => $new_ac['id'],
                     'platform_access_token' => $platformAccessToken,
@@ -103,7 +105,7 @@ class SuccessCase
                     'send_to_cust' => true,
                     'type_send' => 'sended',
                     'type_message' => 'reply',
-                    'messages' => [['content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่', 'contentType' => 'text']],
+                    'messages' => [['content' => $this->forwardToStaffMessage(), 'contentType' => 'text']],
                     'customer' => $customer,
                     'ac_id' => $new_ac['id'],
                     'platform_access_token' => $platformAccessToken,
@@ -150,7 +152,7 @@ class SuccessCase
                     'type_message' => 'reply',
                     'messages' => [
                         [
-                            'content' => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                            'content' => $this->forwardToStaffMessage(),
                             'contentType' => 'text'
                         ]
                     ],

@@ -11,11 +11,14 @@ use App\Models\PlatformAccessTokens;
 use App\Models\Rates;
 use App\Models\User;
 use App\Services\PusherService;
+use App\Services\webhooks_new\Concerns\BusinessHoursMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class FilterCase
 {
+    use BusinessHoursMessage;
+
     protected $MESSAGE;
     protected $CUSTOMER;
     protected $PLATFORM_ACCESS_TOKEN;
@@ -383,7 +386,7 @@ class FilterCase
                             'type_send'    => 'menu_sended',
                             'type_message' => 'reply',
                             'messages' => [[
-                                'content'     => 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่',
+                                'content'     => $this->forwardToStaffMessage(),
                                 'contentType' => 'text',
                             ]],
                             'customer'             => $customer,
