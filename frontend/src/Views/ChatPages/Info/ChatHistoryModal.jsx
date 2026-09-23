@@ -49,15 +49,16 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             {messages.map((m) => {
                                 const isImage = m.contentType === 'image';
+                                const isCustomer = !!m.sender?.custId;
                                 return (
                                     <Box
                                         key={m.id ?? m.created_at}
                                         sx={{
-                                            display: 'flex', flexDirection: 'column', gap: 0.25, p: 1,
-                                            borderRadius: 'sm', bgcolor: 'background.level1',
+                                            display: 'flex', flexDirection: 'column', gap: 0.25,
+                                            alignItems: isCustomer ? 'flex-start' : 'flex-end',
                                         }}
                                     >
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', flexDirection: isCustomer ? 'row' : 'row-reverse', gap: 1, maxWidth: '80%' }}>
                                             <Typography level="body-xs" sx={{ fontWeight: 600, color: 'text.tertiary' }}>
                                                 {senderLabel(m.sender)}
                                             </Typography>
@@ -65,17 +66,26 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                                                 {m.created_at}
                                             </Typography>
                                         </Box>
-                                        {isImage ? (
-                                            <img
-                                                src={m.content}
-                                                alt="chat"
-                                                style={{ maxWidth: 160, maxHeight: 120, borderRadius: 4, display: 'block' }}
-                                            />
-                                        ) : (
-                                            <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                                                {m.content}
-                                            </Typography>
-                                        )}
+                                        <Box
+                                            sx={{
+                                                p: 1, borderRadius: 'sm', maxWidth: '80%',
+                                                bgcolor: isCustomer ? 'background.level1' : 'primary.softBg',
+                                                borderTopLeftRadius: isCustomer ? 2 : undefined,
+                                                borderTopRightRadius: isCustomer ? undefined : 2,
+                                            }}
+                                        >
+                                            {isImage ? (
+                                                <img
+                                                    src={m.content}
+                                                    alt="chat"
+                                                    style={{ maxWidth: 160, maxHeight: 120, borderRadius: 4, display: 'block' }}
+                                                />
+                                            ) : (
+                                                <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                                    {m.content}
+                                                </Typography>
+                                            )}
+                                        </Box>
                                     </Box>
                                 );
                             })}

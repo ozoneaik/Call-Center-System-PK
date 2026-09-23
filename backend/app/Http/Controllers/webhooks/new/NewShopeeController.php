@@ -568,6 +568,84 @@ class NewShopeeController extends Controller
         return $json['response'] ?? [];
     }
 
+    /**
+     * เรียก Shopee v2.sellerchat.get_conversation_list (เรียงจากข้อความล่าสุดของร้านไปเก่าสุด)
+     * ใช้เป็น fallback ตอนที่ customers.shopee_conversation_id ยังว่าง แต่มี buyerId (to_id ฝั่ง Shopee) แล้ว
+     */
+    private function getConversationList(PlatformAccessTokens $platform, ?string $nextTimestampNano = null, int $pageSize = 60): array
+    {
+        $pt = $platform->toArray();
+        foreach (['shopee_partner_id', 'shopee_partner_key', 'shopee_shop_id'] as $k) {
+            if (empty($pt[$k])) throw new \Exception("Shopee credentials ขาด: {$k}");
+        }
+
+        $host        = 'https://partner.shopeemobile.com';
+        $path        = '/api/v2/sellerchat/get_conversation_list';
+        $accessToken = self::getValidAccessToken($pt);
+        $partnerId   = (int) $pt['shopee_partner_id'];
+        $partnerKey  = (string) $pt['shopee_partner_key'];
+        $shopId      = (int) $pt['shopee_shop_id'];
+        $timestamp   = time();
+
+        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+        $query = [
+            'partner_id'   => $partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'shop_id'      => $shopId,
+            'access_token' => $accessToken,
+            'direction'    => 'older',
+            'type'         => 'all',
+            'page_size'    => $pageSize,
+        ];
+        if (!empty($nextTimestampNano)) {
+            $query['next_timestamp_nano'] = $nextTimestampNano;
+        }
+
+        $resp = Http::get($host . $path, $query);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            Log::channel('webhook_shopee_new')->error('Shopee get_conversation_list error', [
+                'query' => array_diff_key($query, ['access_token' => '', 'sign' => '']),
+                'resp'  => $json,
+            ]);
+            throw new \Exception('Shopee get_conversation_list error: ' . json_encode($json));
+        }
+
+        return $json['response'] ?? [];
+    }
+
+    /**
+     * ไล่หน้า get_conversation_list ทีละหน้า (เก่าลงเรื่อยๆ) เพื่อหา conversation_id ที่ to_id ตรงกับ buyerId
+     * ใช้เมื่อยังไม่เคยมี shopee_conversation_id บันทึกไว้ (ลูกค้าที่เคยคุยมาก่อนระบบเริ่มเก็บ conversation_id)
+     */
+    private function findConversationIdByBuyerId(PlatformAccessTokens $platform, int $buyerId, int $maxPages = 20): ?string
+    {
+        $nextTimestampNano = null;
+
+        for ($page = 0; $page < $maxPages; $page++) {
+            $response = $this->getConversationList($platform, $nextTimestampNano, 60);
+            $conversations = $response['conversations'] ?? [];
+
+            foreach ($conversations as $conv) {
+                if ((int) ($conv['to_id'] ?? 0) === $buyerId) {
+                    return (string) $conv['conversation_id'];
+                }
+            }
+
+            $more = $response['page_result']['more'] ?? false;
+            $nextTimestampNano = $response['page_result']['next_cursor']['next_message_time_nano'] ?? null;
+
+            if (!$more || empty($nextTimestampNano)) {
+                break;
+            }
+        }
+
+        return null;
+    }
+
     private function format_message(array $message_req, $platform)
     {
         $msg_formatted = [
@@ -1789,10 +1867,39 @@ class NewShopeeController extends Controller
         }
 
         if (empty($customer->shopee_conversation_id)) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'ยังไม่มีข้อมูล conversation_id ของ Shopee สำหรับลูกค้ารายนี้ ระบบจะบันทึกให้อัตโนมัติเมื่อมีข้อความใหม่เข้ามาจากลูกค้า',
-            ], 422);
+            if (empty($customer->buyerId)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'ยังไม่มีข้อมูล conversation_id ของ Shopee สำหรับลูกค้ารายนี้ ระบบจะบันทึกให้อัตโนมัติเมื่อมีข้อความใหม่เข้ามาจากลูกค้า',
+                ], 422);
+            }
+
+            try {
+                $foundConversationId = $this->findConversationIdByBuyerId($platform, (int) $customer->buyerId);
+            } catch (\Throwable $e) {
+                Log::channel('webhook_shopee_new')->error('findConversationIdByBuyerId error', [
+                    'custId'  => $custId,
+                    'buyerId' => $customer->buyerId,
+                    'error'   => $e->getMessage(),
+                ]);
+                $foundConversationId = null;
+            }
+
+            if (empty($foundConversationId)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'ยังไม่มีข้อมูล conversation_id ของ Shopee สำหรับลูกค้ารายนี้ ระบบจะบันทึกให้อัตโนมัติเมื่อมีข้อความใหม่เข้ามาจากลูกค้า',
+                ], 422);
+            }
+
+            $customer->update(['shopee_conversation_id' => $foundConversationId]);
+            $customer->refresh();
+
+            Log::channel('webhook_shopee_new')->info('📌 ค้นหา conversation_id ย้อนหลังจาก buyerId สำเร็จ', [
+                'custId'          => $custId,
+                'buyerId'         => $customer->buyerId,
+                'conversation_id' => $foundConversationId,
+            ]);
         }
 
         Log::channel('webhook_shopee_new')->info('📌 กดดึงประวัติแชท Shopee ย้อนหลังด้วยตนเอง', [
