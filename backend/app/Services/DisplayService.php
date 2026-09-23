@@ -25,6 +25,7 @@ class DisplayService
 
             foreach ($data as $key => $value) {
                 $latest_message = ChatHistory::query()->select('content','sender', 'contentType', 'created_at', 'is_read')->where('custId', $value->custId)
+                    ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc')
                     ->first();
                 $value->latest_message = $latest_message;
@@ -70,6 +71,7 @@ class DisplayService
 
             foreach ($data as $key => $value) {
                 $latest_message = ChatHistory::query()->select('content', 'contentType', 'created_at', 'is_read')->where('custId', $value->custId)
+                    ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc')
                     ->first();
                 $value->latest_message = $latest_message;
@@ -107,10 +109,14 @@ class DisplayService
     public function selectMessage($custId)
     {
         // ดึง 200 รายการล่าสุด
+        // เรียงตาม created_at ไม่ใช่ id เพราะข้อความที่ sync ประวัติย้อนหลังจาก Shopee (syncConversationHistory)
+        // ถูก insert เข้ามาทีหลัง (id สูงกว่า) แต่ created_at เป็นวันที่จริงในอดีต ถ้าเรียงตาม id
+        // ข้อความเก่าที่เพิ่ง sync เข้ามาจะไปโผล่ท้ายสุดทั้งที่จริงๆเกิดก่อน
         $chatHistory = ChatHistory::query()->where('custId', $custId)
+            ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
             ->take(200)->get()
-            ->sortBy('id')->values();
+            ->sortBy([['created_at', 'asc'], ['id', 'asc']])->values();
 
         // แปลง sender จาก JSON string เป็น array
         $chatHistory = $chatHistory->map(function ($chat) {
