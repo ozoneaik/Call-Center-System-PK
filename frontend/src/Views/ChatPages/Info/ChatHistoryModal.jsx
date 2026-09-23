@@ -1,6 +1,7 @@
 import { Box, Modal, ModalDialog, ModalClose, Divider, CircularProgress } from "@mui/joy";
 import Typography from "@mui/joy/Typography";
 import HistoryIcon from "@mui/icons-material/History";
+import { convertFullDate } from "../../../Components/Options.jsx";
 
 // ป้ายชื่อผู้พูดต่อบรรทัด — ลูกค้า (sender มี custId), แอดมิน/พนักงาน (sender มี empCode),
 // หรือ Shopee เอง เช่น "Shopee AI ผู้ช่วยตอบแชท"/"Shopee Chatbot" (sender มีแค่ name)
@@ -63,7 +64,7 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                                                 {senderLabel(m.sender)}
                                             </Typography>
                                             <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-                                                {m.created_at}
+                                                {convertFullDate(m.created_at)}
                                             </Typography>
                                         </Box>
                                         <Box
