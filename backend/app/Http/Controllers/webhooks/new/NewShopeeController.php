@@ -491,10 +491,22 @@ class NewShopeeController extends Controller
 
                 $isFromCustomer = $buyerId > 0 && (int)($m['from_id'] ?? 0) === $buyerId;
                 $status         = $m['status'] ?? null;
+                $rawContent     = $m['content'] ?? [];
+
+                // Shopee ห่อข้อความที่ผ่าน "AI ผู้ช่วยตอบแชท" (feature แปลภาษา/AI ใหม่) ด้วย field พวกนี้เสมอ
+                // ไม่ว่า message_type จะเป็นอะไร (เช่น content เป็น {"text":..,"translated_text":{...},
+                // "item_cards":[],"inline_components":[]}) ต่างจากข้อความที่แอดมินพิมพ์ตอบเองซึ่งมีแค่ text เปล่าๆ
+                // ใช้เป็นสัญญาณเสริมจากตัว message_type เผื่อเจอ type ใหม่ๆที่ยังไม่รู้จัก
+                $looksLikeShopeeAiContent = is_array($rawContent) && (
+                    array_key_exists('translated_text', $rawContent)
+                    || array_key_exists('item_cards', $rawContent)
+                    || array_key_exists('item_cards_json', $rawContent)
+                    || array_key_exists('inline_components', $rawContent)
+                );
 
                 if ($isFromCustomer) {
                     $senderJson = json_encode($customer);
-                } elseif (in_array($messageType, $shopeeBotMessageTypes, true)) {
+                } elseif (in_array($messageType, $shopeeBotMessageTypes, true) || $looksLikeShopeeAiContent) {
                     // ข้อความที่มีโครงสร้างเฉพาะของ Chatbot/Message Assistant ของ Shopee (FAQ, ตัวเลือก, การ์ดเปิดบทสนทนา ฯลฯ)
                     $senderJson = json_encode(['name' => 'Shopee AI ผู้ช่วยตอบแชท']);
                 } elseif (in_array($status, ['auto_reply', 'offwork_autoreply'], true)) {
@@ -1007,8 +1019,16 @@ class NewShopeeController extends Controller
                     break;
                 }
             default:
-                $msg_formatted['content']     = json_encode($ct, JSON_UNESCAPED_UNICODE);
-                $msg_formatted['contentType'] = 'text';
+                // message_type ที่ยังไม่รู้จัก (เช่น type ใหม่ของ Shopee AI ผู้ช่วยตอบแชท) ส่วนใหญ่ยังมี content.text
+                // เป็นข้อความจริงอยู่ดี (มี field เสริมอย่าง translated_text/item_cards/inline_components พ่วงมาด้วย)
+                // ให้ดึง text ออกมาก่อน ไม่งั้นจะโชว์ raw JSON ทั้งก้อนให้แอดมินเห็นตรงๆ
+                if (is_array($ct) && array_key_exists('text', $ct)) {
+                    $msg_formatted['content']     = $ct['text'] ?? '';
+                    $msg_formatted['contentType'] = 'text';
+                } else {
+                    $msg_formatted['content']     = json_encode($ct, JSON_UNESCAPED_UNICODE);
+                    $msg_formatted['contentType'] = 'text';
+                }
                 break;
         }
 
