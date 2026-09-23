@@ -5,6 +5,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import { Notes } from "./Notes.jsx";
 import { Feedback } from "./Feedback.jsx";
 import AIPanel from "./AIPanel.jsx";
+import ChatHistoryModal from "./ChatHistoryModal.jsx";
 import axiosClient from "../../../Axios.js";
 import { sendChatOcAnyApi } from "../../../Api/ChatOcAny.js";
 import { getAiLiveSuggestionsHistoryApi } from "../../../Api/AiAssistant.js";
@@ -41,6 +42,9 @@ const Info = forwardRef(function Info(props, ref) {
     const [isLoadingOrders, setIsLoadingOrders] = useState(false);
     const [ordersPlatform, setOrdersPlatform] = useState('');
     const [isSyncingHistory, setIsSyncingHistory] = useState(false);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [historyMessages, setHistoryMessages] = useState([]);
+    const [historySummary, setHistorySummary] = useState('');
 
     // ส่วนที่กำลังเปิดใน Bar เมนูขวามือ: 'ai' | 'notes' | 'feedback' | 'lazadaOrders' | 'shopeeOrders' | null
     const [openSection, setOpenSection] = useState(null);
@@ -243,15 +247,15 @@ const Info = forwardRef(function Info(props, ref) {
     };
 
     // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee — ดึงทุกข้อความที่ลูกค้าเคยคุยไว้ (รวมที่คุยกับ AI ผู้ช่วยตอบแชท
-    // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วโหลดข้อความห้องนี้ใหม่ให้เห็นทันที
+    // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วแสดงผลใน modal แยกต่างหาก
+    // (ไม่ไปรวม/รีเฟรชในหน้าแชทหลัก ตามที่ตกลง)
     const syncShopeeChatHistory = async () => {
         setIsSyncingHistory(true);
         try {
             const res = await axiosClient.get(`/webhook-new/shopee/sync-chat-history/${sender?.custId}`);
-            alert(res.data?.message || 'ดึงประวัติแชทสำเร็จ');
-            if (res.data?.imported > 0) {
-                await props.refreshMessages?.();
-            }
+            setHistoryMessages(res.data?.messages || []);
+            setHistorySummary(res.data?.message || '');
+            setHistoryModalOpen(true);
         } catch (err) {
             console.error("ดึงประวัติแชท Shopee ไม่สำเร็จ", err);
             alert(err.response?.data?.message || 'ดึงประวัติแชทไม่สำเร็จ');
@@ -478,6 +482,13 @@ const Info = forwardRef(function Info(props, ref) {
                     </Box>
                 </Sheet>
             )}
+
+            <ChatHistoryModal
+                open={historyModalOpen}
+                onClose={() => setHistoryModalOpen(false)}
+                messages={historyMessages}
+                summary={historySummary}
+            />
         </>
     );
 });

@@ -47,29 +47,26 @@ export default function MessagePane() {
     const [disable, setDisable] = useState(true);
     const [loading, setLoading] = useState(true);
 
-    // แยกออกมานอก useEffect เพื่อให้เรียกซ้ำได้ตอนกดปุ่ม "ดึงประวัติแชท Shopee" ใน Info
-    // (โหลดข้อความของห้องนี้ใหม่ทั้งหมด ให้ข้อความที่เพิ่ง sync เข้ามาแสดงทันทีโดยไม่ต้องรีเฟรชหน้า)
-    const fetchData = async () => {
-        const { data, status } = await selectMessageApi(rateId, activeId, custId, 'S');
-        if (status === 200) {
-            setMessages(data.list);
-            setRoomSelect(data.room);
-            setSender(data.sender);
-            document.title = 'สนทนากับ ' + data.sender.custName;
-            setStarList(data.starList);
-            setNotes(data.notes);
-            setTags(data.tags)
-
-        } else {
-            AlertDiaLog({
-                title: data.message,
-                text: data.detail,
-                onPassed: (confirm) => confirm && window.close()
-            });
-        }
-    }
-
     useEffect(() => {
+        const fetchData = async () => {
+            const { data, status } = await selectMessageApi(rateId, activeId, custId, 'S');
+            if (status === 200) {
+                setMessages(data.list);
+                setRoomSelect(data.room);
+                setSender(data.sender);
+                document.title = 'สนทนากับ ' + data.sender.custName;
+                setStarList(data.starList);
+                setNotes(data.notes);
+                setTags(data.tags)
+
+            } else {
+                AlertDiaLog({
+                    title: data.message,
+                    text: data.detail,
+                    onPassed: (confirm) => confirm && window.close()
+                });
+            }
+        }
         fetchData().finally(() => {
             setDisable(false);
             setLoading(false);
@@ -257,7 +254,6 @@ export default function MessagePane() {
                     ref={infoRef}
                     {...{ sender, starList, notes, check, setMsg, activeId, latestCustomerMessage }}
                     onLastGeneratedChange={setLastGeneratedKey}
-                    refreshMessages={fetchData}
                 />
             </Sheet>
 

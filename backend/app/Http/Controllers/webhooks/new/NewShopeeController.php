@@ -7,6 +7,7 @@ use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
+use App\Services\DisplayService;
 use App\Services\PusherService;
 use App\Services\webhooks_new\FilterCase;
 use Carbon\Carbon;
@@ -414,6 +415,28 @@ class NewShopeeController extends Controller
                 return ['total_fetched' => 0, 'imported' => 0, 'error' => null];
             }
 
+            // "bundle_message" ไม่มีเนื้อหาจริงในตัวมันเอง มีแค่ content.messages เป็น list ของ message_id
+            // ที่ถูกรวบไว้ (เช่น ข้อความที่คุยผ่าน AI ผู้ช่วยตอบแชทก่อนโอนสายมาแอดมิน) ต้องยิง get_message
+            // ซ้ำด้วย message_id_list เพื่อดึงเนื้อหาจริงของข้อความเหล่านั้นมาด้วย ไม่งั้นจะหายไปเงียบๆ
+            $bundledIds = [];
+            foreach ($allMessages as $m) {
+                if (($m['message_type'] ?? null) === 'bundle_message') {
+                    foreach (($m['content']['messages'] ?? []) as $bid) {
+                        $bundledIds[(string) $bid] = true;
+                    }
+                }
+            }
+            if (!empty($bundledIds)) {
+                $alreadyFetched = array_column($allMessages, 'message_id');
+                $idsToFetch     = array_diff(array_keys($bundledIds), $alreadyFetched);
+
+                foreach (array_chunk($idsToFetch, 50) as $chunk) {
+                    $bundleResp = $this->getSellerChatMessages($conversationId, $platform, null, 60, $chunk);
+                    $bundledMessages = $bundleResp['messages'] ?? [];
+                    $allMessages = array_merge($allMessages, $bundledMessages);
+                }
+            }
+
             // เรียงจากเก่าไปใหม่ก่อนบันทึก เพื่อให้ลำดับบทสนทนาถูกต้อง
             usort($allMessages, fn($a, $b) => ($a['created_timestamp'] ?? 0) <=> ($b['created_timestamp'] ?? 0));
 
@@ -485,7 +508,7 @@ class NewShopeeController extends Controller
         }
     }
 
-    private function getSellerChatMessages(string $conversationId, PlatformAccessTokens $platform, ?string $offset = null, int $pageSize = 60): array
+    private function getSellerChatMessages(string $conversationId, PlatformAccessTokens $platform, ?string $offset = null, int $pageSize = 60, array $messageIdList = []): array
     {
         $pt = $platform->toArray();
         foreach (['shopee_partner_id', 'shopee_partner_key', 'shopee_shop_id'] as $k) {
@@ -513,6 +536,10 @@ class NewShopeeController extends Controller
         ];
         if (!empty($offset)) {
             $query['offset'] = $offset;
+        }
+        if (!empty($messageIdList)) {
+            // ตามแบบ order_sn_list ของ get_order_detail ในไฟล์นี้ — ส่งเป็น comma-separated string
+            $query['message_id_list'] = implode(',', $messageIdList);
         }
 
         $resp = Http::get($host . $path, $query);
@@ -1770,11 +1797,14 @@ class NewShopeeController extends Controller
             ], 500);
         }
 
+        $chatHistory = (new DisplayService())->selectMessage($custId);
+
         return response()->json([
             'status'        => true,
             'message'       => "ดึงประวัติแชทสำเร็จ พบทั้งหมด {$result['total_fetched']} ข้อความ นำเข้าใหม่ {$result['imported']} ข้อความ",
             'total_fetched' => $result['total_fetched'],
             'imported'      => $result['imported'],
+            'messages'      => $chatHistory,
         ]);
     }
 
