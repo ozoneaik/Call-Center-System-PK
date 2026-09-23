@@ -20,6 +20,7 @@ class Customers extends Model
         'description',
         'avatar',
         'platformRef',
-        'buyerId'
+        'buyerId',
+        'history_synced_at',
     ];
 }

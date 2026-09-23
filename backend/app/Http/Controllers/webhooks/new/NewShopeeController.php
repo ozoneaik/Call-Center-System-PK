@@ -153,7 +153,27 @@ class NewShopeeController extends Controller
                 $fromId = $c['from_id'] ?? null;
                 $fromName = $c['from_user_name'] ?? null;
 
-                $allowedTypes = ['text', 'image', 'video', 'item', 'item_list', 'order', 'sticker'];
+                $allowedTypes = [
+                    'text',
+                    'image',
+                    'video',
+                    'item',
+                    'item_list',
+                    'order',
+                    'sticker',
+                    // ข้อความที่มาจากตัว AI Chatbot ของ Shopee เอง (ก่อนโอนสายมาที่แอดมิน)
+                    'notification',
+                    'faq_question',
+                    'faq_liveagent',
+                    'selected_option',
+                    'option_pack',
+                    'new_faq',
+                    'faq',
+                    'faq_category_choice',
+                    'faq_bot_request_text',
+                    'faq_bot_response',
+                    'faq_feedback_prompt',
+                ];
                 if ($messageType === 'bundle_message') return response()->json(['message' => 'skip'], 200);
 
                 if (in_array($messageType, $allowedTypes, true)) {
@@ -305,6 +325,10 @@ class NewShopeeController extends Controller
                     'buyerId' => $buyerId,
                 ]);
             }
+            if (empty($customer->history_synced_at) && !empty($conversationId)) {
+                $this->syncConversationHistory($conversationId, $customer, $shopeePlatform);
+                $customer->refresh();
+            }
             return [
                 'platform' => $shopeePlatform,
                 'customer' => $customer,
@@ -319,10 +343,146 @@ class NewShopeeController extends Controller
             'platformRef'  => $shopeePlatform->id,
             'buyerId'      => $buyerId,
         ]);
+        if (!empty($conversationId)) {
+            $this->syncConversationHistory($conversationId, $newCustomer, $shopeePlatform);
+            $newCustomer->refresh();
+        }
         return [
             'platform' => $shopeePlatform,
             'customer' => $newCustomer,
         ];
+    }
+
+    /**
+     * ดึงประวัติแชททั้งหมดของ conversation จาก Shopee (v2.sellerchat.get_message) มาเก็บลง ChatHistory
+     * ทำครั้งเดียวต่อลูกค้า (คุมด้วย customers.history_synced_at) เพื่อให้แอดมิน/AI Assistant เห็นบทสนทนา
+     * ที่ลูกค้าเคยคุยกับ Chatbot ของ Shopee มาก่อนที่ระบบเราจะเริ่มรับ webhook
+     */
+    private function syncConversationHistory(string $conversationId, Customers $customer, PlatformAccessTokens $platform): void
+    {
+        try {
+            $allMessages = [];
+            $offset      = null;
+            $maxPages    = 20; // กันดึงย้อนไม่รู้จบ (สูงสุด ~1200 ข้อความ)
+
+            for ($i = 0; $i < $maxPages; $i++) {
+                $resp     = $this->getSellerChatMessages($conversationId, $platform, $offset, 60);
+                $messages = $resp['messages'] ?? [];
+                if (empty($messages)) break;
+
+                $allMessages = array_merge($allMessages, $messages);
+
+                $nextOffset = $resp['page_result']['next_offset'] ?? null;
+                if (empty($nextOffset) || $nextOffset === $offset) break;
+                $offset = $nextOffset;
+            }
+
+            if (empty($allMessages)) {
+                $customer->update(['history_synced_at' => now()]);
+                return;
+            }
+
+            // เรียงจากเก่าไปใหม่ก่อนบันทึก เพื่อให้ลำดับบทสนทนาถูกต้อง
+            usort($allMessages, fn($a, $b) => ($a['created_timestamp'] ?? 0) <=> ($b['created_timestamp'] ?? 0));
+
+            $buyerId  = (int) $customer->buyerId;
+            $imported = 0;
+
+            foreach ($allMessages as $m) {
+                $messageId = $m['message_id'] ?? null;
+                if (!$messageId) continue;
+                if (ChatHistory::where('line_message_id', $messageId)->exists()) continue;
+
+                $messageType = $m['message_type'] ?? null;
+                if ($messageType === 'bundle_message') continue;
+
+                $message_req = [
+                    'message_id'   => $messageId,
+                    'message_type' => $messageType,
+                    'content'      => $m['content'] ?? [],
+                ];
+                $formatted = $this->format_message($message_req, $platform);
+                if ($formatted['content'] === null || $formatted['content'] === '') continue;
+
+                $isFromCustomer = $buyerId > 0 && (int)($m['from_id'] ?? 0) === $buyerId;
+
+                $store_chat                  = new ChatHistory();
+                $store_chat->custId          = $customer->custId;
+                $store_chat->content         = $formatted['content'];
+                $store_chat->contentType     = $formatted['contentType'];
+                $store_chat->sender          = $isFromCustomer
+                    ? json_encode($customer)
+                    : json_encode(['name' => 'Shopee Chatbot']);
+                $store_chat->line_message_id = (string) $messageId;
+                if (!empty($m['created_timestamp'])) {
+                    $createdAt              = Carbon::createFromTimestamp($m['created_timestamp']);
+                    $store_chat->created_at = $createdAt;
+                    $store_chat->updated_at = $createdAt;
+                }
+                $store_chat->save();
+                $imported++;
+            }
+
+            $customer->update(['history_synced_at' => now()]);
+
+            Log::channel('webhook_shopee_new')->info("🕘 Sync ประวัติแชท Shopee สำเร็จ", [
+                'conversation_id' => $conversationId,
+                'custId'          => $customer->custId,
+                'total_fetched'   => count($allMessages),
+                'imported'        => $imported,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webhook_shopee_new')->error('Shopee syncConversationHistory error ❌', [
+                'conversation_id' => $conversationId,
+                'error'           => $e->getMessage(),
+                'file'            => $e->getFile(),
+                'line'            => $e->getLine(),
+            ]);
+        }
+    }
+
+    private function getSellerChatMessages(string $conversationId, PlatformAccessTokens $platform, ?string $offset = null, int $pageSize = 60): array
+    {
+        $pt = $platform->toArray();
+        foreach (['shopee_partner_id', 'shopee_partner_key', 'shopee_shop_id'] as $k) {
+            if (empty($pt[$k])) throw new \Exception("Shopee credentials ขาด: {$k}");
+        }
+
+        $host        = 'https://partner.shopeemobile.com';
+        $path        = '/api/v2/sellerchat/get_message';
+        $accessToken = self::getValidAccessToken($pt);
+        $partnerId   = (int) $pt['shopee_partner_id'];
+        $partnerKey  = (string) $pt['shopee_partner_key'];
+        $shopId      = (int) $pt['shopee_shop_id'];
+        $timestamp   = time();
+
+        $sign = self::makeShopeeSign($path, $timestamp, $accessToken, $shopId, $partnerId, $partnerKey);
+
+        $query = [
+            'partner_id'      => $partnerId,
+            'timestamp'       => $timestamp,
+            'sign'            => $sign,
+            'shop_id'         => $shopId,
+            'access_token'    => $accessToken,
+            'conversation_id' => $conversationId,
+            'page_size'       => $pageSize,
+        ];
+        if (!empty($offset)) {
+            $query['offset'] = $offset;
+        }
+
+        $resp = Http::get($host . $path, $query);
+        $json = $resp->json();
+
+        if (!$resp->successful() || !empty($json['error'])) {
+            Log::channel('webhook_shopee_new')->error('Shopee get_message error', [
+                'conversation_id' => $conversationId,
+                'resp'            => $json,
+            ]);
+            throw new \Exception('Shopee get_message error: ' . json_encode($json));
+        }
+
+        return $json['response'] ?? [];
     }
 
     private function format_message(array $message_req, $platform)
@@ -339,7 +499,47 @@ class NewShopeeController extends Controller
 
         switch ($type) {
             case 'text':
+            // ข้อความจากตัว AI Chatbot / Message Assistant ของ Shopee ส่วนใหญ่มี content.text มาให้เหมือน text ปกติ
+            case 'faq_question':
+            case 'faq_liveagent':
+            case 'selected_option':
+            case 'faq_category_choice':
+            case 'faq_bot_request_text':
+            case 'unknown':
                 $msg_formatted['content']     = $ct['text'] ?? '';
+                $msg_formatted['contentType'] = 'text';
+                break;
+            case 'notification':
+                $msg_formatted['content']     = $ct['notification_for_receiver'] ?? ($ct['notification_for_sender'] ?? '');
+                $msg_formatted['contentType'] = 'text';
+                break;
+            case 'option_pack':
+                // ตัวเลือกที่ Chatbot ยื่นให้ลูกค้ากด (option_pack) เก็บเป็น text แบบรายการตัวเลือก
+                $optTitle = $ct['title'] ?? '';
+                $optLines = [];
+                foreach (($ct['options'] ?? []) as $opt) {
+                    if (!empty($opt['text'])) $optLines[] = '- ' . $opt['text'];
+                }
+                $msg_formatted['content']     = trim($optTitle . "\n" . implode("\n", $optLines));
+                $msg_formatted['contentType'] = 'text';
+                break;
+            case 'new_faq':
+            case 'faq':
+                // การ์ดเปิดบทสนทนาของ Chatbot พร้อมรายการคำถามยอดฮิต (intents)
+                $opening = $ct['opening'] ?? '';
+                $intentLines = [];
+                foreach (($ct['intents'] ?? []) as $intent) {
+                    if (!empty($intent['text'])) $intentLines[] = '- ' . $intent['text'];
+                }
+                $msg_formatted['content']     = trim($opening . "\n" . implode("\n", $intentLines));
+                $msg_formatted['contentType'] = 'text';
+                break;
+            case 'faq_bot_response':
+                $msg_formatted['content']     = $ct['preview_text'] ?? '';
+                $msg_formatted['contentType'] = 'text';
+                break;
+            case 'faq_feedback_prompt':
+                $msg_formatted['content']     = '[ระบบ Chatbot ขอความคิดเห็นจากลูกค้า]';
                 $msg_formatted['contentType'] = 'text';
                 break;
             case 'image':
