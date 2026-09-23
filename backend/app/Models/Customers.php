@@ -22,5 +22,6 @@ class Customers extends Model
         'platformRef',
         'buyerId',
         'history_synced_at',
+        'shopee_conversation_id',
     ];
 }

@@ -21,6 +21,7 @@ Route::prefix('webhook-new')->group(function () {
     // สำหรับ Line
     Route::prefix('line')->group(function () {
         Route::post('/', [LineWebhookController::class, 'webhook']);
+        // Route::post('line-entry', [LineWebhookController::class, 'entryWebhook']);
     });
 
     // สำหรับ Facebook
@@ -46,6 +47,7 @@ Route::prefix('webhook-new')->group(function () {
         Route::post('/refresh', [PlatformTokenController::class, 'shopeeRefresh']);
 
         Route::get('/customer-orders/{custId}', [NewShopeeController::class, 'customerOrders']);
+        Route::get('/sync-chat-history/{custId}', [NewShopeeController::class, 'syncCustomerChatHistoryManual']);
         Route::post('/test-order', [NewShopeeController::class, 'testOrderDetail']);
         // Route::get('/test-order', [NewShopeeController::class, 'testOrderDetail']);
 
@@ -64,9 +66,11 @@ Route::prefix('webhook-new')->group(function () {
     Route::prefix('tiktok')->group(function () {
         // Route::post('/', [TikTokLiveController::class, 'webhooksLive']);
 
-        Route::post('/', [NewTikTokController::class, 'webhooks']);
-        Route::get('/shops', [NewTikTokController::class, 'getAuthorizedShops']);
-        Route::post('/shop-webhooks', [NewTikTokController::class, 'getShopWebhooks']);
+        // Route::post('/', [NewTikTokController::class, 'webhooks']);
+        // Route::get('/shops', [NewTikTokController::class, 'getAuthorizedShops']);
+        // Route::post('/shop-webhooks', [NewTikTokController::class, 'getShopWebhooks']);
+
+        // Route::post('/webhook', [NewTikTokController::class, 'handleWebhook']);
     });
 
     // สำหรับ Test

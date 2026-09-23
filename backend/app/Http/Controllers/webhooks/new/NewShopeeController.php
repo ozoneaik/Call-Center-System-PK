@@ -340,6 +340,9 @@ class NewShopeeController extends Controller
                     'buyerId' => $buyerId,
                 ]);
             }
+            if (!empty($conversationId) && $customer->shopee_conversation_id !== $conversationId) {
+                $customer->update(['shopee_conversation_id' => $conversationId]);
+            }
             if (empty($customer->history_synced_at) && !empty($conversationId)) {
                 $this->syncConversationHistory($conversationId, $customer, $shopeePlatform);
                 $customer->refresh();
@@ -351,12 +354,13 @@ class NewShopeeController extends Controller
         }
         $custName = $fromUserName ?: "Shopee-" . $custKey;
         $newCustomer = Customers::query()->create([
-            'custId'       => $custId,
-            'custName'     => $custName,
-            'description'  => "ติดต่อมาจาก Shopee " . $shopeePlatform->description,
-            'avatar'       => null,
-            'platformRef'  => $shopeePlatform->id,
-            'buyerId'      => $buyerId,
+            'custId'                  => $custId,
+            'custName'                => $custName,
+            'description'             => "ติดต่อมาจาก Shopee " . $shopeePlatform->description,
+            'avatar'                  => null,
+            'platformRef'             => $shopeePlatform->id,
+            'buyerId'                 => $buyerId,
+            'shopee_conversation_id'  => $conversationId ?: null,
         ]);
         if (!empty($conversationId)) {
             $this->syncConversationHistory($conversationId, $newCustomer, $shopeePlatform);
@@ -373,7 +377,7 @@ class NewShopeeController extends Controller
      * ทำครั้งเดียวต่อลูกค้า (คุมด้วย customers.history_synced_at) เพื่อให้แอดมิน/AI Assistant เห็นบทสนทนา
      * ที่ลูกค้าเคยคุยกับ Chatbot ของ Shopee มาก่อนที่ระบบเราจะเริ่มรับ webhook
      */
-    private function syncConversationHistory(string $conversationId, Customers $customer, PlatformAccessTokens $platform): void
+    private function syncConversationHistory(string $conversationId, Customers $customer, PlatformAccessTokens $platform): array
     {
         try {
             $allMessages = [];
@@ -407,7 +411,7 @@ class NewShopeeController extends Controller
 
             if (empty($allMessages)) {
                 $customer->update(['history_synced_at' => now()]);
-                return;
+                return ['total_fetched' => 0, 'imported' => 0, 'error' => null];
             }
 
             // เรียงจากเก่าไปใหม่ก่อนบันทึก เพื่อให้ลำดับบทสนทนาถูกต้อง
@@ -467,6 +471,8 @@ class NewShopeeController extends Controller
                 'total_fetched'   => count($allMessages),
                 'imported'        => $imported,
             ]);
+
+            return ['total_fetched' => count($allMessages), 'imported' => $imported, 'error' => null];
         } catch (\Throwable $e) {
             Log::channel('webhook_shopee_new')->error('Shopee syncConversationHistory error ❌', [
                 'conversation_id' => $conversationId,
@@ -474,6 +480,8 @@ class NewShopeeController extends Controller
                 'file'            => $e->getFile(),
                 'line'            => $e->getLine(),
             ]);
+
+            return ['total_fetched' => 0, 'imported' => 0, 'error' => $e->getMessage()];
         }
     }
 
@@ -1716,6 +1724,58 @@ class NewShopeeController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * ปุ่มกด "ดึงประวัติแชทย้อนหลัง" ของลูกค้ารายนี้ (ทุกประเภทข้อความ ทั้งฝั่งลูกค้าและ AI ผู้ช่วยตอบแชทของ Shopee)
+     * ใช้ conversation_id ที่ระบบบันทึกไว้จาก webhook ล่าสุด (customers.shopee_conversation_id)
+     * รองรับเฉพาะลูกค้าที่ทักมาจากแพลตฟอร์ม Shopee เท่านั้น
+     */
+    public function syncCustomerChatHistoryManual($custId)
+    {
+        $customer = Customers::where('custId', $custId)->first();
+        if (!$customer) {
+            return response()->json([
+                'status'  => false,
+                'message' => "ไม่พบลูกค้า custId {$custId}",
+            ], 404);
+        }
+
+        $platform = PlatformAccessTokens::find($customer->platformRef);
+        if (!$platform || $platform->platform !== 'shopee') {
+            return response()->json([
+                'status'  => false,
+                'message' => 'ลูกค้ารายนี้ไม่ได้ทักมาจากแพลตฟอร์ม Shopee',
+            ], 422);
+        }
+
+        if (empty($customer->shopee_conversation_id)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'ยังไม่มีข้อมูล conversation_id ของ Shopee สำหรับลูกค้ารายนี้ ระบบจะบันทึกให้อัตโนมัติเมื่อมีข้อความใหม่เข้ามาจากลูกค้า',
+            ], 422);
+        }
+
+        Log::channel('webhook_shopee_new')->info('📌 กดดึงประวัติแชท Shopee ย้อนหลังด้วยตนเอง', [
+            'custId'          => $custId,
+            'conversation_id' => $customer->shopee_conversation_id,
+        ]);
+
+        $result = $this->syncConversationHistory($customer->shopee_conversation_id, $customer, $platform);
+
+        if ($result['error']) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'ดึงประวัติแชทไม่สำเร็จ: ' . $result['error'],
+            ], 500);
+        }
+
+        return response()->json([
+            'status'        => true,
+            'message'       => "ดึงประวัติแชทสำเร็จ พบทั้งหมด {$result['total_fetched']} ข้อความ นำเข้าใหม่ {$result['imported']} ข้อความ",
+            'total_fetched' => $result['total_fetched'],
+            'imported'      => $result['imported'],
+        ]);
     }
 
     private function getRecentOrderSnList($platform, int $days = 90): array

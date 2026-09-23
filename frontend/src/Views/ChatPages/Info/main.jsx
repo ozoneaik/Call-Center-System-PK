@@ -12,6 +12,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import LocalMallIcon from "@mui/icons-material/LocalMall";
+import HistoryIcon from "@mui/icons-material/History";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -39,6 +40,7 @@ const Info = forwardRef(function Info(props, ref) {
     const [orders, setOrders] = useState([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(false);
     const [ordersPlatform, setOrdersPlatform] = useState('');
+    const [isSyncingHistory, setIsSyncingHistory] = useState(false);
 
     // ส่วนที่กำลังเปิดใน Bar เมนูขวามือ: 'ai' | 'notes' | 'feedback' | 'lazadaOrders' | 'shopeeOrders' | null
     const [openSection, setOpenSection] = useState(null);
@@ -240,6 +242,24 @@ const Info = forwardRef(function Info(props, ref) {
         }
     };
 
+    // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee — ดึงทุกข้อความที่ลูกค้าเคยคุยไว้ (รวมที่คุยกับ AI ผู้ช่วยตอบแชท
+    // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วโหลดข้อความห้องนี้ใหม่ให้เห็นทันที
+    const syncShopeeChatHistory = async () => {
+        setIsSyncingHistory(true);
+        try {
+            const res = await axiosClient.get(`/webhook-new/shopee/sync-chat-history/${sender?.custId}`);
+            alert(res.data?.message || 'ดึงประวัติแชทสำเร็จ');
+            if (res.data?.imported > 0) {
+                await props.refreshMessages?.();
+            }
+        } catch (err) {
+            console.error("ดึงประวัติแชท Shopee ไม่สำเร็จ", err);
+            alert(err.response?.data?.message || 'ดึงประวัติแชทไม่สำเร็จ');
+        } finally {
+            setIsSyncingHistory(false);
+        }
+    };
+
     const formatCurrency = (amount, currency = 'THB') => {
         const formatter = new Intl.NumberFormat('th-TH', {
             style: 'currency',
@@ -430,6 +450,21 @@ const Info = forwardRef(function Info(props, ref) {
                                 <LocalMallIcon fontSize="small" />
                             </IconButton>
                             <Typography sx={MessageStyle.Info.railLabel}>Shopee</Typography>
+                        </Box>
+                    )}
+
+                    {isShopeeCustomer && (
+                        <Box sx={MessageStyle.Info.railItem} onClick={syncShopeeChatHistory}>
+                            <IconButton
+                                size="sm"
+                                variant="plain"
+                                loading={isSyncingHistory}
+                                disabled={isSyncingHistory}
+                                sx={{ color: '#ff5722' }}
+                            >
+                                <HistoryIcon fontSize="small" />
+                            </IconButton>
+                            <Typography sx={MessageStyle.Info.railLabel}>ประวัติแชท</Typography>
                         </Box>
                     )}
 
