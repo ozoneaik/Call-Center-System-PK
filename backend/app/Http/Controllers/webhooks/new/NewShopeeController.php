@@ -392,10 +392,16 @@ class NewShopeeController extends Controller
 
                 // เจอข้อความที่เคย sync ไว้แล้วในหน้านี้ = ดึงมาซ้อนกับรอบก่อนแล้ว
                 // หยุดดึงหน้าถัดไป (เก่ากว่านี้) ทันที ไม่ต้องไล่ย้อนจนสุด maxPages ทุกรอบ
+                // เช็คทั้ง line_message_id (ข้อความขาเข้าที่เคย sync/webhook เก็บไว้) และ line_quote_token
+                // (ข้อความที่แอดมินตอบผ่านระบบเราเอง ผ่าน pushReplyMessage เก็บ message_id ของ Shopee ไว้ในฟิลด์นี้แทน)
                 $shouldStop = false;
                 foreach ($messages as $m) {
                     $msgId = $m['message_id'] ?? null;
-                    if ($msgId && ChatHistory::where('line_message_id', (string) $msgId)->exists()) {
+                    if (
+                        $msgId && ChatHistory::where('line_message_id', (string) $msgId)
+                            ->orWhere('line_quote_token', (string) $msgId)
+                            ->exists()
+                    ) {
                         $shouldStop = true;
                         break;
                     }
@@ -452,10 +458,25 @@ class NewShopeeController extends Controller
             $buyerId  = (int) $customer->buyerId;
             $imported = 0;
 
+            // message_type ที่ Shopee ใช้เฉพาะฝั่ง "AI ผู้ช่วยตอบแชท" (Message Assistant/Chatbot ของ Shopee เอง)
+            // ต่างจาก text/image/video/item/order/sticker ที่ทั้งลูกค้า, บอท, หรือแอดมินคนจริงก็ส่งได้เหมือนกัน
+            $shopeeBotMessageTypes = [
+                'faq_question', 'faq_liveagent', 'selected_option', 'faq_category_choice',
+                'faq_bot_request_text', 'unknown', 'notification', 'option_pack',
+                'new_faq', 'faq', 'faq_bot_response', 'faq_feedback_prompt',
+            ];
+
             foreach ($allMessages as $m) {
                 $messageId = $m['message_id'] ?? null;
                 if (!$messageId) continue;
-                if (ChatHistory::where('line_message_id', $messageId)->exists()) continue;
+                // ข้ามถ้าเคยบันทึกไว้แล้ว ไม่ว่าจะเป็นข้อความขาเข้า (line_message_id) หรือข้อความที่แอดมิน
+                // ตอบผ่านระบบเราเอง (Shopee เก็บ message_id ของฝั่งนั้นไว้ใน line_quote_token) —
+                // กันไม่ให้ข้อความของแอดมินที่ถูกบันทึกถูกต้องอยู่แล้ว ถูกดึงซ้ำมาติดป้ายผิดเป็นบอท/ระบบ
+                if (
+                    ChatHistory::where('line_message_id', $messageId)
+                        ->orWhere('line_quote_token', (string) $messageId)
+                        ->exists()
+                ) continue;
 
                 $messageType = $m['message_type'] ?? null;
                 if ($messageType === 'bundle_message') continue;
@@ -473,11 +494,16 @@ class NewShopeeController extends Controller
 
                 if ($isFromCustomer) {
                     $senderJson = json_encode($customer);
-                } elseif (in_array($status, ['auto_reply', 'offwork_autoreply'], true)) {
-                    // ข้อความที่ Shopee ติดป้าย "ข้อความจาก AI ผู้ช่วยตอบแชท" ในแอปฝั่งลูกค้า
-                    $senderJson = json_encode(['name' => 'Shopee System']);
-                } else {
+                } elseif (in_array($messageType, $shopeeBotMessageTypes, true)) {
+                    // ข้อความที่มีโครงสร้างเฉพาะของ Chatbot/Message Assistant ของ Shopee (FAQ, ตัวเลือก, การ์ดเปิดบทสนทนา ฯลฯ)
                     $senderJson = json_encode(['name' => 'Shopee AI ผู้ช่วยตอบแชท']);
+                } elseif (in_array($status, ['auto_reply', 'offwork_autoreply'], true)) {
+                    // ข้อความตอบกลับอัตโนมัติที่ Shopee ส่งให้เอง (เช่น ตอนร้านออฟไลน์/ยังไม่ได้ตอบ)
+                    $senderJson = json_encode(['name' => 'ข้อความตอบกลับอัตโนมัติ (Shopee)']);
+                } else {
+                    // ข้อความปกติ (text/image/...) ที่ไม่ใช่ลูกค้า ไม่ใช่บอท ไม่ใช่ auto-reply
+                    // และไม่เคยถูกระบบเราบันทึกไว้เลย = แอดมินพิมพ์ตอบผ่านแอป Shopee โดยตรง ไม่ผ่านระบบนี้
+                    $senderJson = json_encode(['name' => 'แอดมินตอบผ่าน Shopee โดยตรง']);
                 }
 
                 $store_chat                  = new ChatHistory();
