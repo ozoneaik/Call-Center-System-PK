@@ -160,6 +160,14 @@ export default function MessagePane() {
     };
 
     // กด "Generate AI (N ข้อความที่เลือก)" ใน popup แล้ว — ยิงจริงด้วย lines/imageUrl ที่แอดมินเลือกไว้
+    // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee (ดู Info/main.jsx) sync เสร็จแล้วส่งชุดข้อความล่าสุดกลับมาที่นี่
+    // ให้หน้าแชทหลักอัปเดตตามไปด้วยเลย ไม่ต้องรีเฟรชหน้าเองอีกที
+    const handleHistorySynced = (freshMessages) => {
+        if (Array.isArray(freshMessages)) {
+            setMessages(freshMessages);
+        }
+    };
+
     const handleConfirmGenerate = async (lines, imageUrl) => {
         const message = contextPickerMessage;
         if (!message) return;
@@ -257,6 +265,7 @@ export default function MessagePane() {
                     ref={infoRef}
                     {...{ sender, starList, notes, check, setMsg, activeId, latestCustomerMessage }}
                     onLastGeneratedChange={setLastGeneratedKey}
+                    onHistorySynced={handleHistorySynced}
                 />
             </Sheet>
 

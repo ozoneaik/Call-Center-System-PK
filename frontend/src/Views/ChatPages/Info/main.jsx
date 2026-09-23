@@ -33,7 +33,7 @@ const SECTION_TITLES = {
 const Info = forwardRef(function Info(props, ref) {
     // latestCustomerMessage ไม่ได้ใช้ auto-trigger แล้ว (ปิดไปแล้ว — generate เฉพาะกดปุ่มเท่านั้น) แต่ยังรับ
     // มาจาก props เผื่ออนาคตอยากเปิดกลับมาใช้ ไม่ต้องแก้ MessagePane/main.jsx ที่ยังส่งมาให้อยู่
-    const { sender, check, setMsg, activeId } = props;
+    const { sender, check, setMsg, activeId, onHistorySynced } = props;
     const [notes, setNotes] = useState([]);
     const [starList, setStarList] = useState([]);
     const [newNote, setNewNote] = useState("");
@@ -248,7 +248,7 @@ const Info = forwardRef(function Info(props, ref) {
 
     // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee — ดึงทุกข้อความที่ลูกค้าเคยคุยไว้ (รวมที่คุยกับ AI ผู้ช่วยตอบแชท
     // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วแสดงผลใน modal แยกต่างหาก
-    // (ไม่ไปรวม/รีเฟรชในหน้าแชทหลัก ตามที่ตกลง)
+    // พร้อมส่งชุดข้อความล่าสุดกลับไปให้หน้าแชทหลัก (onHistorySynced) รีเฟรชด้วยเลย ไม่ต้องกด F5 เอง
     const syncShopeeChatHistory = async () => {
         setIsSyncingHistory(true);
         try {
@@ -256,6 +256,7 @@ const Info = forwardRef(function Info(props, ref) {
             setHistoryMessages(res.data?.messages || []);
             setHistorySummary(res.data?.message || '');
             setHistoryModalOpen(true);
+            onHistorySynced?.(res.data?.messages || []);
         } catch (err) {
             console.error("ดึงประวัติแชท Shopee ไม่สำเร็จ", err);
             alert(err.response?.data?.message || 'ดึงประวัติแชทไม่สำเร็จ');
