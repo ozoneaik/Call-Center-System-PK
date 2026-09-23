@@ -152,9 +152,6 @@ class NewShopeeController extends Controller
                 $conversationId = $c['conversation_id'] ?? null;
                 $fromId = $c['from_id'] ?? null;
                 $fromName = $c['from_user_name'] ?? null;
-                $toId = $c['to_id'] ?? null;
-                $fromShopId = $c['from_shop_id'] ?? null;
-                $msgStatus = $c['status'] ?? null;
 
                 $allowedTypes = [
                     'text',
@@ -179,15 +176,6 @@ class NewShopeeController extends Controller
                 ];
                 if ($messageType === 'bundle_message') return response()->json(['message' => 'skip'], 200);
 
-                Log::channel('webhook_shopee_new')->info('🔎 Shopee message direction fields', [
-                    'message_id'   => $messageId,
-                    'message_type' => $messageType,
-                    'from_id'      => $fromId,
-                    'from_shop_id' => $fromShopId,
-                    'to_id'        => $toId,
-                    'status'       => $msgStatus,
-                ]);
-
                 if (in_array($messageType, $allowedTypes, true)) {
                     // เช็ค Webhook ซ้ำ: line_message_id = ข้อความขาเข้าที่เคยประมวลผลแล้ว,
                     // line_quote_token = ข้อความขาออกที่ระบบเราส่งเองผ่าน pushReplyMessage แล้ว
@@ -195,49 +183,6 @@ class NewShopeeController extends Controller
                         ->orWhere('line_quote_token', '=', $messageId)
                         ->exists();
                     if ($DuplicateId) return response()->json(['message' => 'duplicate'], 200);
-
-                    // ข้อความที่มี to_id/from_shop_id คือข้อความฝั่งร้าน เช่น "AI ผู้ช่วยตอบแชท" ของ Shopee
-                    // หรือแอดมินที่ตอบผ่านแอป Shopee โดยตรง (ไม่ได้ผ่านระบบเรา) -> เก็บไว้ดูประวัติ
-                    // แต่ไม่ยิงเข้า filterCase เพราะไม่ใช่คำถามจากลูกค้าที่บอทเราต้องตอบ
-                    if (!empty($toId) || !empty($fromShopId)) {
-                        $check = $this->check_customer_and_get_platform(
-                            $conversationId ?? '',
-                            $toId,
-                            $shopIdTop,
-                            null
-                        );
-
-                        if ($check['customer'] && $check['platform']) {
-                            $message_req = [
-                                'message_id'   => $messageId,
-                                'message_type' => $messageType,
-                                'content'      => $c['content'] ?? [],
-                            ];
-                            $formatted = $this->format_message($message_req, $check['platform']);
-
-                            if ($formatted['content'] !== null && $formatted['content'] !== '') {
-                                $senderName = in_array($msgStatus, ['auto_reply', 'offwork_autoreply'], true)
-                                    ? 'Shopee AI ผู้ช่วยตอบแชท'
-                                    : 'Shopee Chatbot';
-
-                                $store_chat = new ChatHistory();
-                                $store_chat->custId = $check['customer']['custId'];
-                                $store_chat->content = $formatted['content'];
-                                $store_chat->contentType = $formatted['contentType'];
-                                $store_chat->sender = json_encode(['name' => $senderName]);
-                                $store_chat->line_message_id = $messageId;
-                                $store_chat->save();
-
-                                (new PusherService())->sendNotification($check['customer']['custId']);
-
-                                Log::channel('webhook_shopee_new')->info('🤖 บันทึกข้อความฝั่งร้าน/AI ผู้ช่วยตอบแชทของ Shopee', [
-                                    'custId' => $check['customer']['custId'],
-                                    'sender' => $senderName,
-                                ]);
-                            }
-                        }
-                        return response()->json(['message' => 'shop-side message stored'], 200);
-                    }
 
                     Log::channel('webhook_shopee_new')->info($this->start_log_line);
 
