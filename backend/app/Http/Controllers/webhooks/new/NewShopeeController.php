@@ -249,6 +249,18 @@ class NewShopeeController extends Controller
                     );
 
                     if ($check['customer'] && $check['platform']) {
+                        // จังหวะที่ลูกค้ากด "แชทกับแอดมิน" หรือหลุดออกจาก AI ผู้ช่วยตอบแชท
+                        // บังคับ sync ประวัติซ้ำอีกครั้ง เผื่อมีข้อความที่คุยกับ AI ระหว่างครั้งก่อนกับตอนนี้
+                        if (in_array($messageType, ['faq_liveagent', 'faq_bot_request_text'], true)) {
+                            Log::channel('webhook_shopee_new')->info('🔄 ตรวจพบการขอคุยกับแอดมิน: เริ่มดึงประวัติแชท AI ย้อนหลัง', [
+                                'conversation_id' => $conversationId,
+                                'custId'          => $check['customer']['custId'],
+                            ]);
+
+                            $this->syncConversationHistory($conversationId ?? '', $check['customer'], $check['platform']);
+                            $check['customer']->refresh();
+                        }
+
                         $message_req = [
                             'message_id'   => $messageId,
                             'message_type' => $messageType,
@@ -428,7 +440,20 @@ class NewShopeeController extends Controller
                 $messages = $resp['messages'] ?? [];
                 if (empty($messages)) break;
 
+                // เจอข้อความที่เคย sync ไว้แล้วในหน้านี้ = ดึงมาซ้อนกับรอบก่อนแล้ว
+                // หยุดดึงหน้าถัดไป (เก่ากว่านี้) ทันที ไม่ต้องไล่ย้อนจนสุด maxPages ทุกรอบ
+                $shouldStop = false;
+                foreach ($messages as $m) {
+                    $msgId = $m['message_id'] ?? null;
+                    if ($msgId && ChatHistory::where('line_message_id', (string) $msgId)->exists()) {
+                        $shouldStop = true;
+                        break;
+                    }
+                }
+
                 $allMessages = array_merge($allMessages, $messages);
+
+                if ($shouldStop) break;
 
                 $nextOffset = $resp['page_result']['next_offset'] ?? null;
                 if (empty($nextOffset) || $nextOffset === $offset) break;
