@@ -475,9 +475,9 @@ class NewShopeeController extends Controller
                     $senderJson = json_encode($customer);
                 } elseif (in_array($status, ['auto_reply', 'offwork_autoreply'], true)) {
                     // ข้อความที่ Shopee ติดป้าย "ข้อความจาก AI ผู้ช่วยตอบแชท" ในแอปฝั่งลูกค้า
-                    $senderJson = json_encode(['name' => 'Shopee AI ผู้ช่วยตอบแชท']);
+                    $senderJson = json_encode(['name' => 'Shopee System']);
                 } else {
-                    $senderJson = json_encode(['name' => 'Shopee Chatbot']);
+                    $senderJson = json_encode(['name' => 'Shopee AI ผู้ช่วยตอบแชท']);
                 }
 
                 $store_chat                  = new ChatHistory();

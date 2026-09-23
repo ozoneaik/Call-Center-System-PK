@@ -116,7 +116,7 @@ export default function MessagePane() {
     const latestCustomerMessage = useMemo(() => {
         if (!Array.isArray(messages)) return null;
         for (let i = messages.length - 1; i >= 0; i--) {
-            if (messages[i] && !messages[i].sender?.empCode) {
+            if (messages[i] && messages[i].sender?.custId) {
                 return messages[i];
             }
         }
@@ -203,7 +203,10 @@ export default function MessagePane() {
                             {!loading && (
                                 <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
                                     {messages.length > 0 && messages.map((message, index) => {
-                                        const isYou = message.sender.empCode;
+                                        // ฝั่ง "เรา" (แอดมิน/บอท/ระบบของร้าน) คือ sender ที่ไม่มี custId
+                                        // ไม่ใช้แค่ empCode เพราะข้อความจาก Shopee AI ผู้ช่วยตอบแชท/Shopee System
+                                        // ที่ sync ย้อนหลังมา ไม่มี empCode แต่ก็ไม่ใช่ข้อความของลูกค้า ต้องอยู่ฝั่งขวาเหมือนกัน
+                                        const isYou = !message.sender?.custId;
                                         const messageKey = message.id ?? message.created_at;
                                         // จุดตัด: ข้อความนี้คือจุดที่กด Generate AI ล่าสุด (ทั้งจากประวัติเก่าและที่เพิ่งกดสด ๆ)
                                         const isLastGenerated = lastGeneratedKey != null
