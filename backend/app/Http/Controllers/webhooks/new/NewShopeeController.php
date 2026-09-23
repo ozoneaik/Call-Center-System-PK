@@ -430,10 +430,19 @@ class NewShopeeController extends Controller
                 $alreadyFetched = array_column($allMessages, 'message_id');
                 $idsToFetch     = array_diff(array_keys($bundledIds), $alreadyFetched);
 
-                foreach (array_chunk($idsToFetch, 50) as $chunk) {
-                    $bundleResp = $this->getSellerChatMessages($conversationId, $platform, null, 60, $chunk);
-                    $bundledMessages = $bundleResp['messages'] ?? [];
-                    $allMessages = array_merge($allMessages, $bundledMessages);
+                // ส่วนเสริม (ดึงเนื้อหาที่ซ่อนอยู่ใน bundle_message) ห้ามทำให้การ sync หลักที่เคยใช้งานได้อยู่แล้วพังไปด้วย
+                // ถ้า Shopee ปฏิเสธ request นี้ (เช่น param ผิดรูปแบบ) ให้ข้ามส่วนนี้ไปเฉยๆ แล้วเก็บข้อความที่ดึงมาได้ต่อ
+                try {
+                    foreach (array_chunk($idsToFetch, 50) as $chunk) {
+                        $bundleResp = $this->getSellerChatMessages($conversationId, $platform, null, 60, $chunk);
+                        $bundledMessages = $bundleResp['messages'] ?? [];
+                        $allMessages = array_merge($allMessages, $bundledMessages);
+                    }
+                } catch (\Throwable $e) {
+                    Log::channel('webhook_shopee_new')->warning('Shopee bundle_message expand ล้มเหลว ข้ามส่วนนี้ไป', [
+                        'conversation_id' => $conversationId,
+                        'error'           => $e->getMessage(),
+                    ]);
                 }
             }
 
@@ -538,8 +547,10 @@ class NewShopeeController extends Controller
             $query['offset'] = $offset;
         }
         if (!empty($messageIdList)) {
-            // ตามแบบ order_sn_list ของ get_order_detail ในไฟล์นี้ — ส่งเป็น comma-separated string
-            $query['message_id_list'] = implode(',', $messageIdList);
+            // message_id_list เป็น int64[] (ต่างจาก order_sn_list ที่เป็น string[] และใช้ comma-separated ได้)
+            // ส่งเป็น JSON array แทน — page_size ไม่เกี่ยวข้องตอนขอเจาะจงเป็นรายข้อความ เลยตัดออก
+            $query['message_id_list'] = '[' . implode(',', array_map('strval', $messageIdList)) . ']';
+            unset($query['page_size']);
         }
 
         $resp = Http::get($host . $path, $query);
@@ -548,6 +559,7 @@ class NewShopeeController extends Controller
         if (!$resp->successful() || !empty($json['error'])) {
             Log::channel('webhook_shopee_new')->error('Shopee get_message error', [
                 'conversation_id' => $conversationId,
+                'query'           => array_diff_key($query, ['access_token' => '', 'sign' => '']),
                 'resp'            => $json,
             ]);
             throw new \Exception('Shopee get_message error: ' . json_encode($json));
