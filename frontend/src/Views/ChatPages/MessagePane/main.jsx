@@ -13,6 +13,8 @@ import MessageInputNew from "./MessageInputNew.jsx";
 import { forceHttps } from "../../../utils.js";
 import GenerateContextModal from "./GenerateContextModal.jsx";
 import duragearsLogo from "../../../assets/watermarks/duragears-logo.png";
+import texusbullLogo from "../../../assets/watermarks/texusbull.png";
+import pumpkinLogo from "../../../assets/watermarks/pumpkin.png";
 
 // เทียบแบบ normalize (ตัดช่องว่าง/จุด/ตัวพิมพ์เล็กใหญ่ทิ้ง) กันพลาดเรื่องรูปแบบชื่อร้านที่พิมพ์ไว้ใน platform_access_tokens.description
 const normalizeShopName = (name) => (name || '').toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
@@ -30,6 +32,13 @@ const SHOP_ROOM_COLOR_RULES = [
         color: '#00008b', // น้ำเงินเข้ม
         platforms: null, // ทุกแพลตฟอร์ม เช่น line, shopee, lazada
         shopNames: ['Texus bull'],
+        watermark: texusbullLogo,
+    },
+    {
+        // ไม่กำหนด color — ร้าน Pumpkin เอาแค่ watermark พื้นหลัง ไม่ต้องเปลี่ยนสีกรอบ/พื้นหลัง header
+        platforms: null, // ทุกแพลตฟอร์ม
+        shopNames: ['Pumpkin'],
+        watermark: pumpkinLogo,
     },
 ].map((rule) => ({ ...rule, shopNames: rule.shopNames.map(normalizeShopName) }));
 
