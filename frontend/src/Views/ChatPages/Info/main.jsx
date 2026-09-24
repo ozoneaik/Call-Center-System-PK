@@ -248,7 +248,7 @@ const Info = forwardRef(function Info(props, ref) {
 
     // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee — ดึงทุกข้อความที่ลูกค้าเคยคุยไว้ (รวมที่คุยกับ AI ผู้ช่วยตอบแชท
     // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วแสดงผลใน modal แยกต่างหาก
-    // พร้อมส่งชุดข้อความล่าสุดกลับไปให้หน้าแชทหลัก (onHistorySynced) รีเฟรชด้วยเลย ไม่ต้องกด F5 เอง
+    // ไม่ auto อัปเดตหน้าแชทหลักทันที ต้องให้แอดมินกด "นำเข้า" ยืนยันใน modal ก่อน (ดู handleImportToChat)
     const syncShopeeChatHistory = async () => {
         setIsSyncingHistory(true);
         try {
@@ -256,13 +256,17 @@ const Info = forwardRef(function Info(props, ref) {
             setHistoryMessages(res.data?.messages || []);
             setHistorySummary(res.data?.message || '');
             setHistoryModalOpen(true);
-            onHistorySynced?.(res.data?.messages || []);
         } catch (err) {
             console.error("ดึงประวัติแชท Shopee ไม่สำเร็จ", err);
             alert(err.response?.data?.message || 'ดึงประวัติแชทไม่สำเร็จ');
         } finally {
             setIsSyncingHistory(false);
         }
+    };
+
+    // แอดมินกดปุ่ม "นำเข้า" ใน ChatHistoryModal ยืนยันว่าจะให้ประวัติแชทชุดนี้ไปแสดงในหน้าแชทหลักด้วย
+    const handleImportToChat = (fetchedMessages) => {
+        onHistorySynced?.(fetchedMessages);
     };
 
     const formatCurrency = (amount, currency = 'THB') => {
@@ -489,6 +493,7 @@ const Info = forwardRef(function Info(props, ref) {
                 onClose={() => setHistoryModalOpen(false)}
                 messages={historyMessages}
                 summary={historySummary}
+                onImport={handleImportToChat}
             />
         </>
     );

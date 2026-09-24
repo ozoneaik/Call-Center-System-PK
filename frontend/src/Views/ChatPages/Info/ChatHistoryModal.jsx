@@ -1,6 +1,7 @@
-import { Box, Modal, ModalDialog, ModalClose, Divider, CircularProgress } from "@mui/joy";
+import { Box, Modal, ModalDialog, ModalClose, Divider, CircularProgress, Button } from "@mui/joy";
 import Typography from "@mui/joy/Typography";
 import HistoryIcon from "@mui/icons-material/History";
+import { useEffect, useState } from "react";
 import { convertFullDate } from "../../../Components/Options.jsx";
 
 // ป้ายชื่อผู้พูดต่อบรรทัด — ลูกค้า (sender มี custId), แอดมิน/พนักงาน (sender มี empCode),
@@ -12,8 +13,23 @@ const senderLabel = (sender) => {
 };
 
 // Modal แสดงประวัติแชทที่ดึงมาจาก Shopee (get_message) ตอนกดปุ่ม "ประวัติแชท" ใน Info/main.jsx
-// แยกออกมาต่างหาก ไม่ยุ่งกับข้อความในหน้าแชทหลัก (MessagePane) ตามที่ตกลง
-export default function ChatHistoryModal({ open, onClose, messages = [], loading = false, summary }) {
+// ค่าเริ่มต้นจะยังไม่นำเข้าไปหน้าแชทหลักทันที ต้องกด "นำเข้า" ยืนยันก่อน (onImport) — กด "ไม่นำเข้า" ก็แค่ปิดกล่องถามไป
+export default function ChatHistoryModal({ open, onClose, messages = [], loading = false, summary, onImport }) {
+    // null = ยังไม่ตัดสินใจ (โชว์กล่องถาม), 'imported' = กดนำเข้าแล้ว, 'skipped' = กดไม่นำเข้า
+    const [decision, setDecision] = useState(null);
+
+    // เปิด modal รอบใหม่ทุกครั้ง (ข้อมูลชุดใหม่) ให้ถามใหม่เสมอ ไม่จำการตัดสินใจของรอบก่อน
+    useEffect(() => {
+        if (open) setDecision(null);
+    }, [open]);
+
+    const handleImport = () => {
+        onImport?.(messages);
+        setDecision('imported');
+    };
+
+    const handleSkip = () => setDecision('skipped');
+
     return (
         <Modal open={open} onClose={onClose}>
             <ModalDialog
@@ -32,6 +48,26 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                 {summary && (
                     <Typography level="body-xs" sx={{ color: 'text.tertiary', mb: 1.5, flexShrink: 0 }}>
                         {summary}
+                    </Typography>
+                )}
+
+                {!loading && messages.length > 0 && decision === null && (
+                    <Box
+                        sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
+                            mb: 1.5, p: 1, borderRadius: 'sm', bgcolor: 'warning.softBg', flexShrink: 0,
+                        }}
+                    >
+                        <Typography level="body-sm">นำเข้าประวัติแชทนี้ไปแสดงในหน้าแชทหลักด้วยหรือไม่?</Typography>
+                        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                            <Button size="sm" variant="solid" color="primary" onClick={handleImport}>นำเข้า</Button>
+                            <Button size="sm" variant="outlined" color="neutral" onClick={handleSkip}>ไม่นำเข้า</Button>
+                        </Box>
+                    </Box>
+                )}
+                {decision === 'imported' && (
+                    <Typography level="body-xs" sx={{ color: 'success.600', mb: 1.5, flexShrink: 0 }}>
+                        ✅ นำเข้าไปหน้าแชทหลักแล้ว
                     </Typography>
                 )}
 
