@@ -52,15 +52,15 @@ function MessagePaneHeader(props) {
     return (
         <>
             {/* <Stack direction={{ sm: 'column', md: 'row' }} spacing={2} sx={MessageStyle.PaneHeader.Stack}> */}
-            {/* ห้องของร้านที่อยู่ใน HIGHLIGHTED_SHOP_NAMES (MessagePane/main.jsx) จะได้กรอบสีนี้รอบ header bar ให้สังเกตได้ทันทีว่าเป็นร้านไหน */}
+            {/* ห้องของร้านที่อยู่ใน HIGHLIGHTED_SHOP_NAMES (MessagePane/main.jsx) จะได้กรอบ+พื้นหลังสีนี้ที่ header bar ให้สังเกตได้ทันทีว่าเป็นร้านไหน */}
             <Stack
-                direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body'
+                direction={{ sm: 'column', md: 'row' }}
                 justifyContent='space-between' spacing={2}
                 sx={{
                     p: 1,
                     ...(highlightedRoomColor
-                        ? { border: `2px solid ${highlightedRoomColor}` }
-                        : { borderBottom: '1px solid', borderColor: 'divider' }),
+                        ? { border: `2px solid ${highlightedRoomColor}`, backgroundColor: highlightedRoomColor }
+                        : { backgroundColor: 'background.body', borderBottom: '1px solid', borderColor: 'divider' }),
                 }}
             >
                 <Stack direction="row" spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
