@@ -43,9 +43,8 @@ const SHOP_ROOM_COLOR_RULES = [
         platforms: null, // ทุกแพลตฟอร์ม
         shopNames: ['Pumpkin'],
         watermark: pumpkinLogo,
-        // โลโก้ไฟล์นี้ก็เป็นสีขาว/ส้มอ่อนบนพื้นโปร่งใส เหมือน Texus bull เลย invert เหมือนกัน
-        watermarkInvert: true,
-        watermarkOpacity: 0.16,
+        // โลโก้นี้เป็นสีส้ม (ไม่ใช่ขาวล้วนแบบ Texus bull) มีสีในตัวอยู่แล้ว ไม่ต้อง invert เดี๋ยวสีส้มจะกลายเป็นฟ้า
+        watermarkOpacity: 0.18,
     },
 ].map((rule) => ({ ...rule, shopNames: rule.shopNames.map(normalizeShopName) }));
 
