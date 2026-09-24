@@ -33,12 +33,19 @@ const SHOP_ROOM_COLOR_RULES = [
         platforms: null, // ทุกแพลตฟอร์ม เช่น line, shopee, lazada
         shopNames: ['Texus bull'],
         watermark: texusbullLogo,
+        // โลโก้ไฟล์นี้เป็นสีขาวล้วน (โปร่งใส) พื้นหลังหน้าแชทเป็นสีอ่อนอยู่แล้ว ใช้ opacity ต่ำแบบเดียวกับโลโก้อื่น
+        // จะจางจนมองแทบไม่เห็น เลย invert ให้กลายเป็นสีเข้มก่อน แล้วค่อยลด opacity ให้ยังดูเป็น watermark
+        watermarkInvert: true,
+        watermarkOpacity: 0.16,
     },
     {
         // ไม่กำหนด color — ร้าน Pumpkin เอาแค่ watermark พื้นหลัง ไม่ต้องเปลี่ยนสีกรอบ/พื้นหลัง header
         platforms: null, // ทุกแพลตฟอร์ม
         shopNames: ['Pumpkin'],
         watermark: pumpkinLogo,
+        // โลโก้ไฟล์นี้ก็เป็นสีขาว/ส้มอ่อนบนพื้นโปร่งใส เหมือน Texus bull เลย invert เหมือนกัน
+        watermarkInvert: true,
+        watermarkOpacity: 0.16,
     },
 ].map((rule) => ({ ...rule, shopNames: rule.shopNames.map(normalizeShopName) }));
 
@@ -155,6 +162,8 @@ export default function MessagePane() {
     }, [sender?.platformType, sender?.shopName]);
     const highlightedRoomColor = matchedShopRoomRule?.color ?? null;
     const highlightedRoomWatermark = matchedShopRoomRule?.watermark ?? null;
+    const highlightedRoomWatermarkOpacity = matchedShopRoomRule?.watermarkOpacity ?? 0.12;
+    const highlightedRoomWatermarkInvert = matchedShopRoomRule?.watermarkInvert ?? false;
 
     // ข้อความล่าสุดจากลูกค้า (ไม่ใช่จากพนักงาน) ใช้เป็นตัวกระตุ้นให้ AI panel ยิงไปหา chat-oc-any อัตโนมัติ
     const latestCustomerMessage = useMemo(() => {
@@ -268,7 +277,10 @@ export default function MessagePane() {
                                         backgroundRepeat: 'no-repeat',
                                         backgroundPosition: 'center',
                                         backgroundSize: 'min(45%, 360px)',
-                                        opacity: 0.12,
+                                        opacity: highlightedRoomWatermarkOpacity,
+                                        // โลโก้บางไฟล์เป็นสีขาวล้วน invert ให้เป็นสีเข้มก่อน เพราะพื้นหลังหน้าแชทเป็นสีอ่อน
+                                        // ไม่งั้นสีขาวจะกลืนกับพื้นจนมองไม่เห็นแม้จะลด opacity แค่ไหนก็ตาม
+                                        filter: highlightedRoomWatermarkInvert ? 'invert(1)' : undefined,
                                         pointerEvents: 'none',
                                         zIndex: -1,
                                     },
