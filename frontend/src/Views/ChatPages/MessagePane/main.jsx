@@ -35,7 +35,7 @@ const SHOP_ROOM_COLOR_RULES = [
         watermark: texusbullLogo,
         // โลโก้ไฟล์นี้เป็นสีขาวล้วน (โปร่งใส) พื้นหลังหน้าแชทเป็นสีอ่อนอยู่แล้ว ใช้ opacity ต่ำแบบเดียวกับโลโก้อื่น
         // จะจางจนมองแทบไม่เห็น เลย invert ให้กลายเป็นสีเข้มก่อน แล้วค่อยลด opacity ให้ยังดูเป็น watermark
-        watermarkInvert: true,
+        watermarkFilter: 'invert(1)',
         watermarkOpacity: 0.16,
     },
     {
@@ -43,8 +43,11 @@ const SHOP_ROOM_COLOR_RULES = [
         platforms: null, // ทุกแพลตฟอร์ม
         shopNames: ['Pumpkin'],
         watermark: pumpkinLogo,
-        // โลโก้นี้เป็นสีส้ม (ไม่ใช่ขาวล้วนแบบ Texus bull) มีสีในตัวอยู่แล้ว ไม่ต้อง invert เดี๋ยวสีส้มจะกลายเป็นฟ้า
-        watermarkOpacity: 0.18,
+        // โลโก้นี้มีทั้งไอคอนสีส้มและตัวหนังสือสีขาว — invert ตรงๆ จะทำให้สีส้มกลายเป็นฟ้า แต่ไม่ invert เลย
+        // ตัวหนังสือขาวก็จะจมหายไปกับพื้นหลังสีอ่อน เลยใช้ brightness ลดความสว่างลงแทน (คงเป็นโทนส้มเดิม แค่เข้มขึ้น
+        // พอให้ตัวหนังสือขาวกลายเป็นสีเทาที่มองเห็นได้)
+        watermarkFilter: 'brightness(0.35)',
+        watermarkOpacity: 0.28,
     },
 ].map((rule) => ({ ...rule, shopNames: rule.shopNames.map(normalizeShopName) }));
 
@@ -162,7 +165,7 @@ export default function MessagePane() {
     const highlightedRoomColor = matchedShopRoomRule?.color ?? null;
     const highlightedRoomWatermark = matchedShopRoomRule?.watermark ?? null;
     const highlightedRoomWatermarkOpacity = matchedShopRoomRule?.watermarkOpacity ?? 0.12;
-    const highlightedRoomWatermarkInvert = matchedShopRoomRule?.watermarkInvert ?? false;
+    const highlightedRoomWatermarkFilter = matchedShopRoomRule?.watermarkFilter ?? null;
 
     // ข้อความล่าสุดจากลูกค้า (ไม่ใช่จากพนักงาน) ใช้เป็นตัวกระตุ้นให้ AI panel ยิงไปหา chat-oc-any อัตโนมัติ
     const latestCustomerMessage = useMemo(() => {
@@ -277,9 +280,9 @@ export default function MessagePane() {
                                         backgroundPosition: 'center',
                                         backgroundSize: 'min(45%, 360px)',
                                         opacity: highlightedRoomWatermarkOpacity,
-                                        // โลโก้บางไฟล์เป็นสีขาวล้วน invert ให้เป็นสีเข้มก่อน เพราะพื้นหลังหน้าแชทเป็นสีอ่อน
-                                        // ไม่งั้นสีขาวจะกลืนกับพื้นจนมองไม่เห็นแม้จะลด opacity แค่ไหนก็ตาม
-                                        filter: highlightedRoomWatermarkInvert ? 'invert(1)' : undefined,
+                                        // โลโก้บางไฟล์มีส่วนที่เป็นสีขาว/อ่อนเกินไปจนกลืนกับพื้นหลังหน้าแชท เลยให้แต่ละกฎ
+                                        // กำหนด filter ของตัวเองได้ (invert สำหรับโลโก้ขาวล้วน, brightness สำหรับโลโก้ที่มีสีอยู่แล้ว)
+                                        filter: highlightedRoomWatermarkFilter ?? undefined,
                                         pointerEvents: 'none',
                                         zIndex: -1,
                                     },
