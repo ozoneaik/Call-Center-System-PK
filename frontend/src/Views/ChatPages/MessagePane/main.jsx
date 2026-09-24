@@ -13,6 +13,13 @@ import MessageInputNew from "./MessageInputNew.jsx";
 import { forceHttps } from "../../../utils.js";
 import GenerateContextModal from "./GenerateContextModal.jsx";
 
+// ห้องแชทของร้านเหล่านี้ (ทั้ง Shopee และ Lazada) ให้เปลี่ยนพื้นหลังห้องแชทเป็นสีนี้ ให้แอดมินสังเกตได้ทันทีว่าเป็นร้านไหน
+const HIGHLIGHTED_SHOP_ROOM_COLOR = '#cf2e2e';
+// เทียบแบบ normalize (ตัดช่องว่าง/จุด/ตัวพิมพ์เล็กใหญ่ทิ้ง) กันพลาดเรื่องรูปแบบชื่อร้านที่พิมพ์ไว้ใน platform_access_tokens.description
+const normalizeShopName = (name) => (name || '').toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
+const HIGHLIGHTED_SHOP_NAMES = ['Duragears', 'MR. Drill', 'Car การช่าง', 'Smart Electrician', 'JAPAN TOOLS']
+    .map(normalizeShopName);
+
 export default function MessagePane() {
     const { notification } = useNotification();
     const [messages, setMessages] = useState({});
@@ -110,7 +117,18 @@ export default function MessagePane() {
             sender: sender
         })
     }
-    const isShopeeRoom = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
+    const isShopeeRoom = sender?.platformType === 'shopee' || sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
+
+    // ห้องของร้านที่อยู่ใน HIGHLIGHTED_SHOP_NAMES (ทั้ง Shopee/Lazada) ให้เปลี่ยนพื้นหลังห้องแชทเป็น HIGHLIGHTED_SHOP_ROOM_COLOR
+    const highlightedRoomColor = useMemo(() => {
+        const platformType = (sender?.platformType || '').toLowerCase();
+        if (platformType !== 'shopee' && platformType !== 'lazada') return null;
+        const shopName = normalizeShopName(sender?.shopName);
+        if (!shopName) return null;
+        return HIGHLIGHTED_SHOP_NAMES.some((name) => shopName.includes(name))
+            ? HIGHLIGHTED_SHOP_ROOM_COLOR
+            : null;
+    }, [sender?.platformType, sender?.shopName]);
 
     // ข้อความล่าสุดจากลูกค้า (ไม่ใช่จากพนักงาน) ใช้เป็นตัวกระตุ้นให้ AI panel ยิงไปหา chat-oc-any อัตโนมัติ
     const latestCustomerMessage = useMemo(() => {
@@ -189,7 +207,7 @@ export default function MessagePane() {
         <>
             <Sheet sx={MessageStyle.MainLayout}>
                 <Sheet>
-                    <Sheet sx={MessageStyle.Layout}>
+                    <Sheet sx={[MessageStyle.Layout, highlightedRoomColor && { backgroundColor: highlightedRoomColor }]}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader
                             prevUrlfrom={from}

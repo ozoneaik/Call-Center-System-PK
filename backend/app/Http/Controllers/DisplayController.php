@@ -174,6 +174,11 @@ class DisplayController extends Controller
 
             $platformName = $platformRow->platform ?? null;
 
+            // ชื่อร้าน/เพจจริง (เช่น "Duragears", "JAPAN TOOLS") มาจาก platform_access_tokens.description
+            // ต่างจาก platform ที่บอกแค่ประเภทช่องทาง (shopee/lazada/line/...) — ใช้แยกสีห้องแชทตามร้านฝั่ง frontend
+            $sender['shopName'] = $platformRow->description ?? null;
+            $sender['platformType'] = $platformName;
+
             $usedTagsByOtherPlatforms = DB::table('tag_by_platforms')
                 ->where('platform_name', '!=', $platformName)
                 ->pluck('tag_id')
