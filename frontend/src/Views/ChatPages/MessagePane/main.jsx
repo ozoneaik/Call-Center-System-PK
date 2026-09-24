@@ -12,13 +12,26 @@ import { useChatRooms } from "../../../context/ChatRoomContext.jsx";
 import MessageInputNew from "./MessageInputNew.jsx";
 import { forceHttps } from "../../../utils.js";
 import GenerateContextModal from "./GenerateContextModal.jsx";
+import duragearsLogo from "../../../assets/watermarks/duragears-logo.png";
 
-// ห้องแชทของร้านเหล่านี้ (ทั้ง Shopee และ Lazada) ให้เปลี่ยนพื้นหลังห้องแชทเป็นสีนี้ ให้แอดมินสังเกตได้ทันทีว่าเป็นร้านไหน
-const HIGHLIGHTED_SHOP_ROOM_COLOR = '#cf2e2e';
 // เทียบแบบ normalize (ตัดช่องว่าง/จุด/ตัวพิมพ์เล็กใหญ่ทิ้ง) กันพลาดเรื่องรูปแบบชื่อร้านที่พิมพ์ไว้ใน platform_access_tokens.description
 const normalizeShopName = (name) => (name || '').toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
-const HIGHLIGHTED_SHOP_NAMES = ['Duragears', 'MR. Drill', 'Car การช่าง', 'Smart Electrician', 'JAPAN TOOLS']
-    .map(normalizeShopName);
+
+// กติกาไล่ทีละกฎ: ร้านชื่อไหน (บนแพลตฟอร์มไหนบ้าง — null = ทุกแพลตฟอร์ม) ให้เปลี่ยนสีห้องแชท (กรอบ+พื้นหลัง header)
+// และ watermark พื้นหลังหน้าแชท (ถ้ามี) เป็นอะไร ใช้กฎแรกที่ตรงก่อน
+const SHOP_ROOM_COLOR_RULES = [
+    {
+        color: '#cf2e2e',
+        platforms: ['shopee', 'lazada'],
+        shopNames: ['Duragears', 'MR. Drill', 'Car การช่าง', 'Smart Electrician', 'JAPAN TOOLS'],
+        watermark: duragearsLogo,
+    },
+    {
+        color: '#00008b', // น้ำเงินเข้ม
+        platforms: null, // ทุกแพลตฟอร์ม เช่น line, shopee, lazada
+        shopNames: ['Texus bull'],
+    },
+].map((rule) => ({ ...rule, shopNames: rule.shopNames.map(normalizeShopName) }));
 
 export default function MessagePane() {
     const { notification } = useNotification();
@@ -119,16 +132,20 @@ export default function MessagePane() {
     }
     const isShopeeRoom = sender?.platformType === 'shopee' || sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
 
-    // ห้องของร้านที่อยู่ใน HIGHLIGHTED_SHOP_NAMES (ทั้ง Shopee/Lazada) ให้เปลี่ยนพื้นหลังห้องแชทเป็น HIGHLIGHTED_SHOP_ROOM_COLOR
-    const highlightedRoomColor = useMemo(() => {
+    // ไล่ตาม SHOP_ROOM_COLOR_RULES หากล่องแรกที่ทั้งแพลตฟอร์มและชื่อร้านตรง แล้วใช้สีของกฎนั้นเปลี่ยนกรอบ+พื้นหลัง header
+    // และ watermark ของกฎนั้น (ถ้ามี) มาเป็นพื้นหลังหน้าแชท
+    const matchedShopRoomRule = useMemo(() => {
         const platformType = (sender?.platformType || '').toLowerCase();
-        if (platformType !== 'shopee' && platformType !== 'lazada') return null;
         const shopName = normalizeShopName(sender?.shopName);
         if (!shopName) return null;
-        return HIGHLIGHTED_SHOP_NAMES.some((name) => shopName.includes(name))
-            ? HIGHLIGHTED_SHOP_ROOM_COLOR
-            : null;
+
+        return SHOP_ROOM_COLOR_RULES.find((rule) => {
+            if (rule.platforms && !rule.platforms.includes(platformType)) return false;
+            return rule.shopNames.some((name) => shopName.includes(name));
+        }) ?? null;
     }, [sender?.platformType, sender?.shopName]);
+    const highlightedRoomColor = matchedShopRoomRule?.color ?? null;
+    const highlightedRoomWatermark = matchedShopRoomRule?.watermark ?? null;
 
     // ข้อความล่าสุดจากลูกค้า (ไม่ใช่จากพนักงาน) ใช้เป็นตัวกระตุ้นให้ AI panel ยิงไปหา chat-oc-any อัตโนมัติ
     const latestCustomerMessage = useMemo(() => {
@@ -225,7 +242,19 @@ export default function MessagePane() {
                             highlightedRoomColor={highlightedRoomColor}
                         />
                         {/*Message pane*/}
-                        <Box sx={MessageStyle.PaneContent}>
+                        <Box
+                            sx={{
+                                ...MessageStyle.PaneContent,
+                                // watermark โลโก้ร้าน (ถ้ามีตาม SHOP_ROOM_COLOR_RULES) — ใช้ gradient สีขาวโปร่งทับบนรูป
+                                // แทนการทำ opacity ตรงๆ กับรูป เพื่อไม่ให้บับเบิลข้อความที่วางทับด้านบนดูจางไปด้วย
+                                ...(highlightedRoomWatermark && {
+                                    backgroundImage: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url(${highlightedRoomWatermark})`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'min(45%, 360px)',
+                                }),
+                            }}
+                        >
                             {loading && <CircularProgress />}
                             {!loading && (
                                 <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
