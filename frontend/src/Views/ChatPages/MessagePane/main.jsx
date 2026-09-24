@@ -39,7 +39,7 @@ const SHOP_ROOM_COLOR_RULES = [
         watermarkOpacity: 0.16,
     },
     {
-        // ไม่กำหนด color — ร้าน Pumpkin เอาแค่ watermark พื้นหลัง ไม่ต้องเปลี่ยนสีกรอบ/พื้นหลัง header
+        color: '#ff3300',
         platforms: null, // ทุกแพลตฟอร์ม
         shopNames: ['Pumpkin'],
         watermark: pumpkinLogo,
