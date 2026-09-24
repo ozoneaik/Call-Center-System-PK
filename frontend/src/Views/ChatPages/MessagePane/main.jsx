@@ -25,7 +25,7 @@ const SHOP_ROOM_COLOR_RULES = [
     {
         color: '#cf2e2e',
         platforms: ['shopee', 'lazada'],
-        shopNames: ['Duragears', 'MR. Drill', 'Car การช่าง', 'Smart Electrician', 'JAPAN TOOLS'],
+        shopNames: ['Duragears', 'MR. Drill', 'คาร์ การช่าง', 'Smart Electrician', 'JAPAN TOOLS'],
         watermark: duragearsLogo,
     },
     {
@@ -40,7 +40,7 @@ const SHOP_ROOM_COLOR_RULES = [
     },
     {
         color: '#ff3300',
-        platforms: null, // ทุกแพลตฟอร์ม
+        platforms: ['shopee', 'lazada'], // ทุกแพลตฟอร์ม
         shopNames: ['Pumpkin'],
         watermark: pumpkinLogo,
         // โลโก้นี้มีทั้งไอคอนสีส้มและตัวหนังสือสีขาว — invert ตรงๆ จะทำให้สีส้มกลายเป็นฟ้า แต่ไม่ invert เลย
