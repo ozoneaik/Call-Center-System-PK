@@ -254,13 +254,24 @@ export default function MessagePane() {
                         <Box
                             sx={{
                                 ...MessageStyle.PaneContent,
-                                // watermark โลโก้ร้าน (ถ้ามีตาม SHOP_ROOM_COLOR_RULES) — ใช้ gradient สีขาวโปร่งทับบนรูป
-                                // แทนการทำ opacity ตรงๆ กับรูป เพื่อไม่ให้บับเบิลข้อความที่วางทับด้านบนดูจางไปด้วย
+                                // watermark โลโก้ร้าน (ถ้ามีตาม SHOP_ROOM_COLOR_RULES) — ทำผ่าน ::before แยกชั้น แล้วลด opacity
+                                // ของชั้นนั้นเอา ไม่ใช่ทับด้วย gradient สีขาว เพราะ gradient จะกลายเป็นแผ่นสีขาวทึบเห็นเป็นกรอบ
+                                // สี่เหลี่ยมแปลกๆ ทับพื้นหลังเดิม (โดยเฉพาะถ้าพื้นหลังจริงไม่ใช่สีขาวล้วน)
                                 ...(highlightedRoomWatermark && {
-                                    backgroundImage: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url(${highlightedRoomWatermark})`,
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'center',
-                                    backgroundSize: 'min(45%, 360px)',
+                                    position: 'relative',
+                                    zIndex: 0,
+                                    '&::before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        inset: 0,
+                                        backgroundImage: `url(${highlightedRoomWatermark})`,
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'center',
+                                        backgroundSize: 'min(45%, 360px)',
+                                        opacity: 0.12,
+                                        pointerEvents: 'none',
+                                        zIndex: -1,
+                                    },
                                 }),
                             }}
                         >
