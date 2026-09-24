@@ -64,16 +64,26 @@ function MessagePaneHeader(props) {
                 }}
             >
                 <Stack direction="row" spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
-                    <Button onClick={handleBack} variant="outlined">
+                    <Button
+                        onClick={handleBack} variant="outlined"
+                        sx={highlightedRoomColor ? { color: '#fff', borderColor: '#fff' } : undefined}
+                    >
                         <ArrowBackIosIcon />
                     </Button>
                     <Avatar size="lg" src={sender.avatar} />
                     <div>
                         <Box display='flex' justifyContent='flex-start' alignItems='center' gap={1}>
-                            <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle}>
-                                {sender.custName} | 
+                            <Typography
+                                component="h2" noWrap
+                                sx={{ ...MessageStyle.PaneHeader.HeadTitle, ...(highlightedRoomColor && { color: '#fff' }) }}
+                            >
+                                {sender.custName} |
                             </Typography>
-                            <Typography component="h2" noWrap sx={MessageStyle.PaneHeader.HeadTitle} color="primary">
+                            <Typography
+                                component="h2" noWrap
+                                sx={{ ...MessageStyle.PaneHeader.HeadTitle, ...(highlightedRoomColor && { color: '#fff' }) }}
+                                color={highlightedRoomColor ? undefined : "primary"}
+                            >
                                 ID : {sender.id}
                             </Typography>
                         </Box>
