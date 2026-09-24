@@ -21,7 +21,7 @@ function MessagePaneHeader(props) {
     const { prevUrlfrom } = props;
     const { user } = useAuth();
     const { disable } = props;
-    const { sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags, listAllChatRooms } = props;
+    const { sender, chatRooms, roomSelect, shortCustSend, check, rateId, activeId, tags, listAllChatRooms, highlightedRoomColor } = props;
     const [shortCut, setShortcut] = useState(false);
     const Btn = ({ title, color, icon, onClick, disable = true }) => (
         <Button
@@ -52,7 +52,17 @@ function MessagePaneHeader(props) {
     return (
         <>
             {/* <Stack direction={{ sm: 'column', md: 'row' }} spacing={2} sx={MessageStyle.PaneHeader.Stack}> */}
-            <Stack direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body' justifyContent='space-between' spacing={2} sx={{ p: 1 }} borderBottom={1} borderColor='divider'>
+            {/* ห้องของร้านที่อยู่ใน HIGHLIGHTED_SHOP_NAMES (MessagePane/main.jsx) จะได้กรอบสีนี้รอบ header bar ให้สังเกตได้ทันทีว่าเป็นร้านไหน */}
+            <Stack
+                direction={{ sm: 'column', md: 'row' }} backgroundColor='background.body'
+                justifyContent='space-between' spacing={2}
+                sx={{
+                    p: 1,
+                    ...(highlightedRoomColor
+                        ? { border: `2px solid ${highlightedRoomColor}` }
+                        : { borderBottom: '1px solid', borderColor: 'divider' }),
+                }}
+            >
                 <Stack direction="row" spacing={{ xs: 1, md: 2 }} sx={{ alignItems: 'center' }}>
                     <Button onClick={handleBack} variant="outlined">
                         <ArrowBackIosIcon />

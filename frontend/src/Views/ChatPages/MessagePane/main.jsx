@@ -207,7 +207,7 @@ export default function MessagePane() {
         <>
             <Sheet sx={MessageStyle.MainLayout}>
                 <Sheet>
-                    <Sheet sx={[MessageStyle.Layout, highlightedRoomColor && { backgroundColor: highlightedRoomColor }]}>
+                    <Sheet sx={MessageStyle.Layout}>
                         {/*Message Pane Header*/}
                         <MessagePaneHeader
                             prevUrlfrom={from}
@@ -222,6 +222,7 @@ export default function MessagePane() {
                             roomSelect={roomSelect}
                             tags={tags}
                             listAllChatRooms={listAllChatRooms}
+                            highlightedRoomColor={highlightedRoomColor}
                         />
                         {/*Message pane*/}
                         <Box sx={MessageStyle.PaneContent}>
