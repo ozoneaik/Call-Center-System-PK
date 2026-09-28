@@ -26,4 +26,14 @@ trait BusinessHoursMessage
 
         return 'ระบบกำลังส่งต่อให้เจ้าหน้าที่ กรุณารอซักครู่';
     }
+
+    /**
+     * เช็คว่าตอนนี้อยู่นอกเวลาทำการของบริษัทหรือไม่ (ตามเงื่อนไขเดียวกับ forwardToStaffMessage)
+     */
+    protected function isOutOfBusinessHours(?Carbon $now = null): bool
+    {
+        $now = $now ?? Carbon::now();
+
+        return ($now->isSaturday() && $now->hour >= 17) || $now->isSunday() || $now->hour >= 17;
+    }
 }

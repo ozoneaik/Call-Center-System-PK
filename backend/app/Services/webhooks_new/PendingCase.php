@@ -6,11 +6,14 @@ use App\Models\ActiveConversations;
 use App\Models\ChatHistory;
 use App\Models\Rates;
 use App\Services\PusherService;
+use App\Services\webhooks_new\Concerns\BusinessHoursMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class PendingCase
 {
+    use BusinessHoursMessage;
+
     protected PusherService $pusherService;
     protected ArchitectService $architectService;
 
@@ -58,6 +61,31 @@ class PendingCase
 
             //ตรวจสอบการส่งคิว
             if ($ac_latest && $ac_latest->is_send_q) {
+                // ลูกค้าทักมาย้ำในช่วงนอกเวลาทำการ ขณะยังเป็นเคสรอดำเนินการ ให้แจ้งเวลาทำการแทน
+                if ($this->isOutOfBusinessHours()) {
+                    Log::channel('webhook_main')->info("⏰ ทักมาย้ำนอกเวลาทำการ (is_send_q = true)", [
+                        'ac_id' => $ac_latest->id,
+                        'custId' => $current_rate['custId'],
+                    ]);
+                    return [
+                        'status' => true,
+                        'send_to_cust' => true,
+                        'type_send' => 'normal',
+                        'type_message' => 'reply',
+                        'messages' => [
+                            [
+                                'content' => $this->forwardToStaffMessage(),
+                                'contentType' => 'text'
+                            ]
+                        ],
+                        'customer' => $customer,
+                        'ac_id' => $ac_latest['id'],
+                        'platform_access_token' => $platformAccessToken,
+                        'reply_token' => $message['reply_token'],
+                        'bot' => $BOT
+                    ];
+                }
+
                 Log::channel('webhook_main')->info("❌ ข้ามการส่งคิว (is_send_q = true)", [
                     'ac_id' => $ac_latest->id,
                     'custId' => $current_rate['custId'],
@@ -110,6 +138,23 @@ class PendingCase
             }
 
             $ac_latest->update(['is_send_q' => true]);
+
+            // นอกเวลาทำการ ไม่ต้องส่งคิวไปหาลูกค้า
+            if ($this->isOutOfBusinessHours()) {
+                Log::channel('webhook_main')->info("❌ ข้ามการส่งคิว (นอกเวลาทำการ)", [
+                    'ac_id' => $ac_latest->id,
+                    'custId' => $current_rate['custId'],
+                ]);
+                return [
+                    'status' => true,
+                    'send_to_cust' => false,
+                    'customer' => $customer,
+                    'ac_id' => $ac_latest['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $BOT
+                ];
+            }
 
             return [
                 'status' => true,
