@@ -34,6 +34,9 @@ export default function Bubble(props) {
         isShopeeRoom,
         onGenerateAi,
         generatingAi,
+        // มือถือ: แสดงแบบ LINE (บับเบิลมน, เวลาอยู่ข้างบับเบิล, ซ่อนชื่อเมื่อเป็นข้อความต่อเนื่องจากคนเดิม)
+        compact = false,
+        showName = true,
     } = props;
 
     const isSent = variant === 'sent';
@@ -63,6 +66,35 @@ export default function Bubble(props) {
             return String(created_at ?? "");
         }
     })();
+
+    const shortTimeText = (() => {
+        const D = new Date(created_at);
+        if (isNaN(D)) return '';
+        return `${String(D.getHours()).padStart(2, '0')}:${String(D.getMinutes()).padStart(2, '0')}`;
+    })();
+
+    const isMine = isSent && sender?.empCode === user?.empCode;
+    const isBareMedia = contentType === 'sticker' || contentType === 'image';
+
+    const bubbleSx = compact
+        ? {
+            px: 1.5,
+            py: 1,
+            borderRadius: '18px',
+            ...(isSent
+                ? { borderTopRightRadius: '4px', backgroundColor: isMine ? LINE_SENT : LINE_SENT_OTHER }
+                : { borderTopLeftRadius: '4px', backgroundColor: 'background.surface' }),
+            ...(isBareMedia && { p: 0, backgroundColor: 'transparent' }),
+        }
+        : (isSent
+            ? (isMine ? MessageStyle.Bubble.IsMySent : MessageStyle.Bubble.IsSent)
+            : MessageStyle.Bubble.IsNotSent);
+
+    const textSx = compact
+        ? { color: isSent ? '#111' : 'var(--joy-palette-text-primary)' }
+        : (isSent
+            ? (isMine ? MessageStyle.Bubble.TextMySent : MessageStyle.Bubble.TextIsSent)
+            : MessageStyle.Bubble.TextIsNotSent);
 
     // ✅ ตรวจว่าเป็น item_list จากสองกรณี
     const isItemList =
@@ -114,10 +146,21 @@ export default function Bubble(props) {
     };
 
     return (
-        <Box sx={{ maxWidth: '60%', minWidth: 'auto' }}>
+        <Box sx={{ maxWidth: compact ? '78%' : '60%', minWidth: compact ? 0 : 'auto' }}>
             {open && <ChatMediaPreview open={open} setOpen={setOpen} url={previewSelect} />}
 
             {/* Header: ชื่อ + เวลา */}
+            {compact ? (
+                showName && (
+                    <Typography
+                        level="body-xs" noWrap
+                        sx={{ mb: 0.25, px: 0.5, color: 'text.secondary', textAlign: isSent ? 'right' : 'left' }}
+                    >
+                        {isSent ? sender?.name : (sender?.custName ? sender.custName : sender?.name)}
+                        {isSent ? sender?.real_name ? ` (${sender.real_name})` : '' : ''}
+                    </Typography>
+                )
+            ) : (
             <Stack
                 direction="row"
                 spacing={2}
@@ -133,10 +176,13 @@ export default function Bubble(props) {
                 </Typography>
                 <Typography level="body-xs">{createdAtText}</Typography>
             </Stack>
+            )}
 
+            <Box sx={compact ? { display: 'flex', alignItems: 'flex-end', gap: 0.75, flexDirection: isSent ? 'row-reverse' : 'row' } : undefined}>
             <Box
                 sx={{
                     position: 'relative',
+                    minWidth: 0,
                     "&:hover .action-buttons": {
                         opacity: 1
                     }
@@ -168,15 +214,7 @@ export default function Bubble(props) {
                     </Box>
                 )}
 
-                <Sheet
-                    sx={
-                        isSent
-                            ? (sender?.empCode === user?.empCode
-                                ? MessageStyle.Bubble.IsMySent
-                                : MessageStyle.Bubble.IsSent)
-                            : MessageStyle.Bubble.IsNotSent
-                    }
-                >
+                <Sheet sx={bubbleSx}>
                     {/* ส่วนแสดงข้อความที่อ้างอิง (quote) */}
                     {line_quoted_message_id ? (
                         <div>
@@ -197,10 +235,10 @@ export default function Bubble(props) {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Typography level='body-sm' sx={{ color: 'white' }}>
+                                                        <Typography level='body-sm' sx={{ color: compact ? 'rgba(0,0,0,0.6)' : 'white' }}>
                                                             {quotedMessage.content}
                                                         </Typography>
-                                                        <Divider sx={{ bgcolor: 'white' }} />
+                                                        <Divider sx={{ bgcolor: compact ? 'rgba(0,0,0,0.2)' : 'white' }} />
                                                     </>
                                                 )}
                                             </Stack>
@@ -214,10 +252,12 @@ export default function Bubble(props) {
                     {/* เนื้อหาหลักของบับเบิล */}
                     {contentType === 'sticker' ? (
                         <Sheet
-                            variant="outlined"
-                            sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}
+                            variant={compact ? 'plain' : 'outlined'}
+                            sx={compact
+                                ? { backgroundColor: 'transparent' }
+                                : (isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent)}
                         >
-                            <img src={forceHttps(content)} alt="" width={165} />
+                            <img src={forceHttps(content)} alt="" width={compact ? 120 : 165} />
                         </Sheet>
                     ) : contentType === 'image' ? (
                         <Sheet
@@ -226,10 +266,12 @@ export default function Bubble(props) {
                                 setOpen(true);
                             }}
                             variant="outlined"
-                            sx={isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent}
+                            sx={compact
+                                ? { p: 0, borderRadius: '14px', overflow: 'hidden', lineHeight: 0 }
+                                : (isSent ? MessageStyle.Bubble.ImageIsSent : MessageStyle.Bubble.ImageIsNotSent)}
                         >
                             <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                                <img loading="lazy" src={forceHttps(content)} width={165} alt={content} />
+                                <img loading="lazy" src={forceHttps(content)} width={compact ? 180 : 165} alt={content} />
                             </Stack>
                         </Sheet>
                     ) : (contentType === 'file' || contentType === 'video' || contentType === 'audio') ? (
@@ -421,18 +463,14 @@ export default function Bubble(props) {
                             sx={{
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-word',
-                                ...(isSent
-                                    ? (sender?.empCode === user?.empCode
-                                        ? MessageStyle.Bubble.TextMySent
-                                        : MessageStyle.Bubble.TextIsSent)
-                                    : MessageStyle.Bubble.TextIsNotSent)
+                                ...textSx
                             }}
                         >
                             {String(content ?? "")}
                         </Typography>
                     )}
                 </Sheet>
-                {isSent && isShopeeRoom && (
+                {!compact && isSent && isShopeeRoom && (
                     <Typography
                         level="body-xs"
                         sx={{ textAlign: 'right', mt: 0.5, color: isRead ? '#1976d2' : 'neutral.400' }}
@@ -441,9 +479,26 @@ export default function Bubble(props) {
                     </Typography>
                 )}
             </Box>
+            {compact && (
+                <Box sx={{ flexShrink: 0, textAlign: isSent ? 'right' : 'left', pb: 0.25 }}>
+                    {isSent && isShopeeRoom && isRead && (
+                        <Typography level="body-xs" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.2 }}>
+                            อ่านแล้ว
+                        </Typography>
+                    )}
+                    <Typography level="body-xs" sx={{ fontSize: 10, color: 'text.secondary', lineHeight: 1.2 }}>
+                        {shortTimeText}
+                    </Typography>
+                </Box>
+            )}
+            </Box>
         </Box>
     );
 }
+
+// สีบับเบิลฝั่งเรา (มือถือ) แบบ LINE — ของฉันเขียวเข้ม, พนักงานคนอื่นเขียวอ่อน
+const LINE_SENT = '#8DE055';
+const LINE_SENT_OTHER = '#D4F3C0';
 
 // ปุ่ม "Generate AI" ต่อข้อความ — วางไว้ท้ายข้อความ (ใต้บับเบิล) แทนด้านบน กันไปทับกับแถวชื่อ/เวลาที่อยู่เหนือบับเบิล
 // และกันชนกับปุ่มตอบกลับของ ContextMenuButton ที่ยังอยู่ด้านบน (top: -30px, right: 10) เหมือนเดิม

@@ -9,7 +9,7 @@ export const MessageStyle = {
         display: 'grid',
         gridTemplateColumns: {
             // มือถือ: คอลัมน์เดียว โน้ต/AI/rail จะลอยทับแบบ fixed แทนการกินพื้นที่ grid
-            xs: 'minmax(min-content, 1fr)',
+            xs: 'minmax(0, 1fr)',
             md: 'minmax(min-content, 1fr) var(--InfoPanel-width, 0px) var(--InfoRail-width, 84px)',
         },
         transition: 'grid-template-columns 0.25s ease',

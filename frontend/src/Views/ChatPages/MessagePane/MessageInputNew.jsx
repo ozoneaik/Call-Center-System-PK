@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Box, Textarea, Typography, Button, Stack, Card } from '@mui/joy';
-import { Delete, EmojiEmotions, Info, RemoveRedEye, Send, ShoppingBag } from '@mui/icons-material';
+import { Box, Textarea, Typography, Button, Stack, Card, IconButton } from '@mui/joy';
+import {
+    AddCircleOutline, Close, Delete, EmojiEmotionsOutlined, EmojiEmotions, Info, InsertDriveFile,
+    RemoveRedEye, Send, ShoppingBag, ShoppingBagOutlined
+} from '@mui/icons-material';
+import { useMediaQuery } from '@mui/material';
 import { sendApi } from '../../../Api/Messages';
 import { AlertDiaLog } from '../../../Dialogs/Alert';
 import { useNotification } from '../../../context/NotiContext';
@@ -23,6 +27,8 @@ export default function MessageInputNew(props) {
 
     const { user } = useAuth();
     const textareaRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
         if (firstRender) {
@@ -135,6 +141,15 @@ export default function MessageInputNew(props) {
         e.preventDefault();
     };
 
+    // มือถือไม่มีลาก-วางไฟล์ เลยให้กดปุ่ม + เลือกไฟล์จากเครื่องแทน
+    const handlePickFiles = (e) => {
+        const picked = Array.from(e.target.files || []);
+        if (picked.length > 0) {
+            setFiles((prev) => [...prev, ...picked]);
+        }
+        e.target.value = '';
+    };
+
     const handleDeleteFile = (index) => {
         setFiles((prev) => prev.filter((_, i) => i !== index));
     };
@@ -179,6 +194,134 @@ export default function MessageInputNew(props) {
     const isDisabled = (sender.emp !== user.empCode) && (user.role !== 'admin');
     const isShopee = sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
     const isLazada = sender?.platform === 'lazada' || (sender?.description || '').toLowerCase().includes('lazada');
+
+    const modals = (
+        <>
+            {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
+            {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
+            {productOpen && isShopee && (
+                <ShopeeProductPicker
+                    open={productOpen}
+                    setOpen={setProductOpen}
+                    sender={sender}
+                    onSelect={handleSendProduct}
+                />
+            )}
+            {productOpen && isLazada && (
+                <LazadaProductPicker
+                    open={productOpen}
+                    setOpen={setProductOpen}
+                    sender={sender}
+                    onSelect={handleSendProduct}
+                />
+            )}
+        </>
+    );
+
+    if (isMobile) {
+        const canSend = !isDisabled && (inputText.trim() || files.length > 0);
+        return (
+            <Box
+                sx={{
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.surface',
+                    px: 1,
+                    pt: 0.75,
+                    pb: 'calc(6px + env(safe-area-inset-bottom))',
+                }}
+            >
+                {files.length > 0 && (
+                    <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.75 }}>
+                        {files.map((file, index) => (
+                            <Box
+                                key={index}
+                                sx={{
+                                    position: 'relative', flexShrink: 0, width: 64, height: 64,
+                                    borderRadius: 'md', overflow: 'hidden', bgcolor: 'background.level2',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >
+                                {file.type?.startsWith('image/') ? (
+                                    <img src={URL.createObjectURL(file)} alt={file.name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <InsertDriveFile sx={{ color: 'text.tertiary' }} />
+                                )}
+                                <IconButton
+                                    size="sm" variant="solid" color="neutral"
+                                    onClick={() => handleDeleteFile(index)}
+                                    sx={{
+                                        position: 'absolute', top: 2, right: 2,
+                                        minWidth: 20, minHeight: 20, borderRadius: '50%',
+                                        bgcolor: 'rgba(0,0,0,0.55)', '--Icon-fontSize': '14px',
+                                    }}
+                                >
+                                    <Close />
+                                </IconButton>
+                            </Box>
+                        ))}
+                    </Box>
+                )}
+
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.25 }}>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,application/pdf"
+                        hidden
+                        onChange={handlePickFiles}
+                    />
+                    <IconButton variant="plain" color="neutral" disabled={isDisabled}
+                        onClick={() => fileInputRef.current?.click()}>
+                        <AddCircleOutline />
+                    </IconButton>
+                    {(isShopee || isLazada) && (
+                        <IconButton variant="plain" color="neutral" disabled={isDisabled}
+                            onClick={() => setProductOpen(true)}>
+                            <ShoppingBagOutlined />
+                        </IconButton>
+                    )}
+                    <Textarea
+                        ref={textareaRef}
+                        disabled={isDisabled}
+                        placeholder="Aa"
+                        minRows={1}
+                        maxRows={5}
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onPaste={handlePaste}
+                        variant="soft"
+                        endDecorator={null}
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            borderRadius: '20px',
+                            '--Textarea-paddingBlock': '7px',
+                            '--Textarea-focusedThickness': '0px',
+                            fontSize: 15,
+                        }}
+                    />
+                    <IconButton variant="plain" color="neutral" disabled={isDisabled}
+                        onClick={() => setStickerOpen(true)}>
+                        <EmojiEmotionsOutlined />
+                    </IconButton>
+                    <IconButton
+                        variant="plain"
+                        disabled={!canSend}
+                        loading={loading}
+                        onClick={handleSend}
+                        sx={{ color: canSend ? LINE_GREEN : undefined }}
+                    >
+                        <Send />
+                    </IconButton>
+                </Box>
+                {modals}
+            </Box>
+        );
+    }
+
     return (
         <Box
             sx={{
@@ -309,24 +452,9 @@ export default function MessageInputNew(props) {
                     วิธีส่งข้อความ (ไฟล์,รูปภาพ,วิดีโอ)
                 </Button>
             </Stack>
-            {stickerOpen && <StickerPkNew activeId={activeId} sender={sender} open={stickerOpen} setOpen={setStickerOpen} />}
-            {openHelper && <ModalHelperSendMsg open={openHelper} setOpen={setOpenHelper} />}
-            {productOpen && isShopee && (
-                <ShopeeProductPicker
-                    open={productOpen}
-                    setOpen={setProductOpen}
-                    sender={sender}
-                    onSelect={handleSendProduct}
-                />
-            )}
-            {productOpen && isLazada && (
-                <LazadaProductPicker
-                    open={productOpen}
-                    setOpen={setProductOpen}
-                    sender={sender}
-                    onSelect={handleSendProduct}
-                />
-            )}
+            {modals}
         </Box>
     );
 }
+
+const LINE_GREEN = '#06C755';

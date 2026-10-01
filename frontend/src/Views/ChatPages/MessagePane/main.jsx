@@ -15,6 +15,32 @@ import GenerateContextModal from "./GenerateContextModal.jsx";
 import duragearsLogo from "../../../assets/watermarks/duragears-logo.png";
 import texusbullLogo from "../../../assets/watermarks/texusbull.png";
 import pumpkinLogo from "../../../assets/watermarks/pumpkin.png";
+import { useMediaQuery } from "@mui/material";
+
+const dayKeyOf = (date) => {
+    const D = new Date(date);
+    return isNaN(D) ? '' : `${D.getFullYear()}-${D.getMonth()}-${D.getDate()}`;
+};
+
+// ป้ายวันที่คั่นกลางห้องแชท (มือถือ) แบบ LINE เช่น "วันนี้", "เมื่อวาน", "พ. 29 ก.ย."
+const dayLabelOf = (date) => {
+    const D = new Date(date);
+    if (isNaN(D)) return '';
+    const now = new Date();
+    if (dayKeyOf(D) === dayKeyOf(now)) return 'วันนี้';
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    if (dayKeyOf(D) === dayKeyOf(yesterday)) return 'เมื่อวาน';
+    return D.toLocaleDateString('th-TH', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        ...(D.getFullYear() !== now.getFullYear() && { year: 'numeric' }),
+    });
+};
+
+// ใช้จัดกลุ่มข้อความต่อเนื่องจากคนเดียวกัน (ซ่อนรูป/ชื่อซ้ำแบบ LINE)
+const senderKeyOf = (message) => {
+    const s = message?.sender || {};
+    return s.custId ? `c:${s.custId}` : `e:${s.empCode ?? s.name ?? ''}`;
+};
 
 // เทียบแบบ normalize (ตัดช่องว่าง/จุด/ตัวพิมพ์เล็กใหญ่ทิ้ง) กันพลาดเรื่องรูปแบบชื่อร้านที่พิมพ์ไว้ใน platform_access_tokens.description
 const normalizeShopName = (name) => (name || '').toLowerCase().replace(/[^a-z0-9฀-๿]/g, '');
@@ -53,6 +79,7 @@ const SHOP_ROOM_COLOR_RULES = [
 
 export default function MessagePane() {
     const { notification } = useNotification();
+    const isMobile = useMediaQuery('(max-width: 768px)');
     const [messages, setMessages] = useState({});
     const { chatRoomsContext, setChatRoomsContext } = useChatRooms();
 
@@ -265,6 +292,12 @@ export default function MessagePane() {
                         <Box
                             sx={{
                                 ...MessageStyle.PaneContent,
+                                ...(isMobile && {
+                                    px: 1.25,
+                                    py: 1.5,
+                                    backgroundColor: '#C7D7EB',
+                                    '[data-joy-color-scheme="dark"] &': { backgroundColor: '#1b2533' },
+                                }),
                                 // watermark โลโก้ร้าน (ถ้ามีตาม SHOP_ROOM_COLOR_RULES) — ทำผ่าน ::before แยกชั้น แล้วลด opacity
                                 // ของชั้นนั้นเอา ไม่ใช่ทับด้วย gradient สีขาว เพราะ gradient จะกลายเป็นแผ่นสีขาวทึบเห็นเป็นกรอบ
                                 // สี่เหลี่ยมแปลกๆ ทับพื้นหลังเดิม (โดยเฉพาะถ้าพื้นหลังจริงไม่ใช่สีขาวล้วน)
@@ -291,7 +324,7 @@ export default function MessagePane() {
                         >
                             {loading && <CircularProgress />}
                             {!loading && (
-                                <Stack spacing={2} sx={{ justifyContent: 'flex-end' }}>
+                                <Stack spacing={isMobile ? 0 : 2} sx={{ justifyContent: 'flex-end' }}>
                                     {messages.length > 0 && messages.map((message, index) => {
                                         // ฝั่ง "เรา" (แอดมิน/บอท/ระบบของร้าน) คือ sender ที่ไม่มี custId
                                         // ไม่ใช้แค่ empCode เพราะข้อความจาก Shopee AI ผู้ช่วยตอบแชท/Shopee System
@@ -302,6 +335,57 @@ export default function MessagePane() {
                                         const isLastGenerated = lastGeneratedKey != null
                                             && messageKey != null
                                             && String(messageKey) === String(lastGeneratedKey);
+                                        const prev = messages[index - 1];
+                                        const isNewDay = !prev || dayKeyOf(prev.created_at) !== dayKeyOf(message.created_at);
+                                        // ข้อความต่อเนื่องจากคนเดิมในวันเดียวกัน — ไม่ต้องโชว์รูป/ชื่อซ้ำ
+                                        const isContinuation = !isNewDay && senderKeyOf(prev) === senderKeyOf(message);
+                                        const generatedDivider = isLastGenerated && (
+                                            <Divider sx={{ my: 1.5, '--Divider-childPosition': '50%' }}>
+                                                <Typography level="body-xs" sx={{ color: '#6c5dd3', fontWeight: 600 }}>
+                                                    ✨ Generate AI ล่าสุดถึงตรงนี้
+                                                </Typography>
+                                            </Divider>
+                                        );
+                                        if (isMobile) {
+                                            return (
+                                                <Box key={index} sx={{ mt: isContinuation ? 0.5 : 1.5 }}>
+                                                    {isNewDay && (
+                                                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+                                                            <Typography
+                                                                level="body-xs"
+                                                                sx={{
+                                                                    px: 1.25, py: 0.25, borderRadius: 20,
+                                                                    bgcolor: 'rgba(0,0,0,0.18)', color: '#fff', fontWeight: 600,
+                                                                }}
+                                                            >
+                                                                {dayLabelOf(message.created_at)}
+                                                            </Typography>
+                                                        </Box>
+                                                    )}
+                                                    <Stack
+                                                        direction="row" spacing={1}
+                                                        sx={{ flexDirection: isYou ? 'row-reverse' : 'row', alignItems: 'flex-start' }}
+                                                    >
+                                                        {!isYou && (
+                                                            isContinuation
+                                                                ? <Box sx={{ width: 36, flexShrink: 0 }} />
+                                                                : <Avatar src={forceHttps(message.sender.avatar)} sx={{ width: 36, height: 36, flexShrink: 0 }} />
+                                                        )}
+                                                        <ChatBubble
+                                                            variant={isYou ? 'sent' : 'received'}
+                                                            isShopeeRoom={isShopeeRoom}
+                                                            {...message}
+                                                            {...{ messages, setMessages }}
+                                                            onGenerateAi={handleGenerateAi}
+                                                            generatingAi={!!messageKey && messageKey === generatingMessageKey}
+                                                            compact
+                                                            showName={!isContinuation}
+                                                        />
+                                                    </Stack>
+                                                    {generatedDivider}
+                                                </Box>
+                                            );
+                                        }
                                         return (
                                             <Box key={index}>
                                                 <Stack
@@ -319,13 +403,7 @@ export default function MessagePane() {
                                                         generatingAi={!!messageKey && messageKey === generatingMessageKey}
                                                     />
                                                 </Stack>
-                                                {isLastGenerated && (
-                                                    <Divider sx={{ my: 1.5, '--Divider-childPosition': '50%' }}>
-                                                        <Typography level="body-xs" sx={{ color: '#6c5dd3', fontWeight: 600 }}>
-                                                            ✨ Generate AI ล่าสุดถึงตรงนี้
-                                                        </Typography>
-                                                    </Divider>
-                                                )}
+                                                {generatedDivider}
                                             </Box>
                                         );
                                     })}

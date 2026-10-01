@@ -12,6 +12,8 @@ import { Sheet, CircularProgress, Box, Stack } from "@mui/joy";
 import OrderTable from "./ProgressTableNew.jsx";
 import PendingTableNew from "./PendingTableNew.jsx";
 import ChatPageNew from "../ChatPagesNew/ChatPageNew.jsx";
+import MobileCaseList from "./MobileCaseList.jsx";
+import { useMediaQuery } from "@mui/material";
 
 export default function MainChat() {
     const { user } = useAuth();
@@ -25,6 +27,7 @@ export default function MainChat() {
     const [firstRender, setFirstRender] = useState(true);
     const [loading, setLoading] = useState(false);
     const [showMyCasesOnly, setShowMyCasesOnly] = useState(false);
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     const sortChatsByLatestMessage = (chats) => {
         return [...chats].sort((a, b) => {
@@ -286,6 +289,19 @@ export default function MainChat() {
             {
                 loading ? (
                     <CircularProgress />
+                ) : isMobile ? (
+                    <Box sx={{ height: 'calc(100dvh - 48px)', display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100vw', minWidth: 0, overflow: 'hidden' }}>
+                        <MobileCaseList
+                            roomId={roomId}
+                            roomName={roomName}
+                            progress={progress}
+                            filterProgress={filterProgress}
+                            setFilterProgress={setFilterProgress}
+                            showMyCasesOnly={showMyCasesOnly}
+                            setShowMyCasesOnly={setShowMyCasesOnly}
+                            filterPending={filterPending}
+                        />
+                    </Box>
                 ) : (
                     <Box
                         component="main"

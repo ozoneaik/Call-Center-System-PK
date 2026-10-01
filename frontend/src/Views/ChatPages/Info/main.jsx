@@ -49,7 +49,7 @@ const Info = forwardRef(function Info(props, ref) {
     // ส่วนที่กำลังเปิดใน Bar เมนูขวามือ: 'ai' | 'notes' | 'feedback' | 'lazadaOrders' | 'shopeeOrders' | null
     const [openSection, setOpenSection] = useState(null);
     // ย่อ/ขยาย Bar เมนูขวามือ
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => window.matchMedia('(max-width: 768px)').matches);
 
     useEffect(() => {
         document.documentElement.style.setProperty(
