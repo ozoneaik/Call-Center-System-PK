@@ -62,6 +62,15 @@ class FilterCase
                 ->orderBy('id', 'desc')->first();
 
             // -----------------------------------------
+            // 0. ข้อความตาม pattern ที่กำหนด → ส่งเข้าห้องเฉพาะทันที (ก่อน ArchitectService/isSpam)
+            // -----------------------------------------
+            $patternRoute = $this->routeByContentPattern($current_rate, $flow);
+            if ($patternRoute) {
+                Log::channel('webhook_main')->info($this->end_log_line);
+                return $patternRoute;
+            }
+
+            // -----------------------------------------
             // 1. ตรวจสอบ ArchitectService ก่อน isSpam
             // -----------------------------------------
             $architectService = new ArchitectService();
@@ -178,6 +187,119 @@ class FilterCase
         } catch (\Exception $e) {
             return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
         }
+    }
+
+    // ข้อความของลูกค้าที่มี pattern เหล่านี้ (ตรงไหนของข้อความก็ได้) จะถูกส่งเข้าห้องที่กำหนดทันที
+    protected const CONTENT_ROUTES = [
+        'สอบถามเพิ่มเติมเรื่อง:' => 'ROOM06', // Customer service
+    ];
+
+    /**
+     * ย้าย/สร้างเคสเข้าห้องตาม CONTENT_ROUTES ถ้าข้อความตรง pattern
+     * - เคสที่พนักงานกำลังคุยอยู่ (status = progress) จะไม่ถูกย้าย ปล่อยให้ไปตาม flow ปกติ
+     * - คืน null ถ้าไม่ตรงเงื่อนไข
+     */
+    private function routeByContentPattern($current_rate, int $flow): ?array
+    {
+        if (($this->MESSAGE['contentType'] ?? null) !== 'text') return null;
+        $content = (string) ($this->MESSAGE['content'] ?? '');
+
+        $targetRoom = null;
+        foreach (self::CONTENT_ROUTES as $pattern => $roomId) {
+            if (str_contains($content, $pattern)) {
+                $targetRoom = $roomId;
+                break;
+            }
+        }
+        if (!$targetRoom) return null;
+
+        if ($current_rate && $current_rate['status'] === 'progress') {
+            Log::channel('webhook_main')->info("พบ pattern ส่งเข้า {$targetRoom} แต่เคสกำลังดำเนินการอยู่ ไม่ย้ายห้อง", [
+                'custId' => $this->CUSTOMER['custId'],
+                'room'   => $current_rate['latestRoomId'],
+            ]);
+            return null;
+        }
+
+        $bot = $this->BOT;
+
+        if ($current_rate && $current_rate['status'] === 'pending') {
+            // เคสรออยู่ — ย้ายไปห้องเป้าหมาย (ถ้ายังไม่ได้อยู่ห้องนั้น)
+            $old_room_id = $current_rate['latestRoomId'];
+            $old_ac = ActiveConversations::where('rateRef', $current_rate['id'])->orderBy('id', 'desc')->first();
+
+            if ($old_room_id !== $targetRoom) {
+                if ($old_ac) {
+                    $old_ac->update([
+                        'receiveAt' => Carbon::now(),
+                        'startTime' => Carbon::now(),
+                        'endTime'   => Carbon::now(),
+                        'empCode'   => 'BOT',
+                    ]);
+                }
+                $current_rate->update(['latestRoomId' => $targetRoom]);
+                $ac = ActiveConversations::create([
+                    'custId'       => $this->CUSTOMER['custId'],
+                    'roomId'       => $targetRoom,
+                    'empCode'      => $bot['empCode'],
+                    'rateRef'      => $current_rate['id'],
+                    'from_empCode' => $old_ac['empCode'] ?? null,
+                    'from_roomId'  => $old_room_id,
+                ]);
+            } else {
+                $ac = $old_ac;
+            }
+        } else {
+            // ไม่มีเคส หรือเคสเก่าจบไปแล้ว (success) — เปิดเคสใหม่ในห้องเป้าหมาย
+            $new_rate = Rates::create([
+                'custId'       => $this->CUSTOMER['custId'],
+                'rate'         => 0,
+                'latestRoomId' => $targetRoom,
+                'status'       => 'pending',
+            ]);
+            $ac = ActiveConversations::create([
+                'custId'  => $this->CUSTOMER['custId'],
+                'roomId'  => $targetRoom,
+                'empCode' => $bot['empCode'],
+                'rateRef' => $new_rate->id,
+            ]);
+        }
+
+        ChatHistory::create([
+            'custId'                 => $this->CUSTOMER['custId'],
+            'content'                => $this->MESSAGE['content'],
+            'contentType'            => $this->MESSAGE['contentType'],
+            'sender'                 => json_encode($this->CUSTOMER),
+            'conversationRef'        => $ac['id'] ?? null,
+            'line_message_id'        => $this->MESSAGE['line_message_id'] ?? null,
+            'line_quote_token'       => $this->MESSAGE['line_quote_token'] ?? null,
+            'line_quoted_message_id' => $this->MESSAGE['line_quoted_message_id'] ?? null,
+        ]);
+        $this->pusherService->sendNotification($this->CUSTOMER['custId']);
+
+        Log::channel('webhook_main')->info("ส่งเคสเข้า {$targetRoom} ตาม pattern ข้อความ", [
+            'custId' => $this->CUSTOMER['custId'],
+        ]);
+
+        return [
+            'status' => true,
+            'case'   => [
+                'status'       => true,
+                // flow 2 (Lazada/Shopee) ไม่ตอบกลับลูกค้าอัตโนมัติ เหมือน caseFlow2
+                'send_to_cust' => $flow === 1,
+                'type_send'    => 'menu_sended',
+                'type_message' => 'reply',
+                'messages'     => [[
+                    'content'     => $this->forwardToStaffMessage(),
+                    'contentType' => 'text',
+                ]],
+                'customer'              => $this->CUSTOMER,
+                'ac_id'                 => $ac['id'] ?? null,
+                'platform_access_token' => $this->PLATFORM_ACCESS_TOKEN,
+                'reply_token'           => $this->MESSAGE['reply_token'] ?? null,
+                'bot'                   => $bot,
+            ],
+        ];
     }
 
     private function checkParams($customer = null, $message = null, $platformAccessToken = null)
