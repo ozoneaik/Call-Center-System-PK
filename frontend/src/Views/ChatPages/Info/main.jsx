@@ -497,6 +497,7 @@ const Info = forwardRef(function Info(props, ref) {
                 onClose={() => setHistoryModalOpen(false)}
                 messages={historyMessages}
                 summary={historySummary}
+                platform={isLazadaCustomer ? 'Lazada' : 'Shopee'}
                 onImport={handleImportToChat}
             />
         </>

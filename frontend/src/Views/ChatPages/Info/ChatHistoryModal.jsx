@@ -12,9 +12,23 @@ const senderLabel = (sender) => {
     return sender?.name || 'ระบบ';
 };
 
-// Modal แสดงประวัติแชทที่ดึงมาจาก Shopee (get_message) ตอนกดปุ่ม "ประวัติแชท" ใน Info/main.jsx
+const PLATFORM_COLORS = { Shopee: '#ff5722', Lazada: '#0f146d' };
+
+// ข้อความ contentType = product เก็บเป็น JSON string ({id,name,price,image,url}) — แปลงเป็นการ์ดสินค้า
+// ถ้า parse ไม่ได้ให้ fallback ไปแสดงเป็นข้อความธรรมดา
+const parseProduct = (content) => {
+    if (typeof content !== 'string') return content && typeof content === 'object' ? content : null;
+    try {
+        const p = JSON.parse(content);
+        return p && typeof p === 'object' ? p : null;
+    } catch {
+        return null;
+    }
+};
+
+// Modal แสดงประวัติแชทที่ดึงมาจาก Shopee (get_message) / Lazada (/im/message/list) ตอนกดปุ่ม "ประวัติแชท" ใน Info/main.jsx
 // ค่าเริ่มต้นจะยังไม่นำเข้าไปหน้าแชทหลักทันที ต้องกด "นำเข้า" ยืนยันก่อน (onImport) — กด "ไม่นำเข้า" ก็แค่ปิดกล่องถามไป
-export default function ChatHistoryModal({ open, onClose, messages = [], loading = false, summary, onImport }) {
+export default function ChatHistoryModal({ open, onClose, messages = [], loading = false, summary, onImport, platform = 'Shopee' }) {
     // null = ยังไม่ตัดสินใจ (โชว์กล่องถาม), 'imported' = กดนำเข้าแล้ว, 'skipped' = กดไม่นำเข้า
     const [decision, setDecision] = useState(null);
 
@@ -42,8 +56,8 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                 <ModalClose sx={{ '--IconButton-size': '40px' }} />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexShrink: 0 }}>
-                    <HistoryIcon sx={{ color: '#ff5722' }} fontSize="small" />
-                    <Typography level="title-lg">ประวัติแชท Shopee</Typography>
+                    <HistoryIcon sx={{ color: PLATFORM_COLORS[platform] ?? '#ff5722' }} fontSize="small" />
+                    <Typography level="title-lg">ประวัติแชท {platform}</Typography>
                 </Box>
                 {summary && (
                     <Typography level="body-xs" sx={{ color: 'text.tertiary', mb: 1.5, flexShrink: 0 }}>
@@ -86,6 +100,7 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             {messages.map((m) => {
                                 const isImage = m.contentType === 'image';
+                                const product = m.contentType === 'product' ? parseProduct(m.content) : null;
                                 const isCustomer = !!m.sender?.custId;
                                 return (
                                     <Box
@@ -117,6 +132,32 @@ export default function ChatHistoryModal({ open, onClose, messages = [], loading
                                                     alt="chat"
                                                     style={{ maxWidth: 160, maxHeight: 120, borderRadius: 4, display: 'block' }}
                                                 />
+                                            ) : product ? (
+                                                <Box
+                                                    component={product.url ? 'a' : 'div'}
+                                                    href={product.url || undefined}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    sx={{ display: 'flex', gap: 1, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
+                                                >
+                                                    {product.image && (
+                                                        <img
+                                                            src={product.image}
+                                                            alt={product.name || 'product'}
+                                                            style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                                                        />
+                                                    )}
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                        <Typography level="body-sm" sx={{ wordBreak: 'break-word' }}>
+                                                            {product.name || '-'}
+                                                        </Typography>
+                                                        {product.price != null && product.price !== '' && (
+                                                            <Typography level="body-xs" sx={{ fontWeight: 600, color: PLATFORM_COLORS[platform] }}>
+                                                                {product.price}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </Box>
                                             ) : (
                                                 <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                                     {m.content}

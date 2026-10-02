@@ -1034,7 +1034,13 @@ class NewLazadaController extends Controller
                 ], $platform);
                 if ($formatted['content'] === null || $formatted['content'] === '') continue;
 
-                $createdAt = !empty($m['send_time']) ? Carbon::createFromTimestampMs((int) $m['send_time']) : null;
+                // ข้อความ "📌📌📌" คือข้อความทดสอบที่ check_customer_and_get_platform ยิงไปหา platform ที่ถูกต้อง ไม่ใช่บทสนทนาจริง
+                if (($content['txt'] ?? null) === '📌📌📌') continue;
+
+                // Carbon 3 สร้างจาก timestamp เป็น UTC เสมอ ต้องแปลงเป็น timezone ของแอปก่อนบันทึก ไม่งั้นเวลาจะเพี้ยน 7 ชม.
+                $createdAt = !empty($m['send_time'])
+                    ? Carbon::createFromTimestampMs((int) $m['send_time'])->setTimezone(config('app.timezone'))
+                    : null;
 
                 // from_account_type: 1 = ลูกค้า, 2 = ร้านค้า
                 $isFromCustomer = (int) ($m['from_account_type'] ?? 0) === 1;

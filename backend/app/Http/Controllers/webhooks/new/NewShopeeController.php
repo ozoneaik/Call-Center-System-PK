@@ -525,7 +525,8 @@ class NewShopeeController extends Controller
                 $store_chat->sender          = $senderJson;
                 $store_chat->line_message_id = (string) $messageId;
                 if (!empty($m['created_timestamp'])) {
-                    $createdAt              = Carbon::createFromTimestamp($m['created_timestamp']);
+                    // Carbon 3 สร้างจาก timestamp เป็น UTC เสมอ ต้องแปลงเป็น timezone ของแอปก่อนบันทึก ไม่งั้นเวลาจะเพี้ยน 7 ชม.
+                    $createdAt              = Carbon::createFromTimestamp($m['created_timestamp'])->setTimezone(config('app.timezone'));
                     $store_chat->created_at = $createdAt;
                     $store_chat->updated_at = $createdAt;
                 }
