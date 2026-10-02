@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ActiveConversations;
+use App\Models\AiKbEntry;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\KnowledgeBaseEntry;
@@ -29,6 +30,10 @@ class ProcessKnowledgeBaseJob implements ShouldQueue
                 Log::warning("ProcessKnowledgeBaseJob: ไม่พบ ActiveConversation id={$this->activeConversationId}");
                 return;
             }
+
+            // เคสถูกปิดแล้ว (มี Tag ใน rates) — เติม Tag ให้ความรู้ที่พนักงานกด "เพิ่มเข้า KB" ระหว่างแชทเคสนี้
+            // ทำก่อน quality filter ด้านล่าง เพราะ filter นั้นใช้คัดเฉพาะการสร้าง KnowledgeBaseEntry เท่านั้น
+            AiKbEntry::fillTagForConversation($this->activeConversationId);
 
             $histories = ChatHistory::where('conversationRef', $this->activeConversationId)
                 ->orderBy('created_at', 'asc')

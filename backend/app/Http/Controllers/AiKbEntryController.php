@@ -66,7 +66,9 @@ class AiKbEntryController extends Controller
             'answer'                 => $validated['answer'],
             'note'                   => $validated['note'] ?? null,
             'source'                 => $validated['source'],
-            'tag_name'               => $validated['tag_name'] ?? null,
+            // หน้าแชทไม่ได้ส่ง tag มา — ใช้ Tag ของเคสถ้าเคสถูกปิดไปแล้ว ไม่งั้นจะถูกเติมตอนปิดเคส (ProcessKnowledgeBaseJob)
+            'tag_name'               => $validated['tag_name']
+                ?? AiKbEntry::resolveTagName($validated['active_conversation_id'] ?? null),
             'cust_id'                => $validated['cust_id'] ?? null,
             'active_conversation_id' => $validated['active_conversation_id'] ?? null,
             'message_ref'            => $validated['message_ref'] ?? null,
