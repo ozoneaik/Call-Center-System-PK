@@ -7,6 +7,7 @@ use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
+use App\Services\DisplayService;
 use App\Services\PusherService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
@@ -379,6 +380,7 @@ class NewLazadaController extends Controller
             case 200016:
                 $msg_formatted['content'] = $message_req['content']['ext']['summary'] ?? 'ลูกค้าส่งโปรโมชั่นมา';
                 $msg_formatted['contentType'] = 'text';
+                break;
             default:
                 // $msg_formatted['content'] = 'ส่งอย่างอื่น ประเภทข้อความ : ' . $message_req['template_id'];
                 // $msg_formatted['contentType'] = 'text';
@@ -655,7 +657,9 @@ class NewLazadaController extends Controller
                     $sent_messages[] = [
                         'content' => $msg_data['content_original'] ?? $msg_data['txt'] ?? $msg_data['img_url'] ?? $msg_data['video_url'] ?? '',
                         'contentType' => $msg_data['template_id'] == '1' ? 'text' : ($msg_data['template_id'] == '3' ? 'image' : ($msg_data['template_id'] == '6' ? 'video' : 'product')),
-                        'response' => $result
+                        'response' => $result,
+                        // เก็บ message_id ฝั่ง Lazada ไว้ กันไม่ให้ syncConversationHistory ดึงข้อความนี้ซ้ำมาภายหลัง
+                        'lazada_message_id' => $result['data']['message_id'] ?? $result['message_id'] ?? null,
                     ];
                 }
                 // ✅ 3. Error กรณีอื่นๆ (เช่น API พัง, Network มีปัญหา)
@@ -679,7 +683,7 @@ class NewLazadaController extends Controller
                 }
                 $store_chat->conversationRef = $filter_case_response['ac_id'] ?? null;
                 $store_chat->line_message_id = null;
-                $store_chat->line_quote_token = null;
+                $store_chat->line_quote_token = !empty($message['lazada_message_id']) ? (string) $message['lazada_message_id'] : null;
                 $store_chat->save();
             }
             $pusherService = new PusherService();
@@ -908,6 +912,215 @@ class NewLazadaController extends Controller
             'body'   => $response->body(),
         ]);
         return null;
+    }
+
+    //--------------------------------------------------chat history api-----------------------------------------------------------------------
+
+    /**
+     * ปุ่มกด "ดึงประวัติแชทย้อนหลัง" ของลูกค้า Lazada รายนี้
+     * Lazada ใช้ session_id เป็น custId อยู่แล้ว จึงยิง /im/message/list ได้ทันทีโดยไม่ต้องหา conversation id เพิ่ม
+     */
+    public function syncCustomerChatHistoryManual($custId)
+    {
+        $customer = Customers::where('custId', $custId)->first();
+        if (!$customer) {
+            return response()->json([
+                'status'  => false,
+                'message' => "ไม่พบลูกค้า custId {$custId}",
+            ], 404);
+        }
+
+        $platform = PlatformAccessTokens::find($customer->platformRef);
+        if (!$platform || $platform->platform !== 'lazada') {
+            return response()->json([
+                'status'  => false,
+                'message' => 'ลูกค้ารายนี้ไม่ได้ทักมาจากแพลตฟอร์ม Lazada',
+            ], 422);
+        }
+
+        Log::channel('webhook_lazada_new')->info('📌 กดดึงประวัติแชท Lazada ย้อนหลังด้วยตนเอง', [
+            'custId' => $custId,
+        ]);
+
+        $result = $this->syncConversationHistory($customer, $platform);
+
+        if ($result['error']) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'ดึงประวัติแชทไม่สำเร็จ: ' . $result['error'],
+            ], 500);
+        }
+
+        $chatHistory = (new DisplayService())->selectMessage($custId);
+
+        return response()->json([
+            'status'        => true,
+            'message'       => "ดึงประวัติแชทสำเร็จ พบทั้งหมด {$result['total_fetched']} ข้อความ นำเข้าใหม่ {$result['imported']} ข้อความ",
+            'total_fetched' => $result['total_fetched'],
+            'imported'      => $result['imported'],
+            'messages'      => $chatHistory,
+        ]);
+    }
+
+    /**
+     * ดึงประวัติแชทของ session จาก Lazada (/im/message/list) มาเก็บลง ChatHistory
+     * ไล่จากข้อความล่าสุดย้อนไปเก่า แล้วหยุดทันทีเมื่อเจอข้อความที่เคยบันทึกไว้แล้ว
+     */
+    private function syncConversationHistory(Customers $customer, PlatformAccessTokens $platform): array
+    {
+        try {
+            $platform    = $this->refreshAccessTokenIfNeeded($platform);
+            $sessionId   = (string) $customer->custId;
+            $allMessages = [];
+            $startTime   = (int) round(microtime(true) * 1000);
+            $lastMsgId   = null;
+            $maxPages    = 20; // กันดึงย้อนไม่รู้จบ (สูงสุด ~2000 ข้อความ)
+
+            for ($i = 0; $i < $maxPages; $i++) {
+                $data     = $this->getImMessages($sessionId, $platform, $startTime, $lastMsgId, 100);
+                $messages = $data['message_list'] ?? [];
+                if (empty($messages)) break;
+
+                $shouldStop = false;
+                foreach ($messages as $m) {
+                    $msgId = $m['message_id'] ?? null;
+                    if (
+                        $msgId && ChatHistory::where('line_message_id', (string) $msgId)
+                            ->orWhere('line_quote_token', (string) $msgId)
+                            ->exists()
+                    ) {
+                        $shouldStop = true;
+                        break;
+                    }
+                }
+
+                $allMessages = array_merge($allMessages, $messages);
+
+                if ($shouldStop || empty($data['has_more'])) break;
+
+                $nextStartTime = $data['next_start_time'] ?? null;
+                if (empty($nextStartTime) || (int) $nextStartTime === $startTime) break;
+                $startTime = (int) $nextStartTime;
+                $lastMsgId = $data['last_message_id'] ?? null;
+            }
+
+            if (empty($allMessages)) {
+                $customer->update(['history_synced_at' => now()]);
+                return ['total_fetched' => 0, 'imported' => 0, 'error' => null];
+            }
+
+            // เรียงจากเก่าไปใหม่ก่อนบันทึก เพื่อให้ลำดับบทสนทนาถูกต้อง
+            usort($allMessages, fn($a, $b) => ($a['send_time'] ?? 0) <=> ($b['send_time'] ?? 0));
+
+            $imported = 0;
+            foreach ($allMessages as $m) {
+                $messageId = isset($m['message_id']) ? (string) $m['message_id'] : null;
+                if (!$messageId) continue;
+                if (
+                    ChatHistory::where('line_message_id', $messageId)
+                        ->orWhere('line_quote_token', $messageId)
+                        ->exists()
+                ) continue;
+
+                $content = $m['content'] ?? [];
+                if (is_string($content)) {
+                    $content = json_decode($content, true) ?: ['txt' => $content];
+                }
+
+                $formatted = $this->format_message([
+                    'message_id'  => $messageId,
+                    'content'     => $content,
+                    'template_id' => (int) ($m['template_id'] ?? 0),
+                ], $platform);
+                if ($formatted['content'] === null || $formatted['content'] === '') continue;
+
+                $createdAt = !empty($m['send_time']) ? Carbon::createFromTimestampMs((int) $m['send_time']) : null;
+
+                // from_account_type: 1 = ลูกค้า, 2 = ร้านค้า
+                $isFromCustomer = (int) ($m['from_account_type'] ?? 0) === 1;
+
+                if ($isFromCustomer) {
+                    $senderJson = json_encode($customer);
+                } else {
+                    // ข้อความฝั่งร้านที่ส่งผ่านระบบเราก่อนเริ่มเก็บ message_id ของ Lazada จะไม่มี line_quote_token
+                    // เทียบเนื้อหา + เวลาใกล้เคียงกัน (±2 นาที) เพื่อกันบันทึกซ้ำ
+                    if ($createdAt && ChatHistory::where('custId', $customer->custId)
+                        ->where('content', $formatted['content'])
+                        ->whereBetween('created_at', [$createdAt->copy()->subMinutes(2), $createdAt->copy()->addMinutes(2)])
+                        ->exists()
+                    ) continue;
+
+                    $senderJson = !empty($m['auto_reply'])
+                        ? json_encode(['name' => 'ข้อความตอบกลับอัตโนมัติ (Lazada)'])
+                        : json_encode(['name' => 'แอดมินตอบผ่าน Lazada โดยตรง']);
+                }
+
+                $store_chat                  = new ChatHistory();
+                $store_chat->custId          = $customer->custId;
+                $store_chat->content         = $formatted['content'];
+                $store_chat->contentType     = $formatted['contentType'];
+                $store_chat->sender          = $senderJson;
+                $store_chat->line_message_id = $messageId;
+                if ($createdAt) {
+                    $store_chat->created_at = $createdAt;
+                    $store_chat->updated_at = $createdAt;
+                }
+                $store_chat->save();
+                $imported++;
+            }
+
+            $customer->update(['history_synced_at' => now()]);
+
+            Log::channel('webhook_lazada_new')->info('🕘 Sync ประวัติแชท Lazada สำเร็จ', [
+                'session_id'    => $sessionId,
+                'total_fetched' => count($allMessages),
+                'imported'      => $imported,
+            ]);
+
+            return ['total_fetched' => count($allMessages), 'imported' => $imported, 'error' => null];
+        } catch (\Throwable $e) {
+            Log::channel('webhook_lazada_new')->error('Lazada syncConversationHistory error ❌', [
+                'custId' => $customer->custId,
+                'error'  => $e->getMessage(),
+                'file'   => $e->getFile(),
+                'line'   => $e->getLine(),
+            ]);
+
+            return ['total_fetched' => 0, 'imported' => 0, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * เรียก Lazada IM API /im/message/list — คืนข้อความที่ send_time เก่ากว่า start_time (มิลลิวินาที)
+     * response.data: message_list, has_more, next_start_time, last_message_id
+     */
+    private function getImMessages(string $sessionId, $platform, int $startTime, ?string $lastMessageId = null, int $pageSize = 100): array
+    {
+        if (empty($platform['laz_app_key']) || empty($platform['laz_app_secret']) || empty($platform['accessToken'])) {
+            throw new \Exception('ไม่พบ Lazada credentials ใน platform_access_token');
+        }
+
+        $c = new LazopClient('https://api.lazada.co.th/rest', $platform['laz_app_key'], $platform['laz_app_secret']);
+        $request = new LazopRequest('/im/message/list', 'GET');
+        $request->addApiParam('session_id', $sessionId);
+        $request->addApiParam('start_time', (string) $startTime);
+        $request->addApiParam('page_size', (string) $pageSize);
+        if (!empty($lastMessageId)) {
+            $request->addApiParam('last_message_id', $lastMessageId);
+        }
+
+        $response = $c->execute($request, $platform['accessToken']);
+        $result   = json_decode($response, true);
+
+        if (($result['code'] ?? null) !== '0' || (isset($result['success']) && $result['success'] === false)) {
+            Log::channel('webhook_lazada_new')->error('Lazada /im/message/list error', [
+                'session_id' => $sessionId,
+                'resp'       => $result ?? $response,
+            ]);
+            throw new \Exception('Lazada /im/message/list error: ' . ($result['err_message'] ?? $result['message'] ?? $response));
+        }
+
+        return $result['data'] ?? [];
     }
 
     //--------------------------------------------------order api------------------------------------------------------------------------------

@@ -36,6 +36,7 @@ Route::prefix('webhook-new')->group(function () {
         Route::post('/', [NewLazadaController::class, 'webhook']);
         Route::post('/refresh-token', [NewLazadaController::class, 'refreshToken']);
         Route::get('/customer-orders/{custId}', [NewLazadaController::class, 'customerOrders']);
+        Route::get('/sync-chat-history/{custId}', [NewLazadaController::class, 'syncCustomerChatHistoryManual']);
     });
 
     // สำหรับ Shopee

@@ -249,15 +249,16 @@ const Info = forwardRef(function Info(props, ref) {
     // ปุ่ม "ดึงประวัติแชทย้อนหลัง" ของ Shopee — ดึงทุกข้อความที่ลูกค้าเคยคุยไว้ (รวมที่คุยกับ AI ผู้ช่วยตอบแชท
     // ของ Shopee เองก่อนโอนสายมาแอดมิน) เข้ามาเก็บใน ChatHistory แล้วแสดงผลใน modal แยกต่างหาก
     // ไม่ auto อัปเดตหน้าแชทหลักทันที ต้องให้แอดมินกด "นำเข้า" ยืนยันใน modal ก่อน (ดู handleImportToChat)
-    const syncShopeeChatHistory = async () => {
+    // Lazada ใช้ endpoint รูปแบบเดียวกัน (/webhook-new/lazada/sync-chat-history)
+    const syncChatHistory = async (platformKey) => {
         setIsSyncingHistory(true);
         try {
-            const res = await axiosClient.get(`/webhook-new/shopee/sync-chat-history/${sender?.custId}`);
+            const res = await axiosClient.get(`/webhook-new/${platformKey}/sync-chat-history/${sender?.custId}`);
             setHistoryMessages(res.data?.messages || []);
             setHistorySummary(res.data?.message || '');
             setHistoryModalOpen(true);
         } catch (err) {
-            console.error("ดึงประวัติแชท Shopee ไม่สำเร็จ", err);
+            console.error(`ดึงประวัติแชท ${platformKey} ไม่สำเร็จ`, err);
             alert(err.response?.data?.message || 'ดึงประวัติแชทไม่สำเร็จ');
         } finally {
             setIsSyncingHistory(false);
@@ -462,14 +463,17 @@ const Info = forwardRef(function Info(props, ref) {
                         </Box>
                     )}
 
-                    {isShopeeCustomer && (
-                        <Box sx={MessageStyle.Info.railItem} onClick={syncShopeeChatHistory}>
+                    {(isShopeeCustomer || isLazadaCustomer) && (
+                        <Box
+                            sx={MessageStyle.Info.railItem}
+                            onClick={() => syncChatHistory(isShopeeCustomer ? 'shopee' : 'lazada')}
+                        >
                             <IconButton
                                 size="sm"
                                 variant="plain"
                                 loading={isSyncingHistory}
                                 disabled={isSyncingHistory}
-                                sx={{ color: '#ff5722' }}
+                                sx={{ color: isShopeeCustomer ? '#ff5722' : '#0f146d' }}
                             >
                                 <HistoryIcon fontSize="small" />
                             </IconButton>
