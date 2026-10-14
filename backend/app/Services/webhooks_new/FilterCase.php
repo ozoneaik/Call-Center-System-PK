@@ -2,7 +2,9 @@
 
 namespace App\Services\webhooks_new;
 
+use App\Jobs\ProcessKbAutoReplyJob;
 use App\Models\ActiveConversations;
+use App\Models\KbAutoReplySetting;
 use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\ChatRooms;
@@ -176,16 +178,49 @@ class FilterCase
 
             switch ($flow) {
                 case 1:
-                    return $this->caseFlow1($current_rate);
+                    $result = $this->caseFlow1($current_rate);
                     break;
                 case 2:
-                    return $this->caseFlow2($customer, $message, $platformAccessToken, $current_rate);
+                    $result = $this->caseFlow2($customer, $message, $platformAccessToken, $current_rate);
                     break;
                 default:
                     return ['status' => false, 'message' => 'ไม่พบ flow ที่ต้องการ'];
             }
+
+            // ส่งให้ระบบ AI ตอบอัตโนมัติจาก KB พิจารณาเบื้องหลัง (เฉพาะ flow ปกติ — ไม่รวมเคสที่ถูกส่งห้องตาม pattern/
+            // ArchitectService/สแปม ซึ่ง return ออกไปก่อนถึงตรงนี้) ตัว job จะเช็คเงื่อนไขละเอียดเองอีกชั้น
+            if (($result['status'] ?? false) === true) {
+                $this->dispatchKbAutoReply();
+            }
+            return $result;
         } catch (\Exception $e) {
             return ['status' => false, 'message' => $e->getMessage() . ' ' . $e->getFile() . ' ' . $e->getLine()];
+        }
+    }
+
+    private function dispatchKbAutoReply(): void
+    {
+        try {
+            $settings = KbAutoReplySetting::current();
+            if ($settings->mode === 'off') return;
+            if (($this->MESSAGE['contentType'] ?? null) !== 'text') return;
+
+            // ห้องที่ไม่ได้เลือกไว้ในหน้าตั้งค่า ไม่ต้องส่ง job (ไม่สร้าง log "ข้าม" ทุกข้อความ)
+            $roomId = Rates::where('custId', $this->CUSTOMER['custId'])->orderByDesc('id')->value('latestRoomId');
+            if (!$settings->allowsRoom($roomId)) return;
+
+            // ข้อความลูกค้าที่ flow เพิ่งบันทึกไว้
+            $chatId = ChatHistory::where('custId', $this->CUSTOMER['custId'])
+                ->where('contentType', 'text')
+                ->where('content', $this->MESSAGE['content'] ?? '')
+                ->orderByDesc('id')
+                ->value('id');
+            if ($chatId) {
+                ProcessKbAutoReplyJob::dispatch((int) $chatId);
+            }
+        } catch (\Throwable $e) {
+            // ห้ามให้ระบบตอบอัตโนมัติทำให้การรับข้อความปกติพัง
+            Log::channel('webhook_main')->warning('dispatchKbAutoReply ไม่สำเร็จ: ' . $e->getMessage());
         }
     }
 

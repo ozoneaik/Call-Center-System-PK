@@ -20,6 +20,7 @@ class KnowledgeBaseService
         'cust_id', 'active_conversation_id', 'message_ref', 'created_by', 'created_by_name',
         'is_active', 'admin_status', 'admin_answer', 'admin_note',
         'approved_by', 'approved_by_name', 'approved_at',
+        'auto_reply', 'auto_reply_by_name', 'auto_reply_at',
         'created_at', 'updated_at',
     ];
 
@@ -34,12 +35,17 @@ class KnowledgeBaseService
                 ->pluck('count', 'admin_status')
                 ->toArray();
             $inactive = AiKbEntry::where('is_active', false)->count();
+            $autoReply = AiKbEntry::where('is_active', true)
+                ->where('admin_status', 'approved')
+                ->where('auto_reply', true)
+                ->count();
             $data['status'] = true;
             $data['stats']  = [
                 'pending'  => (int) ($counts['pending']  ?? 0),
                 'approved' => (int) ($counts['approved'] ?? 0),
                 'rejected' => (int) ($counts['rejected'] ?? 0),
                 'inactive' => (int) $inactive,
+                'auto_reply' => (int) $autoReply,
                 'total'    => array_sum(array_map('intval', $counts)),
             ];
         } catch (\Exception $e) {
@@ -261,6 +267,7 @@ class KnowledgeBaseService
         try {
             $entry = AiKbEntry::findOrFail($id);
             $entry->admin_status     = 'rejected';
+            $entry->auto_reply       = false; // ไม่ใช่สถานะอนุมัติแล้ว → ห้ามตอบอัตโนมัติ
             $entry->admin_answer     = $adminAnswer;
             $entry->admin_note       = $note;
             $entry->approved_by      = $adminId;
@@ -313,6 +320,7 @@ class KnowledgeBaseService
         try {
             $entry = AiKbEntry::findOrFail($id);
             $entry->admin_status     = 'pending';
+            $entry->auto_reply       = false; // กลับไปรอตรวจ → ห้ามตอบอัตโนมัติ
             $entry->admin_answer     = null;
             $entry->admin_note       = null;
             $entry->approved_by      = null;
@@ -331,12 +339,107 @@ class KnowledgeBaseService
         }
     }
 
+    /**
+     * รายการสำหรับแท็บ "จัดการข้อความส่งอัตโนมัติ" — เฉพาะที่อนุมัติแล้วและเปิดใช้งานอยู่
+     * $autoReply: 'on' = เปิดตอบอัตโนมัติ, 'off' = ยังไม่เปิด, null = ทั้งหมด
+     */
+    public function autoReplyList(?string $autoReply, ?string $tagName, ?string $search, int $page = 1, int $perPage = 20): array
+    {
+        $data['status'] = false;
+        try {
+            $perPage = max(1, min($perPage, 100));
+            $page    = max(1, $page);
+
+            $query = AiKbEntry::query()
+                ->select(self::DISPLAY_COLUMNS)
+                ->where('is_active', true)
+                ->where('admin_status', 'approved')
+                ->orderByDesc('auto_reply')
+                ->orderByDesc('approved_at')
+                ->orderByDesc('id');
+
+            if ($autoReply === 'on') {
+                $query->where('auto_reply', true);
+            } elseif ($autoReply === 'off') {
+                $query->where('auto_reply', false);
+            }
+            if ($tagName) {
+                $query->where('tag_name', $tagName);
+            }
+            if ($search) {
+                $term = '%' . $search . '%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('question', 'ILIKE', $term)
+                        ->orWhere('answer', 'ILIKE', $term)
+                        ->orWhere('admin_answer', 'ILIKE', $term)
+                        ->orWhere('alt', 'ILIKE', $term)
+                        ->orWhere('tag_name', 'ILIKE', $term);
+                });
+            }
+
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+            $data['list']   = $paginator->items();
+            $data['meta']   = [
+                'current_page' => $paginator->currentPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'last_page'    => $paginator->lastPage(),
+            ];
+            $data['status'] = true;
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@autoReplyList: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
+    /**
+     * เปิด/ปิด "AI ตอบอัตโนมัติ" ทีละหลายรายการ — อนุญาตเฉพาะรายการที่อนุมัติแล้วและเปิดใช้งานอยู่
+     * คืน updated = จำนวนที่เปลี่ยนจริง, skipped = id ที่ไม่ผ่านเงื่อนไข
+     */
+    public function setAutoReply(array $ids, bool $enabled, int $adminId, string $adminName): array
+    {
+        $data['status'] = false;
+        try {
+            $ids = array_values(array_unique(array_map('intval', $ids)));
+            if (empty($ids)) throw new \Exception('ไม่ได้เลือกรายการ');
+
+            $eligibleIds = AiKbEntry::whereIn('id', $ids)
+                ->where('is_active', true)
+                ->where('admin_status', 'approved')
+                ->pluck('id')
+                ->all();
+
+            $updated = empty($eligibleIds) ? 0 : AiKbEntry::whereIn('id', $eligibleIds)->update([
+                'auto_reply'         => $enabled,
+                'auto_reply_by'      => $adminId,
+                'auto_reply_by_name' => $adminName,
+                'auto_reply_at'      => now(),
+            ]);
+
+            $data['status']  = true;
+            $data['updated'] = $updated;
+            $data['skipped'] = array_values(array_diff($ids, $eligibleIds));
+            $data['message'] = ($enabled ? 'เปิด' : 'ปิด') . "ตอบอัตโนมัติ {$updated} รายการ";
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@setAutoReply: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
     public function toggleActive(int $id): array
     {
         $data['status'] = false;
         try {
             $entry = AiKbEntry::findOrFail($id);
             $entry->is_active = !$entry->is_active;
+            if (!$entry->is_active) {
+                $entry->auto_reply = false; // ปิดใช้งาน → ปิดตอบอัตโนมัติด้วย
+            }
             $entry->save();
 
             $data['status']  = true;

@@ -118,6 +118,76 @@ export const kbToggleActiveApi = async (id) => {
     }
 };
 
+// แท็บ "จัดการข้อความส่งอัตโนมัติ" — รายการที่อนุมัติแล้ว (autoReply: 'all' | 'on' | 'off')
+export const kbAutoReplyListApi = async (options = {}) => {
+    try {
+        const { autoReply = 'all', tagName = null, search = '', page = 1, perPage = 20 } = options;
+        const params = { page, per_page: perPage };
+        if (autoReply && autoReply !== 'all') params.auto_reply = autoReply;
+        if (tagName && tagName !== 'all') params.tag_name = tagName;
+        if (search) params.search = search;
+        const { data, status } = await axiosClient.get(`${kb}/auto-reply/list`, { params });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+// เปิด/ปิด AI ตอบอัตโนมัติ — ids รับได้หลายรายการ
+export const kbSetAutoReplyApi = async (ids, enabled) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/auto-reply`, { ids, enabled }, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+// ค่าตั้งระบบ AI ตอบอัตโนมัติ: { mode: 'off'|'shadow'|'live', min_score, min_margin }
+export const kbAutoReplySettingsApi = async () => {
+    try {
+        const { data, status } = await axiosClient.get(`${kb}/auto-reply/settings`);
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+export const kbUpdateAutoReplySettingsApi = async (payload) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/auto-reply/settings`, payload, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+// บันทึกการตัดสินใจของระบบ (decision: 'all' หรือค่าเฉพาะ เช่น 'sent', 'would_send')
+export const kbAutoReplyLogsApi = async ({ decision = 'all', page = 1, perPage = 20 } = {}) => {
+    try {
+        const params = { page, per_page: perPage };
+        if (decision && decision !== 'all') params.decision = decision;
+        const { data, status } = await axiosClient.get(`${kb}/auto-reply/logs`, { params });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
+// ทดลองพิมพ์คำถาม ดูว่าจะจับคู่กับรายการไหน (ไม่เรียก AI ไม่ส่งข้อความ)
+export const kbAutoReplyTestApi = async (q) => {
+    try {
+        const { data, status } = await axiosClient.get(`${kb}/auto-reply/test`, { params: { q } });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
 export const kbDeleteApi = async (id) => {
     try {
         const { data, status } = await axiosClient.delete(`${kb}/delete/${id}`);

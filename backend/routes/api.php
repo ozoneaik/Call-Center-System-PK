@@ -290,6 +290,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/approve-edited/{id}', [KnowledgeBaseController::class, 'approveEdited']);
         Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending']);
         Route::put('/toggle-active/{id}', [KnowledgeBaseController::class, 'toggleActive']);
+        Route::get('/auto-reply/list', [KnowledgeBaseController::class, 'autoReplyList']);
+        Route::put('/auto-reply', [KnowledgeBaseController::class, 'setAutoReply']);
+        Route::get('/auto-reply/settings', [KnowledgeBaseController::class, 'autoReplySettings']);
+        Route::put('/auto-reply/settings', [KnowledgeBaseController::class, 'updateAutoReplySettings']);
+        Route::get('/auto-reply/logs', [KnowledgeBaseController::class, 'autoReplyLogs']);
+        Route::get('/auto-reply/test', [KnowledgeBaseController::class, 'autoReplyTest']);
         Route::delete('/delete/{id}', [KnowledgeBaseController::class, 'destroy']);
     });
 

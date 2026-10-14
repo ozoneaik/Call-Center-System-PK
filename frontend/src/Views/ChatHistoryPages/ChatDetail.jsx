@@ -241,6 +241,12 @@ function MessageRow({ row, onPreview }) {
                         {timeLabel(date)}
                     </Typography>
                 </Stack>
+                {/* ข้อความที่ระบบ AI ตอบอัตโนมัติจาก KB */}
+                {sender?.auto_reply_kb_id && (
+                    <Typography sx={{ color: LINE.meta, fontSize: 11, mt: 0.25, px: 0.5, fontWeight: 500 }}>
+                        ⚡ ส่งอัตโนมัติจาก KB #{sender.auto_reply_kb_id}
+                    </Typography>
+                )}
             </Stack>
         </Stack>
     );

@@ -474,6 +474,16 @@ export default function Bubble(props) {
                         </Typography>
                     )}
                 </Sheet>
+                {/* ข้อความที่ระบบ AI ตอบอัตโนมัติจาก KB (KbAutoReplyService ใส่ auto_reply_kb_id ไว้ใน sender) */}
+                {sender?.auto_reply_kb_id && (
+                    <Typography
+                        level="body-xs"
+                        title="ระบบส่งคำตอบนี้ให้ลูกค้าอัตโนมัติจากคลังความรู้ (KB)"
+                        sx={{ textAlign: isSent ? 'right' : 'left', mt: 0.25, color: 'warning.600', fontWeight: 500 }}
+                    >
+                        ⚡ ส่งอัตโนมัติจาก KB #{sender.auto_reply_kb_id}
+                    </Typography>
+                )}
                 {!compact && isSent && isShopeeRoom && (
                     <Typography
                         level="body-xs"

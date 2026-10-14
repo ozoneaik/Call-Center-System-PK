@@ -29,10 +29,16 @@ class AiKbEntry extends Model
         'approved_by',
         'approved_by_name',
         'approved_at',
+        'auto_reply',
+        'auto_reply_by',
+        'auto_reply_by_name',
+        'auto_reply_at',
     ];
 
     protected $casts = [
         'is_active'   => 'boolean',
+        'auto_reply'  => 'boolean',
+        'auto_reply_at' => 'datetime',
         'approved_at' => 'datetime',
         'answer_attachments' => 'array',
     ];
