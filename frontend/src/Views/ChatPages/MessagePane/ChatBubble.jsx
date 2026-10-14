@@ -145,8 +145,12 @@ export default function Bubble(props) {
         }
     };
 
+    // ข้อความที่ถูกอ้างอิง (quote) ต้องตัดคำได้เหมือนเนื้อหาหลัก ไม่งั้น URL ยาวๆ จะดันบับเบิลจนล้นจอ
+    const quoteTextSx = { whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' };
+
     return (
-        <Box sx={{ maxWidth: compact ? '78%' : '60%', minWidth: compact ? 0 : 'auto' }}>
+        // minWidth: 0 — ให้บับเบิลหดตาม maxWidth ได้ ไม่ถูกข้อความยาวที่ตัดคำไม่ได้ (เช่น URL) ดันจนล้นจอ
+        <Box sx={{ maxWidth: compact ? '78%' : '60%', minWidth: 0 }}>
             {open && <ChatMediaPreview open={open} setOpen={setOpen} url={previewSelect} />}
 
             {/* Header: ชื่อ + เวลา */}
@@ -228,14 +232,14 @@ export default function Bubble(props) {
                                             <Stack direction='column' mb={2}>
                                                 {!isSent ? (
                                                     <>
-                                                        <Typography level='body-sm'>
+                                                        <Typography level='body-sm' sx={quoteTextSx}>
                                                             {quotedMessage.content}
                                                         </Typography>
                                                         <Divider />
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Typography level='body-sm' sx={{ color: compact ? 'rgba(0,0,0,0.6)' : 'white' }}>
+                                                        <Typography level='body-sm' sx={{ ...quoteTextSx, color: compact ? 'rgba(0,0,0,0.6)' : 'white' }}>
                                                             {quotedMessage.content}
                                                         </Typography>
                                                         <Divider sx={{ bgcolor: compact ? 'rgba(0,0,0,0.2)' : 'white' }} />
