@@ -260,7 +260,12 @@ class HistoryController extends Controller
             }
         }
 
-        $platforms = PlatformAccessTokens::all();
+        // ส่งเฉพาะฟิลด์ที่หน้า filter ใช้ — ห้ามส่งทั้งแถว เพราะมี access token / partner key / app secret ของทุกร้าน
+        $platforms = PlatformAccessTokens::query()
+            ->select('id', 'description', 'platform')
+            ->orderBy('platform')
+            ->orderBy('description')
+            ->get();
 
         return response()->json([
             'message'   => $message ?? 'ดึงข้อมูลสำเร็จ',

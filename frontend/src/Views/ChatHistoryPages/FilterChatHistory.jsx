@@ -76,10 +76,33 @@
 //     );
 // };
 
-import { Button, FormControl, FormLabel, Input, Option, Select, Stack } from "@mui/joy";
-import { useEffect, useState } from "react";
+import { Button, Chip, FormControl, FormLabel, Input, List, ListDivider, ListItem, Option, Select, Stack, Typography } from "@mui/joy";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Search, RotateLeft } from "@mui/icons-material";
 import { listTagsApi } from "../../Api/Tags.js";
+
+// ป้ายและสีของแต่ละแพลตฟอร์ม (ร้านชื่อซ้ำกันข้ามแพลตฟอร์มได้ เช่น Shopee/Lazada ใช้ชื่อร้านเดียวกัน)
+const PLATFORM_META = {
+    line:     { label: 'LINE',     bg: '#06C755', color: '#fff' },
+    facebook: { label: 'Facebook', bg: '#1877F2', color: '#fff' },
+    shopee:   { label: 'Shopee',   bg: '#EE4D2D', color: '#fff' },
+    lazada:   { label: 'Lazada',   bg: '#0F146D', color: '#fff' },
+    tiktok:   { label: 'TikTok',   bg: '#111111', color: '#fff' },
+};
+const PLATFORM_ORDER = ['line', 'facebook', 'shopee', 'lazada', 'tiktok'];
+const platformMeta = (platform) => {
+    const key = String(platform ?? '').toLowerCase();
+    return PLATFORM_META[key] ?? { label: platform || 'อื่นๆ', bg: '#9E9E9E', color: '#fff' };
+};
+
+const PlatformChip = ({ platform }) => {
+    const meta = platformMeta(platform);
+    return (
+        <Chip size="sm" sx={{ bgcolor: meta.bg, color: meta.color, fontSize: 11, minHeight: 20, flexShrink: 0 }}>
+            {meta.label}
+        </Chip>
+    );
+};
 
 export const FilterChatHistory = ({ platforms, onPassed }) => {
     const [filter, setFilter] = useState({
@@ -92,6 +115,19 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
         tagId: "", // เพิ่ม field Tag ที่ใช้ตอนปิดงาน
     });
     const [tags, setTags] = useState([]);
+
+    // [[platformKey, [platform, ...]], ...] เรียงตาม PLATFORM_ORDER แล้วตามชื่อร้าน
+    const groupedPlatforms = useMemo(() => {
+        const groups = {};
+        (platforms ?? []).forEach((p) => {
+            const key = String(p.platform ?? 'other').toLowerCase();
+            (groups[key] ??= []).push(p);
+        });
+        const rank = (k) => (PLATFORM_ORDER.indexOf(k) === -1 ? 99 : PLATFORM_ORDER.indexOf(k));
+        return Object.entries(groups)
+            .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+            .map(([k, items]) => [k, [...items].sort((x, y) => String(x.description).localeCompare(String(y.description), 'th'))]);
+    }, [platforms]);
 
     useEffect(() => {
         const fetchTags = async () => {
@@ -175,15 +211,42 @@ export const FilterChatHistory = ({ platforms, onPassed }) => {
                 <FormControl>
                     <FormLabel>ติดต่อมาจาก</FormLabel>
                     <Select
-                        sx={{ width: "200px" }}
+                        sx={{ width: "260px" }}
                         value={filter.directFrom}
                         onChange={(e, value) => searchDirectFrom(e, value)}
+                        renderValue={(selected) => {
+                            const p = platforms.find((x) => x.id === selected?.value);
+                            if (!p) return 'ทั้งหมด';
+                            return (
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                    <PlatformChip platform={p.platform} />
+                                    <Typography noWrap level="body-sm">{p.description}</Typography>
+                                </Stack>
+                            );
+                        }}
+                        slotProps={{ listbox: { sx: { maxHeight: 360, '--ListItemDecorator-size': '28px' } } }}
                     >
                         <Option value={""}>ทั้งหมด</Option>
-                        {platforms.map((platform, index) => (
-                            <Option key={index} value={platform.id}>
-                                {platform.description}
-                            </Option>
+                        {/* จัดกลุ่มตามแพลตฟอร์ม พร้อมหัวข้อกลุ่มที่ติดด้านบนตอนเลื่อน */}
+                        {groupedPlatforms.map(([platformKey, items]) => (
+                            <Fragment key={platformKey}>
+                                <ListDivider role="none" />
+                                <List aria-label={platformMeta(platformKey).label} sx={{ '--ListItem-paddingX': '0.75rem' }}>
+                                    <ListItem sticky sx={{ bgcolor: 'background.surface', py: 0.5 }}>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <PlatformChip platform={platformKey} />
+                                            <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
+                                                {items.length} ร้าน/เพจ
+                                            </Typography>
+                                        </Stack>
+                                    </ListItem>
+                                    {items.map((platform) => (
+                                        <Option key={platform.id} value={platform.id} label={platform.description}>
+                                            {platform.description}
+                                        </Option>
+                                    ))}
+                                </List>
+                            </Fragment>
                         ))}
                     </Select>
                 </FormControl>
