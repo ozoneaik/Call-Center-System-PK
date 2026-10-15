@@ -188,6 +188,18 @@ export const kbAutoReplyTestApi = async (q) => {
     }
 };
 
+// แก้ "คำที่ใช้แทนกัน" ของรายการ KB (คั่นด้วย "|")
+export const kbUpdateAltApi = async (id, alt) => {
+    try {
+        const { data, status } = await axiosClient.put(`${kb}/alt/${id}`, { alt }, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return { data, status };
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+};
+
 export const kbDeleteApi = async (id) => {
     try {
         const { data, status } = await axiosClient.delete(`${kb}/delete/${id}`);

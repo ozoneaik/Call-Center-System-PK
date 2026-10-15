@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
     Box, Sheet, Table, Typography, CircularProgress, Chip, Button, Select, Option,
     Stack, Input, IconButton, Switch, Checkbox, Tooltip, Alert,
-    Modal, ModalDialog, ModalClose, Divider, Tabs, TabList, Tab, TabPanel,
+    Modal, ModalDialog, ModalClose, Divider, Tabs, TabList, Tab, TabPanel, Textarea,
 } from "@mui/joy";
 import { Search, ChevronLeft, ChevronRight, LocalOffer, AutoMode, Attachment, InfoOutlined, Visibility, OpenInNew, InsertDriveFile } from "@mui/icons-material";
 import { forceHttps } from "../../utils.js";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import { convertFullDate } from "../../Components/Options.jsx";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { kbAutoReplyListApi, kbSetAutoReplyApi } from "../../Api/KnowledgeBase.js";
+import { kbAutoReplyListApi, kbSetAutoReplyApi, kbUpdateAltApi } from "../../Api/KnowledgeBase.js";
 import AutoReplySettings from "./AutoReplySettings.jsx";
 import AutoReplyLogs from "./AutoReplyLogs.jsx";
 
@@ -291,6 +291,10 @@ function AutoReplyEntries({ tags = [], onChanged }) {
                         setViewing(null);
                         toggleOne(target);
                     }}
+                    onAltSaved={(id, alt) => {
+                        setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, alt } : e)));
+                        setViewing((v) => (v && v.id === id ? { ...v, alt } : v));
+                    }}
                 />
             )}
         </>
@@ -324,10 +328,25 @@ export default function AutoReplyTab({ tags = [], onChanged }) {
 }
 
 // แสดงคำถาม/คำตอบเต็มพร้อมไฟล์แนบ — หน้าตาคล้ายฟองแชทที่ลูกค้าจะได้รับจริง
-function AnswerPreviewModal({ item, onClose, onToggle }) {
+function AnswerPreviewModal({ item, onClose, onToggle, onAltSaved }) {
     const navigate = useNavigate();
     const answer = item.admin_answer || item.answer;
     const attachments = Array.isArray(item.answer_attachments) ? item.answer_attachments : [];
+    const [altDraft, setAltDraft] = useState(item.alt ?? '');
+    const [savingAlt, setSavingAlt] = useState(false);
+    const altDirty = (altDraft ?? '').trim() !== (item.alt ?? '').trim();
+
+    const saveAlt = async () => {
+        setSavingAlt(true);
+        const { data, status } = await kbUpdateAltApi(item.id, altDraft);
+        setSavingAlt(false);
+        if (status === 200) {
+            setAltDraft(data.entry.alt ?? '');
+            onAltSaved?.(item.id, data.entry.alt);
+        } else {
+            AlertDiaLog({ icon: 'error', title: data?.message || 'บันทึกไม่สำเร็จ', text: data?.detail || '' });
+        }
+    };
 
     return (
         <Modal open onClose={onClose}>
@@ -344,12 +363,26 @@ function AnswerPreviewModal({ item, onClose, onToggle }) {
                 <Typography level="body-xs" color="neutral" sx={{ mt: 1.5 }}>คำถาม</Typography>
                 <Sheet variant="soft" sx={{ p: 1.5, borderRadius: 'md' }}>
                     <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.question}</Typography>
-                    {item.alt && (
-                        <Typography level="body-xs" color="neutral" sx={{ mt: 0.75, wordBreak: 'break-word' }}>
-                            คำที่ใช้แทนกัน: {item.alt}
-                        </Typography>
-                    )}
                 </Sheet>
+
+                {/* คำที่ใช้แทนกัน — ระบบตอบอัตโนมัติเทียบคำค้นของ AI กับแต่ละวลีในช่องนี้ด้วย */}
+                <Typography level="body-xs" color="neutral" sx={{ mt: 1.5 }}>
+                    คำที่ใช้แทนกัน (คั่นแต่ละวลีด้วย | )
+                </Typography>
+                <Textarea
+                    size="sm" minRows={2} maxRows={6}
+                    placeholder="เช่น ลงทะเบียน | วิธีลงทะเบียน | ลงทะเบียนประกัน | ลงทะเบียนออนไลน์"
+                    value={altDraft}
+                    onChange={(e) => setAltDraft(e.target.value)}
+                />
+                <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+                    <Button size="sm" variant="soft" onClick={saveAlt} loading={savingAlt} disabled={!altDirty}>
+                        บันทึกคำที่ใช้แทนกัน
+                    </Button>
+                    <Typography level="body-xs" color="neutral">
+                        ใส่คำที่ลูกค้าหรือ AI มักใช้ ดูตัวอย่างได้จากคอลัมน์ "AI สรุปคำถาม" ในบันทึกการตัดสินใจ
+                    </Typography>
+                </Stack>
 
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
                     <Typography level="body-xs" color="neutral">คำตอบที่ลูกค้าจะได้รับ</Typography>

@@ -431,6 +431,35 @@ class KnowledgeBaseService
         }
     }
 
+    /**
+     * แก้ "คำที่ใช้แทนกัน" (alt) — คั่นแต่ละวลีด้วย "|" ใช้ทั้งในการจับคู่ตอบอัตโนมัติ (KbAutoReplyService)
+     * และใน embedding_src ของ pipeline ภายนอก
+     */
+    public function updateAlt(int $id, ?string $alt): array
+    {
+        $data['status'] = false;
+        try {
+            $phrases = collect(explode('|', (string) $alt))
+                ->map(fn ($p) => trim($p))
+                ->filter(fn ($p) => $p !== '')
+                ->unique()
+                ->values();
+
+            $entry = AiKbEntry::findOrFail($id);
+            $entry->alt = $phrases->isEmpty() ? null : $phrases->implode(' | ');
+            $entry->save();
+
+            $data['status']  = true;
+            $data['message'] = 'บันทึกคำที่ใช้แทนกันสำเร็จ';
+            $data['entry']   = $entry->only(['id', 'alt']);
+        } catch (\Exception $e) {
+            Log::error('KnowledgeBaseService@updateAlt: ' . $e->getMessage());
+            $data['message'] = $e->getMessage();
+        } finally {
+            return $data;
+        }
+    }
+
     public function toggleActive(int $id): array
     {
         $data['status'] = false;

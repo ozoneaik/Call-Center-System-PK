@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/auto-reply/settings', [KnowledgeBaseController::class, 'updateAutoReplySettings']);
         Route::get('/auto-reply/logs', [KnowledgeBaseController::class, 'autoReplyLogs']);
         Route::get('/auto-reply/test', [KnowledgeBaseController::class, 'autoReplyTest']);
+        Route::put('/alt/{id}', [KnowledgeBaseController::class, 'updateAlt']);
         Route::delete('/delete/{id}', [KnowledgeBaseController::class, 'destroy']);
     });
 

@@ -291,6 +291,16 @@ class KnowledgeBaseController extends Controller
         }
     }
 
+    public function updateAlt(int $id, Request $request): JsonResponse
+    {
+        $validated = $request->validate(['alt' => 'nullable|string|max:5000']);
+        $result = $this->kbService->updateAlt($id, $validated['alt'] ?? null);
+        if ($result['status']) {
+            return response()->json(['message' => $result['message'], 'entry' => $result['entry']]);
+        }
+        return response()->json(['message' => 'เกิดข้อผิดพลาด', 'detail' => $result['message']], 400);
+    }
+
     // ค่าตั้งระบบ AI ตอบอัตโนมัติ (โหมด + เกณฑ์คะแนน)
     public function autoReplySettings(): JsonResponse
     {
