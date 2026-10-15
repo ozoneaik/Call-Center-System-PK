@@ -90,7 +90,7 @@ export default function KnowledgeBasePage() {
     return (
         <>
             <Sheet sx={ChatPageStyle.Layout}>
-                <Box component="main" sx={ChatPageStyle.MainContent}>
+                <Box component="main" sx={{ ...ChatPageStyle.MainContent, overflowY: 'auto' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <BreadcrumbsComponent list={BreadcrumbsPath} />
                     </Box>

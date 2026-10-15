@@ -3,7 +3,7 @@ import {
     Box, Sheet, Typography, Button, Stack, Slider, ToggleButtonGroup, Chip, Input, Divider, CircularProgress, FormHelperText,
     Select, Option,
 } from "@mui/joy";
-import { PowerSettingsNew, Science, RocketLaunch, Search, CheckCircle, Cancel, MeetingRoom } from "@mui/icons-material";
+import { PowerSettingsNew, Science, RocketLaunch, Search, CheckCircle, Cancel, MeetingRoom, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { kbAutoReplySettingsApi, kbUpdateAutoReplySettingsApi, kbAutoReplyTestApi } from "../../Api/KnowledgeBase.js";
 
@@ -12,6 +12,8 @@ const MODES = {
     shadow: { label: 'ทดลอง',   color: 'warning', icon: <Science />,          desc: 'บันทึกว่า "ถ้าส่ง จะส่งคำตอบไหน" ในแท็บบันทึกการตัดสินใจ แต่ไม่ส่งถึงลูกค้า' },
     live:   { label: 'ส่งจริง', color: 'success', icon: <RocketLaunch />,     desc: 'ส่งคำตอบให้ลูกค้าทันทีเมื่อผ่านเกณฑ์' },
 };
+
+const OPEN_KEY = 'kb_auto_reply_settings_open';
 
 /**
  * การ์ดตั้งค่าระบบ AI ตอบอัตโนมัติ — โหมด, เกณฑ์คะแนน และช่องทดลองพิมพ์คำถาม
@@ -24,6 +26,14 @@ export default function AutoReplySettings() {
     const [testing, setTesting] = useState(false);
     const [testRes, setTestRes] = useState(null);
     const [rooms,   setRooms]   = useState([]);     // ตัวเลือกห้อง [{roomId, roomName}]
+    // พับ/กางการ์ด — จำค่าไว้ในเบราว์เซอร์ (ค่าเริ่มต้น: กาง)
+    const [open, setOpen] = useState(() => {
+        try { return localStorage.getItem(OPEN_KEY) !== '0'; } catch { return true; }
+    });
+    const toggleOpen = () => setOpen((v) => {
+        try { localStorage.setItem(OPEN_KEY, v ? '0' : '1'); } catch { /* ไม่มี storage ก็ไม่เป็นไร */ }
+        return !v;
+    });
 
     useEffect(() => {
         (async () => {
@@ -86,16 +96,44 @@ export default function AutoReplySettings() {
     };
 
     const mode = MODES[saved?.mode] ?? MODES.off;
+    const savedRooms = saved?.room_ids ?? [];
+    const savedRoomLabel = savedRooms.length === 0
+        ? 'ทุกห้อง'
+        : savedRooms.length <= 2
+            ? savedRooms.map((id) => rooms.find((r) => r.roomId === id)?.roomName || id).join(', ')
+            : `${savedRooms.length} ห้อง`;
 
     return (
-        <Sheet variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 'md', mb: 1.5 }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} divider={<Divider orientation="vertical" />}>
+        <Sheet variant="outlined" sx={{ p: { xs: 1.25, sm: 1.5 }, borderRadius: 'md', mb: 1.5, flexShrink: 0 }}>
+            {/* แถบหัว: สรุปค่าปัจจุบัน กดเพื่อพับ/กาง */}
+            <Stack
+                direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap
+                onClick={toggleOpen}
+                sx={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+                <Typography level="title-md">ระบบ AI ตอบอัตโนมัติ</Typography>
+                <Chip size="sm" variant="solid" color={mode.color} startDecorator={mode.icon}>{mode.label}</Chip>
+                <Chip size="sm" variant="soft" color="neutral" startDecorator={<MeetingRoom sx={{ fontSize: 14 }} />}>
+                    {savedRoomLabel}
+                </Chip>
+                <Chip size="sm" variant="soft" color="neutral">
+                    เกณฑ์ {Number(saved?.min_score ?? 0).toFixed(2)} · ห่างอันดับ 2 ≥ {Number(saved?.min_margin ?? 0).toFixed(2)}
+                </Chip>
+                {dirty && <Chip size="sm" variant="soft" color="warning">ยังไม่ได้บันทึก</Chip>}
+                <Button
+                    size="sm" variant="plain" color="neutral"
+                    endDecorator={open ? <ExpandLess /> : <ExpandMore />}
+                    sx={{ ml: 'auto' }}
+                    onClick={(e) => { e.stopPropagation(); toggleOpen(); }}
+                >
+                    {open ? 'ซ่อนการตั้งค่า' : 'ตั้งค่า / ทดสอบ'}
+                </Button>
+            </Stack>
+
+            {open && (
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} mt={1.5} divider={<Divider orientation="vertical" />}>
                 {/* ตั้งค่า */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-                        <Typography level="title-md">ระบบ AI ตอบอัตโนมัติ</Typography>
-                        <Chip size="sm" variant="solid" color={mode.color} startDecorator={mode.icon}>ตอนนี้: {mode.label}</Chip>
-                    </Stack>
 
                     <ToggleButtonGroup
                         size="sm"
@@ -228,6 +266,7 @@ export default function AutoReplySettings() {
                     )}
                 </Box>
             </Stack>
+            )}
         </Sheet>
     );
 }
