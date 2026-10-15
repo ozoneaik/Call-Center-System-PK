@@ -318,7 +318,10 @@ class KnowledgeBaseController extends Controller
             'min_margin' => 'required|numeric|min:0|max:1',
             'room_ids'   => 'nullable|array',
             'room_ids.*' => 'string|exists:chat_rooms,roomId',
+            'case_statuses'   => 'required|array|min:1',
+            'case_statuses.*' => 'in:' . implode(',', KbAutoReplySetting::CASE_STATUSES),
         ]);
+        $validated['case_statuses'] = array_values(array_unique($validated['case_statuses']));
         $validated['room_ids'] = array_values(array_unique($validated['room_ids'] ?? [])) ?: null;
         $admin   = Auth::user();
         $setting = KbAutoReplySetting::query()->orderBy('id')->first() ?? new KbAutoReplySetting();

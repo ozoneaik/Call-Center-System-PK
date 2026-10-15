@@ -12,18 +12,28 @@ use Illuminate\Support\Facades\Cache;
 class KbAutoReplySetting extends Model
 {
     public const MODES = ['off', 'shadow', 'live'];
+    // สถานะเคส (rates.status) ที่เลือกให้บอทตอบได้
+    public const CASE_STATUSES = ['pending', 'progress'];
     private const CACHE_KEY = 'kb_auto_reply_settings';
 
     protected $connection = 'pgsql_kb';
     protected $table = 'kb_auto_reply_settings';
 
-    protected $fillable = ['mode', 'min_score', 'min_margin', 'room_ids', 'updated_by', 'updated_by_name'];
+    protected $fillable = ['mode', 'min_score', 'min_margin', 'room_ids', 'case_statuses', 'updated_by', 'updated_by_name'];
 
     protected $casts = [
         'min_score'  => 'float',
         'min_margin' => 'float',
         'room_ids'   => 'array',
+        'case_statuses' => 'array',
     ];
+
+    /** สถานะเคสนี้เปิดให้บอทตอบหรือไม่ (ไม่ได้ตั้งค่า = เฉพาะ pending เหมือนเดิม) */
+    public function allowsCaseStatus(?string $status): bool
+    {
+        $allowed = array_filter((array) ($this->case_statuses ?? ['pending']));
+        return $status !== null && in_array($status, $allowed ?: ['pending'], true);
+    }
 
     /** ห้องนี้เปิดใช้ระบบตอบอัตโนมัติหรือไม่ (ไม่ได้เลือกห้องไว้ = ทุกห้อง) */
     public function allowsRoom(?string $roomId): bool

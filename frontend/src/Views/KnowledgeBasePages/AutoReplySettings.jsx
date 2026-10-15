@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
     Box, Sheet, Typography, Button, Stack, Slider, ToggleButtonGroup, Chip, Input, Divider, CircularProgress, FormHelperText,
-    Select, Option,
+    Select, Option, Checkbox,
 } from "@mui/joy";
 import { PowerSettingsNew, Science, RocketLaunch, Search, CheckCircle, Cancel, MeetingRoom, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
@@ -14,6 +14,12 @@ const MODES = {
 };
 
 const OPEN_KEY = 'kb_auto_reply_settings_open';
+
+// สถานะเคสที่เลือกให้บอทตอบได้ (ตรงกับ KbAutoReplySetting::CASE_STATUSES)
+const CASE_STATUSES = {
+    pending:  { label: 'รอรับเรื่อง',    desc: 'ยังไม่มีพนักงานรับเรื่อง' },
+    progress: { label: 'กำลังดำเนินการ', desc: 'พนักงานรับเรื่องแล้ว — บอทจะตอบเฉพาะข้อความที่พนักงานยังไม่ได้ตอบ' },
+};
 
 /**
  * การ์ดตั้งค่าระบบ AI ตอบอัตโนมัติ — โหมด, เกณฑ์คะแนน และช่องทดลองพิมพ์คำถาม
@@ -41,7 +47,7 @@ export default function AutoReplySettings() {
             if (status === 200) {
                 const { rooms: roomList = [], ...settings } = data;
                 setRooms(roomList);
-                const normalized = { ...settings, room_ids: settings.room_ids ?? [] };
+                const normalized = { ...settings, room_ids: settings.room_ids ?? [], case_statuses: settings.case_statuses ?? ['pending'] };
                 setSaved(normalized);
                 setDraft(normalized);
             }
@@ -55,17 +61,19 @@ export default function AutoReplySettings() {
     const dirty = saved && (draft.mode !== saved.mode
         || Number(draft.min_score) !== Number(saved.min_score)
         || Number(draft.min_margin) !== Number(saved.min_margin)
-        || [...draft.room_ids].sort().join() !== [...saved.room_ids].sort().join());
+        || [...draft.room_ids].sort().join() !== [...saved.room_ids].sort().join()
+        || [...draft.case_statuses].sort().join() !== [...saved.case_statuses].sort().join());
 
     const doSave = async () => {
         setSaving(true);
         const { data, status } = await kbUpdateAutoReplySettingsApi({
             mode: draft.mode, min_score: Number(draft.min_score), min_margin: Number(draft.min_margin),
             room_ids: draft.room_ids,
+            case_statuses: draft.case_statuses,
         });
         setSaving(false);
         if (status === 200) {
-            const normalized = { ...data.settings, room_ids: data.settings.room_ids ?? [] };
+            const normalized = { ...data.settings, room_ids: data.settings.room_ids ?? [], case_statuses: data.settings.case_statuses ?? ['pending'] };
             setSaved(normalized);
             setDraft(normalized);
             AlertDiaLog({ icon: 'success', title: data.message, timer: 1500 });
@@ -115,6 +123,9 @@ export default function AutoReplySettings() {
                 <Chip size="sm" variant="solid" color={mode.color} startDecorator={mode.icon}>{mode.label}</Chip>
                 <Chip size="sm" variant="soft" color="neutral" startDecorator={<MeetingRoom sx={{ fontSize: 14 }} />}>
                     {savedRoomLabel}
+                </Chip>
+                <Chip size="sm" variant="soft" color="neutral">
+                    เคส: {(saved?.case_statuses ?? ['pending']).map((st) => CASE_STATUSES[st]?.label ?? st).join(' + ')}
                 </Chip>
                 <Chip size="sm" variant="soft" color="neutral">
                     เกณฑ์ {Number(saved?.min_score ?? 0).toFixed(2)} · ห่างอันดับ 2 ≥ {Number(saved?.min_margin ?? 0).toFixed(2)}
@@ -188,6 +199,37 @@ export default function AutoReplySettings() {
                                 </Button>
                             )}
                         </Stack>
+                    </Box>
+
+                    <Box sx={{ mt: 2 }}>
+                        <Typography level="body-sm" mb={0.5}>ให้บอทตอบเมื่อเคสอยู่ในสถานะ</Typography>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }}>
+                            {Object.entries(CASE_STATUSES).map(([key, st]) => {
+                                const checked = draft.case_statuses.includes(key);
+                                const onlyOne = checked && draft.case_statuses.length === 1;
+                                return (
+                                    <Checkbox
+                                        key={key}
+                                        size="sm"
+                                        label={st.label}
+                                        checked={checked}
+                                        // ต้องเลือกอย่างน้อย 1 สถานะ (ถ้าไม่อยากให้ทำงานให้ใช้โหมด "ปิด")
+                                        disabled={onlyOne}
+                                        onChange={(e) => setDraft((d) => ({
+                                            ...d,
+                                            case_statuses: e.target.checked
+                                                ? [...d.case_statuses, key]
+                                                : d.case_statuses.filter((x) => x !== key),
+                                        }))}
+                                    />
+                                );
+                            })}
+                        </Stack>
+                        <FormHelperText sx={{ mt: 0.5 }}>
+                            {draft.case_statuses.includes('progress')
+                                ? CASE_STATUSES.progress.desc
+                                : 'บอทตอบเฉพาะตอนยังไม่มีพนักงานรับเรื่อง เมื่อพนักงานรับเรื่องแล้วบอทจะหยุด'}
+                        </FormHelperText>
                     </Box>
 
                     <Box sx={{ mt: 2, px: 1 }}>

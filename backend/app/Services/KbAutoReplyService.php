@@ -147,8 +147,10 @@ class KbAutoReplyService
         if ($chat->created_at && $chat->created_at->diffInSeconds(now()) > self::MAX_MESSAGE_AGE_SECONDS) {
             return 'ข้อความค้างในคิวนานเกิน ' . (self::MAX_MESSAGE_AGE_SECONDS / 60) . ' นาที';
         }
-        if (!$rate || $rate->status !== 'pending') {
-            return 'เคสไม่ได้อยู่ในสถานะรอรับเรื่อง (' . ($rate->status ?? 'ไม่มีเคส') . ')';
+        if (!$rate) return 'ไม่พบเคสของลูกค้า';
+        if (!KbAutoReplySetting::current()->allowsCaseStatus($rate->status)) {
+            $labels = ['pending' => 'รอรับเรื่อง', 'progress' => 'กำลังดำเนินการ', 'success' => 'ปิดเคสแล้ว'];
+            return 'สถานะเคส "' . ($labels[$rate->status] ?? $rate->status) . '" ไม่ได้เปิดให้บอทตอบ';
         }
 
         // มีข้อความใหม่ตามมาหลังข้อความนี้แล้ว: ลูกค้าพิมพ์ต่อ (ข้อความใหม่จะถูกพิจารณาเอง) หรือพนักงานตอบไปแล้ว
