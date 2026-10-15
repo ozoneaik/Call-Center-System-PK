@@ -211,6 +211,11 @@ export default function AutoReplySettings() {
                             >
                                 {testRes.would_send ? 'ผ่านเกณฑ์ — จะตอบอัตโนมัติ' : 'ไม่ผ่านเกณฑ์ — ให้พนักงานตอบ'}
                             </Chip>
+                            {!testRes.would_send && (
+                                <Typography level="body-sm" color="danger" mt={0.5}>
+                                    สาเหตุ: {failReason(testRes)}
+                                </Typography>
+                            )}
                             {testRes.note && <Typography level="body-xs" color="warning" mt={0.5}>{testRes.note}</Typography>}
                             <TestHit title="รายการที่เปิดตอบอัตโนมัติ" hit={testRes.auto_reply?.top} second={testRes.auto_reply?.second} />
                             {testRes.all_approved?.top && testRes.all_approved.top.id !== testRes.auto_reply?.top?.id && (
@@ -225,6 +230,28 @@ export default function AutoReplySettings() {
             </Stack>
         </Sheet>
     );
+}
+
+// อธิบายว่าทำไมผลทดสอบไม่ผ่าน — ลำดับเดียวกับที่ KbAutoReplyService ตัดสินใจ
+function failReason(res) {
+    const top = res.auto_reply?.top;
+    const second = res.auto_reply?.second;
+    const minScore = Number(res.settings?.min_score ?? 0);
+    const minMargin = Number(res.settings?.min_margin ?? 0);
+    const allTop = res.all_approved?.top;
+
+    if (!top) {
+        return allTop
+            ? `คำถามนี้ใกล้เคียงรายการ #${allTop.id} (คะแนน ${Number(allTop.score).toFixed(3)}) แต่รายการนั้นยังไม่ได้เปิดสวิตช์ "ตอบอัตโนมัติ" — ไปเปิดได้ที่ตาราง "รายการคำถาม/คำตอบ" ด้านล่าง`
+            : 'ยังไม่มีรายการที่เปิดสวิตช์ "ตอบอัตโนมัติ" และไม่พบรายการที่ใกล้เคียง';
+    }
+    if (Number(top.score) < minScore) {
+        return `คะแนน ${Number(top.score).toFixed(3)} ต่ำกว่าเกณฑ์ขั้นต่ำ ${minScore.toFixed(2)}`;
+    }
+    if (second && Number(top.score) - Number(second.score) < minMargin) {
+        return `อันดับ 1 (#${top.id}) กับอันดับ 2 (#${second.id}) คะแนนห่างกันแค่ ${(Number(top.score) - Number(second.score)).toFixed(3)} น้อยกว่า ${minMargin.toFixed(2)} — ระบบไม่แน่ใจว่าควรตอบรายการไหน`;
+    }
+    return 'ไม่ผ่านเงื่อนไข';
 }
 
 function TestHit({ title, hit, second }) {
