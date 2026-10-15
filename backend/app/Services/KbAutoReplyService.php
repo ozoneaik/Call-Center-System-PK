@@ -6,6 +6,7 @@ use App\Http\Controllers\webhooks\new\FacebookController;
 use App\Http\Controllers\webhooks\new\LineWebhookController;
 use App\Http\Controllers\webhooks\new\NewLazadaController;
 use App\Http\Controllers\webhooks\new\NewShopeeController;
+use App\Models\ActiveConversations;
 use App\Models\AiKbEntry;
 use App\Models\ChatHistory;
 use App\Models\Customers;
@@ -68,7 +69,7 @@ class KbAutoReplyService
             }
 
             // 1) ให้ AI สรุปคำถาม (ถ้าเรียกไม่สำเร็จ ยังค้นจากข้อความดิบของลูกค้าได้)
-            $ai = $this->askChatOcSummary($chat->custId);
+            $ai = $this->askChatOcSummary($chat, $rate);
             $log['ai_query']         = $ai['query_used'] ?? null;
             $log['ai_summary']       = $ai['summarytxt'] ?? null;
             $log['ai_similarity']    = isset($ai['similarityscore']) && is_numeric($ai['similarityscore']) ? (float) $ai['similarityscore'] : null;
@@ -213,20 +214,38 @@ class KbAutoReplyService
     }
 
     /**
-     * เรียก chat-oc-summary ด้วยบริบทเดียวกับปุ่ม Generate AI (ข้อความ text ทั้งห้องของลูกค้า + รูปล่าสุด)
+     * เรียก chat-oc-summary ด้วยบริบทของ "เคสปัจจุบัน" เท่านั้น (ต่างจากปุ่ม Generate AI ที่ส่งทั้งห้อง)
+     * - เฉพาะข้อความใน active_conversations ของ rate นี้ (รวมช่วงก่อน/หลังส่งต่อห้องในเคสเดียวกัน)
+     * - ถึงข้อความที่กำลังพิจารณาเท่านั้น
+     * - ตัดข้อความของ BOT ออก (เมนู/แจ้งคิว/ส่งต่อ/ประเมิน ทำให้ AI สรุปเพี้ยน เช่น "ลงทะเบียน" → "ลงทะเบียนเข้าคิว")
+     *   เหลือข้อความลูกค้า + พนักงาน
      */
-    private function askChatOcSummary(string $custId): array
+    private function askChatOcSummary(ChatHistory $chat, ?Rates $rate): array
     {
+        $custId = $chat->custId;
         $url = config('services.chat_oc_summary.url');
         if (!$url) return ['_error' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'];
 
         try {
+            $acIds = $rate
+                ? ActiveConversations::where('rateRef', $rate->id)->pluck('id')->all()
+                : [];
+            if (empty($acIds) && $chat->conversationRef) {
+                $acIds = [$chat->conversationRef];
+            }
+
             $history = ChatHistory::where('custId', $custId)
+                ->whereIn('conversationRef', $acIds)
+                ->where('id', '<=', $chat->id)
                 ->whereIn('contentType', ['text', 'image'])
                 ->orderByDesc('id')
-                ->limit(200)
-                ->get(['content', 'contentType'])
+                ->limit(100)
+                ->get(['content', 'contentType', 'sender'])
                 ->reverse()
+                ->filter(function ($h) {
+                    $sender = is_string($h->sender) ? json_decode($h->sender, true) : $h->sender;
+                    return !is_array($sender) || ($sender['empCode'] ?? null) !== 'BOT';
+                })
                 ->values();
 
             $lines = $history->where('contentType', 'text')
