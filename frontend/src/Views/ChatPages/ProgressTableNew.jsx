@@ -18,6 +18,7 @@ import IconButton from '@mui/joy/IconButton';
 import Typography from '@mui/joy/Typography';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SearchIcon from '@mui/icons-material/Search';
+import { matchCustomerSearch } from './matchCustomerSearch';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import BlockIcon from '@mui/icons-material/Block';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
@@ -69,10 +70,7 @@ export default function ProgressTable({ roomId,
             return;
         }
 
-        const term = searchTerm.toLowerCase();
-        const filtered = progress.filter((row) =>
-            row.custName?.toLowerCase().includes(term)
-        );
+        const filtered = progress.filter((row) => matchCustomerSearch(row, searchTerm));
 
         const finalFiltered = showMyCasesOnly
             ? filtered.filter(
@@ -211,9 +209,11 @@ export default function ProgressTable({ roomId,
             >
                 <Input
                     size="sm"
-                    placeholder="Search"
+                    placeholder="ค้นหาชื่อหรือ ID ลูกค้า"
                     startDecorator={<SearchIcon />}
                     sx={{ flexGrow: 1 }}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <IconButton
                     size="sm"
@@ -277,7 +277,7 @@ export default function ProgressTable({ roomId,
                     /> */}
                     <Input
                         size="sm"
-                        placeholder="ค้นหาชื่อลูกค้าที่นี่"
+                        placeholder="ค้นหาชื่อหรือ ID ลูกค้า"
                         startDecorator={<SearchIcon />}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

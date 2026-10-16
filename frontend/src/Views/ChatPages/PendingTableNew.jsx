@@ -7,6 +7,7 @@ import {
 } from '@mui/joy';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SearchIcon from '@mui/icons-material/Search';
+import { matchCustomerSearch } from './matchCustomerSearch';
 import { Stack } from '@mui/joy';
 import { MessageOutlined, MessageSharp } from '@mui/icons-material';
 import { convertFullDate, differentDate } from '../../Components/Options';
@@ -31,6 +32,12 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
     const [selected, setSelected] = React.useState([]);
     const [open, setOpen] = React.useState(false);
     const [loadingStates, setLoadingStates] = React.useState({}); // เพิ่ม state สำหรับ loading
+    const [searchTerm, setSearchTerm] = React.useState('');
+    // กรองเฉพาะที่แสดงผล ไม่แก้ filterPending ของ parent (ซึ่งอัปเดตตาม realtime)
+    const shownPending = React.useMemo(
+        () => filterPending.filter((row) => matchCustomerSearch(row, searchTerm)),
+        [filterPending, searchTerm]
+    );
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
@@ -92,9 +99,11 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
             >
                 <Input
                     size="sm"
-                    placeholder="Search"
+                    placeholder="ค้นหาชื่อหรือ ID ลูกค้า"
                     startDecorator={<SearchIcon />}
                     sx={{ flexGrow: 1 }}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <IconButton
                     size="sm"
@@ -133,9 +142,15 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
             >
                 <FormControl sx={{ flex: 1 }} size="sm">
                     <FormLabel sx={{ fontSize: 20, fontWeight: 'bold' }}>
-                        รอดำเนินการ {filterPending.length} รายการ
+                        รอดำเนินการ {searchTerm ? `${shownPending.length}/${filterPending.length}` : filterPending.length} รายการ
                     </FormLabel>
-                    <Input size="sm" placeholder="ค้นหาชื่อลูกค้าที่นี่" startDecorator={<SearchIcon />} />
+                    <Input
+                        size="sm"
+                        placeholder="ค้นหาชื่อหรือ ID ลูกค้า"
+                        startDecorator={<SearchIcon />}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </FormControl>
             </Box>
             <Sheet
@@ -170,7 +185,7 @@ export default function PendingTableNew({ setFilterPending, filterPending, disab
                         </tr>
                     </thead>
                     <tbody>
-                        {filterPending.map((row, index) => (
+                        {shownPending.map((row, index) => (
                             <tr key={index}>
                                 <td>
                                     <Stack spacing={1}>
