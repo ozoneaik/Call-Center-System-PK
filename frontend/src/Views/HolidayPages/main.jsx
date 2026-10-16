@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-    Avatar, Box, Button, Card, Chip, Divider, FormControl, FormLabel, Input,
+    Avatar, Box, Button, Card, Chip, FormControl, FormLabel, Input,
     Modal, ModalClose, ModalDialog, Sheet, Stack, Switch, Textarea, Typography
 } from "@mui/joy";
 import { Grid2 } from "@mui/material";
@@ -152,46 +152,70 @@ export default function HolidayPage() {
         <Sheet sx={ChatPageStyle.Layout}>
             {/* Modal แก้ไข */}
             <Modal open={editModal} onClose={() => setEditModal(false)}>
-                <ModalDialog minWidth={520}>
+                <ModalDialog
+                    sx={{
+                        width: { xs: '100%', md: editForm.message ? 960 : 560 },
+                        maxWidth: '100%',
+                        maxHeight: '90dvh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        p: 0,
+                        overflow: 'hidden',
+                    }}
+                >
                     <ModalClose />
-                    <Typography level="h4">แก้ไขวันหยุด</Typography>
-                    <Stack spacing={1.5} mt={1}>
-                        <FormControl>
-                            <FormLabel>ชื่อวันหยุด</FormLabel>
-                            <Input value={editForm.holiday_name} onChange={e => setEditForm({ ...editForm, holiday_name: e.target.value })} />
-                        </FormControl>
-                        <Grid2 container spacing={1.5}>
-                            <Grid2 size={6}>
-                                <FormControl>
-                                    <FormLabel>วันที่เริ่ม</FormLabel>
-                                    <Input type="date" value={editForm.start_date} onChange={e => setEditForm({ ...editForm, start_date: e.target.value })} />
-                                </FormControl>
+                    <Typography level="h4" sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>แก้ไขวันหยุด</Typography>
+
+                    {/* เนื้อหา: เลื่อนภายในกรอบ ไม่ล้นจอ */}
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2.5, pb: 2 }}>
+                        <Grid2 container spacing={2.5}>
+                            <Grid2 size={{ xs: 12, md: editForm.message ? 6 : 12 }}>
+                                <Stack spacing={1.5}>
+                                    <FormControl>
+                                        <FormLabel>ชื่อวันหยุด</FormLabel>
+                                        <Input value={editForm.holiday_name} onChange={e => setEditForm({ ...editForm, holiday_name: e.target.value })} />
+                                    </FormControl>
+                                    <Grid2 container spacing={1.5}>
+                                        <Grid2 size={{ xs: 12, sm: 6 }}>
+                                            <FormControl>
+                                                <FormLabel>วันที่เริ่ม</FormLabel>
+                                                <Input type="date" value={editForm.start_date} onChange={e => setEditForm({ ...editForm, start_date: e.target.value })} />
+                                            </FormControl>
+                                        </Grid2>
+                                        <Grid2 size={{ xs: 12, sm: 6 }}>
+                                            <FormControl>
+                                                <FormLabel>วันที่สิ้นสุด</FormLabel>
+                                                <Input type="date" value={editForm.end_date} onChange={e => setEditForm({ ...editForm, end_date: e.target.value })} />
+                                            </FormControl>
+                                        </Grid2>
+                                    </Grid2>
+                                    <FormControl>
+                                        <FormLabel>ข้อความที่ส่งให้ลูกค้า</FormLabel>
+                                        <Textarea minRows={6} maxRows={14} value={editForm.message} onChange={e => setEditForm({ ...editForm, message: e.target.value })} />
+                                    </FormControl>
+                                </Stack>
                             </Grid2>
-                            <Grid2 size={6}>
-                                <FormControl>
-                                    <FormLabel>วันที่สิ้นสุด</FormLabel>
-                                    <Input type="date" value={editForm.end_date} onChange={e => setEditForm({ ...editForm, end_date: e.target.value })} />
-                                </FormControl>
-                            </Grid2>
+                            {editForm.message && (
+                                <Grid2 size={{ xs: 12, md: 6 }}>
+                                    <MessagePreview message={editForm.message} />
+                                </Grid2>
+                            )}
                         </Grid2>
-                        <FormControl>
-                            <FormLabel>ข้อความที่ส่งให้ลูกค้า</FormLabel>
-                            <Textarea minRows={5} value={editForm.message} onChange={e => setEditForm({ ...editForm, message: e.target.value })} />
-                        </FormControl>
-                        {editForm.message && (
-                            <>
-                                <Divider />
-                                <MessagePreview message={editForm.message} />
-                            </>
-                        )}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Switch checked={!!editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} />
-                            <Typography level="body-sm">{editForm.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}</Typography>
-                        </Box>
-                        <Button onClick={handleUpdate} disabled={!canSubmit(editForm)}>
-                            บันทึก
-                        </Button>
-                    </Stack>
+                    </Box>
+
+                    {/* แถบล่าง: อยู่กับที่เสมอ */}
+                    <Box
+                        sx={{
+                            display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap',
+                            px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.surface',
+                        }}
+                    >
+                        <Switch checked={!!editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} />
+                        <Typography level="body-sm">{editForm.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}</Typography>
+                        <Box sx={{ flex: 1 }} />
+                        <Button variant="plain" color="neutral" onClick={() => setEditModal(false)}>ยกเลิก</Button>
+                        <Button onClick={handleUpdate} disabled={!canSubmit(editForm)}>บันทึก</Button>
+                    </Box>
                 </ModalDialog>
             </Modal>
 

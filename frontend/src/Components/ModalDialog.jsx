@@ -14,6 +14,7 @@ import {useEffect, useState} from "react";
 import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {updateUserApi} from "../Api/User.js";
 import {customerUpdateApi} from "../Api/Customer.js";
+import RoomPicker from "../Views/UserPages/RoomPicker.jsx";
 
 
 export default function ModalDialog(props) {
@@ -78,7 +79,7 @@ export default function ModalDialog(props) {
 
             <Sheet variant="outlined" sx={CustomerStyle.ModalSheet}>
                 <Typography level="h4" mb={2} textAlign="center" fontWeight="bold">
-                    แก้ไขข้อมูลลูกค้า {event}
+                    {event === 'user' ? 'แก้ไขข้อมูลผู้ใช้' : 'แก้ไขข้อมูลลูกค้า'}
                 </Typography>
                 <Box sx={{display: 'flex', justifyContent: 'center', mb: 2}}>
                     <Avatar src={selected.avatar} sx={{width: 80, height: 80, boxShadow: 'md'}}/>
@@ -126,17 +127,14 @@ export default function ModalDialog(props) {
                                 <Option value="user">ผู้ใช้ทั่วไป</Option>
                             </Select>
                             <Typography level="body-sm" fontWeight="bold" mb={1}>ห้องแชท</Typography>
-                            {chatRooms.map((room, index) => (
-                                <Checkbox
-                                    key={index}
-                                    value={room.roomId}
-                                    label={room.roomName}
-                                    color="primary"
-                                    sx={{ mr: 2 }}
-                                    onChange={() => handleCheckboxChange(room.roomId)}
-                                    checked={selected.list.includes(room.roomId)} // ตรวจสอบว่า roomId นี้อยู่ใน selected.list หรือไม่
+                            <Box sx={{mb: 2}}>
+                                <RoomPicker
+                                    rooms={chatRooms}
+                                    value={selected.list ?? []}
+                                    onChange={(list) => setSelected((prev) => ({...prev, list}))}
+                                    maxHeight={240}
                                 />
-                            ))}
+                            </Box>
                             {/*<Select*/}
                             {/*    name={'roomId'}*/}
                             {/*    value={selected.roomId || ''}*/}

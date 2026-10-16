@@ -14,7 +14,8 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import ModalDialog from "../../Components/ModalDialog.jsx";
 import { CreateUser } from "./CreateUser.jsx";
 import { FilterUser } from "./FilterUser.jsx";
-import { Close, EditNote, Delete, Add } from '@mui/icons-material';
+import { EditNote, Delete, Add } from '@mui/icons-material';
+import Tooltip from "@mui/joy/Tooltip";
 
 
 const BreadcrumbsPath = [{ name: 'จัดการผู้ใช้' }, { name: 'รายละเอียด' }]
@@ -90,9 +91,8 @@ export default function Users() {
                     </Box>
                     <Box sx={ChatPageStyle.BoxTable}>
                         <Typography level="h2" component="h1">จัดการผู้ใช้</Typography>
-                        <Button color={!openCreate ? 'primary' : 'danger'} startDecorator={openCreate ? <Close /> : <Add />} size='sm'
-                            onClick={() => setOpenCreate(!openCreate)}>
-                            {!openCreate ? 'เพิ่มผู้ใช้' : 'ยกเลิก'}
+                        <Button startDecorator={<Add />} size='sm' onClick={() => setOpenCreate(true)}>
+                            เพิ่มผู้ใช้
                         </Button>
                     </Box>
                     {openCreate && <CreateUser open={openCreate} setOpen={setOpenCreate} Refresh={refresh} />}
@@ -105,6 +105,8 @@ export default function Users() {
                                     <th style={{ width: 300 }}>ชื่อจริง (ไม่ใช่ชื่อที่ใช้ในการแสดงผล)</th>
                                     <th style={{ width: 200 }}>ชื่อที่ใช้ในการแสดงผล</th>
                                     <th style={{ width: 200 }}>คำอธิบาย</th>
+                                    <th style={{ width: 130 }}>สิทธิ์</th>
+                                    <th style={{ width: 120 }}>ห้องแชท</th>
                                     <th style={{ width: 200 }}>สร้างเมื่อ</th>
                                     <th style={{ width: 200 }}>จัดการ</th>
                                 </tr>
@@ -136,6 +138,24 @@ export default function Users() {
                                                 {item.description}
                                             </td>
                                             <td>
+                                                <Chip size='sm' variant='soft'
+                                                    color={item.role === 'admin' ? 'warning' : item.role === 'BOT' ? 'neutral' : 'primary'}>
+                                                    {{ admin: 'ผู้ดูแลระบบ', user: 'ผู้ใช้ทั่วไป', BOT: 'BOT' }[item.role] ?? item.role}
+                                                </Chip>
+                                            </td>
+                                            <td>
+                                                <Tooltip
+                                                    arrow size='sm' placement='top'
+                                                    title={(item.list ?? []).length
+                                                        ? (item.list ?? []).map((id) => chatRooms.find((r) => r.roomId === id)?.roomName || id).join(', ')
+                                                        : 'ยังไม่ได้เลือกห้อง'}
+                                                >
+                                                    <Chip size='sm' variant='outlined' color={(item.list ?? []).length ? 'neutral' : 'danger'}>
+                                                        {(item.list ?? []).length} ห้อง
+                                                    </Chip>
+                                                </Tooltip>
+                                            </td>
+                                            <td>
                                                 <Chip color='primary'>
                                                     {convertFullDate(item.created_at)}
                                                 </Chip>
@@ -161,12 +181,12 @@ export default function Users() {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={5}>ไม่มีข้อมูล</td>
+                                            <td colSpan={8}>ไม่มีข้อมูล</td>
                                         </tr>
                                     )
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} style={{ textAlign: 'center' }}>
+                                        <td colSpan={8} style={{ textAlign: 'center' }}>
                                             <CircularProgress />
                                         </td>
                                     </tr>
