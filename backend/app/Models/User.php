@@ -29,6 +29,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'admin_menus',
         'roomId',
         'description',
         'avatar'
@@ -54,6 +55,30 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'admin_menus' => 'array',
         ];
+    }
+
+    /**
+     * เมนูผู้ดูแลระบบที่กำหนดให้ผู้ใช้ทั่วไปได้ (key ต้องตรงกับ frontend/src/Components/adminMenus.js)
+     * เมนูที่ไม่อยู่ในรายการนี้ (เช่น tokens) ใช้ได้เฉพาะ admin เท่านั้น
+     */
+    public const ASSIGNABLE_MENUS = [
+        'keywords', 'bot_menu', 'chat_rooms', 'platform_routing', 'short_chats', 'customers',
+        'users', 'help_chat', 'sticker', 'tags', 'holidays', 'knowledge_base', 'reports',
+    ];
+
+    /** กรองเหลือเฉพาะ key ที่กำหนดให้ผู้ใช้ทั่วไปได้ — คืน null ถ้าว่าง */
+    public static function sanitizeMenus($menus): ?array
+    {
+        $clean = array_values(array_intersect(self::ASSIGNABLE_MENUS, (array) $menus));
+        return $clean ?: null;
+    }
+
+    public function canAccessMenu(string $menu): bool
+    {
+        if ($this->role === 'admin') return true;
+        return in_array($menu, self::ASSIGNABLE_MENUS, true)
+            && in_array($menu, (array) ($this->admin_menus ?? []), true);
     }
 }

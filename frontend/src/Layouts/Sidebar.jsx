@@ -1,3 +1,4 @@
+import { hasAnyAdminMenu } from "../Components/adminMenus.js";
 import {
   Avatar,
   Box,
@@ -33,7 +34,6 @@ import {
   Person,
   LogoutRounded,
   QuestionAnswerRounded,
-  LiveHelp,
 } from "@mui/icons-material";
 import { useState, useEffect, useMemo } from "react";
 
@@ -194,17 +194,9 @@ export default function Sidebar() {
               <Typography level="title-sm">ประวัติการสนทนาทั้งหมด</Typography>
             </ListItemButton>
           </ListItem>
-          {["68501", "68426", "68292"].includes(user.empCode) && (
-            <ListItem component={Link} to="/helpChat">
-              <ListItemButton selected={pathname === "/helpChat"}>
-                <LiveHelp />
-                <Typography level="title-sm">จัดการ help Chat</Typography>
-              </ListItemButton>
-            </ListItem>
-          )}
         </List>
         {/* {user.role === 'admin' && <SidebarAdmin pathname={pathname} user={user} />} */}
-        {user.role === "admin" && (
+        {hasAnyAdminMenu(user) && (
           <SidebarAdmin
             pathname={pathname}
             user={user}

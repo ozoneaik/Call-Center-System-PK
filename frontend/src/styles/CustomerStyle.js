@@ -9,7 +9,7 @@ export const CustomerStyle = {
         p: 3,
         boxShadow: 'lg',
         minWidth: 350,
-        maxWidth: 500,
+        maxWidth: 1000,
         maxHeight: '90vh',
         overflowY: 'auto'
     }

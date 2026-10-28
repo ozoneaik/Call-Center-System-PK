@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
+            'menu' => \App\Http\Middleware\MenuAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

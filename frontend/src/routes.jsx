@@ -90,11 +90,11 @@ export const routes = createBrowserRouter([
                             { path: '/knowledge-base', element: <KnowledgeBasePage /> },
                             { path: '/platform-routing', element: <PlatformRoutingRules /> },
                             { path: '/holidays', element: <HolidayPage /> },
+                            { path: '/report', element: <ReportPage /> },
+                            { path: '/helpChat', element: <HelpChatList /> },
                         ]
                     },
-                    { path: '/report', element: <ReportPage /> },
                     { path: '/chatHistory', element: <ChatHistory /> },
-                    { path: '/helpChat', element: <HelpChatList /> },
                     { path: '/profile', element: <AuthPages /> },
 
                     { path: '/chat-pages-new', element: <ChatPageNew /> }

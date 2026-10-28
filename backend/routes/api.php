@@ -61,9 +61,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [AuthController::class, 'user']);
     Route::prefix('users')->group(function () {
         Route::get('/list', [UserController::class, 'UserList']);
-        Route::post('/store', [UserController::class, 'UserStore']);
-        Route::put('/update/{empCode}', [UserController::class, 'UserUpdate']);
-        Route::delete('/delete/{empCode}', [UserController::class, 'UserDelete']);
+        Route::post('/store', [UserController::class, 'UserStore'])->middleware('menu:users');
+        Route::put('/update/{empCode}', [UserController::class, 'UserUpdate'])->middleware('menu:users');
+        Route::delete('/delete/{empCode}', [UserController::class, 'UserDelete'])->middleware('menu:users');
     });
 
     // จัดการลูกค้า
@@ -71,23 +71,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list', [CustomersController::class, 'CustomerList']);
         Route::get('/detail/{custId}', [CustomersController::class, 'CustomerDetail']);
         Route::get('/history-summary/{custId}', [CustomersController::class, 'HistorySummary']);
-        Route::put('/update', [CustomersController::class, 'UpdateCustomer']);
+        Route::put('/update', [CustomersController::class, 'UpdateCustomer'])->middleware('menu:customers');
     });
 
     // จัดการวันหยุด
     Route::prefix('holidays')->group(function () {
         Route::get('/list', [HolidayController::class, 'index']);
-        Route::post('/store', [HolidayController::class, 'store']);
-        Route::put('/update/{id}', [HolidayController::class, 'update']);
-        Route::delete('/delete/{id}', [HolidayController::class, 'destroy']);
+        Route::post('/store', [HolidayController::class, 'store'])->middleware('menu:holidays');
+        Route::put('/update/{id}', [HolidayController::class, 'update'])->middleware('menu:holidays');
+        Route::delete('/delete/{id}', [HolidayController::class, 'destroy'])->middleware('menu:holidays');
     });
 
     // จัดการห้องแชท
     Route::prefix('chatRooms')->group(function () {
         Route::get('/list', [ChatRoomsController::class, 'list']);
-        Route::post('/store', [ChatRoomsController::class, 'store']);
-        Route::put('/update/{roomId}', [ChatRoomsController::class, 'update']);
-        Route::delete('/delete/{roomId}', [ChatRoomsController::class, 'delete']);
+        Route::post('/store', [ChatRoomsController::class, 'store'])->middleware('menu:chat_rooms');
+        Route::put('/update/{roomId}', [ChatRoomsController::class, 'update'])->middleware('menu:chat_rooms');
+        Route::delete('/delete/{roomId}', [ChatRoomsController::class, 'delete'])->middleware('menu:chat_rooms');
     });
 
     Route::get('/myCase', [DisplayController::class, 'myCase']);
@@ -118,7 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/list/models/{group}', [ShortChatController::class, 'ListModels']);
         Route::get('/list/problems/{group}/{model}', [ShortChatController::class, 'ListProblems']);
         Route::get('/list/contents/{group}/{model}/{problem}/', [ShortChatController::class, 'ListContents']);
-        Route::middleware(UserAccess::class)->group(function () {
+        Route::middleware('menu:short_chats')->group(function () {
             Route::post('/store', [ShortChatController::class, 'storeOrUpdate']);
             Route::delete('/delete/{id}', [ShortChatController::class, 'delete']);
         });
@@ -138,26 +138,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('tokens')->group(function () {
         Route::post('/verify', [TokenController::class, 'verifyToken']);
         Route::get('list', [TokenController::class, 'list']);
-        Route::post('store', [TokenController::class, 'store']);
-        Route::put('update', [TokenController::class, 'update']);
-        Route::delete('delete/{id}', [TokenController::class, 'delete']);
+        Route::post('store', [TokenController::class, 'store'])->middleware('menu:tokens');
+        Route::put('update', [TokenController::class, 'update'])->middleware('menu:tokens');
+        Route::delete('delete/{id}', [TokenController::class, 'delete'])->middleware('menu:tokens');
     });
 
     Route::prefix('auto-tokens')->group(function () {
         Route::get('/rooms', [PlatformTokenController::class, 'listRooms']);
 
         Route::get('/token/shopee/auth-url', [PlatformTokenController::class, 'shopeeAuthUrl']);
-        Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange']);
+        Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange'])->middleware('menu:tokens');
         Route::get('/callback/shopee', [PlatformTokenController::class, 'shopeeCallback']);
 
         // Lazada
         Route::get('/token/lazada/auth-url', [PlatformTokenController::class, 'lazadaAuthUrl']);
-        Route::post('/token/lazada/exchange', [PlatformTokenController::class, 'lazadaExchange']);
+        Route::post('/token/lazada/exchange', [PlatformTokenController::class, 'lazadaExchange'])->middleware('menu:tokens');
         Route::get('/callback/lazada', [PlatformTokenController::class, 'lazadaCallback']);
 
         //tiitok
         Route::get('/token/tiktok/auth-url', [PlatformTokenController::class, 'tiktokAuthUrl']);
-        Route::post('/token/tiktok/exchange', [PlatformTokenController::class, 'tiktokExchange']);
+        Route::post('/token/tiktok/exchange', [PlatformTokenController::class, 'tiktokExchange'])->middleware('menu:tokens');
         Route::get('/callback/tiktok', [PlatformTokenController::class, 'tiktokCallback']);
 
     });
@@ -175,49 +175,49 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการ BOT
     Route::prefix('bots')->group(function () {
         Route::get('list', [BotMenuController::class, 'list']);
-        Route::post('storeOrUpdate', [BotMenuController::class, 'storeOrUpdate']);
+        Route::post('storeOrUpdate', [BotMenuController::class, 'storeOrUpdate'])->middleware('menu:bot_menu');
     });
 
     // จัดการ Tag
     Route::prefix('tags')->group(function () {
         Route::get('/', [TagMenuController::class, 'list']);             // GET /tags
-        Route::post('/', [TagMenuController::class, 'store']);           // POST /tags
-        Route::put('{id}', [TagMenuController::class, 'update']);        // PUT /tags/{id}
-        Route::delete('{id}', [TagMenuController::class, 'delete']);     // DELETE /tags/{id}
-        Route::post('{id}/restore', [TagMenuController::class, 'restore']);
-        Route::delete('{id}/force', [TagMenuController::class, 'forceDelete']);
+        Route::post('/', [TagMenuController::class, 'store'])->middleware('menu:tags');           // POST /tags
+        Route::put('{id}', [TagMenuController::class, 'update'])->middleware('menu:tags');        // PUT /tags/{id}
+        Route::delete('{id}', [TagMenuController::class, 'delete'])->middleware('menu:tags');     // DELETE /tags/{id}
+        Route::post('{id}/restore', [TagMenuController::class, 'restore'])->middleware('menu:tags');
+        Route::delete('{id}/force', [TagMenuController::class, 'forceDelete'])->middleware('menu:tags');
     });
 
     Route::prefix('tag-group')->group(function () {
         Route::get('options', [TagGroupController::class, 'options']);
         Route::get('/', [TagGroupController::class, 'index']);              // GET /api/tag-group
         Route::get('{id}', [TagGroupController::class, 'show']);            // GET /api/tag-group/{id}
-        Route::post('/', [TagGroupController::class, 'store']);             // POST /api/tag-group
-        Route::match(['put', 'patch'], '{id}', [TagGroupController::class, 'update']); // PUT/PATCH /api/tag-group/{id}
-        Route::delete('{id}', [TagGroupController::class, 'destroy']);      // DELETE /api/tag-group/{id}
+        Route::post('/', [TagGroupController::class, 'store'])->middleware('menu:tags');             // POST /api/tag-group
+        Route::match(['put', 'patch'], '{id}', [TagGroupController::class, 'update'])->middleware('menu:tags'); // PUT/PATCH /api/tag-group/{id}
+        Route::delete('{id}', [TagGroupController::class, 'destroy'])->middleware('menu:tags');      // DELETE /api/tag-group/{id}
 
         // SoftDeletes helpers
-        Route::patch('{id}/restore', [TagGroupController::class, 'restore']); // PATCH /api/tag-group/{id}/restore
-        Route::delete('{id}/force', [TagGroupController::class, 'forceDelete']); // DELETE /api/tag-group/{id}/force
+        Route::patch('{id}/restore', [TagGroupController::class, 'restore'])->middleware('menu:tags'); // PATCH /api/tag-group/{id}/restore
+        Route::delete('{id}/force', [TagGroupController::class, 'forceDelete'])->middleware('menu:tags'); // DELETE /api/tag-group/{id}/force
 
     });
 
     Route::prefix('tags-by-platform')->group(function () {
         Route::get('/', [TagsByPlatformController::class, 'index']);
-        Route::post('/', [TagsByPlatformController::class, 'store']);
+        Route::post('/', [TagsByPlatformController::class, 'store'])->middleware('menu:tags');
         Route::get('/platforms', [TagsByPlatformController::class, 'platforms']);
         Route::get('/tags', [TagsByPlatformController::class, 'tags']);
         Route::get('/{id}', [TagsByPlatformController::class, 'show']);
-        Route::put('/{id}', [TagsByPlatformController::class, 'update']);
-        Route::delete('/{id}', [TagsByPlatformController::class, 'destroy']);
+        Route::put('/{id}', [TagsByPlatformController::class, 'update'])->middleware('menu:tags');
+        Route::delete('/{id}', [TagsByPlatformController::class, 'destroy'])->middleware('menu:tags');
     });
 
     //จัดการ keyword
     Route::prefix('keywords')->group(function () {
         Route::get('list', [KeywordController::class, 'list']);
-        Route::post('store', [KeywordController::class, 'store']);
-        Route::put('update/{id}', [KeywordController::class, 'update']);
-        Route::delete('delete/{id}', [KeywordController::class, 'delete']);
+        Route::post('store', [KeywordController::class, 'store'])->middleware('menu:keywords');
+        Route::put('update/{id}', [KeywordController::class, 'update'])->middleware('menu:keywords');
+        Route::delete('delete/{id}', [KeywordController::class, 'delete'])->middleware('menu:keywords');
     });
 
     //สำหรับจัดการแชทที่ค้างไว้
@@ -226,7 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     //จัดการรายงาน
-    Route::prefix('reports')->group(function () {
+    Route::prefix('reports')->middleware('menu:reports')->group(function () {
         Route::get('listLine', [ReportController::class, 'LineList']);
         Route::get('rateList', [ReportController::class, 'RateList']);
         Route::get('activeList', [ReportController::class, 'activeList']);
@@ -250,12 +250,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('help-chat')->group(function () {
         Route::get('/list', [HelpChatController::class, 'index']);
         Route::post('/search', [HelpChatController::class, 'search']);
-        Route::post('/store', [HelpChatController::class, 'store']);
+        Route::post('/store', [HelpChatController::class, 'store'])->middleware('menu:help_chat');
         // Route::put('{id}', [HelpChatController::class, 'update']);
         // Route::delete('{id}', [HelpChatController::class, 'destroy']);
 
-        Route::put('/update/{id}', [HelpChatController::class, 'update']);
-        Route::delete('/delete/{id}', [HelpChatController::class, 'destroy']);
+        Route::put('/update/{id}', [HelpChatController::class, 'update'])->middleware('menu:help_chat');
+        Route::delete('/delete/{id}', [HelpChatController::class, 'destroy'])->middleware('menu:help_chat');
     });
 
     Route::get('/bot-room', [BotRoomController::class, 'index']);
@@ -265,15 +265,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการสติกเกอร์
     Route::prefix('sticker')->group(function () {
         Route::get('/list', [StickerModelController::class, 'index']);
-        Route::post('/store', [StickerModelController::class, 'store']);
-        Route::put('/update/{id}', [StickerModelController::class, 'update']);
-        Route::delete('/delete/{id}', [StickerModelController::class, 'delete']);
+        Route::post('/store', [StickerModelController::class, 'store'])->middleware('menu:sticker');
+        Route::put('/update/{id}', [StickerModelController::class, 'update'])->middleware('menu:sticker');
+        Route::delete('/delete/{id}', [StickerModelController::class, 'delete'])->middleware('menu:sticker');
     });
 
     // จัดการ routing rules ของ platform
     Route::prefix('platform-routing')->group(function () {
         Route::get('/', [PlatformRoutingController::class, 'index']);
-        Route::post('/update-rules', [PlatformRoutingController::class, 'updateRules']);
+        Route::post('/update-rules', [PlatformRoutingController::class, 'updateRules'])->middleware('menu:platform_routing');
         Route::get('/allowed-rooms/{tokenId}', [PlatformRoutingController::class, 'allowedRooms']);
     });
 
@@ -284,20 +284,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/show/{id}', [KnowledgeBaseController::class, 'show']);
         Route::get('/conversation/{id}', [KnowledgeBaseController::class, 'conversation']);
         Route::get('/tags', [KnowledgeBaseController::class, 'tags']);
-        Route::put('/update/{id}', [KnowledgeBaseController::class, 'update']);
-        Route::put('/approve/{id}', [KnowledgeBaseController::class, 'approve']);
-        Route::put('/reject/{id}', [KnowledgeBaseController::class, 'reject']);
-        Route::put('/approve-edited/{id}', [KnowledgeBaseController::class, 'approveEdited']);
-        Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending']);
-        Route::put('/toggle-active/{id}', [KnowledgeBaseController::class, 'toggleActive']);
+        Route::put('/update/{id}', [KnowledgeBaseController::class, 'update'])->middleware('menu:knowledge_base');
+        Route::put('/approve/{id}', [KnowledgeBaseController::class, 'approve'])->middleware('menu:knowledge_base');
+        Route::put('/reject/{id}', [KnowledgeBaseController::class, 'reject'])->middleware('menu:knowledge_base');
+        Route::put('/approve-edited/{id}', [KnowledgeBaseController::class, 'approveEdited'])->middleware('menu:knowledge_base');
+        Route::put('/reset/{id}', [KnowledgeBaseController::class, 'resetPending'])->middleware('menu:knowledge_base');
+        Route::put('/toggle-active/{id}', [KnowledgeBaseController::class, 'toggleActive'])->middleware('menu:knowledge_base');
         Route::get('/auto-reply/list', [KnowledgeBaseController::class, 'autoReplyList']);
-        Route::put('/auto-reply', [KnowledgeBaseController::class, 'setAutoReply']);
+        Route::put('/auto-reply', [KnowledgeBaseController::class, 'setAutoReply'])->middleware('menu:knowledge_base');
         Route::get('/auto-reply/settings', [KnowledgeBaseController::class, 'autoReplySettings']);
-        Route::put('/auto-reply/settings', [KnowledgeBaseController::class, 'updateAutoReplySettings']);
+        Route::put('/auto-reply/settings', [KnowledgeBaseController::class, 'updateAutoReplySettings'])->middleware('menu:knowledge_base');
         Route::get('/auto-reply/logs', [KnowledgeBaseController::class, 'autoReplyLogs']);
         Route::get('/auto-reply/test', [KnowledgeBaseController::class, 'autoReplyTest']);
-        Route::put('/alt/{id}', [KnowledgeBaseController::class, 'updateAlt']);
-        Route::delete('/delete/{id}', [KnowledgeBaseController::class, 'destroy']);
+        Route::put('/alt/{id}', [KnowledgeBaseController::class, 'updateAlt'])->middleware('menu:knowledge_base');
+        Route::delete('/delete/{id}', [KnowledgeBaseController::class, 'destroy'])->middleware('menu:knowledge_base');
     });
 
     // AI Assistant (แชท) - suggestions: ค้นคลังความรู้จริง (ai_kb_entries + knowledge_base_entries) | customer-analysis: ยังรอเฟสวิเคราะห์ประวัติ

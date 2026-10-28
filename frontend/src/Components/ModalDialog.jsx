@@ -15,6 +15,7 @@ import {AlertDiaLog} from "../Dialogs/Alert.js";
 import {updateUserApi} from "../Api/User.js";
 import {customerUpdateApi} from "../Api/Customer.js";
 import RoomPicker from "../Views/UserPages/RoomPicker.jsx";
+import MenuPicker from "../Views/UserPages/MenuPicker.jsx";
 
 
 export default function ModalDialog(props) {
@@ -135,6 +136,17 @@ export default function ModalDialog(props) {
                                     maxHeight={240}
                                 />
                             </Box>
+                            {selected.role === 'user' && (
+                                <>
+                                    <Typography level="body-sm" fontWeight="bold" mb={1}>เมนูผู้ดูแลระบบที่อนุญาต</Typography>
+                                    <Box sx={{mb: 2}}>
+                                        <MenuPicker
+                                            value={selected.admin_menus ?? []}
+                                            onChange={(admin_menus) => setSelected((prev) => ({...prev, admin_menus}))}
+                                        />
+                                    </Box>
+                                </>
+                            )}
                             {/*<Select*/}
                             {/*    name={'roomId'}*/}
                             {/*    value={selected.roomId || ''}*/}

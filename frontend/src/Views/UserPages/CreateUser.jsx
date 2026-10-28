@@ -9,6 +9,7 @@ import { AlertDiaLog } from "../../Dialogs/Alert.js";
 import { useChatRooms } from "../../context/ChatRoomContext.jsx";
 import { Save, Visibility, VisibilityOff } from '@mui/icons-material';
 import RoomPicker from "./RoomPicker.jsx";
+import MenuPicker from "./MenuPicker.jsx";
 
 const emptyUser = {
     empCode: '',
@@ -21,6 +22,7 @@ const emptyUser = {
     password: '',
     password_confirmation: '',
     list: [],
+    admin_menus: [],
 };
 
 export const CreateUser = ({ open, setOpen, Refresh }) => {
@@ -131,6 +133,14 @@ export const CreateUser = ({ open, setOpen, Refresh }) => {
                     <Divider sx={{ my: 2 }} />
                     <Typography level="title-sm" mb={1}>ห้องแชทที่เข้าถึงได้</Typography>
                     <RoomPicker rooms={chatRoomsContext} value={user.list} onChange={(list) => set({ list })} />
+
+                    {user.role === 'user' && (
+                        <>
+                            <Divider sx={{ my: 2 }} />
+                            <Typography level="title-sm" mb={1}>เมนูผู้ดูแลระบบที่อนุญาต</Typography>
+                            <MenuPicker value={user.admin_menus} onChange={(admin_menus) => set({ admin_menus })} />
+                        </>
+                    )}
 
                     <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
                         <Button variant="plain" color="neutral" onClick={() => setOpen(false)}>ยกเลิก</Button>

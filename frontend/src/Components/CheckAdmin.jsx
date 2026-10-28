@@ -1,14 +1,15 @@
-import {Navigate, Outlet} from "react-router-dom";
-import {useAuth} from "../context/AuthContext.jsx"; // สมมุติว่ามี useAuth ที่ดึงข้อมูล user จาก context
+import {Navigate, Outlet, useLocation} from "react-router-dom";
+import {useAuth} from "../context/AuthContext.jsx";
+import {canAccessPath} from "./adminMenus.js";
 
+// กั้นหน้าเมนูผู้ดูแลระบบ: admin เข้าได้ทุกหน้า, ผู้ใช้ทั่วไปเข้าได้เฉพาะเมนูที่ได้รับอนุญาต (users.admin_menus)
 const CheckAdmin = () => {
-    const {user} = useAuth(); // สมมุติว่ามี user.role ใน context
+    const {user} = useAuth();
+    const {pathname} = useLocation();
 
-    // ถ้าผู้ใช้มี role ที่อยู่ใน allowedRoles ให้แสดง Outlet
-    if (user.role === 'admin') {
+    if (canAccessPath(user, pathname)) {
         return <Outlet/>;
     }
-    // ถ้าไม่มี role ที่ถูกต้อง ให้เปลี่ยนเส้นทางไปหน้าอื่น เช่น หน้า forbidden หรือ login
     return <Navigate to="/access/denied" replace/>;
 };
 

@@ -29,6 +29,7 @@ import {
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
+import { canAccessMenu } from "../Components/adminMenus.js";
 
 function Toggler({ defaultExpanded = false, renderToggle, children }) {
   const [open, setOpen] = useState(defaultExpanded);
@@ -57,6 +58,8 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
   // util สำหรับ filter ข้อความ
   const matchSearch = (label) =>
     label.toLowerCase().includes(searchQuery.toLowerCase());
+  // ผู้ใช้ทั่วไปเห็นเฉพาะเมนูที่ได้รับอนุญาต (admin เห็นทุกเมนู)
+  const can = (key) => canAccessMenu(user, key);
 
   return (
     <>
@@ -71,7 +74,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
       <Divider />
       <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>
         {/* เมนูทั่วไป */}
-        {matchSearch("จัดการคีย์เวิร์ด") && (
+        {can("keywords") && matchSearch("จัดการคีย์เวิร์ด") && (
           <ListItem component={Link} to="/keywords">
             <ListItemButton selected={pathname === "/keywords"}>
               <Keyboard />
@@ -80,7 +83,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการเมนูของบอท") && (
+        {can("bot_menu") && matchSearch("จัดการเมนูของบอท") && (
           <ListItem component={Link} to="/botManage">
             <ListItemButton selected={pathname === "/botManage"}>
               <SmartToy />
@@ -89,7 +92,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการห้องแชท") && (
+        {can("chat_rooms") && matchSearch("จัดการห้องแชท") && (
           <ListItem component={Link} to="/chatRooms">
             <ListItemButton selected={pathname === "/chatRooms"}>
               <MeetingRoom />
@@ -98,7 +101,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("สิทธิ์การส่งต่อห้อง") && (
+        {can("platform_routing") && matchSearch("สิทธิ์การส่งต่อห้อง") && (
           <ListItem component={Link} to="/platform-routing">
             <ListItemButton selected={pathname === "/platform-routing"}>
               <AltRoute />
@@ -107,7 +110,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการข้อความส่งด่วน") && (
+        {can("short_chats") && matchSearch("จัดการข้อความส่งด่วน") && (
           <ListItem component={Link} to="/shortChats">
             <ListItemButton selected={pathname === "/shortChats"}>
               <ManageAccounts />
@@ -116,7 +119,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการลูกค้า") && (
+        {can("customers") && matchSearch("จัดการลูกค้า") && (
           <ListItem component={Link} to="/customers">
             <ListItemButton selected={pathname === "/customers"}>
               <PeopleAlt />
@@ -125,7 +128,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการผู้ใช้") && (
+        {can("users") && matchSearch("จัดการผู้ใช้") && (
           <ListItem component={Link} to="/users">
             <ListItemButton selected={pathname === "/users"}>
               <ManageAccounts />
@@ -134,7 +137,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการ help Chat") && (
+        {can("help_chat") && matchSearch("จัดการ help Chat") && (
           <ListItem component={Link} to="/helpChat">
             <ListItemButton selected={pathname === "/helpChat"}>
               <LiveHelp />
@@ -143,7 +146,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการ Sticker") && (
+        {can("sticker") && matchSearch("จัดการ Sticker") && (
           <ListItem component={Link} to="/sticker">
             <ListItemButton selected={pathname === "/sticker"}>
               <EmojiEmotions />
@@ -153,7 +156,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
         )}
 
         {/* Tag Group */}
-        {(matchSearch("จัดการ Tag") || matchSearch("tags")) && (
+        {can("tags") && (matchSearch("จัดการ Tag") || matchSearch("tags")) && (
           <ListItem nested>
             <Toggler
               defaultExpanded={
@@ -212,7 +215,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("จัดการวันหยุด") && (
+        {can("holidays") && matchSearch("จัดการวันหยุด") && (
           <ListItem component={Link} to="/holidays">
             <ListItemButton selected={pathname === "/holidays"}>
               <EventBusy />
@@ -221,7 +224,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("Knowledge Base") && (
+        {can("knowledge_base") && matchSearch("Knowledge Base") && (
           <ListItem component={Link} to="/knowledge-base">
             <ListItemButton selected={pathname === "/knowledge-base"}>
               <AutoAwesome />
@@ -230,7 +233,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {matchSearch("หน้ารายงาน") && (
+        {can("reports") && matchSearch("หน้ารายงาน") && (
           <ListItem component={Link} to="/report">
             <ListItemButton selected={pathname === "/report"}>
               <SmartToy />
@@ -240,7 +243,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
         )}
 
         {/* AdminIT */}
-        {user.empCode === "adminIT" && matchSearch("จัดการ token") && (
+        {user.role === "admin" && user.empCode === "adminIT" && matchSearch("จัดการ token") && (
           <ListItem>
             <ListItemButton
               component={Link}
@@ -253,7 +256,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {user.empCode === "adminIT" && matchSearch("Auto Access Token") && (
+        {user.role === "admin" && user.empCode === "adminIT" && matchSearch("Auto Access Token") && (
           <ListItem>
             <ListItemButton
               component={Link}
@@ -266,7 +269,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {user.empCode === "adminIT" && matchSearch("แจ้งเตือน") && (
+        {user.role === "admin" && user.empCode === "adminIT" && matchSearch("แจ้งเตือน") && (
           <ListItem component={Link} to="/announces">
             <ListItemButton selected={pathname === "/announces"}>
               <CircleNotifications />

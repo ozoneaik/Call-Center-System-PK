@@ -16,6 +16,7 @@ import { CreateUser } from "./CreateUser.jsx";
 import { FilterUser } from "./FilterUser.jsx";
 import { EditNote, Delete, Add } from '@mui/icons-material';
 import Tooltip from "@mui/joy/Tooltip";
+import { ADMIN_MENUS } from "../../Components/adminMenus.js";
 
 
 const BreadcrumbsPath = [{ name: 'จัดการผู้ใช้' }, { name: 'รายละเอียด' }]
@@ -142,6 +143,14 @@ export default function Users() {
                                                     color={item.role === 'admin' ? 'warning' : item.role === 'BOT' ? 'neutral' : 'primary'}>
                                                     {{ admin: 'ผู้ดูแลระบบ', user: 'ผู้ใช้ทั่วไป', BOT: 'BOT' }[item.role] ?? item.role}
                                                 </Chip>
+                                                {item.role === 'user' && (item.admin_menus ?? []).length > 0 && (
+                                                    <Tooltip arrow size='sm' placement='top'
+                                                        title={'เมนูผู้ดูแลระบบ: ' + (item.admin_menus ?? []).map((k) => ADMIN_MENUS.find((m) => m.key === k)?.label ?? k).join(', ')}>
+                                                        <Chip size='sm' variant='outlined' color='warning' sx={{ ml: 0.5 }}>
+                                                            +{item.admin_menus.length} เมนู
+                                                        </Chip>
+                                                    </Tooltip>
+                                                )}
                                             </td>
                                             <td>
                                                 <Tooltip

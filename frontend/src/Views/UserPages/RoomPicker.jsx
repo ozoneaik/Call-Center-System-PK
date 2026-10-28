@@ -45,7 +45,7 @@ export default function RoomPicker({ rooms = [], value = [], onChange, maxHeight
                 </Stack>
             </Stack>
 
-            <Sheet variant="outlined" sx={{ borderRadius: 'sm', p: 1, maxHeight, overflowY: 'auto' }}>
+            <Sheet variant="outlined" sx={{ borderRadius: 'sm', p: 1, maxHeight, overflowY: 'auto', overflowX: 'hidden' }}>
                 {visible.length === 0 ? (
                     <Typography level="body-sm" color="neutral" textAlign="center" py={2}>ไม่พบห้องที่ค้นหา</Typography>
                 ) : (
@@ -61,6 +61,8 @@ export default function RoomPicker({ rooms = [], value = [], onChange, maxHeight
                                     key={room.roomId}
                                     sx={{
                                         px: 1, py: 0.75, borderRadius: 'sm',
+                                        // overlay ของ Checkbox จะขยายพื้นที่กดถึงกล่องแม่ที่มี position — ต้องจำกัดไว้ที่กล่องของแต่ละรายการ
+                                        position: 'relative', minWidth: 0,
                                         bgcolor: checked ? 'primary.softBg' : 'transparent',
                                         '&:hover': { bgcolor: checked ? 'primary.softHoverBg' : 'background.level1' },
                                     }}
