@@ -3,8 +3,8 @@
  * key ต้องตรงกับ backend: User::ASSIGNABLE_MENUS และ middleware('menu:<key>') ใน routes/api.php
  */
 export const ADMIN_MENUS = [
-    { key: 'keywords',         label: 'จัดการคีย์เวิร์ด',        paths: ['/keywords'] },
-    { key: 'bot_menu',         label: 'จัดการเมนูของบอท',       paths: ['/botManage'] },
+    { key: 'keywords',         label: 'จัดการคีย์เวิร์ด',         paths: ['/keywords'] },
+    { key: 'bot_menu',         label: 'จัดการเมนูของบอท',     paths: ['/botManage'] },
     { key: 'chat_rooms',       label: 'จัดการห้องแชท',          paths: ['/chatRooms'] },
     { key: 'platform_routing', label: 'สิทธิ์การส่งต่อห้อง',      paths: ['/platform-routing'] },
     { key: 'short_chats',      label: 'จัดการข้อความส่งด่วน',    paths: ['/shortChats'] },
@@ -16,10 +16,11 @@ export const ADMIN_MENUS = [
     { key: 'holidays',         label: 'จัดการวันหยุด',          paths: ['/holidays'] },
     { key: 'knowledge_base',   label: 'Knowledge Base',        paths: ['/knowledge-base'] },
     { key: 'reports',          label: 'หน้ารายงาน',            paths: ['/report'] },
+    { key: 'auto_tokens',      label: 'Auto Access Token',     paths: ['/TokenManager'] },
 ];
 
 // เมนูที่ใช้ได้เฉพาะสิทธิ์ admin (ไม่เปิดให้กำหนดรายบุคคล)
-const ADMIN_ONLY_PATHS = ['/accessToken', '/TokenManager', '/announces'];
+const ADMIN_ONLY_PATHS = ['/accessToken', '/announces'];
 
 export function canAccessMenu(user, key) {
     if (!user) return false;

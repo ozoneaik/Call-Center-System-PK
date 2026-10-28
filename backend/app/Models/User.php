@@ -65,7 +65,7 @@ class User extends Authenticatable
      */
     public const ASSIGNABLE_MENUS = [
         'keywords', 'bot_menu', 'chat_rooms', 'platform_routing', 'short_chats', 'customers',
-        'users', 'help_chat', 'sticker', 'tags', 'holidays', 'knowledge_base', 'reports',
+        'users', 'help_chat', 'sticker', 'tags', 'holidays', 'knowledge_base', 'reports', 'auto_tokens',
     ];
 
     /** กรองเหลือเฉพาะ key ที่กำหนดให้ผู้ใช้ทั่วไปได้ — คืน null ถ้าว่าง */

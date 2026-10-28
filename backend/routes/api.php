@@ -147,17 +147,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rooms', [PlatformTokenController::class, 'listRooms']);
 
         Route::get('/token/shopee/auth-url', [PlatformTokenController::class, 'shopeeAuthUrl']);
-        Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange'])->middleware('menu:tokens');
+        Route::post('/token/shopee/exchange', [PlatformTokenController::class, 'shopeeExchange'])->middleware('menu:auto_tokens');
         Route::get('/callback/shopee', [PlatformTokenController::class, 'shopeeCallback']);
 
         // Lazada
         Route::get('/token/lazada/auth-url', [PlatformTokenController::class, 'lazadaAuthUrl']);
-        Route::post('/token/lazada/exchange', [PlatformTokenController::class, 'lazadaExchange'])->middleware('menu:tokens');
+        Route::post('/token/lazada/exchange', [PlatformTokenController::class, 'lazadaExchange'])->middleware('menu:auto_tokens');
         Route::get('/callback/lazada', [PlatformTokenController::class, 'lazadaCallback']);
 
         //tiitok
         Route::get('/token/tiktok/auth-url', [PlatformTokenController::class, 'tiktokAuthUrl']);
-        Route::post('/token/tiktok/exchange', [PlatformTokenController::class, 'tiktokExchange'])->middleware('menu:tokens');
+        Route::post('/token/tiktok/exchange', [PlatformTokenController::class, 'tiktokExchange'])->middleware('menu:auto_tokens');
         Route::get('/callback/tiktok', [PlatformTokenController::class, 'tiktokCallback']);
 
     });
