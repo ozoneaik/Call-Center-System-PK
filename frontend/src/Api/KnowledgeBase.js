@@ -179,9 +179,9 @@ export const kbAutoReplyLogsApi = async ({ decision = 'all', page = 1, perPage =
 };
 
 // ทดลองพิมพ์คำถาม ดูว่าจะจับคู่กับรายการไหน (ไม่เรียก AI ไม่ส่งข้อความ)
-export const kbAutoReplyTestApi = async (q) => {
+export const kbAutoReplyTestApi = async (q, useAi = false) => {
     try {
-        const { data, status } = await axiosClient.get(`${kb}/auto-reply/test`, { params: { q } });
+        const { data, status } = await axiosClient.get(`${kb}/auto-reply/test`, { params: { q, use_ai: useAi ? 1 : 0 } });
         return { data, status };
     } catch (error) {
         return ErrorResponse(error);

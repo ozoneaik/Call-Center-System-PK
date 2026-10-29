@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-    Box, Sheet, Typography, Button, Stack, Slider, ToggleButtonGroup, Chip, Input, Divider, CircularProgress, FormHelperText,
-    Select, Option, Checkbox,
+    Box, Sheet, Typography, Button, Stack, Slider, ToggleButtonGroup, Chip, Divider, CircularProgress, FormHelperText,
+    Select, Option, Checkbox, Textarea,
 } from "@mui/joy";
-import { PowerSettingsNew, Science, RocketLaunch, Search, CheckCircle, Cancel, MeetingRoom, ExpandMore, ExpandLess } from "@mui/icons-material";
+import { PowerSettingsNew, Science, RocketLaunch, Search, CheckCircle, Cancel, MeetingRoom, ExpandMore, ExpandLess, WarningAmber, ToggleOn } from "@mui/icons-material";
 import { AlertDiaLog } from "../../Dialogs/Alert.js";
-import { kbAutoReplySettingsApi, kbUpdateAutoReplySettingsApi, kbAutoReplyTestApi } from "../../Api/KnowledgeBase.js";
+import { kbAutoReplySettingsApi, kbUpdateAutoReplySettingsApi, kbAutoReplyTestApi, kbSetAutoReplyApi } from "../../Api/KnowledgeBase.js";
 
 const MODES = {
     off:    { label: 'ปิด',      color: 'neutral', icon: <PowerSettingsNew />, desc: 'ระบบไม่พิจารณาตอบอัตโนมัติเลย' },
@@ -24,12 +24,15 @@ const CASE_STATUSES = {
 /**
  * การ์ดตั้งค่าระบบ AI ตอบอัตโนมัติ — โหมด, เกณฑ์คะแนน และช่องทดลองพิมพ์คำถาม
  */
-export default function AutoReplySettings() {
+export default function AutoReplySettings({ onEntriesChanged }) {
     const [saved,   setSaved]   = useState(null);   // ค่าที่บันทึกอยู่ใน server
     const [draft,   setDraft]   = useState(null);   // ค่าที่กำลังแก้
     const [saving,  setSaving]  = useState(false);
     const [testQ,   setTestQ]   = useState('');
     const [testing, setTesting] = useState(false);
+    const [useAi,   setUseAi]   = useState(true);
+    // hook ทุกตัวต้องอยู่ก่อน early return (if (!draft) ...) ไม่งั้นจำนวน hook แต่ละรอบ render ไม่เท่ากัน
+    const [enablingId, setEnablingId] = useState(null);  // ทดสอบผ่าน AI แบบเดียวกับตอนใช้งานจริง
     const [testRes, setTestRes] = useState(null);
     const [rooms,   setRooms]   = useState([]);     // ตัวเลือกห้อง [{roomId, roomName}]
     // พับ/กางการ์ด — จำค่าไว้ในเบราว์เซอร์ (ค่าเริ่มต้น: กาง)
@@ -95,10 +98,32 @@ export default function AutoReplySettings() {
         doSave();
     };
 
+    // เปิดตอบอัตโนมัติให้รายการที่ทดสอบเจอ แล้วทดสอบซ้ำให้เห็นผลใหม่ทันที
+    const enableEntry = (hit) => {
+        AlertDiaLog({
+            icon: 'question',
+            title: `เปิดตอบอัตโนมัติรายการ #${hit.id}?`,
+            text: 'เมื่อลูกค้าถามคำถามที่ตรงกับรายการนี้ ระบบจะส่งคำตอบนี้ให้ลูกค้าทันทีโดยไม่ผ่านพนักงาน',
+            onPassed: async (ok) => {
+                if (!ok) return;
+                setEnablingId(hit.id);
+                const { data, status } = await kbSetAutoReplyApi([hit.id], true);
+                setEnablingId(null);
+                if (status !== 200) {
+                    AlertDiaLog({ icon: 'error', title: data?.message || 'เปิดไม่สำเร็จ', text: data?.detail || '' });
+                    return;
+                }
+                onEntriesChanged?.();
+                runTest();
+            },
+        });
+    };
+
     const runTest = async () => {
         if (!testQ.trim()) return;
         setTesting(true);
-        const { data, status } = await kbAutoReplyTestApi(testQ.trim());
+        setTestRes(null);
+        const { data, status } = await kbAutoReplyTestApi(testQ.trim(), useAi);
         setTesting(false);
         setTestRes(status === 200 ? data : { error: data?.message || 'ทดสอบไม่สำเร็จ' });
     };
@@ -242,17 +267,17 @@ export default function AutoReplySettings() {
                             onChange={(_, v) => setDraft((d) => ({ ...d, min_score: v }))}
                             marks={[{ value: 0.3, label: 'หลวม' }, { value: 0.6, label: '0.6' }, { value: 1, label: 'ตรงเป๊ะ' }]}
                         />
-                        <Typography level="body-sm" sx={{ mt: 1 }}>
+                        {/* <Typography level="body-sm" sx={{ mt: 1 }}>
                             อันดับ 1 ต้องชนะอันดับ 2 อย่างน้อย: <b>{Number(draft.min_margin).toFixed(2)}</b>
-                        </Typography>
-                        <Slider
+                        </Typography> */}
+                        {/* <Slider
                             size="sm" min={0} max={0.5} step={0.05}
                             value={Number(draft.min_margin)}
                             onChange={(_, v) => setDraft((d) => ({ ...d, min_margin: v }))}
-                        />
-                        <FormHelperText>
+                        /> */}
+                        {/* <FormHelperText>
                             คะแนนเทียบคำถามของลูกค้า (สรุปโดย AI) กับ "คำถาม" และ "คำที่ใช้แทนกัน" ของรายการที่เปิดตอบอัตโนมัติ
-                        </FormHelperText>
+                        </FormHelperText> */}
                     </Box>
 
                     <Stack direction="row" spacing={1} mt={1.5} alignItems="center">
@@ -268,42 +293,55 @@ export default function AutoReplySettings() {
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography level="title-md" mb={1}>ทดลองพิมพ์คำถาม</Typography>
                     <Stack direction="row" spacing={1}>
-                        <Input
-                            size="sm" sx={{ flex: 1 }}
-                            placeholder='เช่น "ลูกค้าต้องการลงทะเบียนรับประกันสินค้า"'
+                        <Textarea
+                            size="sm" sx={{ flex: 1 }} minRows={useAi ? 2 : 1} maxRows={6}
+                            placeholder={useAi
+                                ? 'พิมพ์แบบที่ลูกค้าพิมพ์ เช่น "ปั้มน้ำแรงดันตก สายสั่น เปลี่ยนอะไหล่ตัวไหนบ้างคะ"'
+                                : 'เช่น "ลูกค้าต้องการลงทะเบียนรับประกันสินค้า"'}
                             value={testQ}
                             onChange={(e) => setTestQ(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') runTest(); }}
+                            // Enter = ทดสอบ, Shift+Enter = ขึ้นบรรทัดใหม่ (ใช้จำลองหลายข้อความตอนทดสอบผ่าน AI)
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runTest(); } }}
                         />
-                        <Button size="sm" variant="outlined" startDecorator={<Search />} loading={testing} onClick={runTest}>ทดสอบ</Button>
+                        <Button size="sm" variant="outlined" startDecorator={<Search />} loading={testing} onClick={runTest}
+                            sx={{ alignSelf: 'flex-start' }}>
+                            ทดสอบ
+                        </Button>
                     </Stack>
+                    <Checkbox
+                        size="sm" sx={{ mt: 1 }}
+                        checked={useAi}
+                        onChange={(e) => { setUseAi(e.target.checked); setTestRes(null); }}
+                        label="ทดสอบผ่าน AI (เหมือนตอนใช้งานจริง ใช้เวลา ~5-10 วินาที)"
+                    />
                     <FormHelperText sx={{ mt: 0.5 }}>
-                        ตอนใช้งานจริง ระบบจะใช้คำถามที่ AI สรุปจากบทสนทนา (มักขึ้นต้นว่า "ลูกค้าต้องการ...") ไม่ใช่ข้อความดิบของลูกค้า
+                        {useAi
+                            ? 'ให้ AI สรุปข้อความก่อนแล้วค่อยค้น KB เหมือนตอนลูกค้าทักจริง — 1 บรรทัด = 1 ข้อความของลูกค้า (Shift+Enter เพื่อขึ้นบรรทัดใหม่)'
+                            : 'เทียบข้อความที่พิมพ์กับ KB ตรงๆ ไม่ผ่าน AI — เหมาะกับลองคำที่ AI สรุปมา (มักขึ้นต้นว่า "ลูกค้าต้องการ...")'}
                     </FormHelperText>
+                    {testing && useAi && (
+                        <Typography level="body-xs" color="neutral" mt={1}>กำลังให้ AI สรุปคำถาม...</Typography>
+                    )}
 
                     {testRes?.error && <Typography level="body-sm" color="danger" mt={1}>{testRes.error}</Typography>}
                     {testRes && !testRes.error && (
                         <Box mt={1.5}>
-                            <Chip
-                                variant="soft"
-                                color={testRes.would_send ? 'success' : 'neutral'}
-                                startDecorator={testRes.would_send ? <CheckCircle /> : <Cancel />}
-                            >
-                                {testRes.would_send ? 'ผ่านเกณฑ์ — จะตอบอัตโนมัติ' : 'ไม่ผ่านเกณฑ์ — ให้พนักงานตอบ'}
-                            </Chip>
-                            {!testRes.would_send && (
-                                <Typography level="body-sm" color="danger" mt={0.5}>
-                                    สาเหตุ: {failReason(testRes)}
-                                </Typography>
+                            {testRes.ai && (
+                                <Sheet variant="soft" color={testRes.ai.error ? 'danger' : 'primary'} sx={{ p: 1, borderRadius: 'sm', mb: 1 }}>
+                                    {testRes.ai.error ? (
+                                        <Typography level="body-xs">เรียก AI ไม่สำเร็จ ({testRes.ai.error}) — ค้นจากข้อความที่พิมพ์แทน</Typography>
+                                    ) : (
+                                        <>
+                                            <Typography level="body-xs" fontWeight="lg">AI สรุปคำถาม</Typography>
+                                            <Typography level="body-sm" sx={{ wordBreak: 'break-word' }}>{testRes.ai.summary || '-'}</Typography>
+                                            <Typography level="body-xs" color="neutral" sx={{ wordBreak: 'break-word' }}>
+                                                คำค้น: {testRes.ai.query_used || '-'}
+                                            </Typography>
+                                        </>
+                                    )}
+                                </Sheet>
                             )}
-                            {testRes.note && <Typography level="body-xs" color="warning" mt={0.5}>{testRes.note}</Typography>}
-                            <TestHit title="รายการที่เปิดตอบอัตโนมัติ" hit={testRes.auto_reply?.top} second={testRes.auto_reply?.second} />
-                            {testRes.all_approved?.top && testRes.all_approved.top.id !== testRes.auto_reply?.top?.id && (
-                                <TestHit
-                                    title="ใกล้เคียงที่สุดจากรายการที่อนุมัติทั้งหมด (ยังไม่ได้เปิดตอบอัตโนมัติ)"
-                                    hit={testRes.all_approved.top}
-                                />
-                            )}
+                            <TestResult res={testRes} onEnable={enableEntry} enablingId={enablingId} />
                         </Box>
                     )}
                 </Box>
@@ -335,20 +373,89 @@ function failReason(res) {
     return 'ไม่ผ่านเงื่อนไข';
 }
 
-function TestHit({ title, hit, second }) {
+// ผลทดสอบ: ป้ายสถานะ + การ์ดรายการที่ใกล้ที่สุด (ไฮไลต์รายการที่ "ตรงแต่ยังไม่ได้เปิดสวิตช์" ให้เห็นชัด)
+function TestResult({ res, onEnable, enablingId }) {
+    const minScore = Number(res.settings?.min_score ?? 0);
+    const top = res.auto_reply?.top;
+    const allTop = res.all_approved?.top;
+
+    // รายการที่อนุมัติแล้วซึ่งผ่านเกณฑ์และดีกว่ารายการที่เปิดอยู่ แต่ยังไม่ได้เปิดสวิตช์ — สาเหตุที่พบบ่อยที่สุดของ "ไม่ผ่าน"
+    const blockedHit = !res.would_send && allTop && !allTop.auto_reply
+        && Number(allTop.score) >= minScore
+        && (!top || Number(allTop.score) > Number(top.score))
+        ? allTop : null;
+
+    const status = res.would_send
+        ? { color: 'success', icon: <CheckCircle />, text: 'ผ่านเกณฑ์ — จะตอบอัตโนมัติ' }
+        : blockedHit
+            ? { color: 'warning', icon: <WarningAmber />, text: 'พบคำตอบที่ตรง แต่ยังไม่ได้เปิดตอบอัตโนมัติ' }
+            : { color: 'neutral', icon: <Cancel />, text: 'ไม่ผ่านเกณฑ์ — ให้พนักงานตอบ' };
+
     return (
-        <Box mt={1}>
-            <Typography level="body-xs" color="neutral">{title}</Typography>
-            {hit ? (
-                <Typography level="body-sm" sx={{ wordBreak: 'break-word' }}>
-                    #{hit.id} {hit.question} — <b>{Number(hit.score).toFixed(3)}</b>
-                    {second && (
-                        <Typography level="body-xs" color="neutral"> (อันดับ 2: #{second.id} {Number(second.score).toFixed(3)})</Typography>
-                    )}
-                </Typography>
-            ) : (
-                <Typography level="body-sm" color="neutral">ไม่พบรายการที่ใกล้เคียง</Typography>
+        <>
+            <Chip variant="soft" color={status.color} startDecorator={status.icon}>{status.text}</Chip>
+            {!res.would_send && !blockedHit && (
+                <Typography level="body-sm" color="danger" mt={0.5}>สาเหตุ: {failReason(res)}</Typography>
             )}
-        </Box>
+            {res.note && <Typography level="body-xs" color="warning" mt={0.5}>{res.note}</Typography>}
+
+            {blockedHit && (
+                <HitCard
+                    title="ตรงที่สุด — ยังไม่ได้เปิดตอบอัตโนมัติ"
+                    hit={blockedHit} minScore={minScore} color="warning" highlight
+                    action={
+                        <Button size="sm" color="warning" startDecorator={<ToggleOn />}
+                            loading={enablingId === blockedHit.id} onClick={() => onEnable(blockedHit)}>
+                            เปิดตอบอัตโนมัติรายการนี้
+                        </Button>
+                    }
+                />
+            )}
+
+            <HitCard
+                title="ใกล้ที่สุดในรายการที่เปิดตอบอัตโนมัติ"
+                hit={top} second={res.auto_reply?.second} minScore={minScore}
+                color={res.would_send ? 'success' : 'neutral'} highlight={res.would_send}
+                emptyText="ยังไม่มีรายการที่เปิดตอบอัตโนมัติที่ใกล้เคียง"
+            />
+
+            {!blockedHit && allTop && allTop.id !== top?.id && (
+                <HitCard
+                    title={`ใกล้ที่สุดจากรายการที่อนุมัติทั้งหมด${allTop.auto_reply ? '' : ' (ยังไม่ได้เปิดตอบอัตโนมัติ)'}`}
+                    hit={allTop} minScore={minScore} color="neutral"
+                />
+            )}
+        </>
+    );
+}
+
+function HitCard({ title, hit, second, minScore, color, highlight = false, action, emptyText = 'ไม่พบรายการที่ใกล้เคียง' }) {
+    const passes = hit && Number(hit.score) >= minScore;
+    return (
+        <Sheet
+            variant={highlight ? 'soft' : 'outlined'}
+            color={highlight ? color : 'neutral'}
+            sx={{ mt: 1, p: 1.25, borderRadius: 'sm', ...(highlight && { borderLeft: '4px solid', borderColor: `${color}.500` }) }}
+        >
+            <Typography level="body-xs" color="neutral" mb={0.25}>{title}</Typography>
+            {hit ? (
+                <>
+                    <Typography level="body-sm" sx={{ wordBreak: 'break-word' }}>
+                        <b>#{hit.id}</b> {hit.question}
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" mt={0.75} flexWrap="wrap" useFlexGap>
+                        <Chip size="sm" variant="solid" color={passes ? 'success' : 'neutral'}>
+                            คะแนน {Number(hit.score).toFixed(3)} {passes ? '≥' : '<'} เกณฑ์ {minScore.toFixed(2)}
+                        </Chip>
+                        {second && (
+                            <Typography level="body-xs" color="neutral">อันดับ 2: #{second.id} ({Number(second.score).toFixed(3)})</Typography>
+                        )}
+                        {action && <Box sx={{ ml: 'auto' }}>{action}</Box>}
+                    </Stack>
+                </>
+            ) : (
+                <Typography level="body-sm" color="neutral">{emptyText}</Typography>
+            )}
+        </Sheet>
     );
 }

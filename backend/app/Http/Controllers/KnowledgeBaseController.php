@@ -369,9 +369,32 @@ class KnowledgeBaseController extends Controller
     // ทดลองพิมพ์คำถาม ดูว่าระบบจะจับคู่กับรายการไหน คะแนนเท่าไร (ไม่เรียก AI ไม่ส่งข้อความ)
     public function autoReplyTest(Request $request): JsonResponse
     {
-        $validated = $request->validate(['q' => 'required|string|max:1000']);
+        $validated = $request->validate([
+            'q'      => 'required|string|max:2000',
+            // use_ai = ส่งข้อความผ่าน chat-oc-summary ก่อนแบบเดียวกับตอนใช้งานจริง (ช้ากว่า ~5-10 วิ)
+            'use_ai' => 'nullable|boolean',
+        ]);
         $service   = app(KbAutoReplyService::class);
         $settings  = KbAutoReplySetting::current();
+
+        // ข้อความที่ใช้ค้น: ปกติใช้ข้อความที่พิมพ์ตรงๆ — ถ้า use_ai ใช้ชุดเดียวกับตอนใช้งานจริง (คำค้นของ AI + คำสรุป + ข้อความดิบ)
+        $queries = ['message' => $validated['q']];
+        $ai = null;
+        if ($request->boolean('use_ai')) {
+            // แยกบรรทัดเป็นหลายข้อความ ให้ทดสอบแบบมีบริบทหลายข้อความได้ (1 บรรทัด = 1 ข้อความของลูกค้า)
+            $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $validated['q']))));
+            $res = $service->callChatOcSummary($lines);
+            $ai = [
+                'error'      => $res['_error'] ?? null,
+                'summary'    => $res['summarytxt'] ?? null,
+                'query_used' => $res['query_used'] ?? null,
+            ];
+            $queries = array_filter([
+                'ai_query'   => $ai['query_used'],
+                'ai_summary' => $ai['summary'],
+                'message'    => end($lines) ?: $validated['q'],
+            ], fn ($v) => is_string($v) && trim($v) !== '');
+        }
 
         $describe = function (?array $hit) {
             if (!$hit) return null;
@@ -379,8 +402,8 @@ class KnowledgeBaseController extends Controller
             return $hit + ['question' => $entry?->question, 'auto_reply' => (bool) $entry?->auto_reply];
         };
 
-        [$top, $second] = $service->match(['message' => $validated['q']], true);
-        [$topAll, $secondAll] = $service->match(['message' => $validated['q']], false);
+        [$top, $second] = $service->match($queries, true);
+        [$topAll, $secondAll] = $service->match($queries, false);
 
         $wouldSend = $top
             && $top['score'] >= $settings->min_score
@@ -388,6 +411,7 @@ class KnowledgeBaseController extends Controller
 
         return response()->json([
             'would_send'   => $wouldSend,
+            'ai'           => $ai,
             'auto_reply'   => ['top' => $describe($top), 'second' => $describe($second)],
             'all_approved' => ['top' => $describe($topAll), 'second' => $describe($secondAll)],
             'settings'     => $settings,

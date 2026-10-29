@@ -307,17 +307,18 @@ function AutoReplyEntries({ tags = [], onChanged }) {
 export default function AutoReplyTab({ tags = [], onChanged }) {
     const navigate = useNavigate();
     const [sub, setSub] = useState('entries');
+    const [entriesKey, setEntriesKey] = useState(0); // เปลี่ยนค่าเพื่อโหลดตารางรายการใหม่
 
     return (
         <>
-            <AutoReplySettings />
+            <AutoReplySettings onEntriesChanged={() => { setEntriesKey((k) => k + 1); onChanged?.(); }} />
             <Tabs value={sub} onChange={(_, v) => setSub(v)} sx={{ bgcolor: 'transparent' }}>
                 <TabList size="sm" variant="plain" sx={{ mb: 1 }}>
                     <Tab value="entries">รายการคำถาม/คำตอบ</Tab>
                     <Tab value="logs">บันทึกการตัดสินใจ</Tab>
                 </TabList>
                 <TabPanel value="entries" sx={{ p: 0 }}>
-                    <AutoReplyEntries tags={tags} onChanged={onChanged} />
+                    <AutoReplyEntries key={entriesKey} tags={tags} onChanged={onChanged} />
                 </TabPanel>
                 <TabPanel value="logs" sx={{ p: 0 }}>
                     {sub === 'logs' && <AutoReplyLogs onOpenChat={(custId) => navigate(`/chatHistory/detail/${custId}`)} />}

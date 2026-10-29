@@ -223,8 +223,6 @@ class KbAutoReplyService
     private function askChatOcSummary(ChatHistory $chat, ?Rates $rate): array
     {
         $custId = $chat->custId;
-        $url = config('services.chat_oc_summary.url');
-        if (!$url) return ['_error' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'];
 
         try {
             $acIds = $rate
@@ -255,10 +253,26 @@ class KbAutoReplyService
                 ->all();
             $lastImage = $history->where('contentType', 'image')->last();
 
-            $payload = ['lines' => $lines, 'gender' => null, 'session_id' => $custId];
-            if ($lastImage && trim((string) $lastImage->content) !== '') {
-                $payload['image_url'] = trim((string) $lastImage->content);
-            }
+            $imageUrl = $lastImage && trim((string) $lastImage->content) !== '' ? trim((string) $lastImage->content) : null;
+
+            return $this->callChatOcSummary($lines, $imageUrl, $custId);
+        } catch (\Throwable $e) {
+            return ['_error' => class_basename($e) . ': ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * ยิง chat-oc-summary ด้วย lines ที่เตรียมไว้แล้ว — ใช้ทั้งตอนตอบอัตโนมัติจริง และช่อง "ทดสอบผ่าน AI" ในหน้าตั้งค่า
+     */
+    public function callChatOcSummary(array $lines, ?string $imageUrl = null, ?string $sessionId = null): array
+    {
+        $url = config('services.chat_oc_summary.url');
+        if (!$url) return ['_error' => 'ยังไม่ได้ตั้งค่า CHAT_OC_SUMMARY_URL'];
+
+        try {
+            $payload = ['lines' => array_values($lines), 'gender' => null];
+            if ($sessionId) $payload['session_id'] = $sessionId;
+            if ($imageUrl)  $payload['image_url']  = $imageUrl;
 
             $client = new \GuzzleHttp\Client(['timeout' => 60, 'http_errors' => false]);
             $res    = $client->request('POST', $url, ['json' => $payload]);
