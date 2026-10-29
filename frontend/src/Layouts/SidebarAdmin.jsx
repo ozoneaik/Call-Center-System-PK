@@ -242,8 +242,8 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {/* AdminIT */}
-        {user.role === "admin" && user.empCode === "adminIT" && matchSearch("จัดการ token") && (
+        {/* admin: เฉพาะ adminIT เหมือนเดิม | ผู้ใช้ทั่วไป: ตามสิทธิ์ tokens */}
+        {(user.role === "admin" ? user.empCode === "adminIT" : can("tokens")) && matchSearch("จัดการ token") && (
           <ListItem>
             <ListItemButton
               component={Link}

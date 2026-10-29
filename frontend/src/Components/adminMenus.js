@@ -16,11 +16,12 @@ export const ADMIN_MENUS = [
     { key: 'holidays',         label: 'จัดการวันหยุด',          paths: ['/holidays'] },
     { key: 'knowledge_base',   label: 'Knowledge Base',        paths: ['/knowledge-base'] },
     { key: 'reports',          label: 'หน้ารายงาน',            paths: ['/report'] },
+    { key: 'tokens',           label: 'จัดการ token',           paths: ['/accessToken'] },
     { key: 'auto_tokens',      label: 'Auto Access Token',     paths: ['/TokenManager'] },
 ];
 
 // เมนูที่ใช้ได้เฉพาะสิทธิ์ admin (ไม่เปิดให้กำหนดรายบุคคล)
-const ADMIN_ONLY_PATHS = ['/accessToken', '/announces'];
+const ADMIN_ONLY_PATHS = ['/announces'];
 
 export function canAccessMenu(user, key) {
     if (!user) return false;

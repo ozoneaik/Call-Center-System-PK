@@ -61,11 +61,11 @@ class User extends Authenticatable
 
     /**
      * เมนูผู้ดูแลระบบที่กำหนดให้ผู้ใช้ทั่วไปได้ (key ต้องตรงกับ frontend/src/Components/adminMenus.js)
-     * เมนูที่ไม่อยู่ในรายการนี้ (เช่น tokens) ใช้ได้เฉพาะ admin เท่านั้น
+     * เมนูที่ไม่อยู่ในรายการนี้ ใช้ได้เฉพาะ admin เท่านั้น
      */
     public const ASSIGNABLE_MENUS = [
         'keywords', 'bot_menu', 'chat_rooms', 'platform_routing', 'short_chats', 'customers',
-        'users', 'help_chat', 'sticker', 'tags', 'holidays', 'knowledge_base', 'reports', 'auto_tokens',
+        'users', 'help_chat', 'sticker', 'tags', 'holidays', 'knowledge_base', 'reports', 'tokens', 'auto_tokens',
     ];
 
     /** กรองเหลือเฉพาะ key ที่กำหนดให้ผู้ใช้ทั่วไปได้ — คืน null ถ้าว่าง */
