@@ -41,7 +41,7 @@ export default function TokenManager() {
         const params = new URLSearchParams(location.search);
         const code = params.get("code");
         const shopId = params.get("shop_id");
-        const platformParam = params.get("platform") || platform;
+        const platformParam = params.get("platform") || localStorage.getItem("platform") || platform;
 
         if (code) {
             exchangeToken(code, shopId, platformParam);
