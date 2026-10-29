@@ -137,7 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // จัดการ token
     Route::prefix('tokens')->group(function () {
         Route::post('/verify', [TokenController::class, 'verifyToken']);
-        Route::get('list', [TokenController::class, 'list']);
+        Route::get('list', [TokenController::class, 'list'])->middleware('menu:tokens');
         Route::post('store', [TokenController::class, 'store'])->middleware('menu:tokens');
         Route::put('update', [TokenController::class, 'update'])->middleware('menu:tokens');
         Route::delete('delete/{id}', [TokenController::class, 'delete'])->middleware('menu:tokens');

@@ -20,6 +20,22 @@ export const ADMIN_MENUS = [
     { key: 'auto_tokens',      label: 'Auto Access Token',     paths: ['/TokenManager'] },
 ];
 
+/** แพลตฟอร์มในหน้า "จัดการ token" — key ต้องตรงกับ backend: User::TOKEN_PLATFORMS */
+export const TOKEN_PLATFORMS = [
+    { key: 'line',     label: 'Line' },
+    { key: 'facebook', label: 'Facebook' },
+    { key: 'shopee',   label: 'Shopee' },
+    { key: 'lazada',   label: 'Lazada' },
+    { key: 'tiktok',   label: 'TikTok' },
+];
+
+/** ผู้ใช้จัดการ token ของแพลตฟอร์มนี้ได้หรือไม่ — token_platforms ว่าง/null = ทุกแพลตฟอร์ม */
+export function canAccessTokenPlatform(user, platform) {
+    if (!user) return false;
+    if (user.role === 'admin' || !Array.isArray(user.token_platforms) || user.token_platforms.length === 0) return true;
+    return user.token_platforms.includes(String(platform ?? '').toLowerCase());
+}
+
 // เมนูที่ใช้ได้เฉพาะสิทธิ์ admin (ไม่เปิดให้กำหนดรายบุคคล)
 const ADMIN_ONLY_PATHS = ['/announces'];
 

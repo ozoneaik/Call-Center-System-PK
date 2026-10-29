@@ -45,6 +45,7 @@ class UserService
             }
             $store['role'] = $user['role'];
             $store['admin_menus'] = $store['role'] === 'admin' ? null : User::sanitizeMenus($user['admin_menus'] ?? []);
+            $store['token_platforms'] = $store['role'] === 'admin' ? null : User::sanitizeTokenPlatforms($user['token_platforms'] ?? []);
             $store['password'] = Hash::make($user['password']);
             if ($store->save()) {
                 $data['status'] = true;

@@ -16,9 +16,13 @@ import LineLogo from "../../assets/LineLogo.svg";
 import ShopeeLogo from "../../assets/ShopeeLogo.svg";
 import LazadaLogo from "../../assets/LazadaLogo.svg";
 import TiktokLogo from "../../assets/TikTok.svg";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { canAccessTokenPlatform } from "../../Components/adminMenus.js";
 
 export const TokenForm = (props) => {
   const { newToken, setNewToken, setTokens, chatRoomList } = props;
+  const { user } = useAuth();
+  const canUse = (platform) => canAccessTokenPlatform(user, platform);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,25 +110,35 @@ export const TokenForm = (props) => {
             onChange={handleSelectPlatform}
             value={newToken.platform || ""}
           >
-            <Option value={"line"}>
-              <img src={LineLogo} width={20} height={20} alt="Line" /> Line
-            </Option>
-            <Option value={"facebook"}>
-              <img src={FacebookLogo} width={20} height={20} alt="Facebook" />{" "}
-              Facebook
-            </Option>
-            <Option value={"shopee"}>
-              <img src={ShopeeLogo} width={20} height={20} alt="Shopee" />{" "}
-              Shopee
-            </Option>
-            <Option value={"lazada"}>
-              <img src={LazadaLogo} width={20} height={20} alt="Lazada" />{" "}
-              Lazada
-            </Option>
-            <Option value={"Tiktok"}>
-              <img src={TiktokLogo} width={20} height={20} alt="TikTok" />{" "}
-              Tiktok
-            </Option>
+            {canUse("line") && (
+              <Option value={"line"}>
+                <img src={LineLogo} width={20} height={20} alt="Line" /> Line
+              </Option>
+            )}
+            {canUse("facebook") && (
+              <Option value={"facebook"}>
+                <img src={FacebookLogo} width={20} height={20} alt="Facebook" />{" "}
+                Facebook
+              </Option>
+            )}
+            {canUse("shopee") && (
+              <Option value={"shopee"}>
+                <img src={ShopeeLogo} width={20} height={20} alt="Shopee" />{" "}
+                Shopee
+              </Option>
+            )}
+            {canUse("lazada") && (
+              <Option value={"lazada"}>
+                <img src={LazadaLogo} width={20} height={20} alt="Lazada" />{" "}
+                Lazada
+              </Option>
+            )}
+            {canUse("tiktok") && (
+              <Option value={"Tiktok"}>
+                <img src={TiktokLogo} width={20} height={20} alt="TikTok" />{" "}
+                Tiktok
+              </Option>
+            )}
           </Select>
         </FormControl>
 

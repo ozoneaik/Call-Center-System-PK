@@ -143,6 +143,8 @@ export default function ModalDialog(props) {
                                         <MenuPicker
                                             value={selected.admin_menus ?? []}
                                             onChange={(admin_menus) => setSelected((prev) => ({...prev, admin_menus}))}
+                                            tokenPlatforms={selected.token_platforms ?? []}
+                                            onTokenPlatformsChange={(token_platforms) => setSelected((prev) => ({...prev, token_platforms}))}
                                         />
                                     </Box>
                                 </>

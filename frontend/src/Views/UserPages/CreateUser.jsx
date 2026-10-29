@@ -23,6 +23,7 @@ const emptyUser = {
     password_confirmation: '',
     list: [],
     admin_menus: [],
+    token_platforms: [],
 };
 
 export const CreateUser = ({ open, setOpen, Refresh }) => {
@@ -138,7 +139,10 @@ export const CreateUser = ({ open, setOpen, Refresh }) => {
                         <>
                             <Divider sx={{ my: 2 }} />
                             <Typography level="title-sm" mb={1}>เมนูผู้ดูแลระบบที่อนุญาต</Typography>
-                            <MenuPicker value={user.admin_menus} onChange={(admin_menus) => set({ admin_menus })} />
+                            <MenuPicker
+                                value={user.admin_menus} onChange={(admin_menus) => set({ admin_menus })}
+                                tokenPlatforms={user.token_platforms} onTokenPlatformsChange={(token_platforms) => set({ token_platforms })}
+                            />
                         </>
                     )}
 

@@ -111,6 +111,7 @@ class UserController extends Controller
             $user['description'] = $request['description'];
             $user['role'] = $request['role'];
             $user['admin_menus'] = $request['role'] === 'admin' ? null : User::sanitizeMenus($request['admin_menus'] ?? []);
+            $user['token_platforms'] = $request['role'] === 'admin' ? null : User::sanitizeTokenPlatforms($request['token_platforms'] ?? []);
             $updateUserRoom = $this->userRoomService->store($user['empCode'], $request['list']);
             if (!$updateUserRoom['status']) {
                 throw new \Exception($updateUserRoom['message']);

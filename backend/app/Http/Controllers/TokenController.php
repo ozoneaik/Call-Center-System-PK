@@ -8,6 +8,7 @@ use App\Models\PlatformAccessTokens;
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class TokenController extends Controller
@@ -20,10 +21,27 @@ class TokenController extends Controller
         $this->tokenService = $tokenService;
     }
 
-    public function list(): JsonResponse
+    /** ตอบ 403 ถ้าผู้ใช้ไม่มีสิทธิ์ในแพลตฟอร์มใดแพลตฟอร์มหนึ่งที่ส่งมา (ดู users.token_platforms) */
+    private function denyPlatform(Request $request, ?string ...$platforms): ?JsonResponse
+    {
+        foreach ($platforms as $platform) {
+            if (!$request->user()->canAccessTokenPlatform($platform)) {
+                return response()->json([
+                    'message' => 'เกิดข้อผิดพลาด',
+                    'detail'  => "คุณไม่มีสิทธิ์จัดการ token ของแพลตฟอร์ม {$platform} (รหัส 403)",
+                ], 403);
+            }
+        }
+        return null;
+    }
+
+    public function list(Request $request): JsonResponse
     {
         try {
-            $token = PlatformAccessTokens::orderBy('id', 'asc')->get();
+            $allowed = $request->user()->allowedTokenPlatforms();
+            $token = PlatformAccessTokens::query()
+                ->when($allowed !== null, fn ($q) => $q->whereIn(DB::raw('LOWER(platform)'), $allowed))
+                ->orderBy('id', 'asc')->get();
             $chat_rooms = ChatRooms::query()->where('is_active', true)->get();
             return response()->json([
                 'message' => 'success',
@@ -41,6 +59,8 @@ class TokenController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($denied = $this->denyPlatform($request, $request->get('platform'))) return $denied;
+
         $store = new PlatformAccessTokens();
         $store['accessTokenId'] = Hash::make(rand(0, 10000));
         $store['accessToken'] = $request->get('accessToken');
@@ -90,6 +110,8 @@ class TokenController extends Controller
     public function update(Request $request): JsonResponse
     {
         $update = PlatformAccessTokens::findOrFail($request['id']);
+        if ($denied = $this->denyPlatform($request, $update->platform, $request->get('platform'))) return $denied;
+
         $update['accessToken'] = $request->get('accessToken');
         $update['description'] = $request->get('description');
         $update['platform'] = $request->get('platform');
@@ -116,9 +138,12 @@ class TokenController extends Controller
         ]);
     }
 
-    public function delete($id): JsonResponse
+    public function delete(Request $request, $id): JsonResponse
     {
-        PlatformAccessTokens::findOrFail($id)->delete();
+        $token = PlatformAccessTokens::findOrFail($id);
+        if ($denied = $this->denyPlatform($request, $token->platform)) return $denied;
+
+        $token->delete();
         return response()->json([
             'message' => 'ลบ token สำเร็จ'
         ]);

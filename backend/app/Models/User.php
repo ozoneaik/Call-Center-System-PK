@@ -30,6 +30,7 @@ class User extends Authenticatable
         'password',
         'role',
         'admin_menus',
+        'token_platforms',
         'roomId',
         'description',
         'avatar'
@@ -56,6 +57,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'admin_menus' => 'array',
+            'token_platforms' => 'array',
         ];
     }
 
@@ -80,5 +82,28 @@ class User extends Authenticatable
         if ($this->role === 'admin') return true;
         return in_array($menu, self::ASSIGNABLE_MENUS, true)
             && in_array($menu, (array) ($this->admin_menus ?? []), true);
+    }
+
+    /** แพลตฟอร์มในหน้า "จัดการ token" (key ต้องตรงกับ TOKEN_PLATFORMS ใน frontend/src/Components/adminMenus.js) */
+    public const TOKEN_PLATFORMS = ['line', 'facebook', 'shopee', 'lazada', 'tiktok'];
+
+    /** กรองเหลือเฉพาะแพลตฟอร์มที่รู้จัก — คืน null (= ทุกแพลตฟอร์ม) ถ้าว่างหรือเลือกครบทุกแพลตฟอร์ม */
+    public static function sanitizeTokenPlatforms($platforms): ?array
+    {
+        $clean = array_values(array_intersect(self::TOKEN_PLATFORMS, array_map('strtolower', (array) $platforms)));
+        return ($clean && count($clean) < count(self::TOKEN_PLATFORMS)) ? $clean : null;
+    }
+
+    /** แพลตฟอร์มที่จำกัดไว้ — null = ไม่จำกัด (admin หรือยังไม่ได้กำหนด) */
+    public function allowedTokenPlatforms(): ?array
+    {
+        if ($this->role === 'admin' || empty($this->token_platforms)) return null;
+        return $this->token_platforms;
+    }
+
+    public function canAccessTokenPlatform(?string $platform): bool
+    {
+        $allowed = $this->allowedTokenPlatforms();
+        return $allowed === null || in_array(strtolower((string) $platform), $allowed, true);
     }
 }
