@@ -18,6 +18,7 @@ export const ADMIN_MENUS = [
     { key: 'reports',          label: 'หน้ารายงาน',            paths: ['/report'] },
     { key: 'tokens',           label: 'จัดการ token',           paths: ['/accessToken'] },
     { key: 'auto_tokens',      label: 'Auto Access Token',     paths: ['/TokenManager'] },
+    { key: 'tiktok_shop',      label: 'TikTok Shop (ออเดอร์/สินค้า)', paths: ['/tiktok-shop'] },
 ];
 
 /** แพลตฟอร์มในหน้า "จัดการ token" — key ต้องตรงกับ backend: User::TOKEN_PLATFORMS */

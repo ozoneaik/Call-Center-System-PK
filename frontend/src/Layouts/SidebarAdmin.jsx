@@ -26,6 +26,7 @@ import {
   AutoAwesome,
   AltRoute,
   EventBusy,
+  Storefront,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
@@ -266,6 +267,15 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
             >
               <Token />
               <Typography level="title-sm">Auto Access Token</Typography>
+            </ListItemButton>
+          </ListItem>
+        )}
+
+        {can("tiktok_shop") && matchSearch("TikTok Shop") && (
+          <ListItem component={Link} to="/tiktok-shop">
+            <ListItemButton selected={pathname === "/tiktok-shop"}>
+              <Storefront />
+              <Typography level="title-sm">TikTok Shop</Typography>
             </ListItemButton>
           </ListItem>
         )}

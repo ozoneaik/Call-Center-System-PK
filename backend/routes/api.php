@@ -26,6 +26,7 @@ use App\Http\Controllers\TagGroupController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
+use App\Http\Controllers\TikTokShopController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\AiAssistantController;
@@ -160,6 +161,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/token/tiktok/exchange', [PlatformTokenController::class, 'tiktokExchange'])->middleware('menu:auto_tokens');
         Route::get('/callback/tiktok', [PlatformTokenController::class, 'tiktokCallback']);
 
+    });
+
+    // ข้อมูลร้าน TikTok Shop (ออเดอร์/สินค้า)
+    Route::prefix('tiktok-shop')->middleware('menu:tiktok_shop')->group(function () {
+        Route::get('/accounts', [TikTokShopController::class, 'accounts']);
+        Route::get('/{id}/shops', [TikTokShopController::class, 'shops']);
+        Route::get('/{id}/orders', [TikTokShopController::class, 'orders']);
+        Route::get('/{id}/products', [TikTokShopController::class, 'products']);
     });
 
     // จัดการ Dashboard
