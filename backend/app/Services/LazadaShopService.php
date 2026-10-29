@@ -24,7 +24,12 @@ class LazadaShopService
     public function shops(PlatformAccessTokens $token): array
     {
         return Cache::remember("lazada_shops:{$token->id}", now()->addDay(), function () use ($token) {
-            $data = $this->call($token, '/seller/get');
+            // app บางตัวไม่มีสิทธิ์ /seller/get (InsufficientPermission) — ใช้ข้อมูลที่บันทึกไว้แทน
+            try {
+                $data = $this->call($token, '/seller/get');
+            } catch (\RuntimeException) {
+                $data = [];
+            }
             return [[
                 'id'     => (string) ($data['seller_id'] ?? $token->laz_seller_id),
                 'name'   => $data['name'] ?? $token->description,
@@ -118,16 +123,22 @@ class LazadaShopService
         ];
     }
 
-    /** เรียก API ด้วย LazopClient (เซ็นให้เอง) — คืนค่าเฉพาะส่วน data, โยน exception ถ้า code != 0 */
-    private function call(PlatformAccessTokens $token, string $path, array $params = []): array
+    /**
+     * เรียก API ด้วย LazopClient (เซ็นให้เอง) — คืนค่าเฉพาะส่วน data, โยน exception ถ้า code != 0
+     * ไม่เชื่อ expire_at ในฐานข้อมูล (มีโค้ดเดิมที่เขียนทับเป็นเวลาปัจจุบันตอน refresh ไม่สำเร็จ)
+     * จึงยิงด้วย token เดิมก่อน แล้วค่อย refresh เมื่อ Lazada ตอบว่า token ใช้ไม่ได้
+     */
+    private function call(PlatformAccessTokens $token, string $path, array $params = [], bool $retried = false): array
     {
-        $this->refreshIfExpired($token);
-
         $client  = new LazopClient(self::API_URL, $token->laz_app_key, $token->laz_app_secret);
         $request = new LazopRequest($path, 'GET');
         foreach ($params as $k => $v) $request->addApiParam($k, (string) $v);
 
         $resp = json_decode($client->execute($request, $token->accessToken), true) ?? [];
+        if (!$retried && in_array($resp['code'] ?? '', ['IllegalAccessToken', 'MissingAccessToken'], true)) {
+            $this->refresh($token);
+            return $this->call($token, $path, $params, true);
+        }
         if ((string) ($resp['code'] ?? '') !== '0') {
             Log::channel('webhook_lazada_new')->error("❌ Lazada API {$path} failed", ['token_id' => $token->id, 'response' => $resp]);
             throw new \RuntimeException('Lazada API: ' . ($resp['message'] ?? 'ไม่ทราบสาเหตุ') . ' (' . ($resp['code'] ?? '-') . ')');
@@ -135,9 +146,8 @@ class LazadaShopService
         return $resp['data'] ?? [];
     }
 
-    private function refreshIfExpired(PlatformAccessTokens $token): void
+    private function refresh(PlatformAccessTokens $token): void
     {
-        if ($token->expire_at && Carbon::parse($token->expire_at)->gt(now()->addMinutes(5))) return;
         if (!$token->laz_refresh_token) throw new \RuntimeException('token ของ Lazada หมดอายุ และไม่มี refresh token');
 
         $params = [

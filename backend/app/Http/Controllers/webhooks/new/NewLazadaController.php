@@ -897,7 +897,9 @@ class NewLazadaController extends Controller
 
         $response = Http::asForm()->post('https://auth.lazada.com/rest/auth/token/refresh', $params);
 
-        if ($response->successful()) {
+        // Lazada ตอบ HTTP 200 แม้ refresh ไม่สำเร็จ (เช่น code=IllegalRefreshToken) — ต้องเช็คว่ามี access_token จริง
+        // ไม่อย่างนั้นผู้เรียกจะเขียน expire_at เป็นเวลาปัจจุบัน (expires_in ?? 0) ทับของเดิม
+        if ($response->successful() && !empty($response->json('access_token'))) {
             $data = $response->json();
 
             if (isset($data['expires_in'])) {
