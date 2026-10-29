@@ -26,7 +26,7 @@ use App\Http\Controllers\TagGroupController;
 use App\Http\Controllers\TagMenuController;
 use App\Http\Controllers\TagsByPlatformController;
 use App\Http\Controllers\TokenController;
-use App\Http\Controllers\TikTokShopController;
+use App\Http\Controllers\ShopDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\AiAssistantController;
@@ -163,13 +163,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ข้อมูลร้าน TikTok Shop (ออเดอร์/สินค้า)
-    Route::prefix('tiktok-shop')->middleware('menu:tiktok_shop')->group(function () {
-        Route::get('/accounts', [TikTokShopController::class, 'accounts']);
-        Route::get('/{id}/shops', [TikTokShopController::class, 'shops']);
-        Route::get('/{id}/orders', [TikTokShopController::class, 'orders']);
-        Route::get('/{id}/products', [TikTokShopController::class, 'products']);
-    });
+    // ข้อมูลร้าน (ออเดอร์/สินค้า) — /tiktok-shop, /shopee-shop, /lazada-shop ใช้สิทธิ์เมนู <platform>_shop
+    foreach (['tiktok', 'shopee', 'lazada'] as $shopPlatform) {
+        Route::prefix("{$shopPlatform}-shop")->middleware("menu:{$shopPlatform}_shop")->group(function () use ($shopPlatform) {
+            Route::get('/accounts', [ShopDataController::class, 'accounts'])->defaults('platform', $shopPlatform);
+            Route::get('/{id}/shops', [ShopDataController::class, 'shops'])->defaults('platform', $shopPlatform);
+            Route::get('/{id}/orders', [ShopDataController::class, 'orders'])->defaults('platform', $shopPlatform);
+            Route::get('/{id}/products', [ShopDataController::class, 'products'])->defaults('platform', $shopPlatform);
+        });
+    }
 
     // จัดการ Dashboard
     Route::get('/dashboard', [DisplayController::class, 'Dashboard']);

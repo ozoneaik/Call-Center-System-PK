@@ -19,6 +19,8 @@ export const ADMIN_MENUS = [
     { key: 'tokens',           label: 'จัดการ token',           paths: ['/accessToken'] },
     { key: 'auto_tokens',      label: 'Auto Access Token',     paths: ['/TokenManager'] },
     { key: 'tiktok_shop',      label: 'TikTok Shop (ออเดอร์/สินค้า)', paths: ['/tiktok-shop'] },
+    { key: 'shopee_shop',      label: 'Shopee (ออเดอร์/สินค้า)',      paths: ['/shopee-shop'] },
+    { key: 'lazada_shop',      label: 'Lazada (ออเดอร์/สินค้า)',      paths: ['/lazada-shop'] },
 ];
 
 /** แพลตฟอร์มในหน้า "จัดการ token" — key ต้องตรงกับ backend: User::TOKEN_PLATFORMS */

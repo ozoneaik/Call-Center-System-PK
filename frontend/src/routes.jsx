@@ -41,7 +41,7 @@ import KnowledgeBasePage from "./Views/KnowledgeBasePages/main.jsx";
 import EntryReviewPage from "./Views/KnowledgeBasePages/EntryReviewPage.jsx";
 import PlatformRoutingRules from "./Views/PlatformRoutingPages/PlatformRoutingRules.jsx";
 import HolidayPage from "./Views/HolidayPages/main.jsx";
-import TikTokShopPage from "./Views/TikTokShopPages/main.jsx";
+import ShopDataPage from "./Views/ShopDataPages/ShopDataPage.jsx";
 export const routes = createBrowserRouter([
     {
         path: '/',
@@ -72,7 +72,9 @@ export const routes = createBrowserRouter([
                             { path: '/accessToken', element: <TokenList /> },
 
                             { path: '/TokenManager', element: <TokenManeger /> },
-                            { path: '/tiktok-shop', element: <TikTokShopPage /> },
+                            { path: '/tiktok-shop', element: <ShopDataPage key="tiktok" platform="tiktok" /> },
+                            { path: '/shopee-shop', element: <ShopDataPage key="shopee" platform="shopee" /> },
+                            { path: '/lazada-shop', element: <ShopDataPage key="lazada" platform="lazada" /> },
 
                             { path: '/botManage', element: <BotList /> },
 

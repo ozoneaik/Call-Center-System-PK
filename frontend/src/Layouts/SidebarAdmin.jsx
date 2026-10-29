@@ -271,14 +271,18 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {can("tiktok_shop") && matchSearch("TikTok Shop") && (
-          <ListItem component={Link} to="/tiktok-shop">
-            <ListItemButton selected={pathname === "/tiktok-shop"}>
+        {[
+          { key: "tiktok_shop", to: "/tiktok-shop", label: "TikTok Shop" },
+          { key: "shopee_shop", to: "/shopee-shop", label: "Shopee Shop" },
+          { key: "lazada_shop", to: "/lazada-shop", label: "Lazada Shop" },
+        ].filter((m) => can(m.key) && matchSearch(m.label)).map((m) => (
+          <ListItem key={m.key} component={Link} to={m.to}>
+            <ListItemButton selected={pathname === m.to}>
               <Storefront />
-              <Typography level="title-sm">TikTok Shop</Typography>
+              <Typography level="title-sm">{m.label}</Typography>
             </ListItemButton>
           </ListItem>
-        )}
+        ))}
 
         {user.role === "admin" && user.empCode === "adminIT" && matchSearch("แจ้งเตือน") && (
           <ListItem component={Link} to="/announces">
