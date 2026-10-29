@@ -199,6 +199,8 @@ export default function TokenManager() {
                                             : "App Secret"}
                                 </label>
                                 <input
+                                    type="password"
+                                    autoComplete="new-password"
                                     style={styles.input}
                                     value={partnerKey}
                                     onChange={(e) => setPartnerKey(e.target.value)}
