@@ -377,16 +377,22 @@ function OrderDetailDrawer({ platform, accountId, orderId, onClose }) {
     );
 }
 
-/** แถบค้นหาเหนือตาราง — กด Enter หรือปุ่มค้นหา, ล้างแล้วกลับไปแสดงทั้งหมด */
-function SearchBar({ placeholder, statuses, onSearch, active }) {
+/** แถบค้นหาเหนือตาราง — กด Enter หรือปุ่มค้นหา, ล้างแล้วกลับไปแสดงทั้งหมด
+ *  chatFilter: แสดงตัวกรองผู้ซื้อเคยแชท (เฉพาะแพลตฟอร์มใน BUYER_CHAT_PLATFORMS) */
+function SearchBar({ placeholder, statuses, chatFilter, onSearch, active }) {
     const [q, setQ] = useState('');
     const [status, setStatus] = useState(null);
+    const [chat, setChat] = useState(null);
 
-    const submit = (next = { q, status }) => onSearch({ q: next.q.trim(), status: next.status });
+    const submit = (next = {}) => {
+        const f = { q, status, chat, ...next };
+        onSearch({ q: f.q.trim(), status: f.status, chat: f.chat });
+    };
     const clear = () => {
         setQ('');
         setStatus(null);
-        submit({ q: '', status: null });
+        setChat(null);
+        submit({ q: '', status: null, chat: null });
     };
 
     return (
@@ -402,11 +408,19 @@ function SearchBar({ placeholder, statuses, onSearch, active }) {
             {statuses && (
                 // เลือกสถานะแล้วค้นทันที
                 <Select size="sm" value={status} placeholder="ทุกสถานะ (All status)" sx={{ minWidth: 200 }}
-                    onChange={(_, v) => { setStatus(v); submit({ q, status: v }); }}>
+                    onChange={(_, v) => { setStatus(v); submit({ status: v }); }}>
                     <Option value={null}>ทุกสถานะ (All status)</Option>
                     {statuses.map((s) => (
                         <Option key={s} value={s} sx={{ textTransform: 'capitalize' }}>{statusLabel(s)}</Option>
                     ))}
+                </Select>
+            )}
+            {chatFilter && (
+                <Select size="sm" value={chat} placeholder="ผู้ซื้อทั้งหมด (All buyers)" sx={{ minWidth: 200 }}
+                    onChange={(_, v) => { setChat(v); submit({ chat: v }); }}>
+                    <Option value={null}>ผู้ซื้อทั้งหมด (All buyers)</Option>
+                    <Option value="yes">เคยแชท (Chatted)</Option>
+                    <Option value="no">ยังไม่เคยแชท (No chat)</Option>
                 </Select>
             )}
             <Button size="sm" type="submit" startDecorator={<Search fontSize="small" />}>ค้นหา (Search)</Button>
@@ -415,7 +429,7 @@ function SearchBar({ placeholder, statuses, onSearch, active }) {
     );
 }
 
-const hasFilters = (filters) => Boolean(filters.q || filters.status);
+const hasFilters = (filters) => Boolean(filters.q || filters.status || filters.chat);
 
 const countChip = (list) => (
     <Chip size="sm" variant="soft" color="primary">
@@ -518,7 +532,7 @@ export default function ShopDataPage({ platform }) {
                         </TabList>
 
                         <TabPanel value="orders" sx={panelSx}>
-                            <SearchBar key={accountId} placeholder="ค้นหาเลขออเดอร์ (Order ID)" statuses={ORDER_STATUSES[platform]}
+                            <SearchBar key={accountId} placeholder="ค้นหาเลขออเดอร์ (Order ID)" statuses={ORDER_STATUSES[platform]} chatFilter={showBuyer}
                                 active={hasFilters(orders.filters)} onSearch={(f) => orders.load(accountId, null, f)} />
                             <ScrollTable list={orders} accountId={accountId}>
                                 <thead>

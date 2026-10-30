@@ -46,7 +46,11 @@ class ShopDataController extends Controller
             $this->findToken($request, $id),
             $request->query('page_token'),
             20,
-            array_filter(['q' => $this->keyword($request), 'status' => $request->query('status')]),
+            array_filter([
+                'q'      => $this->keyword($request),
+                'status' => $request->query('status'),
+                'chat'   => in_array($request->query('chat'), ['yes', 'no'], true) ? $request->query('chat') : null,
+            ]),
         ));
     }
 

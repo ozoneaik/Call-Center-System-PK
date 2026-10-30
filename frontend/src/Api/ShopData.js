@@ -22,10 +22,10 @@ export const shopInfoApi = async (platform, id) => {
     }
 }
 
-/** filters: {q, status} — ค่าว่างไม่ส่ง */
+/** filters: {q, status, chat} — ค่าว่างไม่ส่ง (chat: yes | no ผู้ซื้อเคย/ยังไม่เคยแชท — เฉพาะ Shopee) */
 export const shopOrdersApi = async (platform, id, pageToken = null, filters = {}) => {
     try {
-        const params = {page_token: pageToken || undefined, q: filters.q || undefined, status: filters.status || undefined};
+        const params = {page_token: pageToken || undefined, q: filters.q || undefined, status: filters.status || undefined, chat: filters.chat || undefined};
         const {data, status} = await axiosClient.get(`${base(platform)}/${id}/orders`, {params});
         return {data, status};
     } catch (error) {

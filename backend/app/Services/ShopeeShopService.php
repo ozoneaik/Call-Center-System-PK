@@ -20,6 +20,9 @@ class ShopeeShopService
     /** get_order_list ค้นได้ช่วงละไม่เกิน 15 วัน */
     public const ORDER_DAYS = 15;
 
+    /** กรองเคยแชท: ไล่ get_order_list ได้สูงสุดกี่หน้า (หน้าละ 50 = get_order_detail ได้สูงสุดต่อครั้ง) ต่อการโหลดหนึ่งครั้ง */
+    private const CHAT_SCAN_PAGES = 5;
+
     public function shops(PlatformAccessTokens $token): array
     {
         return Cache::remember("shopee_shops:{$token->id}", now()->addDay(), function () use ($token) {
@@ -35,7 +38,8 @@ class ShopeeShopService
 
     /**
      * page_token = cursor ของ get_order_list
-     * $filters: q = order_sn (ดึงตรงด้วย get_order_detail ไม่จำกัดช่วงวัน), status = order_status ของ Shopee
+     * $filters: q = order_sn (ดึงตรงด้วย get_order_detail ไม่จำกัดช่วงวัน), status = order_status ของ Shopee,
+     *           chat = yes|no (ผู้ซื้อเคย/ยังไม่เคยแชทเข้ามาในระบบ)
      */
     public function orders(PlatformAccessTokens $token, ?string $pageToken = null, int $pageSize = 20, array $filters = []): array
     {
@@ -47,24 +51,52 @@ class ShopeeShopService
                 if (!str_contains($e->getMessage(), 'not found')) throw $e;
                 $orders = [];
             }
+            $orders = $this->filterChat($orders, $filters['chat'] ?? null);
             return ['orders' => $orders, 'total_count' => count($orders), 'next_page_token' => null];
         }
 
+        $note = 'แสดงออเดอร์ ' . self::ORDER_DAYS . ' วันล่าสุด (Last ' . self::ORDER_DAYS . ' days)';
+
+        if (empty($filters['chat'])) {
+            [$orders, $cursor] = $this->orderPage($token, $pageToken, $pageSize, $filters['status'] ?? null);
+            return ['orders' => $orders, 'total_count' => null, 'next_page_token' => $cursor, 'note' => $note];
+        }
+
+        // Shopee กรองตามผู้ซื้อไม่ได้ — ไล่ทีละหน้าแล้วกรองเอง จนได้ครบ $pageSize หรือครบ CHAT_SCAN_PAGES หน้า
+        // ได้เกิน $pageSize ในหน้าสุดท้ายก็ส่งไปทั้งหมด เพราะ cursor ต่อจากหน้าที่ไล่ไปแล้ว
+        $orders = [];
+        $cursor = $pageToken;
+        for ($i = 0; $i < self::CHAT_SCAN_PAGES; $i++) {
+            [$page, $cursor] = $this->orderPage($token, $cursor, 50, $filters['status'] ?? null);
+            array_push($orders, ...$this->filterChat($page, $filters['chat']));
+            if (!$cursor || count($orders) >= $pageSize) break;
+        }
+        return ['orders' => $orders, 'total_count' => null, 'next_page_token' => $cursor, 'note' => $note];
+    }
+
+    /** หนึ่งหน้าของ get_order_list พร้อมรายละเอียด — คืน [orders, cursor หน้าถัดไป (null = หมดแล้ว)] */
+    private function orderPage(PlatformAccessTokens $token, ?string $cursor, int $pageSize, ?string $status): array
+    {
         $list = $this->call($token, '/api/v2/order/get_order_list', array_filter([
             'time_range_field' => 'create_time',
             'time_from'        => now()->subDays(self::ORDER_DAYS)->timestamp,
             'time_to'          => now()->timestamp,
             'page_size'        => $pageSize,
-            'cursor'           => $pageToken ?? '',
-            'order_status'     => $filters['status'] ?? null,
+            'cursor'           => $cursor ?? '',
+            'order_status'     => $status,
         ], fn ($v) => $v !== null));
 
         return [
-            'orders'          => $this->orderDetails($token, array_column($list['order_list'] ?? [], 'order_sn')),
-            'total_count'     => null,
-            'next_page_token' => !empty($list['more']) ? ($list['next_cursor'] ?? null) : null,
-            'note'            => 'แสดงออเดอร์ ' . self::ORDER_DAYS . ' วันล่าสุด (Last ' . self::ORDER_DAYS . ' days)',
+            $this->orderDetails($token, array_column($list['order_list'] ?? [], 'order_sn')),
+            !empty($list['more']) ? ($list['next_cursor'] ?? null) : null,
         ];
+    }
+
+    /** $chat: yes = เฉพาะผู้ซื้อที่เคยแชท, no = ยังไม่เคยแชท, null = ทั้งหมด */
+    private function filterChat(array $orders, ?string $chat): array
+    {
+        if (!$chat) return $orders;
+        return array_values(array_filter($orders, fn ($o) => ($o['buyer']['chat'] !== null) === ($chat === 'yes')));
     }
 
     /**
