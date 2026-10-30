@@ -55,12 +55,12 @@ class PushMessageController extends Controller
             foreach ($messages as $key => $m) {
                 if (in_array($m['contentType'], ['image', 'video', 'file'])) {
                     $file = $m['content'];
-                    $extension = '.' . $file->getClientOriginalExtension();
+                    $extension = '.' . $file->extension();
                     $mediaId = rand(0, 9999) . time() . "_" . $custId;
                     $mediaPath = $mediaId . $extension;
 
                     $mediaContent = file_get_contents($file->getRealPath());
-                    $contentType = $file->getClientMimeType();
+                    $contentType = $file->getMimeType();
 
                     Storage::disk('s3')->put($mediaPath, $mediaContent, [
                         'visibility'  => 'private',

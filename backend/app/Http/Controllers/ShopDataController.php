@@ -42,12 +42,40 @@ class ShopDataController extends Controller
 
     public function orders(Request $request, $id): JsonResponse
     {
-        return $this->respond(fn () => $this->service($request)->orders($this->findToken($request, $id), $request->query('page_token')));
+        return $this->respond(fn () => $this->service($request)->orders(
+            $this->findToken($request, $id),
+            $request->query('page_token'),
+            20,
+            array_filter(['q' => $this->keyword($request), 'status' => $request->query('status')]),
+        ));
+    }
+
+    public function orderDetail(Request $request, $id, string $orderId): JsonResponse
+    {
+        return $this->respond(function () use ($request, $id, $orderId) {
+            $order = $this->service($request)->orderDetail($this->findToken($request, $id), trim($orderId, " #"));
+            if (!$order) throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+            return ['order' => $order];
+        });
     }
 
     public function products(Request $request, $id): JsonResponse
     {
-        return $this->respond(fn () => $this->service($request)->products($this->findToken($request, $id), $request->query('page_token')));
+        return $this->respond(fn () => $this->service($request)->products(
+            $this->findToken($request, $id),
+            $request->query('page_token'),
+            20,
+            $this->keyword($request),
+        ));
+    }
+
+    /** คำค้นจากช่องค้นหา — ตัดช่องว่างและ # ที่มักติดมาตอน copy เลขออเดอร์ */
+    private function keyword(Request $request): ?string
+    {
+        $q = trim((string) $request->query('q'), " 	
+
+#");
+        return $q === '' ? null : mb_substr($q, 0, 100);
     }
 
     private function platform(Request $request): string
@@ -81,7 +109,7 @@ class ShopDataController extends Controller
         try {
             return response()->json(['message' => 'success'] + $fn());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
-            return response()->json(['message' => 'ไม่พบร้านนี้', 'detail' => 'ไม่พบข้อมูล token'], 404);
+            return response()->json(['message' => 'ไม่พบข้อมูล', 'detail' => 'ไม่พบร้านหรือออเดอร์นี้'], 404);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'ดึงข้อมูลจากแพลตฟอร์มไม่สำเร็จ', 'detail' => $e->getMessage()], 400);
         }

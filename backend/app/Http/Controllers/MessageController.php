@@ -75,13 +75,13 @@ class MessageController extends Controller
                     if (true) {
                         Log::info('ส่งไฟล์มา-------------------------------------------------------');
                         $file = $m['content'];
-                        $extension = '.' . $file->getClientOriginalExtension();
+                        $extension = '.' . $file->extension();
                         $mediaId = rand(0, 9999) . time(); // สร้างชื่อไฟล์แบบสุ่ม
                         $mediaPath = $mediaId . $extension;
 
                         $mediaContent = file_get_contents($file->getRealPath());
 
-                        $contentType = $file->getClientMimeType();
+                        $contentType = $file->getMimeType();
 
                         // อัปโหลดไปยัง S3
                         Storage::disk('s3')->put($mediaPath, $mediaContent, [

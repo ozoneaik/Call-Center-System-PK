@@ -22,18 +22,31 @@ export const shopInfoApi = async (platform, id) => {
     }
 }
 
-export const shopOrdersApi = async (platform, id, pageToken = null) => {
+/** filters: {q, status} — ค่าว่างไม่ส่ง */
+export const shopOrdersApi = async (platform, id, pageToken = null, filters = {}) => {
     try {
-        const {data, status} = await axiosClient.get(`${base(platform)}/${id}/orders`, {params: {page_token: pageToken || undefined}});
+        const params = {page_token: pageToken || undefined, q: filters.q || undefined, status: filters.status || undefined};
+        const {data, status} = await axiosClient.get(`${base(platform)}/${id}/orders`, {params});
         return {data, status};
     } catch (error) {
         return ErrorResponse(error);
     }
 }
 
-export const shopProductsApi = async (platform, id, pageToken = null) => {
+/** filters: {q, status} — ค่าว่างไม่ส่ง */
+export const shopOrderDetailApi = async (platform, id, orderId) => {
     try {
-        const {data, status} = await axiosClient.get(`${base(platform)}/${id}/products`, {params: {page_token: pageToken || undefined}});
+        const {data, status} = await axiosClient.get(`${base(platform)}/${id}/orders/${encodeURIComponent(orderId)}`);
+        return {data, status};
+    } catch (error) {
+        return ErrorResponse(error);
+    }
+}
+
+export const shopProductsApi = async (platform, id, pageToken = null, filters = {}) => {
+    try {
+        const params = {page_token: pageToken || undefined, q: filters.q || undefined, status: filters.status || undefined};
+        const {data, status} = await axiosClient.get(`${base(platform)}/${id}/products`, {params});
         return {data, status};
     } catch (error) {
         return ErrorResponse(error);

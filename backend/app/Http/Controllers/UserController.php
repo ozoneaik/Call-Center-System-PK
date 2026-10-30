@@ -144,29 +144,44 @@ class UserController extends Controller
         ]);
     }
 
+    /** ชนิดรูปโปรไฟล์ที่รับ => นามสกุลไฟล์ที่บันทึก */
+    private const AVATAR_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    private const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+    /**
+     * รับรูปแบบ data URL (base64) — ตรวจชนิดจากเนื้อไฟล์จริง และตั้งนามสกุลเอง
+     * ห้ามใช้ชนิดจาก "data:image/xxx" ที่ผู้ใช้ส่งมา (เคยทำให้อัปโหลดไฟล์ .php ลง public storage ได้)
+     */
+    private function storeAvatar(string $dataUrl): string
+    {
+        if (!preg_match('/^data:image\/[a-z0-9.+-]+;base64,/i', $dataUrl)) {
+            throw new \Exception('รูปภาพไม่อยู่ในรูปแบบ base64 ที่ถูกต้อง');
+        }
+        $binary = base64_decode(str_replace(' ', '+', substr($dataUrl, strpos($dataUrl, ',') + 1)), true);
+        if ($binary === false || $binary === '') throw new \Exception('รูปภาพไม่อยู่ในรูปแบบ base64 ที่ถูกต้อง');
+        if (strlen($binary) > self::AVATAR_MAX_BYTES) throw new \Exception('รูปโปรไฟล์ต้องมีขนาดไม่เกิน 2 MB');
+
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($binary);
+        $extension = self::AVATAR_TYPES[$mime] ?? null;
+        if (!$extension || @getimagesizefromstring($binary) === false) {
+            throw new \Exception('รองรับเฉพาะรูป jpg, png, webp');
+        }
+
+        $imagePath = 'profile/avatar_' . uniqid() . '.' . $extension;
+        Storage::disk('public')->put($imagePath, $binary);
+        return asset('storage/' . $imagePath);
+    }
+
     public function updateProfile(Request $request){
         try{
             $user = User::where('empCode', Auth::user()->empCode)->first();
             $user->name = $request['name'];
             $user->description = $request['description'];
             if (isset($request['avatar'])) {
-                $avatarBase64 = $request['avatar'];
-                if (preg_match('/^data:image\/(\w+);base64,/', $avatarBase64, $type)) {
-                    $image = substr($avatarBase64, strpos($avatarBase64, ',') + 1);
-                    $image = str_replace(' ', '+', $image);
-                    $imageType = strtolower($type[1]);
-                    $imageName = 'avatar_' . uniqid() . '.' . $imageType;
-                    $imagePath = 'profile/' . $imageName;
-                    Storage::disk('public')->put($imagePath, base64_decode($image));
-                    $fullPath = asset('storage/' . $imagePath);
-                    $user->avatar = $fullPath;
-                } else {
-                    throw new \Exception('รูปภาพไม่อยู่ในรูปแบบ base64 ที่ถูกต้อง');
-                }
+                $user->avatar = $this->storeAvatar((string) $request['avatar']);
             }
             $user->save();
             return response()->json([
-                'request' => $request->all(),
                 'user' => $user,
             ]);
         }catch (\Exception $e){

@@ -123,7 +123,7 @@ export default function EditProfileForm({ userData, onSubmitSuccess }) {
                                     startDecorator={<CloudUpload />}
                                 >
                                     Upload a file
-                                    <VisuallyHiddenInput type='file' name='avatar' onChange={(e) => handleUploadFile(e)} />
+                                    <VisuallyHiddenInput type='file' name='avatar' accept='image/jpeg,image/png,image/webp' onChange={(e) => handleUploadFile(e)} />
                                 </Button>
                             </Stack>
                         </FormControl>

@@ -269,7 +269,8 @@ export default function MessageInputNew(props) {
                         ref={fileInputRef}
                         type="file"
                         multiple
-                        accept="image/*,video/*,application/pdf"
+                        // ต้องตรงกับ sendMessageRequest::FILE_MIMES ฝั่ง backend
+                        accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,application/pdf"
                         hidden
                         onChange={handlePickFiles}
                     />

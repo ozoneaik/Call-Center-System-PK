@@ -169,6 +169,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/accounts', [ShopDataController::class, 'accounts'])->defaults('platform', $shopPlatform);
             Route::get('/{id}/shops', [ShopDataController::class, 'shops'])->defaults('platform', $shopPlatform);
             Route::get('/{id}/orders', [ShopDataController::class, 'orders'])->defaults('platform', $shopPlatform);
+            Route::get('/{id}/orders/{orderId}', [ShopDataController::class, 'orderDetail'])->defaults('platform', $shopPlatform);
             Route::get('/{id}/products', [ShopDataController::class, 'products'])->defaults('platform', $shopPlatform);
         });
     }

@@ -1,16 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-    Alert, Box, Button, Chip, CircularProgress, IconButton, Option, Select, Sheet, Stack, Tab, TabList, TabPanel, Table, Tabs,
+    Alert, AspectRatio, Box, Button, Chip, CircularProgress, DialogContent, DialogTitle, Divider, Drawer, IconButton, Input, ModalClose, Option, Select, Sheet, Stack, Tab, TabList, TabPanel, Table, Tabs,
     Tooltip, Typography,
 } from "@mui/joy";
-import { ContentCopy, Refresh, Storefront } from "@mui/icons-material";
+import { Close, ContentCopy, ImageNotSupported, Refresh, Search, Storefront } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
-import { shopAccountsApi, shopInfoApi, shopOrdersApi, shopProductsApi } from "../../Api/ShopData.js";
+import { shopAccountsApi, shopInfoApi, shopOrderDetailApi, shopOrdersApi, shopProductsApi } from "../../Api/ShopData.js";
 
 /** หน้าแสดงออเดอร์/สินค้าของร้าน — ใช้ร่วมกันทุกแพลตฟอร์ม (route: /tiktok-shop, /shopee-shop, /lazada-shop) */
 const PLATFORM_LABEL = { tiktok: 'TikTok Shop', shopee: 'Shopee', lazada: 'Lazada' };
+
+/** สถานะที่ใช้กรองออเดอร์ — ค่าตรงตามที่ API ของแต่ละแพลตฟอร์มรับ */
+const ORDER_STATUSES = {
+    tiktok: ['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT', 'PARTIALLY_SHIPPING', 'AWAITING_COLLECTION', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED'],
+    shopee: ['UNPAID', 'READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'IN_CANCEL', 'CANCELLED', 'TO_RETURN'],
+    lazada: ['unpaid', 'pending', 'topack', 'ready_to_ship', 'shipped', 'delivered', 'canceled', 'returned', 'failed'],
+};
+
+/** สิ่งที่ API ของแต่ละแพลตฟอร์มให้ค้นสินค้าได้ (TikTok / Lazada ค้นด้วยชื่อสินค้าไม่ได้) */
+const PRODUCT_SEARCH_HINT = {
+    tiktok: 'ค้นหารหัสสินค้า / SKU (Product ID / SKU)',
+    shopee: 'ค้นหาชื่อสินค้า / รหัสสินค้า (Name / Product ID)',
+    lazada: 'ค้นหารหัสสินค้า / SKU (Product ID / SKU)',
+};
+
+const statusLabel = (status) => (status ? status.replaceAll('_', ' ').toLowerCase() : '-');
 
 /** แสดงสินค้าในออเดอร์ได้สูงสุดเท่านี้ ที่เหลือพับไว้ */
 const MAX_ITEMS = 2;
@@ -44,14 +60,15 @@ const formatMoney = (amount, currency) =>
 
 const StatusChip = ({ status }) => (
     <Chip size="sm" variant="soft" color={STATUS_COLOR[status] ?? 'neutral'} sx={{ textTransform: 'capitalize' }}>
-        {status ? status.replaceAll('_', ' ').toLowerCase() : '-'}
+        {statusLabel(status)}
     </Chip>
 );
 
 /** รหัสแบบ monospace พร้อมปุ่มคัดลอก */
 function IdCell({ id }) {
     const [copied, setCopied] = useState(false);
-    const copy = () => {
+    const copy = (e) => {
+        e.stopPropagation();
         navigator.clipboard?.writeText(id).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1200);
@@ -102,7 +119,7 @@ function OrderItems({ items }) {
                 </Box>
             ))}
             {items.length > MAX_ITEMS && (
-                <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0.5, minHeight: 0 }} onClick={() => setExpanded((v) => !v)}>
+                <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0.5, minHeight: 0 }} onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}>
                     {expanded ? 'ย่อ (Show less)' : `+ อีก ${items.length - MAX_ITEMS} รายการ (Show all)`}
                 </Button>
             )}
@@ -110,7 +127,10 @@ function OrderItems({ items }) {
     );
 }
 
-/** ตารางที่โหลดทีละหน้าด้วย next_page_token */
+/**
+ * ตารางที่โหลดทีละหน้าด้วย next_page_token
+ * จำตัวกรองล่าสุดไว้ — โหลดเพิ่ม/รีเฟรชใช้ตัวกรองเดิม, ส่ง filters มาใหม่เมื่อกดค้นหา
+ */
 function usePagedList(fetcher, key) {
     const [rows, setRows] = useState([]);
     const [total, setTotal] = useState(null);
@@ -118,12 +138,21 @@ function usePagedList(fetcher, key) {
     const [nextToken, setNextToken] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({});
+    const filtersRef = useRef({});
+    const requestId = useRef(0);
 
-    const load = async (accountId, pageToken = null) => {
+    const load = async (accountId, pageToken = null, nextFilters = filtersRef.current) => {
         if (!accountId) return;
+        filtersRef.current = nextFilters;
+        setFilters(nextFilters);
+        // ค้นหาซ้อนกันเร็วๆ — ใช้เฉพาะผลของคำขอล่าสุด
+        const id = ++requestId.current;
         setLoading(true);
         setError(null);
-        const { data, status } = await fetcher(accountId, pageToken);
+        if (!pageToken) setRows([]);
+        const { data, status } = await fetcher(accountId, pageToken, nextFilters);
+        if (id !== requestId.current) return;
         if (status === 200) {
             setRows((prev) => (pageToken ? [...prev, ...data[key]] : data[key]));
             setTotal(data.total_count ?? null);
@@ -136,13 +165,13 @@ function usePagedList(fetcher, key) {
         setLoading(false);
     };
 
-    return { rows, total, note, nextToken, loading, error, load };
+    return { rows, total, note, nextToken, loading, error, filters, load };
 }
 
 function TableState({ loading, error, empty, colSpan }) {
     if (loading) return <tr><td colSpan={colSpan} style={{ textAlign: 'center', padding: 32 }}><CircularProgress size="sm" /></td></tr>;
     if (error) return <tr><td colSpan={colSpan}><Alert color="danger" variant="soft">{error}</Alert></td></tr>;
-    if (empty) return <tr><td colSpan={colSpan} style={{ textAlign: 'center', padding: 32 }}><Typography level="body-sm" textColor="text.tertiary">ไม่มีข้อมูล (No data)</Typography></td></tr>;
+    if (empty) return <tr><td colSpan={colSpan} style={{ textAlign: 'center', padding: 32 }}><Typography level="body-sm" textColor="text.tertiary">{empty === 'search' ? 'ไม่พบข้อมูลที่ค้นหา (No results)' : 'ไม่มีข้อมูล (No data)'}</Typography></td></tr>;
     return null;
 }
 
@@ -169,6 +198,198 @@ function ScrollTable({ list, accountId, children }) {
     );
 }
 
+const fullDateTime = (ts) => new Date(ts * 1000).toLocaleString('th-TH', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+});
+
+function DetailSection({ title, children }) {
+    return (
+        <Box>
+            <Typography level="title-sm" sx={{ mb: 1 }}>{title}</Typography>
+            {children}
+        </Box>
+    );
+}
+
+/** แถว label : value — ไม่แสดงถ้าไม่มีค่า */
+function InfoRow({ label, children }) {
+    if (children === null || children === undefined || children === '') return null;
+    return (
+        <Stack direction="row" spacing={2} sx={{ py: 0.4 }}>
+            <Typography level="body-sm" textColor="text.tertiary" sx={{ width: 150, flexShrink: 0 }}>{label}</Typography>
+            <Typography component="div" level="body-sm" sx={{ minWidth: 0, wordBreak: 'break-word' }}>{children}</Typography>
+        </Stack>
+    );
+}
+
+function DetailItem({ item, currency }) {
+    const discounted = item.original_price && Number(item.original_price) !== Number(item.unit_price);
+    return (
+        <Stack direction="row" spacing={1.5}>
+            <AspectRatio ratio="1" sx={{ width: 56, flexShrink: 0, borderRadius: 'sm' }}>
+                {item.image
+                    ? <img src={item.image} alt="" loading="lazy" />
+                    : <div><ImageNotSupported sx={{ color: 'text.tertiary' }} /></div>}
+            </AspectRatio>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Clamp lines={2} level="body-sm">{item.name}</Clamp>
+                <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.25 }}>
+                    {item.variant && <Chip size="sm" variant="outlined" color="neutral">{item.variant}</Chip>}
+                    {item.sku && <Typography level="body-xs" textColor="text.tertiary" fontFamily="monospace">SKU {item.sku}</Typography>}
+                </Stack>
+            </Box>
+            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                <Typography level="body-sm" fontWeight="lg">{formatMoney(item.unit_price, currency)}</Typography>
+                {discounted && (
+                    <Typography level="body-xs" textColor="text.tertiary" sx={{ textDecoration: 'line-through' }}>
+                        {formatMoney(item.original_price)}
+                    </Typography>
+                )}
+                <Typography level="body-xs" fontWeight="lg">× {item.quantity}</Typography>
+            </Box>
+        </Stack>
+    );
+}
+
+/** รายละเอียดออเดอร์ — โหลดเมื่อเปิด (orderId ไม่ว่าง) */
+function OrderDetailDrawer({ platform, accountId, orderId, onClose }) {
+    const [order, setOrder] = useState(null);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (!orderId) return;
+        let active = true;
+        setOrder(null);
+        setError(null);
+        shopOrderDetailApi(platform, accountId, orderId).then(({ data, status }) => {
+            if (!active) return;
+            if (status === 200) setOrder(data.order);
+            else setError(data.detail || data.message);
+        });
+        return () => { active = false; };
+    }, [platform, accountId, orderId]);
+
+    const amounts = (order?.amounts ?? []).filter((a) => a.total || Number(a.amount) !== 0);
+    const firstTotal = amounts.findIndex((a) => a.total);
+
+    return (
+        <Drawer anchor="right" size="md" open={Boolean(orderId)} onClose={onClose}
+            slotProps={{ content: { sx: { width: { xs: '100%', sm: 520 } } } }}>
+            <ModalClose />
+            <DialogTitle sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+                <Typography level="body-xs" textColor="text.tertiary">รายละเอียดออเดอร์ (Order detail)</Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                    {orderId && <IdCell id={orderId} />}
+                    {order && <StatusChip status={order.status} />}
+                </Stack>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ p: 2 }}>
+                {error ? (
+                    <Alert color="danger" variant="soft">{error}</Alert>
+                ) : !order ? (
+                    <CircularProgress size="sm" sx={{ alignSelf: 'center', mt: 4 }} />
+                ) : (
+                    <Stack spacing={2.5}>
+                        {order.cancel_reason && (
+                            <Alert color="danger" variant="soft" size="sm">เหตุผลที่ยกเลิก (Cancel reason): {order.cancel_reason}</Alert>
+                        )}
+
+                        <DetailSection title="ข้อมูลทั่วไป (General)">
+                            <InfoRow label="ชำระเงินด้วย (Payment)">{order.payment_method}</InfoRow>
+                            {order.times.filter((t) => t.ts).map((t) => (
+                                <InfoRow key={t.label} label={t.label}>{fullDateTime(t.ts)} น.</InfoRow>
+                            ))}
+                        </DetailSection>
+
+                        <DetailSection title={`สินค้า (Items) · ${order.items.reduce((n, it) => n + Number(it.quantity || 0), 0)} ชิ้น`}>
+                            <Stack spacing={1.5} divider={<Divider />}>
+                                {order.items.map((it, i) => <DetailItem key={`${it.product_id}-${it.sku}-${i}`} item={it} currency={order.currency} />)}
+                            </Stack>
+                        </DetailSection>
+
+                        <DetailSection title="ยอดเงิน (Amount)">
+                            <Sheet variant="soft" sx={{ borderRadius: 'sm', px: 1.5, py: 1 }}>
+                                {amounts.map((a, i) => (
+                                    <Box key={a.label}>
+                                        {i === firstTotal && i > 0 && <Divider sx={{ my: 0.75 }} />}
+                                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.25 }}>
+                                            <Typography level="body-sm" fontWeight={a.total ? 'lg' : undefined}
+                                                textColor={a.total ? 'text.primary' : 'text.secondary'}>{a.label}</Typography>
+                                            <Typography level="body-sm" fontWeight={a.total ? 'lg' : undefined}
+                                                color={Number(a.amount) < 0 ? 'danger' : undefined}>
+                                                {formatMoney(a.amount, order.currency)}
+                                            </Typography>
+                                        </Stack>
+                                    </Box>
+                                ))}
+                            </Sheet>
+                        </DetailSection>
+
+                        <DetailSection title="การจัดส่ง (Shipping)">
+                            <InfoRow label="ขนส่ง (Carrier)">{order.shipping.carrier || '-'}</InfoRow>
+                            <InfoRow label="เลขพัสดุ (Tracking)">
+                                {order.shipping.tracking.length ? order.shipping.tracking.map((t) => <IdCell key={t} id={t} />) : '-'}
+                            </InfoRow>
+                        </DetailSection>
+
+                        <DetailSection title="ผู้ซื้อและผู้รับ (Buyer & Recipient)">
+                            <InfoRow label="ผู้ซื้อ (Buyer)">{order.buyer.name}</InfoRow>
+                            <InfoRow label="ข้อความจากผู้ซื้อ (Note)">{order.buyer.note}</InfoRow>
+                            <InfoRow label="ผู้รับ (Name)">{order.recipient.name}</InfoRow>
+                            <InfoRow label="เบอร์โทร (Phone)">{order.recipient.phone}</InfoRow>
+                            <InfoRow label="ที่อยู่ (Address)">{order.recipient.address}</InfoRow>
+                            <Typography level="body-xs" textColor="text.tertiary" sx={{ mt: 0.5 }}>
+                                * ข้อมูลที่เป็น **** ถูกปิดโดยแพลตฟอร์ม (Masked by platform)
+                            </Typography>
+                        </DetailSection>
+                    </Stack>
+                )}
+            </DialogContent>
+        </Drawer>
+    );
+}
+
+/** แถบค้นหาเหนือตาราง — กด Enter หรือปุ่มค้นหา, ล้างแล้วกลับไปแสดงทั้งหมด */
+function SearchBar({ placeholder, statuses, onSearch, active }) {
+    const [q, setQ] = useState('');
+    const [status, setStatus] = useState(null);
+
+    const submit = (next = { q, status }) => onSearch({ q: next.q.trim(), status: next.status });
+    const clear = () => {
+        setQ('');
+        setStatus(null);
+        submit({ q: '', status: null });
+    };
+
+    return (
+        <Stack component="form" direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}
+            onSubmit={(e) => { e.preventDefault(); submit(); }}>
+            <Input size="sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
+                startDecorator={<Search fontSize="small" />} sx={{ flex: 1, maxWidth: { sm: 420 } }}
+                endDecorator={q && (
+                    <IconButton size="sm" variant="plain" onClick={() => setQ('')} sx={{ '--IconButton-size': '24px' }}>
+                        <Close sx={{ fontSize: 16 }} />
+                    </IconButton>
+                )} />
+            {statuses && (
+                // เลือกสถานะแล้วค้นทันที
+                <Select size="sm" value={status} placeholder="ทุกสถานะ (All status)" sx={{ minWidth: 200 }}
+                    onChange={(_, v) => { setStatus(v); submit({ q, status: v }); }}>
+                    <Option value={null}>ทุกสถานะ (All status)</Option>
+                    {statuses.map((s) => (
+                        <Option key={s} value={s} sx={{ textTransform: 'capitalize' }}>{statusLabel(s)}</Option>
+                    ))}
+                </Select>
+            )}
+            <Button size="sm" type="submit" startDecorator={<Search fontSize="small" />}>ค้นหา (Search)</Button>
+            {active && <Button size="sm" variant="plain" color="neutral" onClick={clear}>ล้าง (Clear)</Button>}
+        </Stack>
+    );
+}
+
+const hasFilters = (filters) => Boolean(filters.q || filters.status);
+
 const countChip = (list) => (
     <Chip size="sm" variant="soft" color="primary">
         {list.total ?? list.rows.length}{list.total === null && list.nextToken ? '+' : ''}
@@ -184,9 +405,10 @@ export default function ShopDataPage({ platform }) {
     const [shops, setShops] = useState([]);
     const [loadingAccounts, setLoadingAccounts] = useState(true);
     const [tab, setTab] = useState('orders');
+    const [detailId, setDetailId] = useState(null);
 
-    const orders = usePagedList((id, token) => shopOrdersApi(platform, id, token), 'orders');
-    const products = usePagedList((id, token) => shopProductsApi(platform, id, token), 'products');
+    const orders = usePagedList((id, token, filters) => shopOrdersApi(platform, id, token, filters), 'orders');
+    const products = usePagedList((id, token, filters) => shopProductsApi(platform, id, token, filters), 'products');
 
     useEffect(() => {
         (async () => {
@@ -199,15 +421,16 @@ export default function ShopDataPage({ platform }) {
         })();
     }, [platform]);
 
-    const reload = (id = accountId) => {
+    /** resetFilters: เปลี่ยนร้านแล้วล้างคำค้น, ปุ่มรีเฟรชใช้คำค้นเดิม */
+    const reload = (id = accountId, resetFilters = false) => {
         if (!id) return;
         shopInfoApi(platform, id).then(({ data, status }) => setShops(status === 200 ? data.shops : []));
-        orders.load(id);
-        products.load(id);
+        orders.load(id, null, resetFilters ? {} : undefined);
+        products.load(id, null, resetFilters ? {} : undefined);
     };
 
     useEffect(() => {
-        reload(accountId);
+        reload(accountId, true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [accountId]);
 
@@ -267,6 +490,8 @@ export default function ShopDataPage({ platform }) {
                         </TabList>
 
                         <TabPanel value="orders" sx={panelSx}>
+                            <SearchBar key={accountId} placeholder="ค้นหาเลขออเดอร์ (Order ID)" statuses={ORDER_STATUSES[platform]}
+                                active={hasFilters(orders.filters)} onSearch={(f) => orders.load(accountId, null, f)} />
                             <ScrollTable list={orders} accountId={accountId}>
                                 <thead>
                                     <tr>
@@ -279,7 +504,7 @@ export default function ShopDataPage({ platform }) {
                                 </thead>
                                 <tbody>
                                     {orders.rows.map((o) => (
-                                        <tr key={o.id}>
+                                        <tr key={o.id} onClick={() => setDetailId(o.id)} style={{ cursor: 'pointer' }} title="ดูรายละเอียด (View detail)">
                                             <td><IdCell id={o.id} /></td>
                                             <td><StatusChip status={o.status} /></td>
                                             <td><OrderItems items={o.items} /></td>
@@ -290,12 +515,14 @@ export default function ShopDataPage({ platform }) {
                                         </tr>
                                     ))}
                                     <TableState colSpan={5} loading={orders.loading && orders.rows.length === 0}
-                                        error={orders.error} empty={!orders.loading && orders.rows.length === 0} />
+                                        error={orders.error} empty={!orders.loading && orders.rows.length === 0 && (hasFilters(orders.filters) ? 'search' : true)} />
                                 </tbody>
                             </ScrollTable>
                         </TabPanel>
 
                         <TabPanel value="products" sx={panelSx}>
+                            <SearchBar key={accountId} placeholder={PRODUCT_SEARCH_HINT[platform]}
+                                active={hasFilters(products.filters)} onSearch={(f) => products.load(accountId, null, f)} />
                             <ScrollTable list={products} accountId={accountId}>
                                 <thead>
                                     <tr>
@@ -327,13 +554,14 @@ export default function ShopDataPage({ platform }) {
                                         </tr>
                                     ))}
                                     <TableState colSpan={7} loading={products.loading && products.rows.length === 0}
-                                        error={products.error} empty={!products.loading && products.rows.length === 0} />
+                                        error={products.error} empty={!products.loading && products.rows.length === 0 && (hasFilters(products.filters) ? 'search' : true)} />
                                 </tbody>
                             </ScrollTable>
                         </TabPanel>
                     </Tabs>
                 )}
             </Box>
+            <OrderDetailDrawer platform={platform} accountId={accountId} orderId={detailId} onClose={() => setDetailId(null)} />
         </Sheet>
     );
 }
