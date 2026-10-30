@@ -12,8 +12,7 @@ Broadcast::channel('chat.{roomId}', function ($user, $roomId) {
     return $user->rooms->contains($roomId);
 });
 
-Broadcast::channel('notifications',function(){
-    return response()->json([
-        'message' => 'hello'
-    ]);
-});
+// แจ้งเตือนแชทใหม่ (มีข้อความและข้อมูลลูกค้า) — เป็น private channel ให้เฉพาะพนักงานที่ login แล้ว
+// เดิมเป็น public channel ใครมี Pusher key (อยู่ใน JS ของหน้าเว็บ) ก็ subscribe อ่านได้
+Broadcast::channel('notifications', fn ($user) => $user !== null);
+Broadcast::channel('newChatRooms', fn ($user) => $user !== null);

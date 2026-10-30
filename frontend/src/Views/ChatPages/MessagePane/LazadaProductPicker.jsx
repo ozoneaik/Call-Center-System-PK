@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, ModalDialog, ModalClose, Input, Button, Stack, Typography, Box, Card, CircularProgress } from '@mui/joy';
 import { Search, Send } from '@mui/icons-material';
-import axios from 'axios';
+import axiosClient from '../../../Axios.js';
 
 export default function LazadaProductPicker({ open, setOpen, sender, onSelect }) {
     const [query, setQuery] = useState('');
@@ -21,13 +21,8 @@ export default function LazadaProductPicker({ open, setOpen, sender, onSelect })
         setResults([]);
 
         try {
-            const token = localStorage.getItem('token')
-                ?? sessionStorage.getItem('token')
-                ?? '';
-
-            // const { data } = await axios.get('http://localhost:8000/api/shopee/products/search', {
-            const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/lazada/products/search`, {
-                headers: { Authorization: `Bearer ${token}` },
+            // ใช้ axiosClient เพื่อส่ง session cookie — endpoint นี้ต้อง login (auth:sanctum)
+            const { data } = await axiosClient.get('/lazada/products/search', {
                 params: {
                     keyword: query,
                     custId: sender?.custId,

@@ -665,18 +665,4 @@ class MessageController extends Controller
             ], $status);
         }
     }
-
-    public function uploadFile(Request $request)
-    {
-        try {
-            return response()->json([
-                'message' => 'upload file api connected',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'upload file api error',
-                'body' => $request->all(),
-            ], 400);
-        }
-    }
 }

@@ -16,6 +16,9 @@ use Pusher\PusherException;
 
 class PusherService
 {
+    /** private channel — ต้อง subscribe ผ่าน /api/broadcasting/auth (ดู routes/channels.php) */
+    private const CHANNEL = 'private-notifications';
+
 
     protected ResponseService $response;
 
@@ -39,7 +42,7 @@ class PusherService
             }
             $options = ['cluster' => $AppCluster, 'useTLS' => true];
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
-            $pusher->trigger('notifications', 'my-event', $message);
+            $pusher->trigger(self::CHANNEL, 'my-event', $message);
             $data['status'] = true;
             $data['message'] = 'การแจ้งเตือนสำเร็จ';
             $data['detail'] = 'ไม่พบข้อผิดพลาด';
@@ -76,7 +79,7 @@ class PusherService
         $options = ['cluster' => $AppCluster, 'useTLS' => true];
         try {
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
-            $pusher->trigger('notifications', 'my-event', $Json);
+            $pusher->trigger(self::CHANNEL, 'my-event', $Json);
         } catch (PusherException | GuzzleException $e) {
             Log::error('Pusher Error');
             Log::channel('lineEvent')->error(sprintf(
@@ -142,7 +145,7 @@ class PusherService
             $options = ['cluster' => $AppCluster, 'useTLS' => true];
 
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
-            $pusher->trigger('notifications', 'my-event', $Json);
+            $pusher->trigger(self::CHANNEL, 'my-event', $Json);
         } catch (\Exception $e) {
             Log::error('PusherService->sendNotification Error: ' . $e->getMessage() . ' on line ' . $e->getLine());
         }
@@ -160,7 +163,7 @@ class PusherService
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
 
             // ส่งสัญญาณชื่อ 'chat-marked-as-read' ไปที่ Channel 'notifications'
-            $pusher->trigger('notifications', 'chat-marked-as-read', [
+            $pusher->trigger(self::CHANNEL, 'chat-marked-as-read', [
                 'roomId' => $roomId
             ]);
         } catch (\Exception $e) {
@@ -180,7 +183,7 @@ class PusherService
             $pusher = new Pusher($AppKey, $AppSecret, $AppID, $options);
 
             // ส่งไปที่ channel 'notifications' เหมือน method อื่น ๆ ในระบบ
-            $pusher->trigger('notifications', 'message-read', [
+            $pusher->trigger(self::CHANNEL, 'message-read', [
                 'custId'               => $custId,
                 'last_read_message_id' => $lastReadMsgId,
             ]);

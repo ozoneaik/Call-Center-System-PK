@@ -327,21 +327,28 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('webhooks')->group(function () {
     Route::post('/line', [LineUATController::class, 'webhook']);
 });
-Route::post('/upload-file', [MessageController::class, 'uploadFile']);
 
-Route::get('/announces', [AnnounceController::class, 'index']);
-Route::get('/announces/list', [AnnounceController::class, 'list_all']);
-Route::put('/announces/{id}', [AnnounceController::class, 'update']);
-Route::post('/announces', [AnnounceController::class, 'store']);
-Route::delete('/announces/{id}', [AnnounceController::class, 'destroy']);
+// เดิมอยู่นอก auth (ใครก็เรียกได้) — ย้ายเข้ามาให้ต้อง login
+Route::middleware('auth:sanctum')->group(function () {
+    // ประกาศที่แสดงหลัง login — ผู้ใช้ทุกคนอ่านได้, จัดการได้เฉพาะ admin ('announces' ไม่อยู่ใน ASSIGNABLE_MENUS)
+    Route::get('/announces', [AnnounceController::class, 'index']);
+    Route::middleware('menu:announces')->group(function () {
+        Route::get('/announces/list', [AnnounceController::class, 'list_all']);
+        Route::put('/announces/{id}', [AnnounceController::class, 'update']);
+        Route::post('/announces', [AnnounceController::class, 'store']);
+        Route::delete('/announces/{id}', [AnnounceController::class, 'destroy']);
+    });
+
+    // ค้นสินค้าเพื่อส่งในแชท (ShopeeProductPicker / LazadaProductPicker)
+    Route::get('/shopee/products/search', [NewShopeeController::class, 'searchProducts']);
+    Route::get('/lazada/products/search', [NewLazadaController::class, 'searchProducts']);
+});
 
 Route::get('/feedback/{custId}/{rateId}', [feedbackController::class, 'index']);
 Route::post('/feedback', [feedbackController::class, 'feedback']);
 
-require __DIR__ . '/test_only.php';
 require __DIR__ . '/webhook.php';
 
-Route::get('report', [ReportController::class, 'index']);
 
 // Route::get('/ping', function () {
 //     return response()->json([
@@ -354,6 +361,3 @@ Route::get('report', [ReportController::class, 'index']);
 
 // Route::post('/external/save-chat', [ExternalChatController::class, 'store']);
 
-Route::get('/shopee/products/search', [NewShopeeController::class, 'searchProducts']);
-
-Route::get('/lazada/products/search', [NewLazadaController::class, 'searchProducts']);

@@ -33,7 +33,7 @@ class MessageNotification implements ShouldBroadcast
     {
         return [
             new PrivateChannel('channel-name'),
-            new Channel('notifications'),
+            new PrivateChannel('notifications'),
             new Channel('chat',$this->roomId)
         ];
     }
