@@ -74,7 +74,7 @@ export default function MenuPicker({ value = [], onChange, tokenPlatforms = [], 
                 </Sheet>
             )}
             <Typography level="body-xs" color="neutral" mt={0.5}>
-                ผู้ใช้จะเห็นเมนูที่เลือกในแถบ "สำหรับผู้ดูแลระบบ" และแก้ไขข้อมูลในเมนูนั้นได้ (มีผลหลังผู้ใช้รีเฟรชหน้า)
+                ผู้ใช้จะเห็นเมนูที่เลือกในแถบ "เมนูเพิ่มเติม" และแก้ไขข้อมูลในเมนูนั้นได้ (มีผลหลังผู้ใช้รีเฟรชหน้า)
             </Typography>
         </Box>
     );

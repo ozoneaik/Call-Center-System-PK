@@ -3,7 +3,7 @@ import {
     Alert, AspectRatio, Box, Button, Chip, CircularProgress, DialogContent, DialogTitle, Divider, Drawer, IconButton, Input, ModalClose, Option, Select, Sheet, Stack, Tab, TabList, TabPanel, Table, Tabs,
     Tooltip, Typography,
 } from "@mui/joy";
-import { Close, ContentCopy, ImageNotSupported, Refresh, Search, Storefront } from "@mui/icons-material";
+import { ChatBubbleOutline, Close, ContentCopy, ImageNotSupported, Refresh, Search, Storefront } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
@@ -25,6 +25,9 @@ const PRODUCT_SEARCH_HINT = {
     shopee: 'ค้นหาชื่อสินค้า / รหัสสินค้า (Name / Product ID)',
     lazada: 'ค้นหารหัสสินค้า / SKU (Product ID / SKU)',
 };
+
+/** แพลตฟอร์มที่ backend ส่งข้อมูลผู้ซื้อ + การเคยแชทเข้ามา (buyer.chat) มากับออเดอร์ */
+const BUYER_CHAT_PLATFORMS = ['shopee'];
 
 const statusLabel = (status) => (status ? status.replaceAll('_', ' ').toLowerCase() : '-');
 
@@ -96,6 +99,29 @@ const Clamp = ({ lines = 1, children, ...props }) => (
         {children}
     </Typography>
 );
+
+/** ผู้ซื้อเคยแชทเข้ามาในระบบหรือไม่ — เคยแชทกดเปิดประวัติแชทได้ */
+function ChatChip({ chat }) {
+    if (!chat) return <Chip size="sm" variant="soft" color="neutral">ยังไม่เคยแชท (No chat)</Chip>;
+    return (
+        <Tooltip title={`ดูประวัติแชท: ${chat.name}`} size="sm" variant="soft">
+            <Chip size="sm" variant="soft" color="success" startDecorator={<ChatBubbleOutline sx={{ fontSize: 14 }} />}
+                slotProps={{ action: { component: Link, to: `/chatHistory/detail/${chat.custId}`, onClick: (e) => e.stopPropagation() } }}>
+                เคยแชท (Chatted)
+            </Chip>
+        </Tooltip>
+    );
+}
+
+function BuyerCell({ buyer }) {
+    if (!buyer?.id) return <Typography level="body-sm">-</Typography>;
+    return (
+        <Stack spacing={0.5} alignItems="flex-start" sx={{ minWidth: 0 }}>
+            <Clamp level="body-sm">{buyer.name || buyer.id}</Clamp>
+            <ChatChip chat={buyer.chat} />
+        </Stack>
+    );
+}
 
 function OrderItems({ items }) {
     const [expanded, setExpanded] = useState(false);
@@ -335,6 +361,7 @@ function OrderDetailDrawer({ platform, accountId, orderId, onClose }) {
 
                         <DetailSection title="ผู้ซื้อและผู้รับ (Buyer & Recipient)">
                             <InfoRow label="ผู้ซื้อ (Buyer)">{order.buyer.name}</InfoRow>
+                            {'chat' in order.buyer && <InfoRow label="แชท (Chat)"><ChatChip chat={order.buyer.chat} /></InfoRow>}
                             <InfoRow label="ข้อความจากผู้ซื้อ (Note)">{order.buyer.note}</InfoRow>
                             <InfoRow label="ผู้รับ (Name)">{order.recipient.name}</InfoRow>
                             <InfoRow label="เบอร์โทร (Phone)">{order.recipient.phone}</InfoRow>
@@ -406,6 +433,7 @@ export default function ShopDataPage({ platform }) {
     const [loadingAccounts, setLoadingAccounts] = useState(true);
     const [tab, setTab] = useState('orders');
     const [detailId, setDetailId] = useState(null);
+    const showBuyer = BUYER_CHAT_PLATFORMS.includes(platform);
 
     const orders = usePagedList((id, token, filters) => shopOrdersApi(platform, id, token, filters), 'orders');
     const products = usePagedList((id, token, filters) => shopProductsApi(platform, id, token, filters), 'products');
@@ -497,6 +525,7 @@ export default function ShopDataPage({ platform }) {
                                     <tr>
                                         <th style={{ width: '17%' }}>Order ID</th>
                                         <th style={{ width: '14%' }}>สถานะ (Status)</th>
+                                        {showBuyer && <th style={{ width: '16%' }}>ผู้ซื้อ (Buyer)</th>}
                                         <th>สินค้า (Items)</th>
                                         <th style={{ width: '12%', textAlign: 'right' }}>ยอดรวม (Total)</th>
                                         <th style={{ width: '13%', paddingLeft: 24 }}>สั่งเมื่อ (Created)</th>
@@ -507,6 +536,7 @@ export default function ShopDataPage({ platform }) {
                                         <tr key={o.id} onClick={() => setDetailId(o.id)} style={{ cursor: 'pointer' }} title="ดูรายละเอียด (View detail)">
                                             <td><IdCell id={o.id} /></td>
                                             <td><StatusChip status={o.status} /></td>
+                                            {showBuyer && <td><BuyerCell buyer={o.buyer} /></td>}
                                             <td><OrderItems items={o.items} /></td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <Typography level="body-sm" fontWeight="lg">{formatMoney(o.total_amount, o.currency)}</Typography>
@@ -514,7 +544,7 @@ export default function ShopDataPage({ platform }) {
                                             <td style={{ paddingLeft: 24 }}><DateCell ts={o.create_time} /></td>
                                         </tr>
                                     ))}
-                                    <TableState colSpan={5} loading={orders.loading && orders.rows.length === 0}
+                                    <TableState colSpan={showBuyer ? 6 : 5} loading={orders.loading && orders.rows.length === 0}
                                         error={orders.error} empty={!orders.loading && orders.rows.length === 0 && (hasFilters(orders.filters) ? 'search' : true)} />
                                 </tbody>
                             </ScrollTable>

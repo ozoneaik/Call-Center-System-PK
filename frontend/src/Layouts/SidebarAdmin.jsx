@@ -70,7 +70,7 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
         mb={1}
         level="body-sm"
       >
-        สำหรับผู้ดูแลระบบ
+        {user.role === "admin" ? "สำหรับผู้ดูแลระบบ" : "เมนูเพิ่มเติม"}
       </Typography>
       <Divider />
       <List size="sm" sx={LayoutStyle.Sidebar.ListButton}>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -115,7 +116,7 @@ class ShopeeShopService
         try {
             $detail = $this->call($token, '/api/v2/order/get_order_detail', [
                 'order_sn_list'            => $orderSn,
-                'response_optional_fields' => 'buyer_username,recipient_address,estimated_shipping_fee,note,item_list,pay_time,pickup_done_time,'
+                'response_optional_fields' => 'buyer_user_id,buyer_username,recipient_address,estimated_shipping_fee,note,item_list,pay_time,pickup_done_time,'
                     . 'cancel_by,cancel_reason,buyer_cancel_reason,shipping_carrier,payment_method,total_amount,order_status,currency,create_time,update_time',
             ]);
         } catch (\RuntimeException $e) {
@@ -165,7 +166,12 @@ class ShopeeShopService
                 'phone'   => $address['phone'] ?? null,
                 'address' => $address['full_address'] ?? null,
             ],
-            'buyer'          => ['name' => $o['buyer_username'] ?? null, 'note' => ($o['message_to_seller'] ?? '') ?: ($o['note'] ?? null)],
+            'buyer'          => [
+                'id'   => isset($o['buyer_user_id']) ? (string) $o['buyer_user_id'] : null,
+                'name' => $o['buyer_username'] ?? null,
+                'note' => ($o['message_to_seller'] ?? '') ?: ($o['note'] ?? null),
+                'chat' => $this->chatCustomers($token, [$o['buyer_user_id'] ?? null])[(string) ($o['buyer_user_id'] ?? '')] ?? null,
+            ],
             'cancel_reason'  => trim(($o['cancel_reason'] ?? '') . (!empty($o['cancel_by']) ? " (โดย {$o['cancel_by']})" : '')) ?: null,
             'items'          => array_map(fn ($it) => [
                 'product_id'     => (string) $it['item_id'],
@@ -195,10 +201,11 @@ class ShopeeShopService
 
         $detail = $this->call($token, '/api/v2/order/get_order_detail', [
             'order_sn_list'            => implode(',', $orderSns),
-            'response_optional_fields' => 'order_status,total_amount,currency,create_time,item_list',
+            'response_optional_fields' => 'buyer_user_id,buyer_username,order_status,total_amount,currency,create_time,item_list',
         ]);
         $details = [];
         foreach ($detail['order_list'] ?? [] as $od) $details[$od['order_sn']] = $od;
+        $chats = $this->chatCustomers($token, array_column($details, 'buyer_user_id'));
 
         // เรียงตามลำดับของ get_order_list และตัดเลขออเดอร์ที่ไม่พบทิ้ง
         return array_values(array_map(fn ($od) => [
@@ -207,6 +214,11 @@ class ShopeeShopService
             'create_time'  => $od['create_time'] ?? null,
             'total_amount' => $od['total_amount'] ?? null,
             'currency'     => $od['currency'] ?? null,
+            'buyer'        => [
+                'id'   => isset($od['buyer_user_id']) ? (string) $od['buyer_user_id'] : null,
+                'name' => $od['buyer_username'] ?? null,
+                'chat' => $chats[(string) ($od['buyer_user_id'] ?? '')] ?? null,
+            ],
             'items'        => array_map(fn ($it) => [
                 'product_id'   => isset($it['item_id']) ? (string) $it['item_id'] : null,
                 'product_name' => $it['item_name'] ?? null,
@@ -214,6 +226,22 @@ class ShopeeShopService
                 'quantity'     => $it['model_quantity_purchased'] ?? null,
             ], $od['item_list'] ?? []),
         ], array_filter(array_map(fn ($sn) => $details[$sn] ?? null, $orderSns))));
+    }
+
+    /**
+     * ผู้ซื้อที่เคยแชทเข้ามาในระบบ — webhook แชท Shopee สร้างลูกค้าด้วย custId = "{buyer_user_id}_{token id}"
+     * คืน [buyer_user_id => ['custId', 'name']] เฉพาะคนที่พบ
+     */
+    private function chatCustomers(PlatformAccessTokens $token, array $buyerIds): array
+    {
+        $buyerIds = array_unique(array_filter(array_map('strval', $buyerIds)));
+        if (!$buyerIds) return [];
+
+        return Customers::query()
+            ->whereIn('custId', array_map(fn ($id) => "{$id}_{$token->id}", $buyerIds))
+            ->get(['custId', 'custName'])
+            ->mapWithKeys(fn ($c) => [strstr($c->custId, '_', true) => ['custId' => $c->custId, 'name' => $c->custName]])
+            ->all();
     }
 
     private function itemInfo(PlatformAccessTokens $token, array $itemIds): array
