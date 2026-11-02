@@ -171,7 +171,7 @@ class PlatformTokenController extends Controller
         if (!$code || !$shopId) {
             return response()->json(['error' => 'Missing code or shop_id'], 422);
         }
-        $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
+        $frontendUrl = "https://callcenter-pk.pumpkin-th.com/TokenManager";
         return redirect()->away("{$frontendUrl}?code={$code}&shop_id={$shopId}&platform=shopee");
     }
 
@@ -261,7 +261,7 @@ class PlatformTokenController extends Controller
         if (!$code) {
             return response()->json(['error' => 'Missing code'], 422);
         }
-        $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
+        $frontendUrl = "https://callcenter-pk.pumpkin-th.com/TokenManager";
         return redirect()->away("{$frontendUrl}?code={$code}&platform=lazada");
     }
 
@@ -376,7 +376,7 @@ class PlatformTokenController extends Controller
             return response()->json(['error' => 'Missing code'], 422);
         }
 
-        $frontendUrl = "https://dev2.pumpkin-th.com/TokenManager";
+        $frontendUrl = "https://callcenter-pk.pumpkin-th.com/TokenManager";
         return redirect()->away("{$frontendUrl}?code={$code}&platform=tiktok");
     }
 
