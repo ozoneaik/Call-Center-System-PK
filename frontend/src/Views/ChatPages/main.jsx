@@ -8,7 +8,8 @@ import { useNotification } from "../../context/NotiContext.jsx";
 import { PendingTable } from "./PendingTable.jsx";
 import { ProgressTable } from "./ProgressTable.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { Sheet, CircularProgress, Box, Stack } from "@mui/joy";
+import { Sheet, CircularProgress, Box, Stack, Alert, Typography } from "@mui/joy";
+import { Construction } from "@mui/icons-material";
 import OrderTable from "./ProgressTableNew.jsx";
 import PendingTableNew from "./PendingTableNew.jsx";
 import ChatPageNew from "../ChatPagesNew/ChatPageNew.jsx";
@@ -284,6 +285,20 @@ export default function MainChat() {
         setFilterPending(deletePending);
     };
 
+    // ห้องแชท TikTok (ดูจากชื่อห้อง แบบเดียวกับ Sidebar) ยังพัฒนาไม่เสร็จ — ติดประกาศไว้บนสุดของหน้า
+    const tiktokNotice = (roomName || '').toLowerCase().includes('tiktok') && (
+        <Alert
+            color="warning"
+            variant="soft"
+            startDecorator={<Construction />}
+            sx={{ flexShrink: 0 }}
+        >
+            <Typography level="title-sm" color="warning">
+                แชท TikTok อยู่ระหว่างการพัฒนา ยังไม่สามารถตอบแชทผ่านระบบนี้ได้
+            </Typography>
+        </Alert>
+    );
+
     return (
         <>
             {
@@ -291,6 +306,7 @@ export default function MainChat() {
                     <CircularProgress />
                 ) : isMobile ? (
                     <Box sx={{ height: 'calc(100dvh - 48px)', display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100vw', minWidth: 0, overflow: 'hidden' }}>
+                        {tiktokNotice}
                         <MobileCaseList
                             roomId={roomId}
                             roomName={roomName}
@@ -317,6 +333,7 @@ export default function MainChat() {
                             gap: 2,
                         }}
                     >
+                        {tiktokNotice}
                         <Box sx={{
                             flex: 1,
                             display: 'flex',

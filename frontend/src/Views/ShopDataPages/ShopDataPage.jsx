@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
     Alert, AspectRatio, Avatar, Box, Button, Chip, CircularProgress, DialogContent, DialogTitle, Divider, Drawer, IconButton, Input, Modal, ModalClose, ModalDialog, Option, Select, Sheet, Stack,
-    Tab, TabList, TabPanel, Table, Tabs, Tooltip, Typography,
+    Step, StepIndicator, Stepper, Tab, TabList, TabPanel, Table, Tabs, Tooltip, Typography,
 } from "@mui/joy";
-import { ChatBubbleOutline, Close, ContentCopy, ImageNotSupported, OpenInNew, Refresh, Search, Storefront } from "@mui/icons-material";
+import { ChatBubbleOutline, Check, Close, ContentCopy, ImageNotSupported, OpenInNew, Refresh, Search, Storefront } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
 import { ChatMessages, chatStatusChip, useChatHistory } from "../ChatHistoryPages/ChatDetail.jsx";
@@ -30,6 +30,51 @@ const PRODUCT_SEARCH_HINT = {
 /** แพลตฟอร์มที่ backend ส่งข้อมูลผู้ซื้อ + การเคยแชทเข้ามา (buyer.chat) มากับออเดอร์ */
 const BUYER_CHAT_PLATFORMS = ['shopee'];
 
+/**
+ * ลำดับขั้นของสถานะออเดอร์แต่ละแพลตฟอร์ม (status จาก backend เป็นตัวพิมพ์ใหญ่ทั้งหมด)
+ * statuses: สถานะที่นับว่าอยู่ขั้นนี้, time: คำในวงเล็บของ order.times[].label ที่ใช้แสดงเวลาของขั้น
+ * exceptions: สถานะที่ออกนอกเส้นทางปกติ (ยกเลิก/คืนสินค้า) — แสดงเป็นขั้นสุดท้ายสีแดง
+ */
+const ORDER_FLOW = {
+    tiktok: {
+        steps: [
+            { label: 'รอชำระเงิน (Unpaid)', statuses: ['UNPAID'], time: 'Created' },
+            { label: 'รอจัดส่ง (Awaiting shipment)', statuses: ['ON_HOLD', 'AWAITING_SHIPMENT', 'PARTIALLY_SHIPPING'], time: 'Paid' },
+            { label: 'รอขนส่งรับ (Awaiting collection)', statuses: ['AWAITING_COLLECTION'], time: 'Ready to ship' },
+            { label: 'กำลังจัดส่ง (In transit)', statuses: ['IN_TRANSIT'] },
+            { label: 'ส่งถึงแล้ว (Delivered)', statuses: ['DELIVERED'], time: 'Delivered' },
+            { label: 'สำเร็จ (Completed)', statuses: ['COMPLETED'] },
+        ],
+        exceptions: { CANCELLED: 'ยกเลิก (Cancelled)' },
+    },
+    shopee: {
+        steps: [
+            { label: 'รอชำระเงิน (Unpaid)', statuses: ['UNPAID'], time: 'Created' },
+            { label: 'ที่ต้องจัดส่ง (Ready to ship)', statuses: ['READY_TO_SHIP', 'INVOICE_PENDING'], time: 'Paid' },
+            { label: 'เตรียมพัสดุแล้ว (Processed)', statuses: ['PROCESSED'] },
+            { label: 'จัดส่งแล้ว (Shipped)', statuses: ['SHIPPED', 'RETRY_SHIP'], time: 'Picked up' },
+            { label: 'รอผู้ซื้อยืนยัน (To confirm receive)', statuses: ['TO_CONFIRM_RECEIVE'] },
+            { label: 'สำเร็จ (Completed)', statuses: ['COMPLETED'] },
+        ],
+        exceptions: { IN_CANCEL: 'กำลังยกเลิก (In cancel)', CANCELLED: 'ยกเลิก (Cancelled)', TO_RETURN: 'คืนสินค้า (To return)' },
+    },
+    lazada: {
+        steps: [
+            { label: 'รอชำระเงิน (Unpaid)', statuses: ['UNPAID'], time: 'Created' },
+            { label: 'รอแพ็ค (Pending / To pack)', statuses: ['PENDING', 'TOPACK'], time: 'Paid' },
+            { label: 'แพ็คแล้ว (Packed)', statuses: ['PACKED', 'REPACKED'] },
+            { label: 'พร้อมส่ง (Ready to ship)', statuses: ['READY_TO_SHIP', 'READY_TO_SHIP_PENDING'] },
+            { label: 'จัดส่งแล้ว (Shipped)', statuses: ['SHIPPED'] },
+            { label: 'ส่งถึงแล้ว (Delivered)', statuses: ['DELIVERED', 'CONFIRMED'] },
+        ],
+        exceptions: {
+            CANCELED: 'ยกเลิก (Canceled)', RETURNED: 'คืนสินค้า (Returned)', PACKAGE_RETURNED: 'คืนสินค้า (Returned)',
+            FAILED: 'จัดส่งไม่สำเร็จ (Failed)', FAILED_DELIVERY: 'จัดส่งไม่สำเร็จ (Failed delivery)',
+            SHIPPED_BACK: 'ตีกลับ (Shipped back)', SHIPPED_BACK_SUCCESS: 'ตีกลับถึงร้านแล้ว (Shipped back)', LOST_BY_3PL: 'ขนส่งทำหาย (Lost)', DAMAGED_BY_3PL: 'ขนส่งทำเสียหาย (Damaged)',
+        },
+    },
+};
+
 const statusLabel = (status) => (status ? status.replaceAll('_', ' ').toLowerCase() : '-');
 
 /** แสดงสินค้าในออเดอร์ได้สูงสุดเท่านี้ ที่เหลือพับไว้ */
@@ -44,7 +89,7 @@ const STATUS_COLOR = {
     READY_TO_SHIP: 'warning', PROCESSED: 'warning', SHIPPED: 'primary', TO_CONFIRM_RECEIVE: 'primary', TO_RETURN: 'danger',
     IN_CANCEL: 'danger', NORMAL: 'success', UNLIST: 'neutral',
     // Lazada
-    READY_TO_SHIP_PENDING: 'warning', CANCELED: 'danger', RETURNED: 'danger', ACTIVE: 'success', INACTIVE: 'neutral',
+    READY_TO_SHIP_PENDING: 'warning', TOPACK: 'warning', PACKED: 'warning', REPACKED: 'warning', CANCELED: 'danger', RETURNED: 'danger', ACTIVE: 'success', INACTIVE: 'neutral',
 };
 
 // เวลาจากแพลตฟอร์มเป็น unix timestamp (วินาที)
@@ -317,6 +362,56 @@ function DetailItem({ item, currency }) {
     );
 }
 
+/**
+ * ลำดับขั้นสถานะของออเดอร์ — แพลตฟอร์มให้มาแค่สถานะปัจจุบัน จึงไล่ขั้นตาม ORDER_FLOW
+ * ออเดอร์ที่ยกเลิก/คืน: แสดงขั้นที่ผ่านมาแล้ว (ดูจากเวลาที่มี) ต่อด้วยขั้นสถานะนั้นสีแดง
+ */
+function OrderStatusSteps({ platform, order }) {
+    const flow = ORDER_FLOW[platform];
+    if (!flow) return null;
+
+    const timeOf = (step) => step.time && order.times.find((t) => t.label.includes(`(${step.time})`))?.ts;
+    const exception = flow.exceptions[order.status];
+    let current = flow.steps.findIndex((step) => step.statuses.includes(order.status));
+    if (current === -1 && !exception) return null; // สถานะที่ไม่รู้จัก — ไม่เดาลำดับ
+
+    let steps = flow.steps;
+    if (exception) {
+        const reached = flow.steps.reduce((last, step, i) => (timeOf(step) ? i : last), 0);
+        steps = [...flow.steps.slice(0, reached + 1), { label: exception, exception: true }];
+        current = steps.length - 1;
+    }
+    // ขั้นสุดท้ายของเส้นทางปกติ = จบแล้ว ให้แสดงเป็นเสร็จสิ้น
+    const finished = !exception && current === steps.length - 1;
+
+    return (
+        <DetailSection title="สถานะออเดอร์ (Order status)">
+            <Stepper orientation="vertical" size="sm" sx={{ '--Stepper-verticalGap': '0.75rem', '--Step-gap': '0.75rem' }}>
+                {steps.map((step, i) => {
+                    const done = i < current || (finished && i === current);
+                    const active = i === current && !finished;
+                    const ts = timeOf(step);
+                    return (
+                        <Step key={step.label} completed={done} active={active}
+                            indicator={
+                                <StepIndicator variant={done || active ? 'solid' : 'outlined'}
+                                    color={step.exception ? 'danger' : done ? 'success' : active ? 'primary' : 'neutral'}>
+                                    {step.exception ? <Close sx={{ fontSize: 14 }} /> : done ? <Check sx={{ fontSize: 14 }} /> : i + 1}
+                                </StepIndicator>
+                            }>
+                            <Typography level="body-sm" fontWeight={active || step.exception ? 'lg' : undefined}
+                                textColor={done || active || step.exception ? 'text.primary' : 'text.tertiary'}>
+                                {step.label}
+                            </Typography>
+                            {ts ? <Typography level="body-xs" textColor="text.tertiary">{fullDateTime(ts)} น.</Typography> : null}
+                        </Step>
+                    );
+                })}
+            </Stepper>
+        </DetailSection>
+    );
+}
+
 /** รายละเอียดออเดอร์ — โหลดเมื่อเปิด (orderId ไม่ว่าง) */
 function OrderDetailDrawer({ platform, accountId, orderId, onClose, onOpenChat }) {
     const [order, setOrder] = useState(null);
@@ -360,6 +455,8 @@ function OrderDetailDrawer({ platform, accountId, orderId, onClose, onOpenChat }
                         {order.cancel_reason && (
                             <Alert color="danger" variant="soft" size="sm">เหตุผลที่ยกเลิก (Cancel reason): {order.cancel_reason}</Alert>
                         )}
+
+                        <OrderStatusSteps platform={platform} order={order} />
 
                         <DetailSection title="ข้อมูลทั่วไป (General)">
                             <InfoRow label="ชำระเงินด้วย (Payment)">{order.payment_method}</InfoRow>

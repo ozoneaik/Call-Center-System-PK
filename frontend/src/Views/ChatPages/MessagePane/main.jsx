@@ -1,5 +1,6 @@
 import {useLocation, useParams } from "react-router-dom";
-import { CircularProgress, Sheet,Box, Stack, Avatar, Divider, Typography } from "@mui/joy";
+import { CircularProgress, Sheet,Box, Stack, Avatar, Divider, Typography, Alert } from "@mui/joy";
+import { Construction } from "@mui/icons-material";
 import { MessageStyle } from "../../../styles/MessageStyle.js";
 import MessagePaneHeader from "../Header/MessagePaneHeader.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -176,6 +177,8 @@ export default function MessagePane() {
         })
     }
     const isShopeeRoom = sender?.platformType === 'shopee' || sender?.platform === 'shopee' || (sender?.description || '').toLowerCase().includes('shopee');
+    // TikTok ยังพัฒนาไม่เสร็จ — โชว์ประกาศเหนือช่องพิมพ์ข้อความ
+    const isTiktokRoom = (sender?.platformType || '').toLowerCase() === 'tiktok';
 
     // ไล่ตาม SHOP_ROOM_COLOR_RULES หากล่องแรกที่ทั้งแพลตฟอร์มและชื่อร้านตรง แล้วใช้สีของกฎนั้นเปลี่ยนกรอบ+พื้นหลัง header
     // และ watermark ของกฎนั้น (ถ้ามี) มาเป็นพื้นหลังหน้าแชท
@@ -410,6 +413,18 @@ export default function MessagePane() {
                                 </Stack>
                             )}
                         </Box>
+                        {!loading && isTiktokRoom && (
+                            <Alert
+                                color="warning"
+                                variant="soft"
+                                startDecorator={<Construction />}
+                                sx={{ borderRadius: 0 }}
+                            >
+                                <Typography level="body-sm" fontWeight="lg" color="warning">
+                                    แชท TikTok อยู่ระหว่างการพัฒนา ยังไม่สามารถตอบแชทผ่านระบบนี้ได้
+                                </Typography>
+                            </Alert>
+                        )}
                         {!loading && (
                             <MessageInputNew
                                 setMsg={setMsg}

@@ -25,7 +25,10 @@ import { logoutApi } from "../Api/Auth.js";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useChatRooms } from "../context/ChatRoomContext.jsx";
 import { Chip } from "@mui/joy";
-import { SidebarAdmin } from "./SidebarAdmin.jsx";
+import { SidebarAdmin, Toggler } from "./SidebarAdmin.jsx";
+import ShopeeLogo from "../assets/ShopeeLogo.svg";
+import LazadaLogo from "../assets/LazadaLogo.svg";
+import TiktokLogo from "../assets/TikTok.svg";
 import {
   Search,
   History,
@@ -34,6 +37,8 @@ import {
   Person,
   LogoutRounded,
   QuestionAnswerRounded,
+  Storefront,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
 } from "@mui/icons-material";
 import { useState, useEffect, useMemo } from "react";
 
@@ -42,6 +47,22 @@ const menuList = [
   { label: "เคสของฉัน", icon: <ThreeP />, path: "/chat/myCase" },
   { label: "ค้นหา note", icon: <Search />, path: "/search-notes" },
 ];
+
+// ห้องแชท Marketplace แยกตามชื่อห้องที่มีชื่อแพลตฟอร์มอยู่
+const marketplacePlatforms = [
+  { key: "shopee", label: "Shopee", logo: ShopeeLogo },
+  { key: "lazada", label: "Lazada", logo: LazadaLogo },
+  { key: "tiktok", label: "TikTok", logo: TiktokLogo },
+];
+
+const getRoomPlatform = (roomName) =>
+  marketplacePlatforms.find((p) => roomName.toLowerCase().includes(p.key))?.key;
+
+const ArrowIcon = ({ open }) => (
+  <KeyboardArrowDownIcon
+    sx={{ transform: open ? "rotate(180deg)" : "none", transition: "0.2s" }}
+  />
+);
 
 export default function Sidebar() {
   const { myRoomContext, roomUnread, roomPending, clearRoomUnread } = useChatRooms();
@@ -59,6 +80,51 @@ export default function Sidebar() {
     const unreadMessages = roomUnread[roomId] || 0;   // นับตามจำนวนข้อความ
     return pendingCases + unreadMessages;
   };
+
+  const filteredRooms = (myRoomContext || []).filter((chatRoom) =>
+    chatRoom.roomName.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+  const generalRooms = filteredRooms.filter((r) => !getRoomPlatform(r.roomName));
+  const marketplaceGroups = marketplacePlatforms
+    .map((p) => ({
+      ...p,
+      rooms: filteredRooms.filter((r) => getRoomPlatform(r.roomName) === p.key),
+    }))
+    .filter((g) => g.rooms.length > 0);
+  const sumCount = (rooms) =>
+    rooms.reduce((sum, r) => sum + getRoomNotificationCount(r.roomId), 0);
+
+  const renderRoom = (chatRoom, sx, textSx) => {
+    const totalCount = getRoomNotificationCount(chatRoom.roomId);
+    return (
+      <ListItem
+        key={chatRoom.roomId}
+        component={Link}
+        to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}
+      >
+        <ListItemButton selected={currentRoomId === chatRoom.roomId} sx={sx}>
+          <QuestionAnswerRounded />
+          <ListItemContent>
+            <Typography level="title-sm" sx={textSx}>
+              {chatRoom.roomName}
+            </Typography>
+          </ListItemContent>
+          {totalCount > 0 && (
+            <Chip size="sm" color="success" variant="solid">
+              {totalCount}
+            </Chip>
+          )}
+        </ListItemButton>
+      </ListItem>
+    );
+  };
+
+  const renderCountChip = (count) =>
+    count > 0 && (
+      <Chip size="sm" color="success" variant="solid">
+        {count}
+      </Chip>
+    );
 
   const Logout = () => {
     AlertDiaLog({
@@ -146,41 +212,70 @@ export default function Sidebar() {
             ))}
 
           {/* รายการห้องแชท */}
-          {myRoomContext &&
-            myRoomContext.length > 0 &&
-            myRoomContext
-              .filter((chatRoom) =>
-                chatRoom.roomName
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()),
-              )
-              .map((chatRoom, index) => {
-                const pendingCases = roomPending[chatRoom.roomId] || 0;
-                const unreadMessages = roomUnread[chatRoom.roomId] || 0;
-                const totalCount = pendingCases + unreadMessages;
+          {generalRooms.map((chatRoom) => renderRoom(chatRoom))}
 
-                return (
-                  <ListItem
-                    key={index}
-                    component={Link}
-                    to={`/chat/room/${chatRoom.roomId}/${chatRoom.roomName}`}
-                  >
-                    <ListItemButton selected={currentRoomId === chatRoom.roomId}>
-                      <QuestionAnswerRounded />
-                      <ListItemContent>
-                        <Typography level="title-sm">
-                          {chatRoom.roomName}
-                        </Typography>
-                      </ListItemContent>
-                      {totalCount > 0 && (
-                        <Chip size="sm" color="success" variant="solid">
-                          {totalCount}
-                        </Chip>
-                      )}
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
+          {/* ห้องแชท Marketplace (Shopee / Lazada / TikTok) */}
+          {marketplaceGroups.length > 0 && (
+            <ListItem nested>
+              <Toggler
+                defaultExpanded={marketplaceGroups.some((g) =>
+                  g.rooms.some((r) => r.roomId === currentRoomId),
+                )}
+                renderToggle={({ open, setOpen }) => (
+                  <ListItemButton onClick={() => setOpen(!open)}>
+                    <Storefront />
+                    <ListItemContent>
+                      <Typography level="title-sm">Marketplace</Typography>
+                    </ListItemContent>
+                    {renderCountChip(
+                      sumCount(marketplaceGroups.flatMap((g) => g.rooms)),
+                    )}
+                    <ArrowIcon open={open} />
+                  </ListItemButton>
+                )}
+              >
+                <List sx={{ gap: 0.5 }}>
+                  {marketplaceGroups.map((group) => (
+                    <ListItem nested key={group.key}>
+                      <Toggler
+                        defaultExpanded={group.rooms.some(
+                          (r) => r.roomId === currentRoomId,
+                        )}
+                        renderToggle={({ open, setOpen }) => (
+                          <ListItemButton
+                            onClick={() => setOpen(!open)}
+                            sx={{ pl: 3 }}
+                          >
+                            <img
+                              src={group.logo}
+                              alt={group.label}
+                              width={18}
+                              height={18}
+                              style={{ filter: "brightness(0) invert(1)" }} // โลโก้สีขาว
+                            />
+                            <ListItemContent>
+                              <Typography level="title-sm" fontWeight="lg">
+                                {group.label}
+                              </Typography>
+                            </ListItemContent>
+                            {renderCountChip(sumCount(group.rooms))}
+                            <ArrowIcon open={open} />
+                          </ListItemButton>
+                        )}
+                      >
+                        <List sx={{ gap: 0.5 }}>
+                          {group.rooms.map((chatRoom) =>
+                            // ขนาดฟอนต์ชื่อห้องใน Marketplace
+                            renderRoom(chatRoom, { pl: 5 }, { fontSize: 12 }),
+                          )}
+                        </List>
+                      </Toggler>
+                    </ListItem>
+                  ))}
+                </List>
+              </Toggler>
+            </ListItem>
+          )}
         </List>
 
         <Typography startDecorator={<Person />} level="body-sm" mt={3}>

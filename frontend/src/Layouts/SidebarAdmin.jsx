@@ -31,8 +31,11 @@ import {
 import { Link } from "react-router-dom";
 import { LayoutStyle } from "../styles/LayoutStyle.js";
 import { canAccessMenu } from "../Components/adminMenus.js";
+import ShopeeLogo from "../assets/ShopeeLogo.svg";
+import LazadaLogo from "../assets/LazadaLogo.svg";
+import TiktokLogo from "../assets/TikTok.svg";
 
-function Toggler({ defaultExpanded = false, renderToggle, children }) {
+export function Toggler({ defaultExpanded = false, renderToggle, children }) {
   const [open, setOpen] = useState(defaultExpanded);
   return (
     <>
@@ -61,6 +64,15 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
     label.toLowerCase().includes(searchQuery.toLowerCase());
   // ผู้ใช้ทั่วไปเห็นเฉพาะเมนูที่ได้รับอนุญาต (admin เห็นทุกเมนู)
   const can = (key) => canAccessMenu(user, key);
+
+  // เมนู Marketplace (ค้นหาด้วยคำว่า Marketplace จะแสดงทุกร้านที่มีสิทธิ์)
+  const marketplaceMenus = [
+    { key: "shopee_shop", to: "/shopee-shop", label: "Shopee", logo: ShopeeLogo },
+    { key: "lazada_shop", to: "/lazada-shop", label: "Lazada", logo: LazadaLogo },
+    { key: "tiktok_shop", to: "/tiktok-shop", label: "TikTok", logo: TiktokLogo },
+  ].filter(
+    (m) => can(m.key) && (matchSearch("Marketplace") || matchSearch(m.label)),
+  );
 
   return (
     <>
@@ -271,18 +283,41 @@ export const SidebarAdmin = ({ pathname, user, searchQuery }) => {
           </ListItem>
         )}
 
-        {[
-          { key: "tiktok_shop", to: "/tiktok-shop", label: "TikTok Shop" },
-          { key: "shopee_shop", to: "/shopee-shop", label: "Shopee Shop" },
-          { key: "lazada_shop", to: "/lazada-shop", label: "Lazada Shop" },
-        ].filter((m) => can(m.key) && matchSearch(m.label)).map((m) => (
-          <ListItem key={m.key} component={Link} to={m.to}>
-            <ListItemButton selected={pathname === m.to}>
-              <Storefront />
-              <Typography level="title-sm">{m.label}</Typography>
-            </ListItemButton>
+        {/* Marketplace Group */}
+        {marketplaceMenus.length > 0 && (
+          <ListItem nested>
+            <Toggler
+              defaultExpanded={marketplaceMenus.some((m) => pathname === m.to)}
+              renderToggle={({ open, setOpen }) => (
+                <ListItemButton onClick={() => setOpen(!open)}>
+                  <Storefront />
+                  <ListItemContent>
+                    <Typography level="title-sm">Marketplace</Typography>
+                  </ListItemContent>
+                  <KeyboardArrowDownIcon
+                    sx={{
+                      transform: open ? "rotate(180deg)" : "none",
+                      transition: "0.2s",
+                    }}
+                  />
+                </ListItemButton>
+              )}
+            >
+              <List sx={{ gap: 0.5 }}>
+                {marketplaceMenus.map((m) => (
+                  <ListItem key={m.key} component={Link} to={m.to}>
+                    <ListItemButton selected={pathname === m.to} sx={{ pl: 5 }}>
+                      <img src={m.logo} alt={m.label} width={18} height={18} style={{ filter: "brightness(0) invert(1)" }} />
+                      <Typography level="body-sm" sx={{ fontSize: 12 }}>
+                        {m.label}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Toggler>
           </ListItem>
-        ))}
+        )}
 
         {user.role === "admin" && user.empCode === "adminIT" && matchSearch("แจ้งเตือน") && (
           <ListItem component={Link} to="/announces">
