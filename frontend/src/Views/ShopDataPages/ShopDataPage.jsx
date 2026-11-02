@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert, AspectRatio, Box, Button, Chip, CircularProgress, DialogContent, DialogTitle, Divider, Drawer, IconButton, Input, ModalClose, Option, Select, Sheet, Stack, Tab, TabList, TabPanel, Table, Tabs,
-    Tooltip, Typography,
+    Alert, AspectRatio, Avatar, Box, Button, Chip, CircularProgress, DialogContent, DialogTitle, Divider, Drawer, IconButton, Input, Modal, ModalClose, ModalDialog, Option, Select, Sheet, Stack,
+    Tab, TabList, TabPanel, Table, Tabs, Tooltip, Typography,
 } from "@mui/joy";
-import { ChatBubbleOutline, Close, ContentCopy, ImageNotSupported, Refresh, Search, Storefront } from "@mui/icons-material";
+import { ChatBubbleOutline, Close, ContentCopy, ImageNotSupported, OpenInNew, Refresh, Search, Storefront } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import BreadcrumbsComponent from "../../Components/Breadcrumbs.jsx";
+import { ChatMessages, chatStatusChip, useChatHistory } from "../ChatHistoryPages/ChatDetail.jsx";
 import { ChatPageStyle } from "../../styles/ChatPageStyle.js";
 import { shopAccountsApi, shopInfoApi, shopOrderDetailApi, shopOrdersApi, shopProductsApi } from "../../Api/ShopData.js";
 
@@ -100,26 +101,65 @@ const Clamp = ({ lines = 1, children, ...props }) => (
     </Typography>
 );
 
-/** ผู้ซื้อเคยแชทเข้ามาในระบบหรือไม่ — เคยแชทกดเปิดประวัติแชทได้ */
-function ChatChip({ chat }) {
+/** ผู้ซื้อเคยแชทเข้ามาในระบบหรือไม่ — เคยแชทกดเปิด modal ประวัติแชทได้ (onOpen(chat)) */
+function ChatChip({ chat, onOpen }) {
     if (!chat) return <Chip size="sm" variant="soft" color="neutral">ยังไม่เคยแชท (No chat)</Chip>;
     return (
         <Tooltip title={`ดูประวัติแชท: ${chat.name}`} size="sm" variant="soft">
             <Chip size="sm" variant="soft" color="success" startDecorator={<ChatBubbleOutline sx={{ fontSize: 14 }} />}
-                slotProps={{ action: { component: Link, to: `/chatHistory/detail/${chat.custId}`, onClick: (e) => e.stopPropagation() } }}>
+                onClick={(e) => { e.stopPropagation(); onOpen(chat); }}>
                 เคยแชท (Chatted)
             </Chip>
         </Tooltip>
     );
 }
 
-function BuyerCell({ buyer }) {
+function BuyerCell({ buyer, onOpenChat }) {
     if (!buyer?.id) return <Typography level="body-sm">-</Typography>;
     return (
         <Stack spacing={0.5} alignItems="flex-start" sx={{ minWidth: 0 }}>
             <Clamp level="body-sm">{buyer.name || buyer.id}</Clamp>
-            <ChatChip chat={buyer.chat} />
+            <ChatChip chat={buyer.chat} onOpen={onOpenChat} />
         </Stack>
+    );
+}
+
+/** ประวัติแชทของผู้ซื้อ — เปิดเมื่อ chat ไม่ว่าง ({custId, name}) */
+function ChatHistoryModal({ chat, onClose }) {
+    const { loading, customer, messages, currentRate } = useChatHistory(chat?.custId);
+    const status = chatStatusChip(currentRate);
+
+    return (
+        <Modal open={Boolean(chat)} onClose={onClose}>
+            <ModalDialog sx={{ p: 0, gap: 0, width: { xs: '100%', sm: 720 }, height: { xs: '100%', sm: '85dvh' }, overflow: 'hidden' }}
+                layout="center">
+                <ModalClose />
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 2, py: 1.5, pr: 6, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Avatar src={customer?.avatar} />
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                            <Typography level="title-md" noWrap>{customer?.custName ?? chat?.name}</Typography>
+                            {!loading && (
+                                <Chip size="sm" variant="soft" color={status?.color ?? 'neutral'}>
+                                    {status ? status.label(currentRate.roomName) : 'ไม่พบสถานะเคส'}
+                                </Chip>
+                            )}
+                        </Stack>
+                        <Typography level="body-xs" textColor="text.tertiary" noWrap>
+                            {customer?.description}
+                            {messages.length > 0 && ` · ${messages.length.toLocaleString('th-TH')} ข้อความ`}
+                        </Typography>
+                    </Box>
+                    {chat && (
+                        <Button size="sm" variant="outlined" component={Link} to={`/chatHistory/detail/${chat.custId}`}
+                            startDecorator={<OpenInNew fontSize="small" />} sx={{ flexShrink: 0 }}>
+                            เปิดเต็มหน้า
+                        </Button>
+                    )}
+                </Stack>
+                <ChatMessages loading={loading} messages={messages} />
+            </ModalDialog>
+        </Modal>
     );
 }
 
@@ -278,7 +318,7 @@ function DetailItem({ item, currency }) {
 }
 
 /** รายละเอียดออเดอร์ — โหลดเมื่อเปิด (orderId ไม่ว่าง) */
-function OrderDetailDrawer({ platform, accountId, orderId, onClose }) {
+function OrderDetailDrawer({ platform, accountId, orderId, onClose, onOpenChat }) {
     const [order, setOrder] = useState(null);
     const [error, setError] = useState(null);
 
@@ -361,7 +401,7 @@ function OrderDetailDrawer({ platform, accountId, orderId, onClose }) {
 
                         <DetailSection title="ผู้ซื้อและผู้รับ (Buyer & Recipient)">
                             <InfoRow label="ผู้ซื้อ (Buyer)">{order.buyer.name}</InfoRow>
-                            {'chat' in order.buyer && <InfoRow label="แชท (Chat)"><ChatChip chat={order.buyer.chat} /></InfoRow>}
+                            {'chat' in order.buyer && <InfoRow label="แชท (Chat)"><ChatChip chat={order.buyer.chat} onOpen={onOpenChat} /></InfoRow>}
                             <InfoRow label="ข้อความจากผู้ซื้อ (Note)">{order.buyer.note}</InfoRow>
                             <InfoRow label="ผู้รับ (Name)">{order.recipient.name}</InfoRow>
                             <InfoRow label="เบอร์โทร (Phone)">{order.recipient.phone}</InfoRow>
@@ -448,6 +488,7 @@ export default function ShopDataPage({ platform }) {
     const [tab, setTab] = useState('orders');
     const [detailId, setDetailId] = useState(null);
     const showBuyer = BUYER_CHAT_PLATFORMS.includes(platform);
+    const [chat, setChat] = useState(null);
 
     const orders = usePagedList((id, token, filters) => shopOrdersApi(platform, id, token, filters), 'orders');
     const products = usePagedList((id, token, filters) => shopProductsApi(platform, id, token, filters), 'products');
@@ -550,7 +591,7 @@ export default function ShopDataPage({ platform }) {
                                         <tr key={o.id} onClick={() => setDetailId(o.id)} style={{ cursor: 'pointer' }} title="ดูรายละเอียด (View detail)">
                                             <td><IdCell id={o.id} /></td>
                                             <td><StatusChip status={o.status} /></td>
-                                            {showBuyer && <td><BuyerCell buyer={o.buyer} /></td>}
+                                            {showBuyer && <td><BuyerCell buyer={o.buyer} onOpenChat={setChat} /></td>}
                                             <td><OrderItems items={o.items} /></td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <Typography level="body-sm" fontWeight="lg">{formatMoney(o.total_amount, o.currency)}</Typography>
@@ -605,7 +646,8 @@ export default function ShopDataPage({ platform }) {
                     </Tabs>
                 )}
             </Box>
-            <OrderDetailDrawer platform={platform} accountId={accountId} orderId={detailId} onClose={() => setDetailId(null)} />
+            <OrderDetailDrawer platform={platform} accountId={accountId} orderId={detailId} onClose={() => setDetailId(null)} onOpenChat={setChat} />
+            <ChatHistoryModal chat={chat} onClose={() => setChat(null)} />
         </Sheet>
     );
 }

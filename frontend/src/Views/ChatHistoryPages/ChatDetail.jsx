@@ -46,61 +46,51 @@ const dateLabel = (date) =>
 
 const timeLabel = (date) => date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
-export default function ChatDetail() {
+/** โหลดประวัติแชทของลูกค้า — ใช้ทั้งหน้านี้และ modal ประวัติแชท (เช่น หน้า Shopee Shop) */
+export function useChatHistory(custId) {
     const [loading, setLoading] = useState(true);
     const [customer, setCustomer] = useState({});
     const [messages, setMessages] = useState([]);
     const [currentRate, setCurrentRate] = useState({});
-    const [openCreateCase, setOpenCreateCase] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState(null);
-
-    const { custId } = useParams();
-    const navigate = useNavigate();
-    const bottomRef = useRef(null);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const { data } = await axiosClient.post(`/chatHistory/${custId}`);
+        if (!custId) return;
+        let active = true;
+        setLoading(true);
+        setCustomer({});
+        setMessages([]);
+        setCurrentRate({});
+        axiosClient.post(`/chatHistory/${custId}`)
+            .then(({ data }) => {
+                if (!active) return;
                 setCustomer(data.data.customer ?? {});
                 setMessages(data.data.chatHistory ?? []);
                 setCurrentRate(data.data.current_rate ?? {});
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+            })
+            .catch((error) => console.error('Error fetching data:', error))
+            .finally(() => active && setLoading(false));
+        return () => { active = false; };
     }, [custId]);
 
-    // เปิดหน้ามาให้เห็นข้อความล่าสุดก่อน
-    useEffect(() => {
-        if (!loading) bottomRef.current?.scrollIntoView({ block: 'end' });
-    }, [loading]);
+    return { loading, customer, messages, currentRate };
+}
 
-    // เตรียมข้อมูลสำหรับแสดงผล: วันที่ใหม่ → ตัวคั่นวันที่, ข้อความติดกันจากคนเดิม → รวมกลุ่ม
-    const rows = useMemo(() => {
-        let prev = null;
-        return messages.map((message) => {
-            const sender = parseSender(message.sender);
-            const date = new Date(message.created_at);
-            const key = senderKey(sender);
-            const newDay = !prev || prev.date.toDateString() !== date.toDateString();
-            const grouped = !newDay && prev.key === key && date - prev.date < GROUP_GAP_MS;
-            prev = { date, key };
-            return { message, sender, role: senderRole(sender), date, newDay, grouped };
-        });
-    }, [messages]);
+export const chatStatusChip = (currentRate) => STATUS_CHIP[currentRate?.status];
 
-    const status = STATUS_CHIP[currentRate?.status];
+export default function ChatDetail() {
+    const [openCreateCase, setOpenCreateCase] = useState(false);
+
+    const { custId } = useParams();
+    const navigate = useNavigate();
+    const { loading, customer, messages, currentRate } = useChatHistory(custId);
+
+    const status = chatStatusChip(currentRate);
 
     return (
         <>
             {openCreateCase && (
                 <CreateCase open={openCreateCase} setOpen={setOpenCreateCase} custId={custId} tokenId={customer?.platformRef} />
             )}
-            {previewUrl && <ChatMediaPreview open={!!previewUrl} setOpen={() => setPreviewUrl(null)} url={previewUrl} />}
 
             {/* มือถือ: เว้นที่ให้ Navbar ที่ fixed อยู่ด้านบน (เหมือนหน้า ChatHistory/MessagePane) */}
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', width: '100%', minWidth: 0, pt: { xs: 'var(--Header-height)', md: 0 }, bgcolor: 'background.level1' }}>
@@ -152,29 +142,58 @@ export default function ChatDetail() {
                     </IconButton>
                 </Sheet>
 
-                {/* ส่วนแสดงข้อความ */}
-                <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', bgcolor: LINE.chatBg }}>
-                    {loading ? (
-                        <Box sx={CenterStyle}><CircularProgress sx={{ '--CircularProgress-progressColor': LINE.sent }} /></Box>
-                    ) : rows.length === 0 ? (
-                        <Box sx={CenterStyle}>
-                            <ChatBubbleOutline sx={{ fontSize: 40, color: LINE.meta }} />
-                            <Typography level="body-md" sx={{ color: LINE.meta }}>ยังไม่มีประวัติการสนทนา</Typography>
-                        </Box>
-                    ) : (
-                        <Box sx={{ maxWidth: 820, mx: 'auto', px: { xs: 1, sm: 3 }, pt: 2, pb: 'calc(16px + env(safe-area-inset-bottom))' }}>
-                            {rows.map((row, index) => (
-                                <Box key={row.message.id ?? index}>
-                                    {row.newDay && <DateSeparator date={row.date} />}
-                                    <MessageRow row={row} onPreview={setPreviewUrl} />
-                                </Box>
-                            ))}
-                            <div ref={bottomRef} />
-                        </Box>
-                    )}
-                </Box>
+                <ChatMessages loading={loading} messages={messages} />
             </Box>
         </>
+    );
+}
+
+/** ส่วนแสดงข้อความแบบ LINE (ยืดเต็มพื้นที่ที่เหลือและเลื่อนในตัว) */
+export function ChatMessages({ loading, messages }) {
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const bottomRef = useRef(null);
+
+    // เปิดมาให้เห็นข้อความล่าสุดก่อน
+    useEffect(() => {
+        if (!loading) bottomRef.current?.scrollIntoView({ block: 'end' });
+    }, [loading]);
+
+    // เตรียมข้อมูลสำหรับแสดงผล: วันที่ใหม่ → ตัวคั่นวันที่, ข้อความติดกันจากคนเดิม → รวมกลุ่ม
+    const rows = useMemo(() => {
+        let prev = null;
+        return messages.map((message) => {
+            const sender = parseSender(message.sender);
+            const date = new Date(message.created_at);
+            const key = senderKey(sender);
+            const newDay = !prev || prev.date.toDateString() !== date.toDateString();
+            const grouped = !newDay && prev.key === key && date - prev.date < GROUP_GAP_MS;
+            prev = { date, key };
+            return { message, sender, role: senderRole(sender), date, newDay, grouped };
+        });
+    }, [messages]);
+
+    return (
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', bgcolor: LINE.chatBg }}>
+            {previewUrl && <ChatMediaPreview open={!!previewUrl} setOpen={() => setPreviewUrl(null)} url={previewUrl} />}
+            {loading ? (
+                <Box sx={CenterStyle}><CircularProgress sx={{ '--CircularProgress-progressColor': LINE.sent }} /></Box>
+            ) : rows.length === 0 ? (
+                <Box sx={CenterStyle}>
+                    <ChatBubbleOutline sx={{ fontSize: 40, color: LINE.meta }} />
+                    <Typography level="body-md" sx={{ color: LINE.meta }}>ยังไม่มีประวัติการสนทนา</Typography>
+                </Box>
+            ) : (
+                <Box sx={{ maxWidth: 820, mx: 'auto', px: { xs: 1, sm: 3 }, pt: 2, pb: 'calc(16px + env(safe-area-inset-bottom))' }}>
+                    {rows.map((row, index) => (
+                        <Box key={row.message.id ?? index}>
+                            {row.newDay && <DateSeparator date={row.date} />}
+                            <MessageRow row={row} onPreview={setPreviewUrl} />
+                        </Box>
+                    ))}
+                    <div ref={bottomRef} />
+                </Box>
+            )}
+        </Box>
     );
 }
 

@@ -150,7 +150,8 @@ class SyncLazadaOrders extends Command
     private function refreshAccessTokenIfNeeded($platform, int $days = 3)
     {
         $expiredAt = $platform->expire_at ?? null;
-        if (!$expiredAt || Carbon::parse($expiredAt)->diffInDays(Carbon::now()) <= $days) {
+        // ต่ออายุเมื่อเหลือไม่ถึง $days วัน (diffInDays ของ Carbon 3 ติดลบเมื่อยังไม่หมดอายุ เงื่อนไขเดิมจึงต่ออายุทุกครั้งที่รัน)
+        if (!$expiredAt || Carbon::parse($expiredAt)->lt(Carbon::now()->addDays($days))) {
             $refreshToken = $platform->laz_refresh_token ?? null;
             if ($refreshToken) {
                 $timestamp = round(microtime(true) * 1000);
@@ -173,7 +174,7 @@ class SyncLazadaOrders extends Command
                     $data = $response->json();
                     if (isset($data['access_token'])) {
                         $platform->accessToken = $data['access_token'];
-                        $platform->laz_refresh_token = $data['refresh_token'];
+                        $platform->laz_refresh_token = $data['refresh_token'] ?? $refreshToken;
                         $platform->expire_at = now()->addSeconds($data['expires_in']);
                         $platform->save();
                         $this->info("🔄 Refresh Token สำเร็จ!");

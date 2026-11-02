@@ -319,6 +319,8 @@ class PlatformTokenController extends Controller
                     'laz_app_key'    => $appKey,
                     'laz_app_secret' => $appSecret,
                     'laz_seller_id'  => $sellerId,
+                    // ต้องเก็บ refresh token ชุดใหม่ด้วย ไม่งั้นแถวเดิมยังถือตัวเก่าที่ใช้ไม่ได้ แล้วต่ออายุเองไม่ได้เมื่อ access token หมด
+                    'laz_refresh_token' => $resp['refresh_token'] ?? null,
                     'expire_at'      => Carbon::now()->addSeconds($resp['expires_in'] ?? 0),
                 ]
             );

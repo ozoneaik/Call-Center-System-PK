@@ -844,10 +844,8 @@ class NewLazadaController extends Controller
                 return $platform;
             }
 
-            $expiryDate = Carbon::parse($expiredAt);
-            $now = Carbon::now();
-
-            if ($expiryDate->diffInDays($now) <= $days) {
+            // ต่ออายุเมื่อเหลือไม่ถึง $days วัน (diffInDays ของ Carbon 3 ติดลบเมื่อยังไม่หมดอายุ เงื่อนไขเดิมจึงต่ออายุทุกข้อความ)
+            if (Carbon::parse($expiredAt)->lt(Carbon::now()->addDays($days))) {
                 $refreshToken = $platform['laz_refresh_token'] ?? null;
                 if (!$refreshToken) {
                     Log::channel('webhook_lazada_new')->warning("⚠️ ไม่มี laz_refresh_token สำหรับ platform {$platform['id']}");
