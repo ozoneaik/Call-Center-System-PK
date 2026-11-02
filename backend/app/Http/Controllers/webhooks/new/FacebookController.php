@@ -120,6 +120,16 @@ class FacebookController extends Controller
         $customer = Customers::query()->where('custId', $sender_id)->first();
         if ($customer) {
             $platform = PlatformAccessTokens::query()->where('id', $customer['platformRef'])->first();
+            // ลูกค้าเก่าที่ยังไม่มีชื่อจริง ลองดึงชื่อจาก Facebook อีกครั้ง
+            if ($platform && str_starts_with($customer['custName'], 'ผู้ใช้ รหัส')) {
+                $profile = $this->get_profile($sender_id, $platform['accessToken']);
+                if ($profile) {
+                    $customer->update([
+                        'custName' => $profile['name'],
+                        'avatar' => $profile['avatar'] ?? $customer['avatar'],
+                    ]);
+                }
+            }
             return [
                 'customer' => $customer,
                 'platform_access_token' => $platform
@@ -136,11 +146,12 @@ class FacebookController extends Controller
                     'access_token' => $platform['accessToken']
                 ]);
                 if ($response->successful() && $response->status() === 200) {
+                    $profile = $this->get_profile($sender_id, $platform['accessToken']);
                     $new_customer = Customers::query()->create([
                         'custId' => $sender_id,
-                        'custName' => "ผู้ใช้ รหัส $sender_id",
+                        'custName' => $profile['name'] ?? "ผู้ใช้ รหัส $sender_id",
                         'description' => 'ติดต่อมาจากเพจ Facebook ' . $platform['description'],
-                        'avatar' => null,
+                        'avatar' => $profile['avatar'] ?? null,
                         'platformRef' => $platform['id']
                     ]);
                     return [
@@ -154,6 +165,33 @@ class FacebookController extends Controller
             return null;
         }
         return null;
+    }
+
+    // ดึงชื่อและรูปโปรไฟล์ลูกค้าจาก Facebook (User Profile API)
+    private function get_profile($sender_id, $access_token)
+    {
+        try {
+            $response = Http::timeout(10)->get("https://graph.facebook.com/v23.0/$sender_id", [
+                'fields' => 'first_name,last_name,profile_pic',
+                'access_token' => $access_token,
+            ]);
+            if (!$response->successful()) {
+                Log::channel('webhook_facebook_new')->warning('ดึงโปรไฟล์ลูกค้าไม่สำเร็จ ' . $response->body());
+                return null;
+            }
+            $data = $response->json();
+            $name = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+            if ($name === '') {
+                return null;
+            }
+            return [
+                'name' => $name,
+                'avatar' => $data['profile_pic'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            Log::channel('webhook_facebook_new')->warning('ดึงโปรไฟล์ลูกค้าไม่สำเร็จ ' . $e->getMessage());
+            return null;
+        }
     }
 
     private function check_platform($page_id)
