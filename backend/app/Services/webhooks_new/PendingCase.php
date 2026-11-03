@@ -139,6 +139,23 @@ class PendingCase
 
             $ac_latest->update(['is_send_q' => true]);
 
+            // ลูกค้าจาก Facebook ไม่ต้องส่งคิวไปหาลูกค้า
+            if (($platformAccessToken['platform'] ?? null) === 'facebook') {
+                Log::channel('webhook_main')->info("❌ ข้ามการส่งคิว (Facebook)", [
+                    'ac_id' => $ac_latest->id,
+                    'custId' => $current_rate['custId'],
+                ]);
+                return [
+                    'status' => true,
+                    'send_to_cust' => false,
+                    'customer' => $customer,
+                    'ac_id' => $ac_latest['id'],
+                    'platform_access_token' => $platformAccessToken,
+                    'reply_token' => $message['reply_token'],
+                    'bot' => $BOT
+                ];
+            }
+
             // นอกเวลาทำการ ไม่ต้องส่งคิวไปหาลูกค้า
             if ($this->isOutOfBusinessHours()) {
                 Log::channel('webhook_main')->info("❌ ข้ามการส่งคิว (นอกเวลาทำการ)", [
