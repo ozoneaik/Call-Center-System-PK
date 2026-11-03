@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\webhooks\new;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActiveConversations;
 use App\Models\BotMenu;
 use App\Models\ChatHistory;
 use App\Models\Customers;
 use App\Models\PlatformAccessTokens;
+use App\Models\Rates;
 use App\Services\PusherService;
 use App\Services\webhooks_new\FilterCase;
 use Illuminate\Http\Request;
@@ -19,6 +21,8 @@ class FacebookController extends Controller
     protected $start_log_line = '--------------------------------------------------🌞 เริ่มรับ webhook--------------------------------------------------';
     protected $end_log_line = '---------------------------------------------------🌚 สิ้นสุดรับ webhook---------------------------------------------------';
     protected FilterCase $filterCase;
+    // App ID ของ Pumpkin App chat ใช้แยก echo ที่ระบบเราส่งเอง
+    protected $app_id = '1426242255189336';
 
     public function __construct(FilterCase $filterCase)
     {
@@ -56,6 +60,11 @@ class FacebookController extends Controller
                     throw new \Exception($check_platform['message']);
                 }
                 foreach ($messagings as $key => $messaging) {
+                    // ข้อความที่เพจส่งออกไป (message_echoes)
+                    if (!empty($messaging['message']['is_echo'])) {
+                        $this->handle_echo($messaging);
+                        continue;
+                    }
                     $sender_is_page = $this->checkSender($messaging['sender']['id']);
                     if ($sender_is_page) {
                         throw new \Exception('ผู้ส่งเป็น page ส่งเอง');
@@ -99,6 +108,59 @@ class FacebookController extends Controller
         return response()->json([
             'message' => 'ตอบกลับ webhook สําเร็จ',
         ], 200);
+    }
+
+    // บันทึกข้อความที่พนักงานตอบจากหลังบ้าน Facebook (Business Suite / Inbox) เข้าระบบ
+    private function handle_echo($messaging)
+    {
+        $message = $messaging['message'];
+        // ข้อความที่ระบบเราส่งเองผ่าน Send API บันทึกไว้แล้วใน reply_push_message
+        if (isset($message['app_id']) && (string) $message['app_id'] === $this->app_id) {
+            return;
+        }
+
+        $cust_id = $messaging['recipient']['id'];
+        // แนบเข้าเคสล่าสุดเสมอ แม้เคสจะปิดไปแล้ว (ไม่เปิดเคสใหม่)
+        $current_rate = Rates::query()->where('custId', $cust_id)->orderBy('id', 'desc')->first();
+        if (!$current_rate) {
+            Log::channel('webhook_facebook_new')->info("ข้าม echo ลูกค้า $cust_id ยังไม่เคยมีเคสในระบบ");
+            return;
+        }
+        $ac_latest = ActiveConversations::query()->where('rateRef', $current_rate['id'])
+            ->orderBy('id', 'desc')->first();
+        if (!$ac_latest) {
+            Log::channel('webhook_facebook_new')->info("ข้าม echo ลูกค้า $cust_id ไม่พบ active conversation");
+            return;
+        }
+
+        $sender = [
+            'empCode' => 'FB_PAGE',
+            'name' => 'ตอบจากหลังบ้าน Facebook',
+            'avatar' => null,
+        ];
+        $contents = [];
+        if (isset($message['text'])) {
+            $contents[] = $this->format_message($message, $message['mid']);
+        } elseif (isset($message['attachments'])) {
+            foreach ($message['attachments'] as $attachment) {
+                $contents[] = $this->format_message($attachment, $message['mid']);
+            }
+        }
+        foreach ($contents as $content) {
+            ChatHistory::query()->create([
+                'custId' => $cust_id,
+                'content' => $content['content'],
+                'contentType' => $content['contentType'],
+                'sender' => json_encode($sender, JSON_UNESCAPED_UNICODE),
+                'conversationRef' => $ac_latest['id'],
+                'line_message_id' => null,
+                'line_quote_token' => null,
+                'line_quoted_message_id' => null,
+            ]);
+        }
+        if ($contents) {
+            (new PusherService())->sendNotification($cust_id);
+        }
     }
 
     // เช็คว่า ผู้ส่งเป็นเพจหรือลูกค้า
