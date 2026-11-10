@@ -16,6 +16,10 @@ import GenerateContextModal from "./GenerateContextModal.jsx";
 import duragearsLogo from "../../../assets/watermarks/duragears-logo.png";
 import texusbullLogo from "../../../assets/watermarks/texusbull.png";
 import pumpkinLogo from "../../../assets/watermarks/pumpkin.png";
+import mrdrillLogo from "../../../assets/watermarks/mrdrill.jpg";
+import smartCarLogo from "../../../assets/watermarks/SmartCar.png";
+import smartElectricianLogo from "../../../assets/watermarks/smartElectrician.jpg";
+import japanLogo from "../../../assets/watermarks/japanLogo.png";
 import { useMediaQuery } from "@mui/material";
 
 const dayKeyOf = (date) => {
@@ -52,8 +56,32 @@ const SHOP_ROOM_COLOR_RULES = [
     {
         color: '#cf2e2e',
         platforms: ['shopee', 'lazada'],
-        shopNames: ['Duragears', 'MR. Drill', 'คาร์ การช่าง', 'Smart Electrician', 'JAPAN TOOLS'],
+        shopNames: ['Duragears'],
         watermark: duragearsLogo,
+    },
+    {
+        color: '#d70208',
+        platforms: ['shopee', 'lazada'],
+        shopNames: ['JAPAN TOOLS'],
+        watermark: japanLogo,
+    },
+    {
+        color: '#9d202e',
+        platforms: ['shopee', 'lazada'],
+        shopNames: ['Smart Electrician'],
+        watermark: smartElectricianLogo,
+    },
+    {
+        color: '#ff7f32',
+        platforms: ['shopee', 'lazada'],
+        shopNames: ['คาร์ การช่าง'],
+        watermark: smartCarLogo,
+    },
+    {
+        color: '#fab917',
+        platforms: ['shopee', 'lazada'],
+        shopNames: ['MR. Drill'],
+        watermark: mrdrillLogo,
     },
     {
         color: '#00008b', // น้ำเงินเข้ม
